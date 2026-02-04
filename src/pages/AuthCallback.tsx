@@ -19,17 +19,27 @@ export default function AuthCallback() {
   const [status, setStatus] = useState('Signing you in...');
 
   useEffect(() => {
+    // Parse query params
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const errorParam = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
 
     // Check both query params and hash fragment for access_token
+    // Backend may redirect with token in either location
     let accessToken = searchParams.get('access_token');
     if (!accessToken && window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       accessToken = hashParams.get('access_token');
+      console.log('[AuthCallback] Found access_token in hash fragment');
     }
-    const errorDescription = searchParams.get('error_description');
+
+    console.log('[AuthCallback] Params:', { 
+      hasCode: !!code, 
+      hasAccessToken: !!accessToken, 
+      hasError: !!errorParam,
+      hash: window.location.hash ? 'present' : 'none'
+    });
 
     if (errorParam) {
       const message = errorDescription || errorParam;
@@ -43,18 +53,22 @@ export default function AuthCallback() {
       return;
     }
 
-    // Handle direct token from backend redirect
+    // Handle direct token from backend redirect (either query param or hash)
     if (accessToken) {
       handleDirectToken(accessToken);
       return;
     }
 
+    // Handle OAuth code exchange flow
     if (code) {
       exchangeCodeForToken(code, state || undefined);
-    } else {
-      setError('No authorization code received');
-      setTimeout(() => navigate('/auth'), 3000);
+      return;
     }
+    
+    // No valid auth params found
+    console.error('[AuthCallback] No code or access_token found in URL');
+    setError('No authorization code received');
+    setTimeout(() => navigate('/auth'), 3000);
   }, [searchParams]);
 
   const handleDirectToken = async (token: string) => {
