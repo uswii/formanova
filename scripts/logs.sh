@@ -33,11 +33,20 @@ if command -v pm2 &> /dev/null; then
     fi
 fi
 
+# Try journalctl for system service first
+if command -v journalctl &> /dev/null; then
+    for svc in "${SERVICE_NAME}" "formanova-frontend"; do
+        if sudo systemctl list-unit-files 2>/dev/null | grep -q "${svc}.service"; then
+            echo -e "Showing logs for ${svc}.service..."
+            sudo journalctl -u ${svc}.service -f
+            exit 0
+        fi
+    done
+fi
+
 # Fallback to file logs
 if [ -f "$LOG_DIR/formanova.log" ]; then
     tail -f "$LOG_DIR/formanova.log"
-elif command -v journalctl &> /dev/null; then
-    sudo journalctl -u ${SERVICE_NAME}.service -f
 else
     echo "No logs found. Is the service running?"
     echo "Check: ./scripts/status.sh"

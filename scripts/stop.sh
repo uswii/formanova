@@ -26,25 +26,17 @@ echo -e "${YELLOW}Stopping FormaNova...${NC}"
 
 STOPPED=false
 
-# Try systemd (user service first)
+# Try systemd (system-level services)
 if command -v systemctl &> /dev/null; then
-    # User service
-    if systemctl --user list-unit-files 2>/dev/null | grep -q "formanova-frontend.service"; then
-        systemctl --user stop formanova-frontend.service 2>/dev/null
-        if ! systemctl --user is-active --quiet formanova-frontend.service 2>/dev/null; then
-            echo -e "${GREEN}✓ Stopped systemd user service${NC}"
-            STOPPED=true
+    for svc in "${SERVICE_NAME}" "formanova-frontend"; do
+        if sudo systemctl list-unit-files 2>/dev/null | grep -q "${svc}.service"; then
+            sudo systemctl stop ${svc}.service 2>/dev/null
+            if ! sudo systemctl is-active --quiet ${svc}.service 2>/dev/null; then
+                echo -e "${GREEN}✓ Stopped systemd service (${svc})${NC}"
+                STOPPED=true
+            fi
         fi
-    fi
-    
-    # System service
-    if sudo systemctl list-unit-files 2>/dev/null | grep -q "${SERVICE_NAME}.service"; then
-        sudo systemctl stop ${SERVICE_NAME}.service 2>/dev/null
-        if ! sudo systemctl is-active --quiet ${SERVICE_NAME}.service 2>/dev/null; then
-            echo -e "${GREEN}✓ Stopped systemd service${NC}"
-            STOPPED=true
-        fi
-    fi
+    done
 fi
 
 # Try PM2
