@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Auth service URL from environment
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'https://interastral-joie-untough.ngrok-free.dev';
+// Auth service URL from environment (no fallback - must be configured)
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [

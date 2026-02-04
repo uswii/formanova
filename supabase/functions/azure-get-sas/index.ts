@@ -9,8 +9,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080',
 ];
 
-// Auth service for token validation
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'http://20.157.122.64:8002';
+// Auth service for token validation (no fallback - must be configured)
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';

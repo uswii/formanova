@@ -21,10 +21,11 @@ function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
-const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
-const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
-const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'https://formanova-image-api.loca.lt').replace(/\/+$/, '');
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'https://interastral-joie-untough.ngrok-free.dev';
+// All URLs from environment (no fallbacks - must be configured)
+const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || '').replace(/\/+$/, '');
+const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || '').replace(/\/+$/, '');
+const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || '').replace(/\/+$/, '');
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
 
 const tunnelHeaders = {
   'Bypass-Tunnel-Reminder': 'true',

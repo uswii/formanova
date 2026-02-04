@@ -21,9 +21,9 @@ function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
-// A100 server endpoint
-const A100_URL = (Deno.env.get('A100_JEWELRY_URL') || 'http://48.214.48.103:8000').replace(/\/+$/, '');
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'http://20.157.122.64:8002';
+// All URLs from environment (no fallbacks - must be configured)
+const A100_URL = (Deno.env.get('A100_JEWELRY_URL') || '').replace(/\/+$/, '');
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL');
 
 const JEWELRY_TYPE_MAP: Record<string, string> = {
   'rings': 'ring', 'bracelets': 'bracelet', 'earrings': 'earring',
