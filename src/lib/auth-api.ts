@@ -78,7 +78,12 @@ class AuthApi {
     console.log('[Auth] Starting Google OAuth via proxy...');
     
     try {
-      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/authorize`);
+      // Pass the current origin so backend knows where to redirect back
+      const frontendCallbackUrl = `${window.location.origin}/auth/callback`;
+      const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
+      
+      console.log('[Auth] Requesting OAuth with callback:', frontendCallbackUrl);
+      const response = await fetch(url);
       const data = await response.json();
       
       const redirectUrl = data.redirect_url || data.authorization_url;
