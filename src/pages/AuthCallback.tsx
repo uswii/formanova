@@ -21,8 +21,14 @@ export default function AuthCallback() {
   useEffect(() => {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
-    const accessToken = searchParams.get('access_token');
     const errorParam = searchParams.get('error');
+
+    // Check both query params and hash fragment for access_token
+    let accessToken = searchParams.get('access_token');
+    if (!accessToken && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      accessToken = hashParams.get('access_token');
+    }
     const errorDescription = searchParams.get('error_description');
 
     if (errorParam) {
