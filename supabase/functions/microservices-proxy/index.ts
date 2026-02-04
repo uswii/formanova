@@ -21,10 +21,10 @@ function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
-const IMAGE_MANIPULATOR_URL = 'http://20.106.235.80:8005';
-const BIREFNET_URL = 'https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run';
-const SAM3_URL = 'https://nemoooooooooo--sam3-service-fastapi-app.modal.run';
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+const IMAGE_MANIPULATOR_URL = Deno.env.get('IMAGE_MANIPULATOR_URL') || 'http://20.106.235.80:8005';
+const BIREFNET_URL = Deno.env.get('BIREFNET_URL') || 'https://nemoooooooooo--bg-remove-service-fastapi-app.modal.run';
+const SAM3_URL = Deno.env.get('SAM3_URL') || 'https://nemoooooooooo--sam3-service-fastapi-app.modal.run';
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'http://20.157.122.64:8002';
 
 async function authenticateRequest(req: Request, corsHeaders: Record<string, string>): Promise<{ userId: string } | { error: Response }> {
   const userToken = req.headers.get('X-User-Token');

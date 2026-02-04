@@ -4,7 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // This is the unified API handling all jewelry types: necklace, ring, bracelet, earring, watch
 const A100_BASE_URL = (Deno.env.get("A100_STANDALONE_URL") || "http://48.214.48.103:8000").replace(/\/+$/, '');
 // Auth service for token validation
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'http://20.157.122.64:8002';
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [

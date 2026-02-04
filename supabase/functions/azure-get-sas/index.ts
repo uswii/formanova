@@ -9,8 +9,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080',
 ];
 
-// Auth service for token validation (consistent with other edge functions)
-const AUTH_SERVICE_URL = 'http://20.157.122.64:8002';
+// Auth service for token validation
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'http://20.157.122.64:8002';
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';
