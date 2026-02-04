@@ -24,7 +24,7 @@ function getCorsHeaders(req: Request): Record<string, string> {
 const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
 const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || 'https://formanova-temporal-api.loca.lt').replace(/\/+$/, '');
 const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || 'https://formanova-image-api.loca.lt').replace(/\/+$/, '');
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'http://20.157.122.64:8002';
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'https://interastral-joie-untough.ngrok-free.dev';
 
 const tunnelHeaders = {
   'Bypass-Tunnel-Reminder': 'true',

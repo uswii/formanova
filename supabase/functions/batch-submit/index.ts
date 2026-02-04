@@ -49,7 +49,7 @@ const BatchSubmitRequestSchema = z.object({
 });
 
 // Auth service URL from environment
-const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'http://20.157.122.64:8002';
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'https://interastral-joie-untough.ngrok-free.dev';
 
 // Azure Blob Storage config
 const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME') || '';
