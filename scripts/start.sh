@@ -43,37 +43,25 @@ if [ ! -d "$PROJECT_DIR/dist" ]; then
     fi
 fi
 
-# Try systemd (user service first, then system)
+# Try systemd (system-level service)
 if command -v systemctl &> /dev/null; then
-    # Try user service
-    if systemctl --user list-unit-files 2>/dev/null | grep -q "formanova-frontend.service"; then
-        systemctl --user start formanova-frontend.service
-        sleep 2
-        if systemctl --user is-active --quiet formanova-frontend.service; then
-            echo -e "${GREEN}✓ Started via systemd (user)${NC}"
-            echo ""
-            echo -e "URL: ${GREEN}http://0.0.0.0:$PORT${NC}"
-            echo -e "     ${GREEN}http://$(hostname -I 2>/dev/null | awk '{print $1}'):$PORT${NC}"
-            echo ""
-            echo -e "Logs: ${YELLOW}journalctl --user -u formanova-frontend -f${NC}"
-            exit 0
+    # Check for system service (formanova or formanova-frontend)
+    for svc in "${SERVICE_NAME}" "formanova-frontend"; do
+        if sudo systemctl list-unit-files 2>/dev/null | grep -q "${svc}.service"; then
+            sudo systemctl start ${svc}.service
+            sleep 2
+            if sudo systemctl is-active --quiet ${svc}.service; then
+                echo -e "${GREEN}✓ Started via systemd (${svc})${NC}"
+                echo ""
+                echo -e "URL: ${GREEN}http://0.0.0.0:$PORT${NC}"
+                echo -e "     ${GREEN}http://$(hostname -I 2>/dev/null | awk '{print $1}'):$PORT${NC}"
+                echo ""
+                echo -e "Logs: ${YELLOW}sudo journalctl -u ${svc} -f${NC}"
+                echo -e "      ${YELLOW}tail -f $LOG_DIR/formanova.log${NC}"
+                exit 0
+            fi
         fi
-    fi
-    
-    # Try system service
-    if sudo systemctl list-unit-files 2>/dev/null | grep -q "${SERVICE_NAME}.service"; then
-        sudo systemctl start ${SERVICE_NAME}.service
-        sleep 2
-        if sudo systemctl is-active --quiet ${SERVICE_NAME}.service; then
-            echo -e "${GREEN}✓ Started via systemd${NC}"
-            echo ""
-            echo -e "URL: ${GREEN}http://0.0.0.0:$PORT${NC}"
-            echo -e "     ${GREEN}http://$(hostname -I 2>/dev/null | awk '{print $1}'):$PORT${NC}"
-            echo ""
-            echo -e "Logs: ${YELLOW}tail -f $LOG_DIR/formanova.log${NC}"
-            exit 0
-        fi
-    fi
+    done
 fi
 
 # Try PM2

@@ -20,10 +20,10 @@ echo ""
 
 echo ""
 
-# Restart auth service if available
+# Restart auth service if available (system-level)
 echo -e "${YELLOW}Restarting auth service...${NC}"
-if systemctl --user list-unit-files 2>/dev/null | grep -q "formanova-auth.service"; then
-    systemctl --user restart formanova-auth.service 2>/dev/null && \
+if sudo systemctl list-unit-files 2>/dev/null | grep -q "formanova-auth.service"; then
+    sudo systemctl restart formanova-auth.service 2>/dev/null && \
         echo -e "${GREEN}✓ Auth service restarted${NC}" || \
         echo -e "${YELLOW}⚠ Auth service restart skipped${NC}"
 else

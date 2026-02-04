@@ -1,16 +1,20 @@
 [Unit]
-Description=FormaNova Frontend (serve)
+Description=FormaNova Frontend Server
 After=network.target
+Wants=network-online.target
 
 [Service]
 Type=simple
+# User will be set dynamically by setup.sh
+User=uswa
 WorkingDirectory=/home/uswa/Formanova-frontend/Formanova_lovable_demo
-ExecStart=/usr/bin/npx serve -s dist -l tcp://0.0.0.0:8010
+ExecStart=/home/uswa/Formanova-frontend/Formanova_lovable_demo/node_modules/.bin/serve -s dist -l tcp://0.0.0.0:8010
 Restart=always
-RestartSec=5
+RestartSec=10
 StandardOutput=append:/home/uswa/Formanova-frontend/Formanova_lovable_demo/logs/formanova.log
 StandardError=append:/home/uswa/Formanova-frontend/Formanova_lovable_demo/logs/formanova-error.log
 Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
