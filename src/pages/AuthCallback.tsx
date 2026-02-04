@@ -19,6 +19,11 @@ export default function AuthCallback() {
   const [status, setStatus] = useState('Signing you in...');
 
   useEffect(() => {
+    // DEBUG: Log full URL info immediately
+    console.log('[AuthCallback] Full URL:', window.location.href);
+    console.log('[AuthCallback] Hash:', window.location.hash);
+    console.log('[AuthCallback] Search:', window.location.search);
+    
     // Parse query params
     const code = searchParams.get('code');
     const state = searchParams.get('state');
@@ -28,17 +33,24 @@ export default function AuthCallback() {
     // Check both query params and hash fragment for access_token
     // Backend may redirect with token in either location
     let accessToken = searchParams.get('access_token');
+    
+    // Also check hash fragment (OAuth implicit flow uses this)
     if (!accessToken && window.location.hash) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashString = window.location.hash.substring(1); // Remove leading #
+      console.log('[AuthCallback] Parsing hash fragment:', hashString.substring(0, 50) + '...');
+      const hashParams = new URLSearchParams(hashString);
       accessToken = hashParams.get('access_token');
-      console.log('[AuthCallback] Found access_token in hash fragment');
+      if (accessToken) {
+        console.log('[AuthCallback] Found access_token in hash fragment, length:', accessToken.length);
+      }
     }
 
     console.log('[AuthCallback] Params:', { 
       hasCode: !!code, 
       hasAccessToken: !!accessToken, 
       hasError: !!errorParam,
-      hash: window.location.hash ? 'present' : 'none'
+      hash: window.location.hash ? 'present' : 'none',
+      hashLength: window.location.hash.length
     });
 
     if (errorParam) {
