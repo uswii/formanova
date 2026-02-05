@@ -25,7 +25,7 @@ function getCorsHeaders(req: Request): Record<string, string> {
 // SERVICE URLs — Edit these directly when endpoints change
 // No Cloud secrets needed for URLs anymore
 // ═══════════════════════════════════════════════════════════════
-const TEMPORAL_URL = 'http://20.173.91.22:8005';                                                 // Temporal/DAG gateway
+const TEMPORAL_URL = 'http://20.157.122.64:8005';                                                 // Temporal/DAG gateway
 const STANDALONE_URL = 'http://48.214.48.103:8000';                                              // A100 standalone server
 const DIRECT_API_URL = 'http://48.214.48.103:8000';                                              // A100 jewelry direct API
 const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';                      // Auth service (ngrok → 20.157.122.64:8002)
