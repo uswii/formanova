@@ -21,8 +21,10 @@ function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
-// Auth service for token validation (no fallback - must be configured)
-const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
+// ═══════════════════════════════════════════════════════════════
+// SERVICE URLs — Edit these directly when endpoints change
+// ═══════════════════════════════════════════════════════════════
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';  // Auth service (ngrok → 20.157.122.64:8002)
 
 // Authentication helper - validates token against custom FastAPI auth service
 // Uses X-User-Token header (not Authorization, which Supabase intercepts)

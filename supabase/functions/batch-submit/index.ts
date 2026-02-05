@@ -48,8 +48,11 @@ const BatchSubmitRequestSchema = z.object({
   notification_email: z.string().email().max(255).optional(),
 });
 
-// Auth service URL from environment (no fallback - must be configured)
-const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
+// ═══════════════════════════════════════════════════════════════
+// SERVICE URLs — Edit these directly when endpoints change
+// ═══════════════════════════════════════════════════════════════
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';  // Auth service (ngrok → 20.157.122.64:8002)
+const ADMIN_EMAILS = ['your-admin@email.com'];  // Admin notification recipients
 
 // Azure Blob Storage config
 const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME') || '';
@@ -62,7 +65,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 
 // Resend for email notifications
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-const ADMIN_EMAILS = (Deno.env.get('ADMIN_EMAILS') || '').split(',').map(e => e.trim()).filter(Boolean);
+// ADMIN_EMAILS is now hardcoded above in the SERVICE URLs config block
 
 interface BatchImage {
   data_uri: string;

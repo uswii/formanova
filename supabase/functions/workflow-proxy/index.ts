@@ -21,11 +21,14 @@ function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
-// All URLs from environment (no fallbacks - must be configured)
-const TEMPORAL_URL = (Deno.env.get('TEMPORAL_API_URL') || '').trim().replace(/\/+$/, '');
-const STANDALONE_URL = (Deno.env.get('A100_STANDALONE_URL') || '').trim().replace(/\/+$/, '');
-const DIRECT_API_URL = (Deno.env.get('A100_JEWELRY_URL') || '').trim().replace(/\/+$/, '');
-const AUTH_SERVICE_URL = (Deno.env.get('AUTH_SERVICE_URL') || '').trim();
+// ═══════════════════════════════════════════════════════════════
+// SERVICE URLs — Edit these directly when endpoints change
+// No Cloud secrets needed for URLs anymore
+// ═══════════════════════════════════════════════════════════════
+const TEMPORAL_URL = 'http://20.173.91.22:8005';                                                 // Temporal/DAG gateway
+const STANDALONE_URL = 'http://48.214.48.103:8000';                                              // A100 standalone server
+const DIRECT_API_URL = 'http://48.214.48.103:8000';                                              // A100 jewelry direct API
+const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';                      // Auth service (ngrok → 20.157.122.64:8002)
 
 const tunnelHeaders = {
   'Bypass-Tunnel-Reminder': 'true',

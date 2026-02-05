@@ -21,8 +21,10 @@ function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
-// Admin secret from environment variable
-const ADMIN_SECRET = Deno.env.get('ADMIN_SECRET') || 'formanova-admin-2024';
+// ═══════════════════════════════════════════════════════════════
+// CONFIG — Edit these directly when needed
+// ═══════════════════════════════════════════════════════════════
+const ADMIN_SECRET = 'formanova-admin-2024';  // Admin access key
 
 // Simple approach: append SAS token using account key
 async function generateSasUrl(blobUrl: string, accountName: string, accountKey: string): Promise<string> {
