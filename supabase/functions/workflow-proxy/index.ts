@@ -372,7 +372,7 @@ serve(async (req) => {
 
             if (resultResponse.ok) {
               const resultData = await resultResponse.json();
-              const classificationResults = resultData.image_classification;
+              const classificationResults = resultData.image_captioning;
               if (classificationResults && classificationResults.length > 0) {
                 const raw = classificationResults[0];
                 const category = raw.category || raw.label || 'unknown';
