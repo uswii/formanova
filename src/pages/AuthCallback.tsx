@@ -155,7 +155,7 @@ export default function AuthCallback() {
               disabled
             >
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Connecting...
+              Getting your profile...
             </Button>
           )}
         </CardContent>
