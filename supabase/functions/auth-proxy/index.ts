@@ -9,6 +9,8 @@ const AUTH_SERVICE_URL = 'https://formanova.ai/auth';  // Auth service
 const ALLOWED_ORIGINS = [
   'https://formanova.ai',
   'https://www.formanova.ai',
+  'https://formanova.lovable.app',
+  'https://id-preview--d0dca58e-2556-4f62-b433-dc23617837ac.lovable.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:8080',

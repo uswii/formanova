@@ -37,12 +37,17 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
     setLoading(true);
     
     try {
-      // Use edge function proxy (which now routes through ngrok)
-      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/authorize`);
+      // Pass redirect_uri so backend knows where to send the user after Google auth
+      const frontendCallbackUrl = `${window.location.origin}/auth/callback`;
+      const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
+      
+      console.log('[Auth] Requesting OAuth with callback:', frontendCallbackUrl);
+      const response = await fetch(url);
       const data = await response.json();
       
       const redirectUrl = data.redirect_url || data.authorization_url;
       if (redirectUrl) {
+        console.log('[Auth] Redirecting to Google...');
         window.location.href = redirectUrl;
       } else if (data.error) {
         throw new Error(data.error);
