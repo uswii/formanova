@@ -314,108 +314,138 @@ serve(async (req) => {
       try {
         const body = await req.json();
         const imageData = body.data?.image;
-        const temporalPayload = { payload: { image: imageData } };
 
-        console.log('[workflow-proxy] Starting image_classification workflow...');
-        console.log('[workflow-proxy] Image data type:', typeof imageData, imageData ? (typeof imageData === 'object' ? JSON.stringify(Object.keys(imageData)) : String(imageData).substring(0, 100)) : 'null');
+        // ── Try Temporal workflow first ──
+        let temporalSuccess = false;
+        let classificationResult: Record<string, unknown> | null = null;
 
-        const startResponse = await fetch(`${TEMPORAL_URL}/run/image_classification`, {
-          method: 'POST',
-          headers: getTemporalHeaders(auth.userId),
-          body: JSON.stringify(temporalPayload),
-        });
+        try {
+          const temporalPayload = { payload: { image: imageData } };
+          console.log('[workflow-proxy] Starting image_classification workflow...');
 
-        if (!startResponse.ok) {
-          const errorText = await startResponse.text();
-          console.error('[workflow-proxy] Failed to start workflow:', startResponse.status, errorText);
-          return new Response(
-            JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'workflow_start_failed', _status: startResponse.status }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        const startData = await startResponse.json();
-        const workflowId = startData.workflow_id;
-        console.log('[workflow-proxy] Workflow started:', workflowId);
-
-        // Poll for result
-        const pollStart = Date.now();
-        let pollCount = 0;
-        while (Date.now() - pollStart < 60000) {
-          await new Promise(r => setTimeout(r, 1500));
-          pollCount++;
-
-          const statusResponse = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
-            method: 'GET', headers: getTemporalHeaders(auth.userId),
+          const startResponse = await fetch(`${TEMPORAL_URL}/run/image_classification`, {
+            method: 'POST',
+            headers: getTemporalHeaders(auth.userId),
+            body: JSON.stringify(temporalPayload),
           });
 
-          if (!statusResponse.ok) {
-            console.warn(`[workflow-proxy] Poll ${pollCount}: status check failed (${statusResponse.status})`);
-            continue;
-          }
+          if (startResponse.ok) {
+            const startData = await startResponse.json();
+            const workflowId = startData.workflow_id;
+            console.log('[workflow-proxy] Workflow started:', workflowId);
 
-          const statusData = await statusResponse.json();
-          const state = statusData.progress?.state || statusData.state || 'unknown';
-          console.log(`[workflow-proxy] Poll ${pollCount}: state=${state}`);
+            const pollStart = Date.now();
+            let pollCount = 0;
+            while (Date.now() - pollStart < 30000) {
+              await new Promise(r => setTimeout(r, 1500));
+              pollCount++;
 
-          if (state === 'completed') {
-            const resultResponse = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
-              method: 'GET', headers: getTemporalHeaders(auth.userId),
-            });
+              const statusResponse = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
+                method: 'GET', headers: getTemporalHeaders(auth.userId),
+              });
 
-            if (!resultResponse.ok) {
-              const errText = await resultResponse.text();
-              console.error('[workflow-proxy] Failed to fetch result:', resultResponse.status, errText);
-              return new Response(
-                JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'result_fetch_failed' }),
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-              );
+              if (!statusResponse.ok) continue;
+
+              const statusData = await statusResponse.json();
+              const state = statusData.progress?.state || statusData.state || 'unknown';
+              console.log(`[workflow-proxy] Poll ${pollCount}: state=${state}`);
+
+              if (state === 'completed') {
+                const resultResponse = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
+                  method: 'GET', headers: getTemporalHeaders(auth.userId),
+                });
+
+                if (resultResponse.ok) {
+                  const resultData = await resultResponse.json();
+                  const classificationResults = resultData.image_classification;
+                  if (classificationResults && classificationResults.length > 0) {
+                    const raw = classificationResults[0];
+                    const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
+                    const category = raw.category || raw.label || 'unknown';
+                    const is_worn = raw.is_worn !== undefined ? raw.is_worn : WORN_CATEGORIES.includes(category);
+                    classificationResult = { category, is_worn, confidence: raw.confidence || 0, reason: raw.reason || '', flagged: !is_worn };
+                    temporalSuccess = true;
+                  }
+                }
+                break;
+              }
+
+              if (state === 'failed') {
+                console.warn('[workflow-proxy] Temporal workflow failed, will try direct fallback');
+                break;
+              }
             }
-
-            const resultData = await resultResponse.json();
-            console.log('[workflow-proxy] Result data keys:', JSON.stringify(Object.keys(resultData)));
-            console.log('[workflow-proxy] Full result:', JSON.stringify(resultData).substring(0, 500));
-
-            const classificationResults = resultData.image_classification;
-            if (classificationResults && classificationResults.length > 0) {
-              const raw = classificationResults[0];
-              console.log('[workflow-proxy] Raw classification:', JSON.stringify(raw));
-
-              // Map backend format {label, confidence, reason} → frontend format {category, is_worn, confidence, reason, flagged}
-              const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
-              const category = raw.category || raw.label || 'unknown';
-              const is_worn = raw.is_worn !== undefined ? raw.is_worn : WORN_CATEGORIES.includes(category);
-              const confidence = raw.confidence || 0;
-              const reason = raw.reason || '';
-              const flagged = !is_worn;
-
-              const mapped = { category, is_worn, confidence, reason, flagged };
-              console.log('[workflow-proxy] Mapped result:', JSON.stringify(mapped));
-              return new Response(
-                JSON.stringify(mapped),
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-              );
-            }
-
-            console.warn('[workflow-proxy] No image_classification in result. Keys:', JSON.stringify(Object.keys(resultData)));
-            return new Response(
-              JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'no_classification_in_result', _resultKeys: Object.keys(resultData) }),
-              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+          } else {
+            console.warn('[workflow-proxy] Failed to start Temporal workflow:', startResponse.status);
           }
-
-          if (state === 'failed') {
-            console.error('[workflow-proxy] Workflow failed:', JSON.stringify(statusData));
-            return new Response(
-              JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'workflow_failed', _details: statusData.error || statusData.progress?.error }),
-              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
+        } catch (e) {
+          console.warn('[workflow-proxy] Temporal workflow error, falling back to direct call:', e instanceof Error ? e.message : e);
         }
 
-        console.warn('[workflow-proxy] Workflow timed out after 60s, polls:', pollCount);
+        if (temporalSuccess && classificationResult) {
+          console.log('[workflow-proxy] Temporal classification succeeded:', JSON.stringify(classificationResult));
+          return new Response(JSON.stringify(classificationResult), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // ── Fallback: call /tools/image_classification/run directly ──
+        console.log('[workflow-proxy] Falling back to direct /tools/image_classification/run...');
+        try {
+          let imageObj = imageData;
+          if (typeof imageObj === 'string') {
+            const base64Data = imageObj.includes(',') ? imageObj.split(',')[1] : imageObj;
+            imageObj = { base64: base64Data };
+          }
+
+          const directPayload = {
+            data: {
+              operation: 'image_captioning',
+              image: imageObj,
+              prompt: 'Analyze this jewelry image. Classify it into one of: mannequin, model, body_part, flatlay, 3d_render, product_surface, floating, packshot. Respond with JSON: {"label": "category", "confidence": 0.95, "reason": "brief explanation"}',
+              is_classification: true,
+              allowed_categories: ['mannequin', 'model', 'body_part', 'flatlay', '3d_render', 'product_surface', 'floating', 'packshot'],
+            },
+          };
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+          const directResponse = await fetch(`${STANDALONE_URL}/tools/image_classification/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(directPayload),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (directResponse.ok) {
+            const directData = await directResponse.json();
+            console.log('[workflow-proxy] Direct classification result:', JSON.stringify(directData).substring(0, 500));
+
+            // Parse result — could be in directData directly or nested
+            const raw = directData.result || directData.data || directData;
+            const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
+            const category = raw.category || raw.label || 'unknown';
+            const is_worn = raw.is_worn !== undefined ? raw.is_worn : WORN_CATEGORIES.includes(category);
+            const mapped = { category, is_worn, confidence: raw.confidence || 0, reason: raw.reason || '', flagged: !is_worn, _source: 'direct' };
+
+            console.log('[workflow-proxy] Direct mapped result:', JSON.stringify(mapped));
+            return new Response(JSON.stringify(mapped), {
+              status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          } else {
+            const errText = await directResponse.text();
+            console.error('[workflow-proxy] Direct classification failed:', directResponse.status, errText);
+          }
+        } catch (directErr) {
+          console.error('[workflow-proxy] Direct classification error:', directErr instanceof Error ? directErr.message : directErr);
+        }
+
+        // ── Both failed — return permissive fallback ──
+        console.warn('[workflow-proxy] Both Temporal and direct classification failed, returning permissive fallback');
         return new Response(
-          JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'timeout' }),
+          JSON.stringify({ category: 'unknown', is_worn: true, confidence: 0, flagged: false, _debug: 'both_failed' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 
