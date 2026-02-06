@@ -321,7 +321,7 @@ serve(async (req) => {
         let classificationResult: Record<string, unknown> | null = null;
 
         try {
-          const temporalPayload = { payload: { image: imageData } };
+          const temporalPayload = { payload: { original_path: imageData } };
           console.log('[workflow-proxy] Starting image_classification workflow...');
 
           const startResponse = await fetch(`${TEMPORAL_URL}/run/image_classification`, {
