@@ -11,7 +11,8 @@ const ALLOWED_ORIGINS = [
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const isAllowed = ALLOWED_ORIGINS.includes(origin) || /^https:\/\/.*\.lovable\.app$/.test(origin);
+  const allowedOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
@@ -337,7 +338,7 @@ serve(async (req) => {
 
             const pollStart = Date.now();
             let pollCount = 0;
-            while (Date.now() - pollStart < 30000) {
+            while (Date.now() - pollStart < 15000) {
               await new Promise(r => setTimeout(r, 1500));
               pollCount++;
 
@@ -416,7 +417,7 @@ serve(async (req) => {
           };
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s to stay within edge function limit
+          const timeoutId = setTimeout(() => controller.abort(), 75000); // 75s — edge fn has extended wall clock
 
           const directResponse = await fetch(`${IMAGE_UTILS_URL}/tools/image_classification/run`, {
             method: 'POST',

@@ -14,13 +14,16 @@ const ALLOWED_ORIGINS = [
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  // Allow exact matches + any *.lovable.app subdomain
+  const isAllowed = ALLOWED_ORIGINS.includes(origin) || /^https:\/\/.*\.lovable\.app$/.test(origin);
+  const allowedOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
   };
 }
 
@@ -180,13 +183,16 @@ serve(async (req) => {
   // ── PATCH: Update notification email for existing batch ──
   if (req.method === 'PATCH') {
     try {
+      console.log('[batch-submit] PATCH request received');
       const user = await authenticateRequest(req);
       if (!user) {
+        console.log('[batch-submit] PATCH auth failed');
         return new Response(
           JSON.stringify({ error: 'Unauthorized' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      console.log('[batch-submit] PATCH authenticated user:', user.email);
 
       const { batch_id, notification_email } = await req.json();
       if (!batch_id || !notification_email) {
