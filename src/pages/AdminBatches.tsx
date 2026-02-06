@@ -223,7 +223,30 @@ export default function AdminBatches() {
   // ═══════════════════════════════════════════════════════════════
   // RENDER: Auth Gate
   // ═══════════════════════════════════════════════════════════════
-  if (!isAuthenticated) {
+  // Not logged in at all
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20 p-6">
+        <Card className="w-full max-w-md bg-card/80 backdrop-blur border-border/50">
+          <CardHeader className="text-center space-y-2">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+              <ShieldCheck className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">Admin Access</CardTitle>
+            <p className="text-sm text-muted-foreground">You must be signed in to access the admin dashboard.</p>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={signInWithGoogle} className="gap-2">
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Logged in but need admin secret
+  if (!adminSecret) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20 p-6">
         <Card className="w-full max-w-md bg-card/80 backdrop-blur border-border/50">
@@ -232,42 +255,19 @@ export default function AdminBatches() {
               <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
             <CardTitle className="text-xl">Admin Access</CardTitle>
-            <p className="text-sm text-muted-foreground">Sign in with Google and enter the admin secret</p>
+            <p className="text-sm text-muted-foreground">
+              Signed in as <span className="font-medium text-foreground">{user.email}</span>
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Step 1: Google */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Step 1 — Google Account</label>
-              {user ? (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                  <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{user.full_name || user.email}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                  </div>
-                </div>
-              ) : (
-                <Button onClick={signInWithGoogle} className="w-full gap-2" variant="outline">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Continue with Google
-                </Button>
-              )}
-            </div>
-            {/* Step 2: Secret */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Step 2 — Admin Secret</label>
+              <label className="text-sm font-medium text-muted-foreground">Enter Admin Password</label>
               <Input
                 type="password"
-                placeholder="Enter admin secret..."
+                placeholder="Enter admin password..."
                 value={secretInput}
                 onChange={(e) => { setSecretInput(e.target.value); setGateError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && user && handleVerifySecret()}
-                disabled={!user}
+                onKeyDown={(e) => e.key === 'Enter' && handleVerifySecret()}
                 className="font-mono"
               />
             </div>
@@ -276,7 +276,7 @@ export default function AdminBatches() {
                 <p className="text-sm text-destructive">{gateError}</p>
               </div>
             )}
-            <Button onClick={handleVerifySecret} disabled={!user || !secretInput.trim() || verifying} className="w-full gap-2">
+            <Button onClick={handleVerifySecret} disabled={!secretInput.trim() || verifying} className="w-full gap-2">
               {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
               {verifying ? 'Verifying...' : 'Access Dashboard'}
             </Button>
