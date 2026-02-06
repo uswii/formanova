@@ -57,10 +57,11 @@ async function generateSasUrl(blobUrl: string, accountName: string, accountKey: 
     const pathParts = url.pathname.split('/').filter(Boolean);
     if (pathParts.length < 2) return blobUrl;
     
-    const containerName = pathParts[0];
-    const blobPath = pathParts.slice(1).join('/');
+    // Decode URI components for canonical resource (Azure requires decoded path in signature)
+    const containerName = decodeURIComponent(pathParts[0]);
+    const blobPath = pathParts.slice(1).map(p => decodeURIComponent(p)).join('/');
     
-    const expiryTime = new Date(Date.now() + 60 * 60 * 1000);
+    const expiryTime = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
     const expiryStr = expiryTime.toISOString().split('.')[0] + 'Z';
     const startTime = new Date(Date.now() - 5 * 60 * 1000);
     const startStr = startTime.toISOString().split('.')[0] + 'Z';
@@ -70,9 +71,25 @@ async function generateSasUrl(blobUrl: string, accountName: string, accountKey: 
     const version = '2021-06-08';
     const canonicalResource = `/blob/${accountName}/${containerName}/${blobPath}`;
     
+    // Azure Service SAS string-to-sign requires exactly 16 fields (15 newlines)
+    // Fields: sp, st, se, canonicalResource, si, sip, spr, sv, sr, snapshot, encryptionScope, rscc, rscd, rsce, rscl, rsct
     const stringToSign = [
-      permissions, startStr, expiryStr, canonicalResource,
-      '', '', '', version, resource, '', '', '', '', '', '',
+      permissions,       // sp - signed permissions
+      startStr,          // st - signed start
+      expiryStr,         // se - signed expiry
+      canonicalResource, // canonicalized resource
+      '',                // si - signed identifier
+      '',                // sip - signed IP
+      '',                // spr - signed protocol
+      version,           // sv - signed version
+      resource,          // sr - signed resource
+      '',                // snapshot time
+      '',                // encryption scope
+      '',                // rscc - response cache control
+      '',                // rscd - response content disposition
+      '',                // rsce - response content encoding
+      '',                // rscl - response content language
+      '',                // rsct - response content type
     ].join('\n');
     
     const keyBytes = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));

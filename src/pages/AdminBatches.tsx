@@ -428,309 +428,281 @@ export default function AdminBatches() {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 space-y-6">
+      <div className="mx-auto px-4 md:px-6 py-6 space-y-6">
         {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {([
-            { label: 'Total', value: stats.total, glow: 'primary' },
-            { label: 'Pending', value: stats.pending, glow: 'amber' },
-            { label: 'Processing', value: stats.processing, glow: 'blue' },
-            { label: 'Completed', value: stats.completed, glow: 'emerald' },
-            { label: 'Delivered', value: stats.delivered, glow: 'violet' },
-            { label: 'Failed', value: stats.failed, glow: 'red' },
-          ] as const).map(({ label, value, glow }) => (
-            <div
-              key={label}
-              className="relative group rounded-lg border border-border/40 bg-card/40 backdrop-blur-sm p-4 transition-all hover:border-border/60"
-            >
-              <div className={`absolute inset-0 rounded-lg bg-${glow}-500/5 group-hover:bg-${glow}-500/10 transition-colors`} />
-              <div className="relative">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
-                <p className={`text-2xl font-display mt-1 ${
-                  glow === 'amber' ? 'text-amber-400' :
-                  glow === 'blue' ? 'text-blue-400' :
-                  glow === 'emerald' ? 'text-emerald-400' :
-                  glow === 'violet' ? 'text-violet-400' :
-                  glow === 'red' ? 'text-red-400' : 'text-foreground'
-                }`}>
-                  {value}
-                </p>
-              </div>
+            { label: 'Total', value: stats.total, color: 'text-foreground' },
+            { label: 'Pending', value: stats.pending, color: 'text-amber-400' },
+            { label: 'Processing', value: stats.processing, color: 'text-blue-400' },
+            { label: 'Completed', value: stats.completed, color: 'text-emerald-400' },
+            { label: 'Delivered', value: stats.delivered, color: 'text-violet-400' },
+            { label: 'Failed', value: stats.failed, color: 'text-red-400' },
+          ] as const).map(({ label, value, color }) => (
+            <div key={label} className="border border-border/40 bg-card/30 rounded p-3">
+              <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
+              <p className={`text-xl font-display mt-0.5 ${color}`}>{value}</p>
             </div>
           ))}
         </div>
 
-        {/* Batches List */}
+        {/* Main Table */}
         {loading ? (
-          <div className="space-y-3">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
+          <div className="space-y-2">
+            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
         ) : batches.length === 0 ? (
-          <div className="text-center py-24 text-muted-foreground">
-            <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-30" />
+          <div className="text-center py-20 text-muted-foreground">
+            <ImageIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No batches yet</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {batches.map((batch) => {
-              const isExpanded = expandedBatchId === batch.id;
-              const images = batchImages[batch.id] || [];
-              const isLoadingThisImages = loadingImages === batch.id;
+          <div className="border border-border/40 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-card/60 border-b border-border/40">
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold w-8"></th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Batch ID</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Category</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Skin Tone</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">User</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Email</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Notify Email</th>
+                    <th className="text-center px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Images</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Created (PKT)</th>
+                    <th className="text-left px-3 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Completed (PKT)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {batches.map((batch) => {
+                    const isExpanded = expandedBatchId === batch.id;
+                    const images = batchImages[batch.id] || [];
+                    const isLoadingThisImages = loadingImages === batch.id;
 
-              return (
-                <div
-                  key={batch.id}
-                  className={`rounded-lg border transition-all duration-300 ${
-                    isExpanded
-                      ? 'border-primary/30 bg-card/60 shadow-[0_0_30px_hsl(var(--primary)/0.08)]'
-                      : 'border-border/30 bg-card/20 hover:border-border/50 hover:bg-card/30'
-                  }`}
-                >
-                  {/* Batch Row */}
-                  <div
-                    className="flex items-center gap-4 px-4 md:px-6 py-4 cursor-pointer select-none"
-                    onClick={() => toggleBatch(batch.id)}
-                  >
-                    {/* Expand icon */}
-                    <div className="flex-shrink-0 text-muted-foreground">
-                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex-shrink-0">
-                      <StatusBadge status={batch.status} />
-                    </div>
-
-                    {/* Batch ID */}
-                    <div className="flex-shrink-0 hidden lg:flex items-center gap-1">
-                      <Hash className="h-3 w-3 text-muted-foreground/50" />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); copyToClipboard(batch.id); }}
-                        className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        title={batch.id}
-                      >
-                        {batch.id.slice(0, 8)}
-                      </button>
-                    </div>
-
-                    {/* Category */}
-                    <Badge variant="outline" className="capitalize text-[10px] flex-shrink-0 hidden sm:inline-flex">
-                      {batch.jewelry_category}
-                    </Badge>
-
-                    {/* Skin Tone */}
-                    {batch.skin_tones && batch.skin_tones.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground flex-shrink-0 hidden md:inline capitalize">
-                        {batch.skin_tones.join(', ')}
-                      </span>
-                    )}
-
-                    {/* User Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">
-                          {batch.user_display_name || batch.user_email.split('@')[0]}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                        <span className="truncate">{batch.user_email}</span>
-                        {batch.notification_email && batch.notification_email !== batch.user_email && (
-                          <span className="flex items-center gap-1 text-primary/70">
-                            <Mail className="h-2.5 w-2.5" />
-                            <span className="truncate">{batch.notification_email}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Images count */}
-                    <div className="flex-shrink-0 text-right hidden md:block">
-                      <div className="flex items-center gap-1 text-sm">
-                        <span className="text-emerald-400">{batch.completed_images}</span>
-                        <span className="text-muted-foreground/50">/</span>
-                        <span>{batch.total_images}</span>
-                        {batch.failed_images > 0 && <span className="text-red-400 text-xs">({batch.failed_images}✗)</span>}
-                      </div>
-                      {/* Progress bar */}
-                      <div className="w-20 bg-border/30 rounded-full h-1 mt-1">
-                        <div
-                          className="bg-emerald-500/80 h-1 rounded-full transition-all"
-                          style={{ width: `${batch.total_images > 0 ? (batch.completed_images / batch.total_images) * 100 : 0}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Timeline */}
-                    <div className="flex-shrink-0 text-right hidden xl:block">
-                      <p className="text-[11px] text-muted-foreground">{toPKT(batch.created_at)}</p>
-                      {batch.completed_at && (
-                        <p className="text-[10px] text-emerald-400/70">{toPKT(batch.completed_at)}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expanded Detail */}
-                  {isExpanded && (
-                    <div className="border-t border-border/20 px-4 md:px-6 py-5 space-y-5">
-                      {/* Batch Metadata */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Batch ID</span>
-                          <button onClick={() => copyToClipboard(batch.id)} className="font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                            {batch.id.slice(0, 12)}…
-                            <Copy className="h-3 w-3 text-muted-foreground" />
-                          </button>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">User Name</span>
-                          <span className="text-foreground">{batch.user_display_name || '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Sign-in Email</span>
-                          <span className="text-foreground">{batch.user_email}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Results Email</span>
-                          <span className="text-foreground">{batch.notification_email || batch.user_email}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Skin Tone(s)</span>
-                          <span className="text-foreground capitalize">{batch.skin_tones?.length ? batch.skin_tones.join(', ') : '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Created (PKT)</span>
-                          <span className="text-foreground">{toPKT(batch.created_at)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Updated (PKT)</span>
-                          <span className="text-foreground">{toPKT(batch.updated_at)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Completed (PKT)</span>
-                          <span className="text-foreground">{batch.completed_at ? toPKT(batch.completed_at) : '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">Workflow ID</span>
-                          {batch.workflow_id ? (
-                            <button onClick={() => copyToClipboard(batch.workflow_id!)} className="font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                              {batch.workflow_id.slice(0, 12)}…
-                              <Copy className="h-3 w-3 text-muted-foreground" />
-                            </button>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Manual Status Update */}
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border/30">
-                        <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Update Status</span>
-                        <Select
-                          value={batch.status}
-                          onValueChange={(val) => handleUpdateStatus(batch.id, val)}
-                          disabled={updatingStatus === batch.id}
+                    return (
+                      <>
+                        {/* Batch Row */}
+                        <tr
+                          key={batch.id}
+                          className={`border-b border-border/20 cursor-pointer transition-colors ${
+                            isExpanded ? 'bg-primary/5' : 'hover:bg-card/40'
+                          }`}
+                          onClick={() => toggleBatch(batch.id)}
                         >
-                          <SelectTrigger className="w-40 h-8 text-xs bg-card/50">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ALL_STATUSES.map(s => (
-                              <SelectItem key={s} value={s} className="capitalize text-xs">{s}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {updatingStatus === batch.id && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-                      </div>
+                          <td className="px-3 py-2.5 text-muted-foreground">
+                            {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <StatusBadge status={batch.status} />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); copyToClipboard(batch.id); }}
+                              className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                              title={batch.id}
+                            >
+                              {batch.id.slice(0, 8)}…
+                            </button>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <Badge variant="outline" className="capitalize text-[10px]">{batch.jewelry_category}</Badge>
+                          </td>
+                          <td className="px-3 py-2.5 capitalize text-muted-foreground">
+                            {batch.skin_tones?.length ? batch.skin_tones.join(', ') : '—'}
+                          </td>
+                          <td className="px-3 py-2.5 font-medium">
+                            {batch.user_display_name || batch.user_email.split('@')[0]}
+                          </td>
+                          <td className="px-3 py-2.5 text-muted-foreground">
+                            {batch.user_email}
+                          </td>
+                          <td className="px-3 py-2.5 text-muted-foreground">
+                            {batch.notification_email && batch.notification_email !== batch.user_email
+                              ? batch.notification_email
+                              : <span className="text-muted-foreground/40">same</span>
+                            }
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className="text-emerald-400">{batch.completed_images}</span>
+                            <span className="text-muted-foreground/40 mx-0.5">/</span>
+                            <span>{batch.total_images}</span>
+                            {batch.failed_images > 0 && (
+                              <span className="text-red-400 ml-1">({batch.failed_images}✗)</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap text-[11px]">
+                            {toPKT(batch.created_at)}
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] whitespace-nowrap">
+                            {batch.completed_at
+                              ? <span className="text-emerald-400/80">{toPKT(batch.completed_at)}</span>
+                              : <span className="text-muted-foreground/30">—</span>
+                            }
+                          </td>
+                        </tr>
 
-                      {/* Error */}
-                      {batch.error_message && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-                          {batch.error_message}
-                        </div>
-                      )}
+                        {/* Expanded Detail Row */}
+                        {isExpanded && (
+                          <tr key={`${batch.id}-detail`}>
+                            <td colSpan={11} className="bg-card/40 border-b border-border/30 px-0">
+                              <div className="px-6 py-5 space-y-5">
+                                {/* Info Grid */}
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                                  <div>
+                                    <span className="text-muted-foreground/60 block text-[10px] uppercase tracking-wider mb-0.5">Full Batch ID</span>
+                                    <button onClick={() => copyToClipboard(batch.id)} className="font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1 text-[11px]">
+                                      {batch.id} <Copy className="h-2.5 w-2.5 text-muted-foreground" />
+                                    </button>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground/60 block text-[10px] uppercase tracking-wider mb-0.5">Workflow ID</span>
+                                    {batch.workflow_id ? (
+                                      <button onClick={() => copyToClipboard(batch.workflow_id!)} className="font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1 text-[11px]">
+                                        {batch.workflow_id.slice(0, 16)}… <Copy className="h-2.5 w-2.5 text-muted-foreground" />
+                                      </button>
+                                    ) : <span className="text-muted-foreground/40">—</span>}
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground/60 block text-[10px] uppercase tracking-wider mb-0.5">Skin Tone(s)</span>
+                                    <span className="capitalize">{batch.skin_tones?.length ? batch.skin_tones.join(', ') : '—'}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground/60 block text-[10px] uppercase tracking-wider mb-0.5">Updated (PKT)</span>
+                                    <span>{toPKT(batch.updated_at)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground/60 block text-[10px] uppercase tracking-wider mb-0.5">Update Status</span>
+                                    <div className="flex items-center gap-2">
+                                      <Select
+                                        value={batch.status}
+                                        onValueChange={(val) => handleUpdateStatus(batch.id, val)}
+                                        disabled={updatingStatus === batch.id}
+                                      >
+                                        <SelectTrigger className="w-32 h-7 text-[11px] bg-background/50 border-border/40">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {ALL_STATUSES.map(s => (
+                                            <SelectItem key={s} value={s} className="capitalize text-xs">{s}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      {updatingStatus === batch.id && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                                    </div>
+                                  </div>
+                                </div>
 
-                      {/* Images */}
-                      <div>
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                          Images ({isLoadingThisImages ? '…' : images.length})
-                        </h4>
-                        {isLoadingThisImages ? (
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
-                          </div>
-                        ) : images.length === 0 ? (
-                          <p className="text-muted-foreground text-xs text-center py-6">No images in this batch</p>
-                        ) : (
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                            {images.map((img) => (
-                              <div key={img.id} className="relative group rounded-lg border border-border/30 bg-card/30 overflow-hidden">
-                                {/* Thumbnail */}
-                                <div
-                                  className="aspect-square bg-muted/30 cursor-pointer overflow-hidden"
-                                  onClick={() => img.original_url && setImagePreview({ url: img.original_url, title: `#${img.sequence_number} Original` })}
-                                >
-                                  {img.thumbnail_url || img.original_url ? (
-                                    <img
-                                      src={img.thumbnail_url || img.original_url}
-                                      alt={`Image ${img.sequence_number}`}
-                                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                      }}
-                                    />
+                                {batch.error_message && (
+                                  <div className="p-2.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                                    {batch.error_message}
+                                  </div>
+                                )}
+
+                                {/* Images Table */}
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                                    Images ({isLoadingThisImages ? '…' : images.length})
+                                  </p>
+                                  {isLoadingThisImages ? (
+                                    <div className="space-y-1.5">
+                                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+                                    </div>
+                                  ) : images.length === 0 ? (
+                                    <p className="text-muted-foreground/50 text-xs text-center py-4">No images</p>
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                                    <div className="border border-border/30 rounded overflow-hidden">
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="bg-card/50 border-b border-border/30">
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold w-12">Preview</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold w-8">#</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Status</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Skin Tone</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Flags</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Original URL</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Result URL</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Mask URL</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {images.map((img) => (
+                                            <tr key={img.id} className="border-b border-border/20 hover:bg-card/30 transition-colors">
+                                              <td className="px-2.5 py-1.5">
+                                                <div
+                                                  className="w-10 h-10 rounded bg-muted/30 overflow-hidden cursor-pointer flex-shrink-0"
+                                                  onClick={() => img.original_url && setImagePreview({ url: img.original_url, title: `#${img.sequence_number} Original` })}
+                                                >
+                                                  {(img.thumbnail_url || img.original_url) ? (
+                                                    <img
+                                                      src={img.thumbnail_url || img.original_url}
+                                                      alt={`#${img.sequence_number}`}
+                                                      className="w-full h-full object-cover"
+                                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                  ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                      <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </td>
+                                              <td className="px-2.5 py-1.5 font-mono text-muted-foreground">{img.sequence_number}</td>
+                                              <td className="px-2.5 py-1.5"><StatusBadge status={img.status} /></td>
+                                              <td className="px-2.5 py-1.5 capitalize text-muted-foreground">{img.skin_tone || '—'}</td>
+                                              <td className="px-2.5 py-1.5">
+                                                {img.classification_flagged && <Badge variant="destructive" className="text-[9px] px-1 py-0">Flagged</Badge>}
+                                                {img.classification_is_worn && <span className="text-[9px] text-muted-foreground ml-1">Worn</span>}
+                                              </td>
+                                              <td className="px-2.5 py-1.5">
+                                                {img.original_url ? (
+                                                  <button
+                                                    onClick={() => setImagePreview({ url: img.original_url, title: `#${img.sequence_number} Original` })}
+                                                    className="text-[10px] text-primary hover:underline truncate max-w-[140px] block text-left"
+                                                    title={img.original_url}
+                                                  >
+                                                    View Original
+                                                  </button>
+                                                ) : <span className="text-muted-foreground/30">—</span>}
+                                              </td>
+                                              <td className="px-2.5 py-1.5">
+                                                {img.result_url ? (
+                                                  <button
+                                                    onClick={() => setImagePreview({ url: img.result_url!, title: `#${img.sequence_number} Result` })}
+                                                    className="text-[10px] text-emerald-400 hover:underline truncate max-w-[140px] block text-left"
+                                                  >
+                                                    View Result
+                                                  </button>
+                                                ) : <span className="text-muted-foreground/30">—</span>}
+                                              </td>
+                                              <td className="px-2.5 py-1.5">
+                                                {img.mask_url ? (
+                                                  <button
+                                                    onClick={() => setImagePreview({ url: img.mask_url!, title: `#${img.sequence_number} Mask` })}
+                                                    className="text-[10px] text-blue-400 hover:underline truncate max-w-[140px] block text-left"
+                                                  >
+                                                    View Mask
+                                                  </button>
+                                                ) : <span className="text-muted-foreground/30">—</span>}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
                                     </div>
                                   )}
                                 </div>
-                                {/* Image info */}
-                                <div className="p-2 space-y-1.5">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-semibold text-muted-foreground">#{img.sequence_number}</span>
-                                    <StatusBadge status={img.status} />
-                                  </div>
-                                  {img.classification_flagged && (
-                                    <Badge variant="destructive" className="text-[9px] px-1.5 py-0">Flagged</Badge>
-                                  )}
-                                  {/* URL Links */}
-                                  <div className="flex flex-wrap gap-1 pt-1">
-                                    {img.original_url && (
-                                      <button
-                                        onClick={() => setImagePreview({ url: img.original_url, title: `#${img.sequence_number} Original` })}
-                                        className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                      >
-                                        Original
-                                      </button>
-                                    )}
-                                    {img.result_url && (
-                                      <button
-                                        onClick={() => setImagePreview({ url: img.result_url!, title: `#${img.sequence_number} Result` })}
-                                        className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                                      >
-                                        Result
-                                      </button>
-                                    )}
-                                    {img.mask_url && (
-                                      <button
-                                        onClick={() => setImagePreview({ url: img.mask_url!, title: `#${img.sequence_number} Mask` })}
-                                        className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
-                                      >
-                                        Mask
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
                               </div>
-                            ))}
-                          </div>
+                            </td>
+                          </tr>
                         )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -742,7 +714,7 @@ export default function AdminBatches() {
             <DialogTitle className="text-sm font-mono flex items-center justify-between">
               <span>{imagePreview?.title}</span>
               {imagePreview?.url && (
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <a
                     href={imagePreview.url}
                     target="_blank"
@@ -767,9 +739,8 @@ export default function AdminBatches() {
               <img
                 src={imagePreview.url}
                 alt={imagePreview.title}
-                className="max-w-full max-h-[75vh] object-contain rounded-lg"
+                className="max-w-full max-h-[75vh] object-contain rounded"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '';
                   (e.target as HTMLImageElement).alt = 'Failed to load image';
                 }}
               />
