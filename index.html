@@ -41,9 +41,17 @@
 
   <body>
     <div id="root">
-      <!-- Instant loading state: visible until React mounts, prevents blank page flash -->
+      <!-- Instant loading state matching sign-in page design — prevents blank page flash during OAuth redirect -->
       <div id="pre-react-loader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0a;font-family:Inter,sans-serif;">
-        <svg style="width:32px;height:32px;animation:spin 1s linear infinite;color:#a1a1aa;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <img src="/favicon-dark.png" alt="" style="height:64px;width:auto;margin-bottom:32px;opacity:0.9;" />
+        <div style="width:100%;max-width:28rem;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.03);backdrop-filter:blur(8px);padding:40px 32px;display:flex;flex-direction:column;align-items:center;">
+          <div style="font-size:1.5rem;font-weight:600;color:#fafafa;margin-bottom:8px;">Welcome</div>
+          <div style="color:#a1a1aa;margin-bottom:32px;font-size:0.875rem;">Sign in to create photoshoots</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 24px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#a1a1aa;font-size:1rem;">
+            <svg style="width:16px;height:16px;animation:spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            Connecting...
+          </div>
+        </div>
         <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
       </div>
     </div>
