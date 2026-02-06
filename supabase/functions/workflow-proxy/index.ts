@@ -316,10 +316,10 @@ serve(async (req) => {
         const imageData = body.data?.image;
         const temporalPayload = { payload: { original_path: imageData } };
 
-        console.log('[workflow-proxy] Starting upload_validation workflow...');
+        console.log('[workflow-proxy] Starting image_classification workflow...');
         console.log('[workflow-proxy] Image data type:', typeof imageData, imageData ? (typeof imageData === 'object' ? JSON.stringify(Object.keys(imageData)) : String(imageData).substring(0, 100)) : 'null');
 
-        const startResponse = await fetch(`${TEMPORAL_URL}/run/upload_validation`, {
+        const startResponse = await fetch(`${TEMPORAL_URL}/run/image_classification`, {
           method: 'POST',
           headers: getTemporalHeaders(auth.userId),
           body: JSON.stringify(temporalPayload),
