@@ -161,7 +161,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${BACKEND_URL}/process`, {
           method: 'POST',
-          headers: { 'Content-Type': contentType },
+          headers: { ...getTemporalHeaders(auth.userId), 'Content-Type': contentType },
           body: body,
           signal: controller.signal,
         });
