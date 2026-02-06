@@ -19,7 +19,7 @@ import PhotographyStudioCategories from "./pages/PhotographyStudioCategories";
 import { CategoryUploadStudio } from "@/components/bulk";
 import CADStudio from "./pages/CADStudio";
 import Auth from "./pages/Auth";
-import AuthCallback from "./pages/AuthCallback";
+
 import Generations from "./pages/Generations";
 import Credits from "./pages/Credits";
 import AdminBatches from "./pages/AdminBatches";
@@ -45,7 +45,7 @@ const App = () => (
                   {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
                   <Route path="/login" element={<Auth />} />
-                  <Route path="/oauth-callback" element={<AuthCallback />} />
+                  <Route path="/oauth-callback" element={<Auth />} />
                   <Route path="/tutorial" element={<Tutorial />} />
                   
                   {/* Protected routes - require sign in */}
