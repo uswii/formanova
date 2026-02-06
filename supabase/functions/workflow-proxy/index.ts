@@ -324,7 +324,7 @@ serve(async (req) => {
           ? imageData.uri 
           : imageData;
         const temporalPayload = { payload: { original_path: imageUri } };
-        console.log('[workflow-proxy] Starting Temporal image_classification workflow...');
+        console.log('[workflow-proxy] Starting Temporal image_classification workflow, payload original_path type:', typeof imageUri, 'length:', typeof imageUri === 'string' ? imageUri.length : 'N/A', 'preview:', typeof imageUri === 'string' ? imageUri.substring(0, 80) : JSON.stringify(imageUri).substring(0, 80));
 
         const startResponse = await fetch(`${TEMPORAL_URL}/run/image_classification`, {
           method: 'POST',
@@ -394,7 +394,7 @@ serve(async (req) => {
           }
 
           if (state === 'failed') {
-            console.error('[workflow-proxy] Temporal workflow failed');
+            console.error('[workflow-proxy] Temporal workflow FAILED. Full status:', JSON.stringify(statusData));
             break;
           }
         }
