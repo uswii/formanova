@@ -3,8 +3,11 @@ import { motion } from 'framer-motion';
 import { Check, Pencil, X, Mail, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { getStoredToken } from '@/lib/auth-api';
 import { toast } from '@/hooks/use-toast';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface BatchSubmittedConfirmationProps {
   categoryName: string;
@@ -29,12 +32,25 @@ const BatchSubmittedConfirmation = ({
     
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('batch_jobs')
-        .update({ notification_email: notificationEmail })
-        .eq('id', batchId);
-      
-      if (error) throw error;
+      const userToken = getStoredToken();
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/batch-submit`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          ...(userToken ? { 'X-User-Token': userToken } : {}),
+        },
+        body: JSON.stringify({
+          batch_id: batchId,
+          notification_email: notificationEmail,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to update email');
+      }
       
       toast({
         title: 'Email updated',

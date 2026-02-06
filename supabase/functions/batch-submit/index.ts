@@ -177,6 +177,68 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ── PATCH: Update notification email for existing batch ──
+  if (req.method === 'PATCH') {
+    try {
+      const user = await authenticateRequest(req);
+      if (!user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { batch_id, notification_email } = await req.json();
+      if (!batch_id || !notification_email) {
+        return new Response(
+          JSON.stringify({ error: 'Missing batch_id or notification_email' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
+
+      // Only allow updating own batches
+      const { data: batch, error: fetchError } = await supabase
+        .from('batch_jobs')
+        .select('user_id')
+        .eq('id', batch_id)
+        .single();
+
+      if (fetchError || !batch || batch.user_id !== user.id) {
+        return new Response(
+          JSON.stringify({ error: 'Batch not found or access denied' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { error: updateError } = await supabase
+        .from('batch_jobs')
+        .update({ notification_email })
+        .eq('id', batch_id);
+
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to update email', details: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, notification_email }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error('[batch-submit] PATCH error:', error);
+      return new Response(
+        JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),

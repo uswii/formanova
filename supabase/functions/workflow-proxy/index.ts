@@ -416,7 +416,7 @@ serve(async (req) => {
           };
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
+          const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s to stay within edge function limit
 
           const directResponse = await fetch(`${IMAGE_UTILS_URL}/tools/image_classification/run`, {
             method: 'POST',

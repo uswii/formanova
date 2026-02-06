@@ -121,7 +121,7 @@ export function useImageValidation() {
   ): Promise<ClassificationResult | null> => {
     // Create abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
     try {
       console.log('[ImageValidation] Starting classification request...');
@@ -155,7 +155,7 @@ export function useImageValidation() {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('[ImageValidation] Request timed out after 30s');
+        console.warn('[ImageValidation] Request timed out after 60s');
       } else {
         console.error('[ImageValidation] Request failed:', error);
       }
