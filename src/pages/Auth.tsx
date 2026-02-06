@@ -1,4 +1,4 @@
-import { useEffect, useState, forwardRef } from 'react';
+import { useEffect, useState, useRef, forwardRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +16,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+  const preloadedUrlRef = useRef<string | null>(null);
 
   // Redirect destination after auth - go straight to studio
   const AUTH_SUCCESS_REDIRECT = '/studio';
@@ -25,29 +25,51 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const from = (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
 
   // Check if already logged in - redirect to studio
+  // Also preload the OAuth URL in background for instant click
   useEffect(() => {
     const token = getStoredToken();
     const user = getStoredUser();
     if (token && user) {
       navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
+      return;
     }
+
+    // Preload OAuth URL so click is instant
+    const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
+    const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        const redirectUrl = data.redirect_url || data.authorization_url;
+        if (redirectUrl) {
+          preloadedUrlRef.current = redirectUrl;
+          console.log('[Auth] OAuth URL preloaded');
+        }
+      })
+      .catch(() => {}); // Silent fail, will fetch on click as fallback
   }, [navigate]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+
+    // Use preloaded URL for instant redirect
+    if (preloadedUrlRef.current) {
+      console.log('[Auth] Using preloaded OAuth URL — instant redirect');
+      window.location.href = preloadedUrlRef.current;
+      return;
+    }
     
+    // Fallback: fetch on click if preload didn't finish
     try {
-      // Pass redirect_uri so backend knows where to send the user after Google auth
       const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
       const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
       
-      console.log('[Auth] Requesting OAuth with callback:', frontendCallbackUrl);
+      console.log('[Auth] Preload missed, fetching OAuth URL...');
       const response = await fetch(url);
       const data = await response.json();
       
       const redirectUrl = data.redirect_url || data.authorization_url;
       if (redirectUrl) {
-        console.log('[Auth] Redirecting to Google...');
         window.location.href = redirectUrl;
       } else if (data.error) {
         throw new Error(data.error);
