@@ -150,6 +150,7 @@ export type Database = {
         | "completed"
         | "failed"
         | "partial"
+        | "delivered"
       jewelry_category_type:
         | "necklace"
         | "earring"
@@ -284,7 +285,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      batch_status: ["pending", "processing", "completed", "failed", "partial"],
+      batch_status: [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "partial",
+        "delivered",
+      ],
       jewelry_category_type: [
         "necklace",
         "earring",
