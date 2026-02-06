@@ -30,10 +30,13 @@ const DIRECT_API_URL = 'http://48.214.48.103:8000';                             
 const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
 const TEMPORAL_API_KEY = Deno.env.get('ADMIN_SECRET') || '';                                     // API key for Temporal gateway
 
-function getTemporalHeaders(): Record<string, string> {
+function getTemporalHeaders(userId?: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (TEMPORAL_API_KEY) {
     headers['X-API-Key'] = TEMPORAL_API_KEY;
+  }
+  if (userId) {
+    headers['X-On-Behalf-Of'] = userId;
   }
   return headers;
 }
@@ -67,6 +70,7 @@ async function authenticateRequest(req: Request, corsHeaders: Record<string, str
     }
 
     const user = await response.json();
+    console.log('[workflow-proxy] Authenticated user:', user.email || user.id);
     return { userId: user.id || user.email || 'authenticated' };
   } catch (e) {
     return {
@@ -128,7 +132,7 @@ serve(async (req) => {
     if (endpoint.startsWith('/status/')) {
       const workflowId = endpoint.replace('/status/', '');
       const response = await fetch(`${BACKEND_URL}/status/${workflowId}`, {
-        method: 'GET', headers: getTemporalHeaders(),
+        method: 'GET', headers: getTemporalHeaders(auth.userId),
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -138,7 +142,7 @@ serve(async (req) => {
     if (endpoint.startsWith('/result/')) {
       const workflowId = endpoint.replace('/result/', '');
       const response = await fetch(`${BACKEND_URL}/result/${workflowId}`, {
-        method: 'GET', headers: getTemporalHeaders(),
+        method: 'GET', headers: getTemporalHeaders(auth.userId),
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -280,7 +284,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${TEMPORAL_URL}${endpoint}`, {
           method: 'POST',
-          headers: getTemporalHeaders(),
+          headers: getTemporalHeaders(auth.userId),
           body: body,
           signal: controller.signal,
         });
@@ -317,7 +321,7 @@ serve(async (req) => {
 
         const startResponse = await fetch(`${TEMPORAL_URL}/run/upload_validation`, {
           method: 'POST',
-          headers: getTemporalHeaders(),
+          headers: getTemporalHeaders(auth.userId),
           body: JSON.stringify(temporalPayload),
         });
 
@@ -342,7 +346,7 @@ serve(async (req) => {
           pollCount++;
 
           const statusResponse = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
-            method: 'GET', headers: getTemporalHeaders(),
+            method: 'GET', headers: getTemporalHeaders(auth.userId),
           });
 
           if (!statusResponse.ok) {
@@ -356,7 +360,7 @@ serve(async (req) => {
 
           if (state === 'completed') {
             const resultResponse = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
-              method: 'GET', headers: getTemporalHeaders(),
+              method: 'GET', headers: getTemporalHeaders(auth.userId),
             });
 
             if (!resultResponse.ok) {
