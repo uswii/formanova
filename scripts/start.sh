@@ -28,6 +28,14 @@ fi
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
+# Fix ownership if log files were created by root (e.g. via sudo systemctl)
+if [ -d "$LOG_DIR" ]; then
+    touch "$LOG_DIR/formanova.log" "$LOG_DIR/formanova-error.log" 2>/dev/null
+    if [ ! -w "$LOG_DIR/formanova.log" ]; then
+        sudo chown "$(whoami)" "$LOG_DIR/formanova.log" "$LOG_DIR/formanova-error.log" 2>/dev/null || \
+        chmod a+w "$LOG_DIR/formanova.log" "$LOG_DIR/formanova-error.log" 2>/dev/null || true
+    fi
+fi
 
 echo ""
 echo -e "${YELLOW}Starting FormaNova...${NC}"
