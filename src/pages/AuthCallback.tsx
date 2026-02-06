@@ -1,18 +1,17 @@
 import { useEffect, useState, useRef } from 'react';
-
-// Redirect destination after successful auth - go straight to studio
-const AUTH_SUCCESS_REDIRECT = '/studio';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { authApi, setStoredToken, setStoredUser, dispatchAuthChange } from '@/lib/auth-api';
 import { useToast } from '@/hooks/use-toast';
+import formanovaLogo from '@/assets/formanova-logo.png';
 
-// Use edge function proxy to avoid mixed content (HTTPS -> HTTP)
+const AUTH_SUCCESS_REDIRECT = '/studio';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 
 // CRITICAL: Capture hash fragment IMMEDIATELY on module load
-// This prevents React Router or SPA hosting from stripping it
 const INITIAL_HASH = typeof window !== 'undefined' ? window.location.hash : '';
 const INITIAL_HREF = typeof window !== 'undefined' ? window.location.href : '';
 console.log('[AuthCallback Module] Captured on load - hash:', INITIAL_HASH, 'href:', INITIAL_HREF);
@@ -22,78 +21,51 @@ export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState('Signing you in...');
-  const processedRef = useRef(false); // Prevent double-processing
+  const processedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent double-processing (React StrictMode can double-invoke effects)
     if (processedRef.current) return;
     
-    // DEBUG: Log all URL info
     console.log('[AuthCallback] Current hash:', window.location.hash);
     console.log('[AuthCallback] Initial hash (captured on load):', INITIAL_HASH);
-    console.log('[AuthCallback] Full URL:', window.location.href);
     
-    // Parse query params
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    // Check query params first for access_token
     let accessToken = searchParams.get('access_token');
     
-    // Then check CURRENT hash fragment
     if (!accessToken && window.location.hash) {
-      const hashString = window.location.hash.substring(1);
-      console.log('[AuthCallback] Parsing current hash:', hashString.substring(0, 50) + '...');
-      const hashParams = new URLSearchParams(hashString);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
       accessToken = hashParams.get('access_token');
     }
     
-    // Finally check INITIAL hash (captured before React loaded)
     if (!accessToken && INITIAL_HASH) {
-      const hashString = INITIAL_HASH.substring(1);
-      console.log('[AuthCallback] Parsing initial hash:', hashString.substring(0, 50) + '...');
-      const hashParams = new URLSearchParams(hashString);
+      const hashParams = new URLSearchParams(INITIAL_HASH.substring(1));
       accessToken = hashParams.get('access_token');
     }
-
-    console.log('[AuthCallback] Result:', { 
-      hasCode: !!code, 
-      hasAccessToken: !!accessToken, 
-      hasError: !!errorParam,
-      currentHash: window.location.hash ? 'present' : 'none',
-      initialHash: INITIAL_HASH ? 'present' : 'none'
-    });
 
     if (errorParam) {
       const message = errorDescription || errorParam;
       setError(`Authentication failed: ${message}`);
-      toast({
-        variant: 'destructive',
-        title: 'Authentication failed',
-        description: message,
-      });
+      toast({ variant: 'destructive', title: 'Authentication failed', description: message });
       setTimeout(() => navigate('/login'), 3000);
       return;
     }
 
-    // Handle direct token from backend redirect (either query param or hash)
     if (accessToken) {
       processedRef.current = true;
       handleDirectToken(accessToken);
       return;
     }
 
-    // Handle OAuth code exchange flow
     if (code) {
       processedRef.current = true;
       exchangeCodeForToken(code, state || undefined);
       return;
     }
     
-    // No valid auth params found
     console.error('[AuthCallback] No code or access_token found in URL');
     setError('No authorization code received');
     setTimeout(() => navigate('/login'), 3000);
@@ -101,123 +73,93 @@ export default function AuthCallback() {
 
   const handleDirectToken = async (token: string) => {
     try {
-      console.log('[AuthCallback] Received direct token, storing...');
       setStoredToken(token);
-      
-      setStatus('Getting your profile...');
       const userData = await authApi.getCurrentUser();
-      
-      if (userData) {
-        console.log('[AuthCallback] User data:', userData.email);
-        dispatchAuthChange(userData);
-      }
-      
+      if (userData) dispatchAuthChange(userData);
       await new Promise(resolve => setTimeout(resolve, 50));
-      
-      console.log('[AuthCallback] Redirecting to:', AUTH_SUCCESS_REDIRECT);
       navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
     } catch (err) {
       console.error('[AuthCallback] Direct token error:', err);
       setError('Something went wrong');
-      toast({
-        variant: 'destructive',
-        title: 'Sign in failed',
-        description: 'Please try again.',
-      });
+      toast({ variant: 'destructive', title: 'Sign in failed', description: 'Please try again.' });
       setTimeout(() => navigate('/login'), 3000);
     }
   };
 
   const exchangeCodeForToken = async (code: string, state?: string) => {
     try {
-      console.log('[AuthCallback] Starting token exchange with code:', code.substring(0, 10) + '...');
-      
       const params = new URLSearchParams({ code });
       if (state) params.append('state', state);
       
-      const callbackUrl = `${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`;
-      console.log('[AuthCallback] Calling:', callbackUrl);
-
-      const response = await fetch(callbackUrl, {
+      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { 'Accept': 'application/json' },
       });
-
-      console.log('[AuthCallback] Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[AuthCallback] Error response:', errorText);
         throw new Error(errorText || 'Sign in failed');
       }
 
       const data = await response.json();
-      console.log('[AuthCallback] Response data keys:', Object.keys(data));
       
       if (data.access_token) {
-        console.log('[AuthCallback] Got access_token, storing...');
-        // Store token in localStorage
         setStoredToken(data.access_token);
         
-        // Store user if included in response
         let userData = data.user;
         if (!userData) {
-          console.log('[AuthCallback] No user in response, fetching...');
-          setStatus('Getting your profile...');
-          // Fetch user data before redirect to ensure it's available
           userData = await authApi.getCurrentUser();
         } else {
           setStoredUser(userData);
         }
         
-        console.log('[AuthCallback] User data:', userData?.email);
-        
-        // CRITICAL: Dispatch auth state change event BEFORE navigating
-        // This ensures AuthContext updates its state synchronously
-        if (userData) {
-          console.log('[AuthCallback] Dispatching auth change event...');
-          dispatchAuthChange(userData);
-        }
-        
-        // Small delay to ensure React state updates propagate
+        if (userData) dispatchAuthChange(userData);
         await new Promise(resolve => setTimeout(resolve, 50));
-        
-        console.log('[AuthCallback] Redirecting to:', AUTH_SUCCESS_REDIRECT);
-        // Redirect to studio after successful auth
         navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
       } else {
-        console.error('[AuthCallback] No access_token in response:', data);
         throw new Error('No access token in response');
       }
     } catch (err) {
       console.error('[AuthCallback] Exchange error:', err);
       setError('Something went wrong');
-      toast({
-        variant: 'destructive',
-        title: 'Sign in failed',
-        description: 'Please try again.',
-      });
+      toast({ variant: 'destructive', title: 'Sign in failed', description: 'Please try again.' });
       setTimeout(() => navigate('/login'), 3000);
     }
   };
 
+  // Render identical to Auth.tsx sign-in page but in "Connecting..." state
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="flex flex-col items-center gap-4 text-center">
-        {error ? (
-          <>
-            <p className="text-destructive">{error}</p>
-            <p className="text-muted-foreground text-sm">Redirecting to login...</p>
-          </>
-        ) : (
-          <>
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">{status}</p>
-          </>
-        )}
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <img 
+        src={formanovaLogo} 
+        alt="Formanova" 
+        className="h-16 md:h-20 w-auto object-contain logo-adaptive mb-8"
+      />
+      
+      <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardContent className="flex flex-col items-center py-10 px-8">
+          <h1 className="text-2xl font-display text-foreground mb-2">Welcome</h1>
+          <p className="text-muted-foreground text-center mb-8">
+            Sign in to create photoshoots
+          </p>
+
+          {error ? (
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-destructive text-sm text-center">{error}</p>
+              <p className="text-muted-foreground text-xs">Redirecting to login...</p>
+            </div>
+          ) : (
+            <Button 
+              className="w-full max-w-xs h-12 text-base" 
+              variant="outline"
+              disabled
+            >
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Connecting...
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
