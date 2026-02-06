@@ -146,7 +146,7 @@ export function Header() {
                 asChild
                 className="gap-2"
               >
-                <Link to="/auth">
+                <Link to="/login">
                   <LogIn className="h-4 w-4" />
                   Sign In
                 </Link>
@@ -249,7 +249,7 @@ export function Header() {
             </div>
           ) : (
             <Link
-              to="/auth"
+              to="/login"
               className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >

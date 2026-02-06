@@ -44,7 +44,7 @@ const App = () => (
                 <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
-                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/login" element={<Auth />} />
                   <Route path="/oauth-callback" element={<AuthCallback />} />
                   <Route path="/tutorial" element={<Tutorial />} />
                   

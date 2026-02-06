@@ -239,7 +239,7 @@ const CategoryUploadStudio = () => {
           description: 'Please log in to submit batches',
           variant: 'destructive',
         });
-        navigate('/auth');
+        navigate('/login');
         return;
       }
 

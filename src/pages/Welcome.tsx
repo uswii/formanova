@@ -42,7 +42,7 @@ export default function Welcome() {
     if (user) {
       navigate('/studio');
     } else {
-      navigate('/auth');
+      navigate('/login');
     }
   };
 

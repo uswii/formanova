@@ -75,7 +75,7 @@ export default function AuthCallback() {
         title: 'Authentication failed',
         description: message,
       });
-      setTimeout(() => navigate('/auth'), 3000);
+      setTimeout(() => navigate('/login'), 3000);
       return;
     }
 
@@ -96,7 +96,7 @@ export default function AuthCallback() {
     // No valid auth params found
     console.error('[AuthCallback] No code or access_token found in URL');
     setError('No authorization code received');
-    setTimeout(() => navigate('/auth'), 3000);
+    setTimeout(() => navigate('/login'), 3000);
   }, [searchParams]);
 
   const handleDirectToken = async (token: string) => {
@@ -124,7 +124,7 @@ export default function AuthCallback() {
         title: 'Sign in failed',
         description: 'Please try again.',
       });
-      setTimeout(() => navigate('/auth'), 3000);
+      setTimeout(() => navigate('/login'), 3000);
     }
   };
 
@@ -199,7 +199,7 @@ export default function AuthCallback() {
         title: 'Sign in failed',
         description: 'Please try again.',
       });
-      setTimeout(() => navigate('/auth'), 3000);
+      setTimeout(() => navigate('/login'), 3000);
     }
   };
 
