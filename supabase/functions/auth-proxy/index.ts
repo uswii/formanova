@@ -7,8 +7,8 @@ const AUTH_SERVICE_URL = 'https://interastral-joie-untough.ngrok-free.dev';  // 
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
-  'https://formanova.lovable.app',
-  'https://id-preview--d0dca58e-2556-4f62-b433-dc23617837ac.lovable.app',
+  'https://formanova.ai',
+  'https://www.formanova.ai',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:8080',

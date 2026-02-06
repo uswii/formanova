@@ -66,7 +66,7 @@ class Config:
     # Used for batch completion notifications
     resend_api_key: str = os.getenv("RESEND_API_KEY", "")
     email_from_address: str = os.getenv("EMAIL_FROM_ADDRESS", "noreply@formanova.com")
-    frontend_url: str = os.getenv("FRONTEND_URL", "https://formanova.lovable.app")
+    frontend_url: str = os.getenv("FRONTEND_URL", "https://formanova.ai")
     
     # ========== Auth Service ==========
     auth_service_url: str = os.getenv("AUTH_SERVICE_URL", "http://20.157.122.64:8002")
