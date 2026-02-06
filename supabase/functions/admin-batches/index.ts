@@ -160,14 +160,38 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // ── LIST BATCHES ──
+    // ── LIST BATCHES (with skin tone summary from images) ──
     if (action === 'list_batches') {
-      const { data, error } = await supabaseAdmin
+      const { data: batchData, error: batchError } = await supabaseAdmin
         .from('batch_jobs')
         .select('*')
         .order('created_at', { ascending: false });
-      if (error) throw error;
-      return new Response(JSON.stringify({ batches: data }), {
+      if (batchError) throw batchError;
+
+      // Fetch skin tones per batch
+      const batchIds = (batchData || []).map((b: any) => b.id);
+      let skinToneMap: Record<string, string[]> = {};
+      if (batchIds.length > 0) {
+        const { data: imageData } = await supabaseAdmin
+          .from('batch_images')
+          .select('batch_id, skin_tone')
+          .in('batch_id', batchIds);
+        if (imageData) {
+          for (const img of imageData) {
+            if (!skinToneMap[img.batch_id]) skinToneMap[img.batch_id] = [];
+            if (img.skin_tone && !skinToneMap[img.batch_id].includes(img.skin_tone)) {
+              skinToneMap[img.batch_id].push(img.skin_tone);
+            }
+          }
+        }
+      }
+
+      const batches = (batchData || []).map((b: any) => ({
+        ...b,
+        skin_tones: skinToneMap[b.id] || [],
+      }));
+
+      return new Response(JSON.stringify({ batches }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

@@ -13,7 +13,7 @@ import {
 import {
   RefreshCw, Eye, Clock, CheckCircle2, XCircle, Loader2,
   Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut,
-  ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash
+  ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash, FileSpreadsheet
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +42,7 @@ interface BatchJob {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  skin_tones: string[];
 }
 
 interface BatchImage {
@@ -246,11 +247,11 @@ export default function AdminBatches() {
     signOut();
   };
 
-  const exportToCSV = useCallback(() => {
+  const exportBatchesCSV = useCallback(() => {
     if (batches.length === 0) return;
-    const headers = ['Batch ID', 'User Email', 'Display Name', 'Category', 'Notification Email', 'Status', 'Total Images', 'Completed', 'Failed', 'Workflow ID', 'Created At (PKT)', 'Completed At (PKT)', 'Error Message'];
+    const headers = ['Batch ID', 'User Name', 'User Email', 'Notification Email', 'Category', 'Skin Tones', 'Status', 'Total Images', 'Completed', 'Failed', 'Workflow ID', 'Created (PKT)', 'Updated (PKT)', 'Completed (PKT)', 'Error'];
     const esc = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
-    const rows = batches.map(b => [b.id, b.user_email, b.user_display_name || '', b.jewelry_category, b.notification_email || b.user_email, b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', toPKT(b.created_at), b.completed_at ? toPKT(b.completed_at) : '', b.error_message || '']);
+    const rows = batches.map(b => [b.id, b.user_display_name || '', b.user_email, b.notification_email || b.user_email, b.jewelry_category, (b.skin_tones || []).join('; '), b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', toPKT(b.created_at), toPKT(b.updated_at), b.completed_at ? toPKT(b.completed_at) : '', b.error_message || '']);
     const csv = [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -259,6 +260,66 @@ export default function AdminBatches() {
     link.click();
     toast({ title: `Exported ${batches.length} batches` });
   }, [batches]);
+
+  const exportFullDashboard = useCallback(async () => {
+    try {
+      // Fetch all images
+      const response = await fetch(`${ADMIN_API_URL}?action=all_images`, { headers: getAdminHeaders() });
+      if (!response.ok) throw new Error('Failed to fetch images');
+      const data = await response.json();
+      const allImages = (data.images || []) as BatchImage[];
+
+      // Build batch lookup
+      const batchMap: Record<string, BatchJob> = {};
+      for (const b of batches) batchMap[b.id] = b;
+
+      const headers = [
+        'Batch ID', 'User Name', 'User Email', 'Notification Email', 'Category', 'Batch Status',
+        'Image #', 'Image ID', 'Skin Tone', 'Image Status', 'Flagged', 'Is Worn', 'Classification',
+        'Original URL', 'Result URL', 'Mask URL',
+        'Batch Created (PKT)', 'Batch Completed (PKT)', 'Image Started (PKT)', 'Image Completed (PKT)', 'Error'
+      ];
+      const esc = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+
+      const rows = allImages.map(img => {
+        const b = batchMap[img.batch_id];
+        return [
+          img.batch_id,
+          b?.user_display_name || '',
+          b?.user_email || '',
+          b?.notification_email || b?.user_email || '',
+          b?.jewelry_category || '',
+          b?.status || '',
+          img.sequence_number,
+          img.id,
+          img.skin_tone || '',
+          img.status,
+          img.classification_flagged ? 'Yes' : 'No',
+          img.classification_is_worn ? 'Yes' : 'No',
+          img.classification_category || '',
+          img.original_url || '',
+          img.result_url || '',
+          img.mask_url || '',
+          b?.created_at ? toPKT(b.created_at) : '',
+          b?.completed_at ? toPKT(b.completed_at) : '',
+          img.processing_started_at ? toPKT(img.processing_started_at) : '',
+          img.processing_completed_at ? toPKT(img.processing_completed_at) : '',
+          img.error_message || ''
+        ];
+      });
+
+      const csv = [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `formanova-full-export-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      toast({ title: `Exported ${allImages.length} image records across ${batches.length} batches` });
+    } catch (err) {
+      console.error('Full export failed:', err);
+      toast({ title: 'Export failed', variant: 'destructive' });
+    }
+  }, [batches, getAdminHeaders]);
 
   // ═══════════════════════════════════════════════════════════════
   // AUTH GATE — Not logged in
@@ -350,9 +411,12 @@ export default function AdminBatches() {
               {user.email}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={exportToCSV} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-              <Download className="h-3.5 w-3.5" /> CSV
+          <div className="flex items-center gap-1">
+            <Button onClick={exportBatchesCSV} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Export batches summary">
+              <Download className="h-3.5 w-3.5" /> Batches
+            </Button>
+            <Button onClick={exportFullDashboard} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Export all batches + images with skin tones">
+              <FileSpreadsheet className="h-3.5 w-3.5" /> Full Export
             </Button>
             <Button onClick={fetchBatches} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -454,6 +518,13 @@ export default function AdminBatches() {
                       {batch.jewelry_category}
                     </Badge>
 
+                    {/* Skin Tone */}
+                    {batch.skin_tones && batch.skin_tones.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0 hidden md:inline capitalize">
+                        {batch.skin_tones.join(', ')}
+                      </span>
+                    )}
+
                     {/* User Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -521,6 +592,10 @@ export default function AdminBatches() {
                         <div>
                           <span className="text-muted-foreground block mb-1">Results Email</span>
                           <span className="text-foreground">{batch.notification_email || batch.user_email}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block mb-1">Skin Tone(s)</span>
+                          <span className="text-foreground capitalize">{batch.skin_tones?.length ? batch.skin_tones.join(', ') : '—'}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground block mb-1">Created (PKT)</span>
