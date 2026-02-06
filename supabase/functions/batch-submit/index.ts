@@ -54,8 +54,8 @@ const BatchSubmitRequestSchema = z.object({
 // ═══════════════════════════════════════════════════════════════
 // SERVICE URLs — Edit these directly when endpoints change
 // ═══════════════════════════════════════════════════════════════
-const AUTH_SERVICE_URL = 'https://formanova.ai/auth';  // Auth service
-const ADMIN_EMAILS = ['your-admin@email.com'];  // Admin notification recipients
+const AUTH_SERVICE_URL = Deno.env.get('AUTH_SERVICE_URL') || 'https://formanova.ai/auth';
+const ADMIN_EMAILS = (Deno.env.get('ADMIN_EMAILS') || '').split(',').map(e => e.trim()).filter(Boolean);
 
 // Azure Blob Storage config
 const AZURE_ACCOUNT_NAME = Deno.env.get('AZURE_ACCOUNT_NAME') || '';
@@ -354,18 +354,22 @@ serve(async (req) => {
     }
 
     // Send admin notification (non-blocking)
-    if (RESEND_API_KEY) {
+    if (RESEND_API_KEY && ADMIN_EMAILS.length > 0) {
       try {
+        console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
         const resend = new Resend(RESEND_API_KEY);
-        await resend.emails.send({
+        const emailResult = await resend.emails.send({
           from: 'FormaNova <onboarding@resend.dev>',
           to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
-          html: `<p>Batch ${batchId} created with ${imageRecords.length} images.</p>`,
+          html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p>`,
         });
+        console.log('[batch-submit] Email sent:', JSON.stringify(emailResult));
       } catch (emailError) {
-        console.error('[batch-submit] Email failed:', emailError);
+        console.error('[batch-submit] Email failed:', emailError instanceof Error ? emailError.message : emailError);
       }
+    } else {
+      console.warn('[batch-submit] Skipping email: RESEND_API_KEY=', !!RESEND_API_KEY, 'ADMIN_EMAILS=', ADMIN_EMAILS.length);
     }
 
     return new Response(
