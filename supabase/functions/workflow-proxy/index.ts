@@ -363,8 +363,14 @@ serve(async (req) => {
                     const raw = classificationResults[0];
                     const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
                     const category = raw.category || raw.label || 'unknown';
-                    const is_worn = raw.is_worn !== undefined ? raw.is_worn : WORN_CATEGORIES.includes(category);
-                    classificationResult = { category, is_worn, confidence: raw.confidence || 0, reason: raw.reason || '', flagged: !is_worn };
+                    // Derive is_worn: check explicit field, then reason field, then category list
+                    const reason = raw.reason || '';
+                    const is_worn = raw.is_worn !== undefined
+                      ? raw.is_worn
+                      : reason === 'worn' ? true
+                      : reason === 'not_worn' ? false
+                      : WORN_CATEGORIES.includes(category);
+                    classificationResult = { category, is_worn, confidence: raw.confidence || 0, reason, flagged: !is_worn };
                     temporalSuccess = true;
                   }
                 }
@@ -428,8 +434,14 @@ serve(async (req) => {
             const raw = directData.result || directData.data || directData;
             const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
             const category = raw.category || raw.label || 'unknown';
-            const is_worn = raw.is_worn !== undefined ? raw.is_worn : WORN_CATEGORIES.includes(category);
-            const mapped = { category, is_worn, confidence: raw.confidence || 0, reason: raw.reason || '', flagged: !is_worn, _source: 'direct' };
+            // Derive is_worn: check explicit field, then reason field, then category list
+            const reason = raw.reason || '';
+            const is_worn = raw.is_worn !== undefined
+              ? raw.is_worn
+              : reason === 'worn' ? true
+              : reason === 'not_worn' ? false
+              : WORN_CATEGORIES.includes(category);
+            const mapped = { category, is_worn, confidence: raw.confidence || 0, reason, flagged: !is_worn, _source: 'direct' };
 
             console.log('[workflow-proxy] Direct mapped result:', JSON.stringify(mapped));
             return new Response(JSON.stringify(mapped), {
