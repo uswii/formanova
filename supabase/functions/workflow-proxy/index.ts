@@ -365,9 +365,21 @@ serve(async (req) => {
 
             const classificationResults = resultData.image_classification;
             if (classificationResults && classificationResults.length > 0) {
-              console.log('[workflow-proxy] Classification result:', JSON.stringify(classificationResults[0]));
+              const raw = classificationResults[0];
+              console.log('[workflow-proxy] Raw classification:', JSON.stringify(raw));
+
+              // Map backend format {label, confidence, reason} → frontend format {category, is_worn, confidence, reason, flagged}
+              const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
+              const category = raw.category || raw.label || 'unknown';
+              const is_worn = raw.is_worn !== undefined ? raw.is_worn : WORN_CATEGORIES.includes(category);
+              const confidence = raw.confidence || 0;
+              const reason = raw.reason || '';
+              const flagged = !is_worn;
+
+              const mapped = { category, is_worn, confidence, reason, flagged };
+              console.log('[workflow-proxy] Mapped result:', JSON.stringify(mapped));
               return new Response(
-                JSON.stringify(classificationResults[0]),
+                JSON.stringify(mapped),
                 { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
               );
             }
