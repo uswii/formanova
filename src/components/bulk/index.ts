@@ -14,7 +14,7 @@ export { default as BatchReviewConfirm } from './BatchReviewConfirm';
 
 export { default as BatchSubmittedConfirmation } from './BatchSubmittedConfirmation';
 
-// New modular components
+// Modular components
 export { default as ImageUploadCard } from './ImageUploadCard';
 export { default as InputGuidePanel } from './InputGuidePanel';
 export { default as ProcessingTimeNotice } from './ProcessingTimeNotice';
@@ -23,3 +23,5 @@ export { default as EmailNotificationPanel } from './EmailNotificationPanel';
 export { default as ExampleGuidePanel } from './ExampleGuidePanel';
 export { default as InspirationUpload } from './InspirationUpload';
 export type { InspirationImage } from './InspirationUpload';
+export { default as InspirationModal } from './InspirationModal';
+export type { InspirationRef } from './InspirationModal';
