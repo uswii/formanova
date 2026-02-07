@@ -40,6 +40,8 @@ interface BulkUploadZoneProps {
   category?: string;
   showSkinTone?: boolean;
   defaultSkinTone?: SkinTone;
+  globalInspiration?: InspirationRef | null;
+  onGlobalInspirationChange?: (image: InspirationRef | null) => void;
 }
 
 const BulkUploadZone = ({ 
@@ -50,10 +52,13 @@ const BulkUploadZone = ({
   category = 'jewelry',
   showSkinTone = false,
   defaultSkinTone = 'medium',
+  globalInspiration = null,
+  onGlobalInspirationChange,
 }: BulkUploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const inspirationInputRef = useRef<HTMLInputElement>(null);
+  const globalInspirationInputRef = useRef<HTMLInputElement>(null);
   const { validateImages, isValidating, error: validationError } = useImageValidation();
   const isMobile = useIsMobile();
 
@@ -213,6 +218,22 @@ const BulkUploadZone = ({
     onImagesChange(updated);
   }, [images, onImagesChange]);
 
+  const handleGlobalInspirationFile = useCallback((file: File) => {
+    if (file.type === 'image/avif' || file.name.toLowerCase().endsWith('.avif')) return;
+    if (!file.type.startsWith('image/')) return;
+    const ref: InspirationRef = {
+      id: `insp-global-${Date.now()}`,
+      file,
+      preview: URL.createObjectURL(file),
+    };
+    onGlobalInspirationChange?.(ref);
+  }, [onGlobalInspirationChange]);
+
+  const handleRemoveGlobalInspiration = useCallback(() => {
+    if (globalInspiration) URL.revokeObjectURL(globalInspiration.preview);
+    onGlobalInspirationChange?.(null);
+  }, [globalInspiration, onGlobalInspirationChange]);
+
   const canAddMore = images.length < maxImages;
 
   // Empty state - single large drop zone
@@ -288,6 +309,53 @@ const BulkUploadZone = ({
               <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Global inspiration bar */}
+      {onGlobalInspirationChange && images.length > 0 && (
+        <div className="px-2 sm:px-4 py-3 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-3.5 h-3.5 text-formanova-hero-accent flex-shrink-0" />
+            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
+              Inspiration / Mood board
+            </span>
+            <span className="text-[9px] text-muted-foreground/50 font-mono">(optional)</span>
+          </div>
+
+          {globalInspiration ? (
+            <div className="flex items-center gap-3 mt-2">
+              <div className="w-14 h-10 rounded-md overflow-hidden flex-shrink-0 marta-frame">
+                <img src={globalInspiration.preview} alt="Global inspiration" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-[9px] text-muted-foreground/70 font-mono flex-1">Applies to all images</span>
+              <button
+                onClick={handleRemoveGlobalInspiration}
+                disabled={disabled}
+                className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 mt-2 px-3 py-2.5 rounded-md border border-dashed border-muted-foreground/30 cursor-pointer hover:border-foreground/40 hover:bg-muted/10 transition-all">
+              <input
+                ref={globalInspirationInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleGlobalInspirationFile(file);
+                  e.target.value = '';
+                }}
+                disabled={disabled}
+              />
+              <ImagePlus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-[10px] text-muted-foreground font-mono">Drop or click to add mood reference</span>
+              <span className="text-[8px] text-muted-foreground/50 font-mono ml-auto">JPG, PNG, WEBP</span>
+            </label>
+          )}
         </div>
       )}
 

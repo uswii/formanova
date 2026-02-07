@@ -10,11 +10,10 @@ import {
   MetadataSelectors,
   BatchReviewConfirm,
   BatchSubmittedConfirmation,
-  InspirationUpload,
   JEWELRY_CATEGORIES,
 } from '@/components/bulk';
 import type { JewelryCategory, UploadedImage, SkinTone, Gender } from '@/components/bulk';
-import type { InspirationImage } from '@/components/bulk';
+import type { InspirationRef } from '@/components/bulk/BulkUploadZone';
 import { getStoredToken } from '@/lib/auth-api';
 
 type Step = 'category' | 'upload' | 'review' | 'confirmation';
@@ -33,7 +32,7 @@ const BulkUploadStudio = () => {
   const [hasAgreedToWait, setHasAgreedToWait] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedBatchId, setSubmittedBatchId] = useState<string | null>(null);
-  const [globalInspiration, setGlobalInspiration] = useState<InspirationImage | null>(null);
+  const [globalInspiration, setGlobalInspiration] = useState<InspirationRef | null>(null);
 
   const currentStepIndex = STEPS.indexOf(currentStep);
 
@@ -246,6 +245,8 @@ const BulkUploadStudio = () => {
                       category={selectedCategory.id}
                       showSkinTone={true}
                       defaultSkinTone={skinTone}
+                      globalInspiration={globalInspiration}
+                      onGlobalInspirationChange={setGlobalInspiration}
                     />
                   </div>
 
@@ -256,13 +257,6 @@ const BulkUploadStudio = () => {
                       gender={gender}
                       onSkinToneChange={setSkinTone}
                       onGenderChange={setGender}
-                    />
-                  </div>
-
-                  <div className="marta-frame p-4 md:p-6">
-                    <InspirationUpload
-                      image={globalInspiration}
-                      onImageChange={setGlobalInspiration}
                     />
                   </div>
                 </div>
