@@ -176,11 +176,24 @@ async function uploadToAzure(dataUri: string, blobPath: string): Promise<string>
 }
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
+  // Top-level CORS — always set, even if everything else fails
+  let corsHeaders: Record<string, string>;
+  try {
+    corsHeaders = getCorsHeaders(req);
+  } catch {
+    corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+    };
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  try {
 
   // ── PATCH: Update notification email for existing batch ──
   if (req.method === 'PATCH') {
@@ -431,6 +444,20 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  } catch (outerError) {
+    // Catch-all: guarantees CORS headers even on unexpected crashes
+    console.error('[batch-submit] Unhandled outer error:', outerError);
+    const fallbackCors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-token',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+    };
+    return new Response(
+      JSON.stringify({ error: 'An unexpected error occurred. Please try again.' }),
+      { status: 500, headers: { ...fallbackCors, 'Content-Type': 'application/json' } }
     );
   }
 });
