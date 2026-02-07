@@ -196,13 +196,25 @@ serve(async (req) => {
       }
       console.log('[batch-submit] PATCH authenticated user:', user.email);
 
-      const { batch_id, notification_email } = await req.json();
+      const body = await req.json();
+      const { batch_id, notification_email } = body;
       if (!batch_id || !notification_email) {
         return new Response(
           JSON.stringify({ error: 'Missing batch_id or notification_email' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      // Validate email format server-side
+      const emailSchema = z.string().trim().email('Invalid email address').max(255, 'Email too long');
+      const emailResult = emailSchema.safeParse(notification_email);
+      if (!emailResult.success) {
+        return new Response(
+          JSON.stringify({ error: emailResult.error.issues[0]?.message || 'Invalid email address' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const validatedEmail = emailResult.data;
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false }
@@ -224,7 +236,7 @@ serve(async (req) => {
 
       const { error: updateError } = await supabase
         .from('batch_jobs')
-        .update({ notification_email })
+        .update({ notification_email: validatedEmail })
         .eq('id', batch_id);
 
       if (updateError) {
@@ -235,7 +247,7 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ success: true, notification_email }),
+        JSON.stringify({ success: true, notification_email: validatedEmail }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (error) {

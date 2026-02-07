@@ -26,10 +26,26 @@ const BatchSubmittedConfirmation = ({
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState(user?.email || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
+  const isValidEmail = (email: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  };
 
   const handleSaveEmail = async () => {
-    if (!batchId || !notificationEmail) return;
-    
+    if (!batchId) return;
+
+    const trimmed = notificationEmail.trim();
+    if (!trimmed) {
+      setEmailError('Email is required');
+      return;
+    }
+    if (!isValidEmail(trimmed)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    setEmailError('');
     setIsSaving(true);
     try {
       const userToken = getStoredToken();
@@ -43,7 +59,7 @@ const BatchSubmittedConfirmation = ({
         },
         body: JSON.stringify({
           batch_id: batchId,
-          notification_email: notificationEmail,
+          notification_email: trimmed,
         }),
       });
 
@@ -52,15 +68,16 @@ const BatchSubmittedConfirmation = ({
         throw new Error(errData.error || 'Failed to update email');
       }
       
+      setNotificationEmail(trimmed);
       toast({
         title: 'Email updated',
-        description: `Results will be sent to ${notificationEmail}`,
+        description: `Results will be sent to ${trimmed}`,
       });
       setIsEditingEmail(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update email:', err);
       toast({
-        title: 'Failed to update email',
+        title: err.message || 'Failed to update email',
         variant: 'destructive',
       });
     } finally {
@@ -99,33 +116,41 @@ const BatchSubmittedConfirmation = ({
         {/* Email notification section */}
         <div className="bg-muted/30 rounded-lg p-4 mb-6">
           {isEditingEmail ? (
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <input
-                type="email"
-                value={notificationEmail}
-                onChange={(e) => setNotificationEmail(e.target.value)}
-                className="flex-1 bg-background border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-formanova-hero-accent"
-                placeholder="Enter email"
-                autoFocus
-              />
-              <button
-                onClick={handleSaveEmail}
-                disabled={isSaving}
-                className="px-3 py-1.5 text-xs bg-formanova-hero-accent text-primary-foreground rounded hover:bg-formanova-hero-accent/90 transition-colors disabled:opacity-50 flex items-center gap-1"
-              >
-                {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setNotificationEmail(user?.email || '');
-                  setIsEditingEmail(false);
-                }}
-                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <input
+                  type="email"
+                  value={notificationEmail}
+                  onChange={(e) => { setNotificationEmail(e.target.value); setEmailError(''); }}
+                  className={`flex-1 bg-background border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 ${
+                    emailError ? 'border-destructive focus:ring-destructive' : 'border-border focus:ring-formanova-hero-accent'
+                  }`}
+                  placeholder="Enter email"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveEmail}
+                  disabled={isSaving}
+                  className="px-3 py-1.5 text-xs bg-formanova-hero-accent text-primary-foreground rounded hover:bg-formanova-hero-accent/90 transition-colors disabled:opacity-50 flex items-center gap-1"
+                >
+                  {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setNotificationEmail(user?.email || '');
+                    setIsEditingEmail(false);
+                    setEmailError('');
+                  }}
+                  className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {emailError && (
+                <p className="text-xs text-destructive ml-6">{emailError}</p>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-center gap-2">
