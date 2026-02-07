@@ -428,7 +428,7 @@ const CategoryUploadStudio = () => {
                 </div>
 
                 {/* Right: Global controls cluster */}
-                <div className="flex flex-col items-end gap-2.5">
+                <div className="flex flex-col items-start gap-2.5">
                   {/* Global Model Skin Tone */}
                   {showSkinTone && (
                     <div className="flex items-center gap-2">
@@ -465,7 +465,7 @@ const CategoryUploadStudio = () => {
                   {/* Global Inspiration */}
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
-                      Inspiration / Mood board <span className="normal-case text-muted-foreground/50">(Optional)</span>
+                      Inspiration / Mood board <span className="normal-case text-accent">(Optional)</span>
                     </span>
 
                     {/* Global inspiration thumbnails */}
@@ -945,7 +945,7 @@ const ImageCard = ({
           <label className="block cursor-pointer">
             <div className="flex flex-col items-center justify-center py-3 sm:py-4 rounded border border-dashed border-border/50 hover:border-foreground/30 hover:bg-muted/10 transition-all">
               <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 font-mono text-center leading-tight px-2">
-                Upload inspirational photo or mood board <span className="text-muted-foreground/30">(Optional)</span>
+                Upload inspirational photo or mood board <span className="text-accent">(Optional)</span>
               </span>
             </div>
             <input
