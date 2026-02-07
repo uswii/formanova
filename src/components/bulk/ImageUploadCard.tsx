@@ -65,33 +65,38 @@ const ImageUploadCard = ({
 
       {/* Skin Tone Selector - Per Image */}
       {showSkinTone && (
-        <div className="mt-2 flex items-center justify-center gap-1">
-          {SKIN_TONES.map((tone) => {
-            const isSelected = skinTone === tone.id;
-            return (
-              <button
-                key={tone.id}
-                onClick={() => !disabled && onSkinToneChange(id, tone.id)}
-                disabled={disabled}
-                title={tone.label}
-                className={`relative w-5 h-5 rounded-full transition-all duration-150 ${
-                  disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
-                }`}
-                style={{ backgroundColor: tone.color }}
-              >
-                {isSelected && (
-                  <motion.div
-                    layoutId={`skin-ring-${id}`}
-                    className="absolute inset-[-2px] rounded-full border-2 border-formanova-hero-accent"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
-                {isSelected && (
-                  <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
-                )}
-              </button>
-            );
-          })}
+        <div className="mt-2 space-y-1">
+          <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">Choose model skin tone</span>
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+            {SKIN_TONES.map((tone) => {
+              const isSelected = skinTone === tone.id;
+              return (
+                <button
+                  key={tone.id}
+                  onClick={() => !disabled && onSkinToneChange(id, tone.id)}
+                  disabled={disabled}
+                  title={tone.label}
+                  className={`relative w-5 h-5 rounded-full transition-all duration-150 ${
+                    disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+                  }`}
+                  style={{ backgroundColor: tone.color }}
+                >
+                  {isSelected && (
+                    <motion.div
+                      layoutId={`skin-ring-${id}`}
+                      className="absolute inset-[-2px] rounded-full border-2 border-formanova-hero-accent"
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                  {isSelected && (
+                    <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
+                  )}
+                </button>
+              );
+            })}
+            <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
+          </div>
         </div>
       )}
     </motion.div>
