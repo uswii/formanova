@@ -90,6 +90,7 @@ export type Database = {
           completed_at: string | null
           completed_images: number
           created_at: string
+          drive_link: string | null
           error_message: string | null
           failed_images: number
           id: string
@@ -108,6 +109,7 @@ export type Database = {
           completed_at?: string | null
           completed_images?: number
           created_at?: string
+          drive_link?: string | null
           error_message?: string | null
           failed_images?: number
           id?: string
@@ -126,6 +128,7 @@ export type Database = {
           completed_at?: string | null
           completed_images?: number
           created_at?: string
+          drive_link?: string | null
           error_message?: string | null
           failed_images?: number
           id?: string

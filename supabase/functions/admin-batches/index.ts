@@ -177,16 +177,30 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // ── LIST BATCHES (with skin tone summary from images) ──
+    // ── LIST BATCHES (with skin tone summary from images + search) ──
     if (action === 'list_batches') {
+      const searchQuery = url.searchParams.get('search')?.trim().toLowerCase() || '';
+
       const { data: batchData, error: batchError } = await supabaseAdmin
         .from('batch_jobs')
         .select('*')
         .order('created_at', { ascending: false });
       if (batchError) throw batchError;
 
+      // Client-side search filtering (email, batch ID, category, status, user name, drive link)
+      let filteredBatches = batchData || [];
+      if (searchQuery) {
+        filteredBatches = filteredBatches.filter((b: any) => {
+          const fields = [
+            b.id, b.user_email, b.notification_email, b.user_display_name,
+            b.jewelry_category, b.status, b.workflow_id, b.drive_link,
+          ].filter(Boolean).map((f: string) => f.toLowerCase());
+          return fields.some((f: string) => f.includes(searchQuery));
+        });
+      }
+
       // Fetch skin tones per batch
-      const batchIds = (batchData || []).map((b: any) => b.id);
+      const batchIds = filteredBatches.map((b: any) => b.id);
       let skinToneMap: Record<string, string[]> = {};
       if (batchIds.length > 0) {
         const { data: imageData } = await supabaseAdmin
@@ -204,13 +218,13 @@ Deno.serve(async (req) => {
       }
 
       // SAS-sign batch-level inspiration URLs
-      const batches = await Promise.all((batchData || []).map(async (b: any) => ({
+      const batches = await Promise.all(filteredBatches.map(async (b: any) => ({
         ...b,
         skin_tones: skinToneMap[b.id] || [],
         inspiration_url: b.inspiration_url ? await generateSasUrl(b.inspiration_url, azureAccountName, azureAccountKey) : null,
       })));
 
-      return new Response(JSON.stringify({ batches }), {
+      return new Response(JSON.stringify({ batches, total_unfiltered: (batchData || []).length }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -281,6 +295,34 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       console.log(`[admin-batches] Status updated: batch ${batch_id} → ${status} by ${user.email}`);
+      
+      return new Response(JSON.stringify({ success: true, batch: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── UPDATE DRIVE LINK ──
+    if (action === 'update_drive_link' && req.method === 'POST') {
+      const body = await req.json();
+      const { batch_id, drive_link } = body;
+      
+      if (!batch_id) {
+        return new Response(
+          JSON.stringify({ error: 'Missing batch_id' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('batch_jobs')
+        .update({ drive_link: drive_link || null, updated_at: new Date().toISOString() })
+        .eq('id', batch_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log(`[admin-batches] Drive link updated: batch ${batch_id} by ${user.email}`);
       
       return new Response(JSON.stringify({ success: true, batch: data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

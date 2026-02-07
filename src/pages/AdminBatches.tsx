@@ -13,7 +13,8 @@ import {
 import {
   RefreshCw, Eye, Clock, CheckCircle2, XCircle, Loader2,
   Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut,
-  ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash, FileSpreadsheet
+  ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash, FileSpreadsheet,
+  Search, Link2, Save, X
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,6 +45,7 @@ interface BatchJob {
   completed_at: string | null;
   skin_tones: string[];
   inspiration_url: string | null;
+  drive_link: string | null;
 }
 
 interface BatchImage {
@@ -128,6 +130,11 @@ export default function AdminBatches() {
   const [loadingImages, setLoadingImages] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<{ url: string; title: string } | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+  const [editingDriveLink, setEditingDriveLink] = useState<string | null>(null);
+  const [driveLinkInput, setDriveLinkInput] = useState('');
+  const [savingDriveLink, setSavingDriveLink] = useState(false);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -141,10 +148,12 @@ export default function AdminBatches() {
     };
   }, [adminSecret]);
 
-  const fetchBatches = useCallback(async () => {
+  const fetchBatches = useCallback(async (search?: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=list_batches`, { headers: getAdminHeaders() });
+      const searchParam = search !== undefined ? search : activeSearch;
+      const queryStr = searchParam ? `&search=${encodeURIComponent(searchParam)}` : '';
+      const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           sessionStorage.removeItem('admin_secret');
@@ -161,7 +170,41 @@ export default function AdminBatches() {
     } finally {
       setLoading(false);
     }
-  }, [getAdminHeaders]);
+  }, [getAdminHeaders, activeSearch]);
+
+  const handleSearch = useCallback(() => {
+    setActiveSearch(searchQuery);
+    fetchBatches(searchQuery);
+  }, [searchQuery, fetchBatches]);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setActiveSearch('');
+    fetchBatches('');
+  }, [fetchBatches]);
+
+  const handleSaveDriveLink = useCallback(async (batchId: string) => {
+    setSavingDriveLink(true);
+    try {
+      const response = await fetch(`${ADMIN_API_URL}?action=update_drive_link`, {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch_id: batchId, drive_link: driveLinkInput.trim() || null }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save drive link');
+      }
+      const data = await response.json();
+      setBatches(prev => prev.map(b => b.id === batchId ? { ...b, ...data.batch } : b));
+      setEditingDriveLink(null);
+      toast({ title: 'Drive link saved' });
+    } catch (err: any) {
+      toast({ title: err.message || 'Failed to save', variant: 'destructive' });
+    } finally {
+      setSavingDriveLink(false);
+    }
+  }, [getAdminHeaders, driveLinkInput]);
 
   const fetchBatchImages = useCallback(async (batchId: string) => {
     if (batchImages[batchId]) return; // already loaded
@@ -251,9 +294,9 @@ export default function AdminBatches() {
 
   const exportBatchesCSV = useCallback(() => {
     if (batches.length === 0) return;
-    const headers = ['Batch ID', 'User Name', 'User Email', 'Notification Email', 'Category', 'Skin Tones', 'Status', 'Total Images', 'Completed', 'Failed', 'Workflow ID', 'Has Inspiration', 'Created (PKT)', 'Updated (PKT)', 'Completed (PKT)', 'Error'];
+    const headers = ['Batch ID', 'User Name', 'User Email', 'Notification Email', 'Category', 'Skin Tones', 'Status', 'Total Images', 'Completed', 'Failed', 'Workflow ID', 'Has Inspiration', 'Drive Link', 'Created (PKT)', 'Updated (PKT)', 'Completed (PKT)', 'Error'];
     const esc = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
-    const rows = batches.map(b => [b.id, b.user_display_name || '', b.user_email, b.notification_email || b.user_email, b.jewelry_category, (b.skin_tones || []).join('; '), b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', b.inspiration_url ? 'Yes' : 'No', toPKT(b.created_at), toPKT(b.updated_at), b.completed_at ? toPKT(b.completed_at) : '', b.error_message || '']);
+    const rows = batches.map(b => [b.id, b.user_display_name || '', b.user_email, b.notification_email || b.user_email, b.jewelry_category, (b.skin_tones || []).join('; '), b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', b.inspiration_url ? 'Yes' : 'No', b.drive_link || '', toPKT(b.created_at), toPKT(b.updated_at), b.completed_at ? toPKT(b.completed_at) : '', b.error_message || '']);
     const csv = [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -422,7 +465,7 @@ export default function AdminBatches() {
             <Button onClick={exportFullDashboard} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Export all batches + images with skin tones">
               <FileSpreadsheet className="h-3.5 w-3.5" /> Full Export
             </Button>
-            <Button onClick={fetchBatches} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <Button onClick={() => fetchBatches()} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
             <Button onClick={handleLogout} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
@@ -448,6 +491,33 @@ export default function AdminBatches() {
               <p className={`text-xl font-display mt-0.5 ${color}`}>{value}</p>
             </div>
           ))}
+        </div>
+
+        {/* Search Bar */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Search by email, batch ID, category, status, drive link…"
+              className="pl-9 h-9 text-xs bg-card/30 border-border/40"
+            />
+            {activeSearch && (
+              <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+              </button>
+            )}
+          </div>
+          <Button onClick={handleSearch} size="sm" variant="outline" className="h-9 gap-1.5 text-xs">
+            <Search className="h-3.5 w-3.5" /> Search
+          </Button>
+          {activeSearch && (
+            <span className="text-[10px] text-muted-foreground">
+              Showing {batches.length} result{batches.length !== 1 ? 's' : ''} for "{activeSearch}"
+            </span>
+          )}
         </div>
 
         {/* Main Table */}
@@ -595,6 +665,71 @@ export default function AdminBatches() {
                                       </Select>
                                       {updatingStatus === batch.id && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                                     </div>
+                                  </div>
+                                </div>
+
+                                {/* Drive Link */}
+                                <div className="flex items-start gap-3 p-2.5 rounded bg-card/60 border border-border/30">
+                                  <Link2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold block mb-1">Google Drive Link</span>
+                                    {editingDriveLink === batch.id ? (
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          value={driveLinkInput}
+                                          onChange={(e) => setDriveLinkInput(e.target.value)}
+                                          placeholder="https://drive.google.com/..."
+                                          className="h-7 text-[11px] bg-background/50 border-border/40 flex-1"
+                                          onKeyDown={(e) => e.key === 'Enter' && handleSaveDriveLink(batch.id)}
+                                        />
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 w-7 p-0"
+                                          onClick={() => handleSaveDriveLink(batch.id)}
+                                          disabled={savingDriveLink}
+                                        >
+                                          {savingDriveLink ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 w-7 p-0"
+                                          onClick={() => setEditingDriveLink(null)}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        {batch.drive_link ? (
+                                          <>
+                                            <a
+                                              href={batch.drive_link}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-[11px] text-primary hover:underline truncate max-w-[400px]"
+                                            >
+                                              {batch.drive_link}
+                                            </a>
+                                            <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                          </>
+                                        ) : (
+                                          <span className="text-[11px] text-muted-foreground/40">No link added</span>
+                                        )}
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 text-[10px] text-muted-foreground hover:text-foreground px-2"
+                                          onClick={() => {
+                                            setEditingDriveLink(batch.id);
+                                            setDriveLinkInput(batch.drive_link || '');
+                                          }}
+                                        >
+                                          {batch.drive_link ? 'Edit' : 'Add Link'}
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
