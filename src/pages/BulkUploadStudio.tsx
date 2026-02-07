@@ -228,12 +228,14 @@ const BulkUploadStudio = () => {
 
                 {/* Upload Zone + Metadata */}
                 <div className="lg:col-span-2 space-y-6">
-                  <div className="marta-frame p-4 md:p-6">
+                   <div className="marta-frame p-4 md:p-6">
                     <BulkUploadZone
                       images={images}
                       onImagesChange={setImages}
                       maxImages={10}
                       category={selectedCategory.id}
+                      showSkinTone={true}
+                      defaultSkinTone={skinTone}
                     />
                   </div>
 

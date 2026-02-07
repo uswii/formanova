@@ -5,7 +5,7 @@ export type { JewelryCategory } from './BulkCategorySelector';
 export { default as UploadGuideBillboard } from './UploadGuideBillboard';
 
 export { default as BulkUploadZone } from './BulkUploadZone';
-export type { UploadedImage } from './BulkUploadZone';
+export type { UploadedImage, SkinTone as UploadSkinTone } from './BulkUploadZone';
 
 export { default as MetadataSelectors } from './MetadataSelectors';
 export type { SkinTone, Gender } from './MetadataSelectors';

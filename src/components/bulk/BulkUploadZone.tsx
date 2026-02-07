@@ -1,9 +1,20 @@
 import { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Plus, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, Plus, AlertTriangle, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useImageValidation } from '@/hooks/use-image-validation';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+export type SkinTone = 'fair' | 'light' | 'medium' | 'tan' | 'dark' | 'deep';
+
+const SKIN_TONES: { id: SkinTone; color: string; label: string }[] = [
+  { id: 'fair', color: '#FFE0BD', label: 'Fair' },
+  { id: 'light', color: '#F5D0B0', label: 'Light' },
+  { id: 'medium', color: '#C8A27C', label: 'Medium' },
+  { id: 'tan', color: '#A67C52', label: 'Tan' },
+  { id: 'dark', color: '#6B4423', label: 'Dark' },
+  { id: 'deep', color: '#3D2314', label: 'Deep' },
+];
 
 export interface UploadedImage {
   id: string;
@@ -11,6 +22,7 @@ export interface UploadedImage {
   preview: string;
   flagged?: boolean;
   flagReason?: string;
+  skinTone?: SkinTone;
 }
 
 interface BulkUploadZoneProps {
@@ -19,6 +31,8 @@ interface BulkUploadZoneProps {
   maxImages?: number;
   disabled?: boolean;
   category?: string;
+  showSkinTone?: boolean;
+  defaultSkinTone?: SkinTone;
 }
 
 const BulkUploadZone = ({ 
@@ -26,7 +40,9 @@ const BulkUploadZone = ({
   onImagesChange, 
   maxImages = 10,
   disabled = false,
-  category = 'jewelry'
+  category = 'jewelry',
+  showSkinTone = false,
+  defaultSkinTone = 'medium',
 }: BulkUploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const { validateImages, isValidating, error: validationError } = useImageValidation();
@@ -54,6 +70,7 @@ const BulkUploadZone = ({
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         file,
         preview: URL.createObjectURL(file),
+        skinTone: defaultSkinTone,
       }));
 
     // Add images immediately for responsive UI
@@ -116,6 +133,7 @@ const BulkUploadZone = ({
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           file,
           preview: URL.createObjectURL(file),
+          skinTone: defaultSkinTone,
         }));
         
         onImagesChange([...images, ...newImages]);
@@ -146,6 +164,17 @@ const BulkUploadZone = ({
     handleFiles(e.target.files);
     e.target.value = '';
   }, [handleFiles]);
+
+  const handleSkinToneChange = useCallback((imageId: string, tone: SkinTone) => {
+    const updated = images.map(img => img.id === imageId ? { ...img, skinTone: tone } : img);
+    onImagesChange(updated);
+  }, [images, onImagesChange]);
+
+  const handleRemoveImage = useCallback((imageId: string) => {
+    const img = images.find(i => i.id === imageId);
+    if (img) URL.revokeObjectURL(img.preview);
+    onImagesChange(images.filter(i => i.id !== imageId));
+  }, [images, onImagesChange]);
 
   const canAddMore = images.length < maxImages;
 
@@ -208,28 +237,78 @@ const BulkUploadZone = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden ${
-                image.flagged ? 'ring-2 ring-amber-500/70' : ''
-              }`}
+              className="group"
             >
-              <img
-                src={image.preview}
-                alt={`Upload ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-              {/* Flagged indicator */}
-              {image.flagged && (
-                <div 
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
-                  title={image.flagReason || 'Image may not meet requirements'}
+              {/* Image tile */}
+              <div className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden ${
+                image.flagged ? 'ring-2 ring-amber-500/70' : ''
+              }`}>
+                <img
+                  src={image.preview}
+                  alt={`Upload ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                {/* Remove button */}
+                <button
+                  onClick={() => handleRemoveImage(image.id)}
+                  disabled={disabled}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
                 >
-                  <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                  <span className="text-xs font-bold">✕</span>
+                </button>
+                {/* Flagged indicator */}
+                {image.flagged && (
+                  <div 
+                    className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
+                    title={image.flagReason || 'Image may not meet requirements'}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                  </div>
+                )}
+                {/* Number badge */}
+                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                  <span className="text-sm sm:text-base font-mono text-foreground">{index + 1}</span>
+                </div>
+              </div>
+
+              {/* Per-image skin tone selector */}
+              {showSkinTone && (
+                <div className="mt-2 space-y-1">
+                  <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">
+                    Choose model skin tone
+                  </span>
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+                    {SKIN_TONES.map((tone) => {
+                      const isSelected = (image.skinTone || defaultSkinTone) === tone.id;
+                      return (
+                        <button
+                          key={tone.id}
+                          onClick={() => !disabled && handleSkinToneChange(image.id, tone.id)}
+                          disabled={disabled}
+                          title={tone.label}
+                          className={`relative w-5 h-5 rounded-full transition-all duration-150 ${
+                            disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+                          }`}
+                          style={{ backgroundColor: tone.color }}
+                        >
+                          {isSelected && (
+                            <motion.div
+                              layoutId={`skin-ring-${image.id}`}
+                              className="absolute inset-[-2px] rounded-full border-2 border-formanova-hero-accent"
+                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                            />
+                          )}
+                          {isSelected && (
+                            <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
+                          )}
+                        </button>
+                      );
+                    })}
+                    <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
+                  </div>
                 </div>
               )}
-              {/* Number badge */}
-              <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-sm sm:text-base font-mono text-foreground">{index + 1}</span>
-              </div>
             </motion.div>
           ))}
         </AnimatePresence>
