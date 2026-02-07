@@ -410,24 +410,29 @@ const CategoryUploadStudio = () => {
                         
                         {/* Per-image skin tone selector (non-necklace only) */}
                         {showSkinTone && (
-                          <div className="flex justify-center gap-1">
-                            {SKIN_TONES.map((tone) => (
-                              <button
-                                key={tone.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSkinToneChange(image.id, tone.id);
-                                }}
-                                disabled={isSubmitting}
-                                title={tone.label}
-                                className={`w-4 h-4 rounded-full transition-all ${
-                                  image.skinTone === tone.id 
-                                    ? 'ring-1 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110' 
-                                    : 'opacity-60 hover:opacity-100 hover:scale-105'
-                                }`}
-                                style={{ backgroundColor: tone.color }}
-                              />
-                            ))}
+                          <div className="space-y-1">
+                            <span className="block text-[8px] sm:text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">Skin tone</span>
+                            <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+                              <span className="text-[7px] sm:text-[8px] text-muted-foreground/60 font-mono uppercase tracking-wide">Light</span>
+                              {SKIN_TONES.map((tone) => (
+                                <button
+                                  key={tone.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSkinToneChange(image.id, tone.id);
+                                  }}
+                                  disabled={isSubmitting}
+                                  title={tone.label}
+                                  className={`w-4 h-4 rounded-full transition-all ${
+                                    image.skinTone === tone.id 
+                                      ? 'ring-1 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110' 
+                                      : 'opacity-60 hover:opacity-100 hover:scale-105'
+                                  }`}
+                                  style={{ backgroundColor: tone.color }}
+                                />
+                              ))}
+                              <span className="text-[7px] sm:text-[8px] text-muted-foreground/60 font-mono uppercase tracking-wide">Deep</span>
+                            </div>
                           </div>
                         )}
                       </motion.div>
@@ -455,6 +460,34 @@ const CategoryUploadStudio = () => {
                     </motion.label>
                   )}
                 </div>
+
+                {/* Apply to all skin tone bar */}
+                {showSkinTone && images.length > 1 && (
+                  <div className="mt-4 flex items-center justify-center gap-3 py-2 px-4 rounded-lg bg-muted/40 border border-border/50">
+                    <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">Apply to all:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Light</span>
+                      {SKIN_TONES.map((tone) => (
+                        <button
+                          key={tone.id}
+                          onClick={() => {
+                            setGlobalSkinTone(tone.id);
+                            setImages(prev => prev.map(img => ({ ...img, skinTone: tone.id })));
+                          }}
+                          disabled={isSubmitting}
+                          title={`Set all to ${tone.label}`}
+                          className={`w-5 h-5 rounded-full transition-all ${
+                            globalSkinTone === tone.id
+                              ? 'ring-1 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110'
+                              : 'opacity-60 hover:opacity-100 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: tone.color }}
+                        />
+                      ))}
+                      <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Deep</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Image count + validation status */}
                 <div className="text-center mt-4">
