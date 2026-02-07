@@ -170,6 +170,11 @@ const BulkUploadZone = ({
     onImagesChange(updated);
   }, [images, onImagesChange]);
 
+  const handleApplyToneToAll = useCallback((tone: SkinTone) => {
+    const updated = images.map(img => ({ ...img, skinTone: tone }));
+    onImagesChange(updated);
+  }, [images, onImagesChange]);
+
   const handleRemoveImage = useCallback((imageId: string) => {
     const img = images.find(i => i.id === imageId);
     if (img) URL.revokeObjectURL(img.preview);
@@ -227,6 +232,33 @@ const BulkUploadZone = ({
   // Responsive grid when images exist
   return (
     <div className="space-y-3 w-full">
+      {/* Apply to all skin tone bar */}
+      {showSkinTone && images.length > 1 && (
+        <div className="px-2 sm:px-4 py-3 border-b border-border/50">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
+              Apply to all
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+              {SKIN_TONES.map((tone) => (
+                <button
+                  key={tone.id}
+                  onClick={() => !disabled && handleApplyToneToAll(tone.id)}
+                  disabled={disabled}
+                  title={`Set all to ${tone.label}`}
+                  className={`relative w-6 h-6 rounded-full transition-all duration-150 ${
+                    disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+                  }`}
+                  style={{ backgroundColor: tone.color }}
+                />
+              ))}
+              <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Responsive grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4">
         <AnimatePresence mode="popLayout">
