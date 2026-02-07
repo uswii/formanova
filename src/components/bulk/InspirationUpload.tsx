@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ImagePlus, X, Sparkles } from 'lucide-react';
+import { normalizeImageFile } from '@/lib/image-normalize';
 
 export interface InspirationImage {
   id: string;
@@ -17,7 +18,7 @@ interface InspirationUploadProps {
   compact?: boolean;
 }
 
-const ACCEPTED_FORMATS = '.jpg,.jpeg,.png,.webp';
+const ACCEPTED_FORMATS = 'image/*';
 
 const InspirationUpload = ({
   image,
@@ -29,17 +30,15 @@ const InspirationUpload = ({
 }: InspirationUploadProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = useCallback((file: File) => {
-    // Reject AVIF
-    if (file.type === 'image/avif' || file.name.toLowerCase().endsWith('.avif')) {
-      return;
-    }
+  const handleFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return;
+
+    const normalized = await normalizeImageFile(file);
 
     const newImage: InspirationImage = {
       id: `insp-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-      file,
-      preview: URL.createObjectURL(file),
+      file: normalized,
+      preview: URL.createObjectURL(normalized),
     };
     onImageChange(newImage);
   }, [onImageChange]);
@@ -132,7 +131,7 @@ const InspirationUpload = ({
                 Drop or click to add
               </span>
               <span className="text-[9px] text-muted-foreground/60 font-mono text-center">
-                JPG, PNG, WEBP • No AVIF
+                Any image format accepted
               </span>
             </div>
           </motion.label>
