@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Plus, Diamond, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, X, Plus, Upload, Diamond, AlertTriangle } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob } from '@/lib/image-compression';
 import { SkinTone } from './ImageUploadCard';
@@ -465,7 +465,7 @@ const CategoryUploadStudio = () => {
                   {/* Global Inspiration */}
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-foreground/80 font-mono uppercase tracking-wide whitespace-nowrap">
-                      Inspiration / Mood board <span className="normal-case text-foreground/40">(Optional)</span>
+                      Inspiration / Mood board <span className="normal-case text-foreground font-semibold">(Optional)</span>
                     </span>
 
                     {/* Global inspiration thumbnails */}
@@ -943,10 +943,10 @@ const ImageCard = ({
         ) : (
           /* Before upload: dashed box with text inside */
           <label className="block cursor-pointer">
-            <div className="flex flex-col items-center justify-center gap-1.5 py-4 sm:py-5 rounded border border-dashed border-border/50 hover:border-foreground/30 hover:bg-muted/10 transition-all">
-              <Plus className="w-4 h-4 text-muted-foreground/40" />
-              <span className="text-[8px] sm:text-[9px] text-muted-foreground/70 font-mono text-center leading-tight px-2">
-                Upload inspirational photo or mood board <span className="text-foreground/40">(Optional)</span>
+            <div className="flex flex-col items-center justify-center gap-2 py-5 sm:py-6 rounded border border-dashed border-foreground/25 hover:border-foreground/50 hover:bg-muted/15 transition-all">
+              <Upload className="w-6 h-6 text-foreground/60" />
+              <span className="text-[9px] sm:text-[10px] text-foreground/70 font-mono text-center leading-tight px-2 font-medium">
+                Upload inspirational photo or mood board <span className="text-foreground font-semibold">(Optional)</span>
               </span>
             </div>
             <input
