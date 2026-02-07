@@ -10,6 +10,7 @@ import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
 import { a100Api } from '@/lib/a100-api';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
+import { normalizeImageFile } from '@/lib/image-normalize';
 // Import embedded example images (768x1024) - Necklaces
 import exampleSapphirePearl from '@/assets/examples/necklace-sapphire-pearl.png';
 import exampleTeardropBlue from '@/assets/examples/necklace-teardrop-blue.jpg';
@@ -226,7 +227,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     }
   };
 
-  const handleFileUpload = useCallback((file: File) => {
+  const handleFileUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast({
         variant: 'destructive',
@@ -235,6 +236,9 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       });
       return;
     }
+
+    // Normalize unsupported formats (e.g. AVIF, HEIC) to JPG
+    const normalized = await normalizeImageFile(file);
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -261,7 +265,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
         processingState: {},
       });
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(normalized);
   }, [toast, updateState]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {

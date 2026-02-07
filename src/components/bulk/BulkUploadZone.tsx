@@ -4,6 +4,7 @@ import { Upload, Plus, AlertTriangle, Loader2, Check, ImagePlus, X, Sparkles } f
 import { toast } from 'sonner';
 import { useImageValidation } from '@/hooks/use-image-validation';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { normalizeImageFile, normalizeImageFiles } from '@/lib/image-normalize';
 
 export type SkinTone = 'fair' | 'light' | 'medium' | 'tan' | 'dark' | 'deep';
 
@@ -76,16 +77,17 @@ const BulkUploadZone = ({
     if (!files || disabled) return;
     
     const remainingSlots = maxImages - images.length;
-    const filesToAdd = Array.from(files).slice(0, remainingSlots);
+    const rawFiles = Array.from(files).slice(0, remainingSlots).filter(f => f.type.startsWith('image/'));
     
-    const newImages: UploadedImage[] = filesToAdd
-      .filter(file => file.type.startsWith('image/'))
-      .map(file => ({
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        file,
-        preview: URL.createObjectURL(file),
-        skinTone: defaultSkinTone,
-      }));
+    // Normalize unsupported formats to JPG
+    const normalizedFiles = await normalizeImageFiles(rawFiles);
+    
+    const newImages: UploadedImage[] = normalizedFiles.map(file => ({
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      file,
+      preview: URL.createObjectURL(file),
+      skinTone: defaultSkinTone,
+    }));
 
     // Add images immediately for responsive UI
     const allImages = [...images, ...newImages];
@@ -126,7 +128,7 @@ const BulkUploadZone = ({
   useEffect(() => {
     if (disabled) return;
     
-    const handlePaste = (e: ClipboardEvent) => {
+    const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
       
@@ -143,7 +145,10 @@ const BulkUploadZone = ({
         const remainingSlots = maxImages - images.length;
         const filesToAdd = imageFiles.slice(0, remainingSlots);
         
-        const newImages: UploadedImage[] = filesToAdd.map(file => ({
+        // Normalize formats
+        const normalizedFiles = await normalizeImageFiles(filesToAdd);
+        
+        const newImages: UploadedImage[] = normalizedFiles.map(file => ({
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           file,
           preview: URL.createObjectURL(file),
@@ -199,13 +204,13 @@ const BulkUploadZone = ({
     onImagesChange(images.filter(i => i.id !== imageId));
   }, [images, onImagesChange, selectedImageId]);
 
-  const handlePerImageInspiration = useCallback((imageId: string, file: File) => {
-    if (file.type === 'image/avif' || file.name.toLowerCase().endsWith('.avif')) return;
+  const handlePerImageInspiration = useCallback(async (imageId: string, file: File) => {
     if (!file.type.startsWith('image/')) return;
+    const normalized = await normalizeImageFile(file);
     const ref: InspirationRef = {
       id: `insp-${Date.now()}`,
-      file,
-      preview: URL.createObjectURL(file),
+      file: normalized,
+      preview: URL.createObjectURL(normalized),
     };
     const updated = images.map(img => img.id === imageId ? { ...img, inspiration: ref } : img);
     onImagesChange(updated);
@@ -218,13 +223,13 @@ const BulkUploadZone = ({
     onImagesChange(updated);
   }, [images, onImagesChange]);
 
-  const handleGlobalInspirationFile = useCallback((file: File) => {
-    if (file.type === 'image/avif' || file.name.toLowerCase().endsWith('.avif')) return;
+  const handleGlobalInspirationFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return;
+    const normalized = await normalizeImageFile(file);
     const ref: InspirationRef = {
       id: `insp-global-${Date.now()}`,
-      file,
-      preview: URL.createObjectURL(file),
+      file: normalized,
+      preview: URL.createObjectURL(normalized),
     };
     onGlobalInspirationChange?.(ref);
   }, [onGlobalInspirationChange]);
@@ -342,7 +347,7 @@ const BulkUploadZone = ({
               <input
                 ref={globalInspirationInputRef}
                 type="file"
-                accept=".jpg,.jpeg,.png,.webp"
+                accept="image/*"
                 className="sr-only"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -532,7 +537,7 @@ const BulkUploadZone = ({
                     <input
                       ref={inspirationInputRef}
                       type="file"
-                      accept=".jpg,.jpeg,.png,.webp"
+                      accept="image/*"
                       className="sr-only"
                       onChange={(e) => {
                         const file = e.target.files?.[0];

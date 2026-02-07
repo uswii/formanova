@@ -11,6 +11,7 @@ import { useImageValidation } from '@/hooks/use-image-validation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getStoredToken } from '@/lib/auth-api';
 import { toast } from '@/hooks/use-toast';
+import { normalizeImageFiles } from '@/lib/image-normalize';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -98,12 +99,15 @@ const CategoryUploadStudio = () => {
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const remainingSlots = MAX_IMAGES - images.length;
-    const filesToAdd = fileArray.slice(0, remainingSlots).filter(f => f.type.startsWith('image/'));
+    const rawFiles = fileArray.slice(0, remainingSlots).filter(f => f.type.startsWith('image/'));
     
-    if (filesToAdd.length === 0) return;
+    if (rawFiles.length === 0) return;
+
+    // Normalize unsupported formats to JPG
+    const normalizedFiles = await normalizeImageFiles(rawFiles);
 
     const startIndex = images.length;
-    const newImages: ImageWithSkinTone[] = filesToAdd.map((file, idx) => ({
+    const newImages: ImageWithSkinTone[] = normalizedFiles.map((file, idx) => ({
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       file,
       preview: URL.createObjectURL(file),
@@ -114,7 +118,7 @@ const CategoryUploadStudio = () => {
     setImages(prev => [...prev, ...newImages]);
 
     // Validate the new images (auth headers handled internally)
-    const validation = await validateImages(filesToAdd, jewelryType);
+    const validation = await validateImages(normalizedFiles, jewelryType);
     
     if (validation && validation.flagged_count > 0) {
       // Update images with flag status
