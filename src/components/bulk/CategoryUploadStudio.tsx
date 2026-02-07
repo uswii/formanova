@@ -465,7 +465,7 @@ const CategoryUploadStudio = () => {
                   {/* Global Inspiration */}
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-foreground/80 font-mono uppercase tracking-wide whitespace-nowrap">
-                      Inspiration / Mood board <span className="normal-case text-formanova-hero-accent">(Optional)</span>
+                      Inspiration / Mood board <span className="normal-case text-foreground/40">(Optional)</span>
                     </span>
 
                     {/* Global inspiration thumbnails */}
@@ -946,7 +946,7 @@ const ImageCard = ({
             <div className="flex flex-col items-center justify-center gap-1.5 py-4 sm:py-5 rounded border border-dashed border-border/50 hover:border-foreground/30 hover:bg-muted/10 transition-all">
               <Plus className="w-4 h-4 text-muted-foreground/40" />
               <span className="text-[8px] sm:text-[9px] text-muted-foreground/70 font-mono text-center leading-tight px-2">
-                Upload inspirational photo or mood board <span className="text-formanova-hero-accent">(Optional)</span>
+                Upload inspirational photo or mood board <span className="text-foreground/40">(Optional)</span>
               </span>
             </div>
             <input
