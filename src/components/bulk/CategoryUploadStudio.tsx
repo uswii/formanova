@@ -89,8 +89,6 @@ const CategoryUploadStudio = () => {
 
   const {
     isValidating,
-    results: validationResults,
-    flaggedCount,
     validateImages,
     clearValidation,
   } = useImageValidation();
