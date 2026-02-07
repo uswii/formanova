@@ -43,6 +43,7 @@ interface BatchJob {
   updated_at: string;
   completed_at: string | null;
   skin_tones: string[];
+  inspiration_url: string | null;
 }
 
 interface BatchImage {
@@ -62,6 +63,7 @@ interface BatchImage {
   processing_started_at: string | null;
   processing_completed_at: string | null;
   created_at: string;
+  inspiration_url: string | null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -249,9 +251,9 @@ export default function AdminBatches() {
 
   const exportBatchesCSV = useCallback(() => {
     if (batches.length === 0) return;
-    const headers = ['Batch ID', 'User Name', 'User Email', 'Notification Email', 'Category', 'Skin Tones', 'Status', 'Total Images', 'Completed', 'Failed', 'Workflow ID', 'Created (PKT)', 'Updated (PKT)', 'Completed (PKT)', 'Error'];
+    const headers = ['Batch ID', 'User Name', 'User Email', 'Notification Email', 'Category', 'Skin Tones', 'Status', 'Total Images', 'Completed', 'Failed', 'Workflow ID', 'Has Inspiration', 'Created (PKT)', 'Updated (PKT)', 'Completed (PKT)', 'Error'];
     const esc = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
-    const rows = batches.map(b => [b.id, b.user_display_name || '', b.user_email, b.notification_email || b.user_email, b.jewelry_category, (b.skin_tones || []).join('; '), b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', toPKT(b.created_at), toPKT(b.updated_at), b.completed_at ? toPKT(b.completed_at) : '', b.error_message || '']);
+    const rows = batches.map(b => [b.id, b.user_display_name || '', b.user_email, b.notification_email || b.user_email, b.jewelry_category, (b.skin_tones || []).join('; '), b.status, b.total_images, b.completed_images, b.failed_images, b.workflow_id || '', b.inspiration_url ? 'Yes' : 'No', toPKT(b.created_at), toPKT(b.updated_at), b.completed_at ? toPKT(b.completed_at) : '', b.error_message || '']);
     const csv = [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -276,7 +278,7 @@ export default function AdminBatches() {
       const headers = [
         'Batch ID', 'User Name', 'User Email', 'Notification Email', 'Category', 'Batch Status',
         'Image #', 'Image ID', 'Skin Tone', 'Image Status', 'Flagged', 'Is Worn', 'Classification',
-        'Original URL', 'Result URL', 'Mask URL',
+        'Original URL', 'Result URL', 'Mask URL', 'Inspiration URL', 'Batch Inspiration URL',
         'Batch Created (PKT)', 'Batch Completed (PKT)', 'Image Started (PKT)', 'Image Completed (PKT)', 'Error'
       ];
       const esc = (v: string | number) => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
@@ -300,6 +302,8 @@ export default function AdminBatches() {
           img.original_url || '',
           img.result_url || '',
           img.mask_url || '',
+          img.inspiration_url || '',
+          b?.inspiration_url || '',
           b?.created_at ? toPKT(b.created_at) : '',
           b?.completed_at ? toPKT(b.completed_at) : '',
           img.processing_started_at ? toPKT(img.processing_started_at) : '',
@@ -594,6 +598,27 @@ export default function AdminBatches() {
                                   </div>
                                 </div>
 
+                                {/* Global Inspiration */}
+                                {batch.inspiration_url && (
+                                  <div className="flex items-center gap-3 p-2.5 rounded bg-primary/5 border border-primary/10">
+                                    <div
+                                      className="w-14 h-14 rounded overflow-hidden cursor-pointer flex-shrink-0 border border-border/30"
+                                      onClick={() => setImagePreview({ url: batch.inspiration_url!, title: 'Global Inspiration' })}
+                                    >
+                                      <img
+                                        src={batch.inspiration_url}
+                                        alt="Inspiration"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold block">Global Inspiration</span>
+                                      <span className="text-[11px] text-muted-foreground">Mood board reference for all images</span>
+                                    </div>
+                                  </div>
+                                )}
+
                                 {batch.error_message && (
                                   <div className="p-2.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
                                     {batch.error_message}
@@ -624,6 +649,7 @@ export default function AdminBatches() {
                                             <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Original URL</th>
                                             <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Result URL</th>
                                             <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Mask URL</th>
+                                            <th className="text-left px-2.5 py-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Inspiration</th>
                                           </tr>
                                         </thead>
                                         <tbody>
@@ -683,6 +709,16 @@ export default function AdminBatches() {
                                                     className="text-[10px] text-blue-400 hover:underline truncate max-w-[140px] block text-left"
                                                   >
                                                     View Mask
+                                                  </button>
+                                                ) : <span className="text-muted-foreground/30">—</span>}
+                                              </td>
+                                              <td className="px-2.5 py-1.5">
+                                                {img.inspiration_url ? (
+                                                  <button
+                                                    onClick={() => setImagePreview({ url: img.inspiration_url!, title: `#${img.sequence_number} Inspiration` })}
+                                                    className="text-[10px] text-violet-400 hover:underline truncate max-w-[140px] block text-left"
+                                                  >
+                                                    View Inspiration
                                                   </button>
                                                 ) : <span className="text-muted-foreground/30">—</span>}
                                               </td>

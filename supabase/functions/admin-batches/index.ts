@@ -72,7 +72,6 @@ async function generateSasUrl(blobUrl: string, accountName: string, accountKey: 
     const canonicalResource = `/blob/${accountName}/${containerName}/${blobPath}`;
     
     // Azure Service SAS string-to-sign requires exactly 16 fields (15 newlines)
-    // Fields: sp, st, se, canonicalResource, si, sip, spr, sv, sr, snapshot, encryptionScope, rscc, rscd, rsce, rscl, rsct
     const stringToSign = [
       permissions,       // sp - signed permissions
       startStr,          // st - signed start
@@ -113,6 +112,7 @@ async function addSasToImages(images: any[], accountName: string, accountKey: st
     result_url: img.result_url ? await generateSasUrl(img.result_url, accountName, accountKey) : null,
     mask_url: img.mask_url ? await generateSasUrl(img.mask_url, accountName, accountKey) : null,
     thumbnail_url: img.thumbnail_url ? await generateSasUrl(img.thumbnail_url, accountName, accountKey) : null,
+    inspiration_url: img.inspiration_url ? await generateSasUrl(img.inspiration_url, accountName, accountKey) : null,
   })));
 }
 
@@ -203,10 +203,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      const batches = (batchData || []).map((b: any) => ({
+      // SAS-sign batch-level inspiration URLs
+      const batches = await Promise.all((batchData || []).map(async (b: any) => ({
         ...b,
         skin_tones: skinToneMap[b.id] || [],
-      }));
+        inspiration_url: b.inspiration_url ? await generateSasUrl(b.inspiration_url, azureAccountName, azureAccountKey) : null,
+      })));
 
       return new Response(JSON.stringify({ batches }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

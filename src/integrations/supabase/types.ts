@@ -23,6 +23,7 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          inspiration_url: string | null
           mask_url: string | null
           original_url: string
           processing_completed_at: string | null
@@ -42,6 +43,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          inspiration_url?: string | null
           mask_url?: string | null
           original_url: string
           processing_completed_at?: string | null
@@ -61,6 +63,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          inspiration_url?: string | null
           mask_url?: string | null
           original_url?: string
           processing_completed_at?: string | null
@@ -90,6 +93,7 @@ export type Database = {
           error_message: string | null
           failed_images: number
           id: string
+          inspiration_url: string | null
           jewelry_category: Database["public"]["Enums"]["jewelry_category_type"]
           notification_email: string | null
           status: Database["public"]["Enums"]["batch_status"]
@@ -107,6 +111,7 @@ export type Database = {
           error_message?: string | null
           failed_images?: number
           id?: string
+          inspiration_url?: string | null
           jewelry_category: Database["public"]["Enums"]["jewelry_category_type"]
           notification_email?: string | null
           status?: Database["public"]["Enums"]["batch_status"]
@@ -124,6 +129,7 @@ export type Database = {
           error_message?: string | null
           failed_images?: number
           id?: string
+          inspiration_url?: string | null
           jewelry_category?: Database["public"]["Enums"]["jewelry_category_type"]
           notification_email?: string | null
           status?: Database["public"]["Enums"]["batch_status"]

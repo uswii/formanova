@@ -81,22 +81,47 @@ const BulkUploadStudio = () => {
       }
 
       // Convert images to base64 data URIs
-      const imageDataUris: Array<{ data_uri: string; skin_tone: string }> = await Promise.all(
+      const imageDataUris = await Promise.all(
         images.map(async (img) => {
           const response = await fetch(img.preview);
           const blob = await response.blob();
-          return new Promise<{ data_uri: string; skin_tone: string }>((resolve) => {
+          const data_uri = await new Promise<string>((resolve) => {
             const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve({
-                data_uri: reader.result as string,
-                skin_tone: skinTone,
-              });
-            };
+            reader.onloadend = () => resolve(reader.result as string);
             reader.readAsDataURL(blob);
           });
+
+          // Convert per-image inspiration to data URI if present
+          let inspiration_data_uri: string | null = null;
+          if (img.inspiration) {
+            const inspResponse = await fetch(img.inspiration.preview);
+            const inspBlob = await inspResponse.blob();
+            inspiration_data_uri = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(inspBlob);
+            });
+          }
+
+          return {
+            data_uri,
+            skin_tone: skinTone,
+            inspiration_data_uri,
+          };
         })
       );
+
+      // Convert global inspiration to data URI if present
+      let global_inspiration_data_uri: string | null = null;
+      if (globalInspiration) {
+        const inspResponse = await fetch(globalInspiration.preview);
+        const inspBlob = await inspResponse.blob();
+        global_inspiration_data_uri = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(inspBlob);
+        });
+      }
 
       // Submit to edge function
       const response = await fetch(BATCH_SUBMIT_URL, {
@@ -108,6 +133,7 @@ const BulkUploadStudio = () => {
         body: JSON.stringify({
           jewelry_category: selectedCategory.id,
           images: imageDataUris,
+          global_inspiration_data_uri,
         }),
       });
 
@@ -126,7 +152,7 @@ const BulkUploadStudio = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedCategory, images, skinTone]);
+  }, [selectedCategory, images, skinTone, globalInspiration]);
 
   const handleStartAnother = useCallback(() => {
     // Reset all state

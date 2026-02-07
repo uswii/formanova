@@ -14,7 +14,6 @@ const ALLOWED_ORIGINS = [
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';
-  // Allow exact matches + any *.lovable.app subdomain
   const isAllowed = ALLOWED_ORIGINS.includes(origin) || /^https:\/\/.*\.lovable\.app$/.test(origin);
   const allowedOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
   
@@ -43,12 +42,14 @@ const BatchImageSchema = z.object({
     .max(15_000_000, 'Image too large (max 10MB)'),
   skin_tone: SkinToneSchema.optional(),
   classification: ClassificationSchema,
+  inspiration_data_uri: z.string().max(15_000_000).optional().nullable(),
 });
 
 const BatchSubmitRequestSchema = z.object({
   jewelry_category: JewelryCategorySchema,
   images: z.array(BatchImageSchema).min(1, 'At least one image required').max(10, 'Maximum 10 images per batch'),
   notification_email: z.string().email().max(255).optional(),
+  global_inspiration_data_uri: z.string().max(15_000_000).optional().nullable(),
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -68,7 +69,6 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 
 // Resend for email notifications
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-// ADMIN_EMAILS is now hardcoded above in the SERVICE URLs config block
 
 interface BatchImage {
   data_uri: string;
@@ -78,12 +78,14 @@ interface BatchImage {
     is_worn: boolean;
     flagged: boolean;
   };
+  inspiration_data_uri?: string | null;
 }
 
 interface BatchSubmitRequest {
   jewelry_category: 'necklace' | 'earring' | 'ring' | 'bracelet' | 'watch';
   notification_email?: string;
   images: BatchImage[];
+  global_inspiration_data_uri?: string | null;
 }
 
 interface UserInfo {
@@ -283,6 +285,19 @@ serve(async (req) => {
 
     const batchId = crypto.randomUUID();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+    // Upload global inspiration image if provided
+    let globalInspirationUrl: string | null = null;
+    if (body.global_inspiration_data_uri) {
+      try {
+        const inspPath = `batches/${user.id}/${batchId}/${timestamp}_inspiration_global.jpg`;
+        globalInspirationUrl = await uploadToAzure(body.global_inspiration_data_uri, inspPath);
+        console.log('[batch-submit] Global inspiration uploaded:', inspPath);
+      } catch (inspErr) {
+        console.error('[batch-submit] Failed to upload global inspiration:', inspErr);
+        // Non-blocking — continue without inspiration
+      }
+    }
     
     const imageRecords: Array<{
       batch_id: string;
@@ -293,6 +308,7 @@ serve(async (req) => {
       classification_is_worn: boolean | null;
       classification_flagged: boolean | null;
       status: string;
+      inspiration_url: string | null;
     }> = [];
 
     for (let i = 0; i < body.images.length; i++) {
@@ -301,6 +317,19 @@ serve(async (req) => {
       
       try {
         const azureUrl = await uploadToAzure(img.data_uri, blobPath);
+
+        // Upload per-image inspiration if provided
+        let perImageInspirationUrl: string | null = null;
+        if (img.inspiration_data_uri) {
+          try {
+            const inspPath = `batches/${user.id}/${batchId}/${timestamp}_inspiration_${i + 1}.jpg`;
+            perImageInspirationUrl = await uploadToAzure(img.inspiration_data_uri, inspPath);
+            console.log(`[batch-submit] Per-image inspiration uploaded for image ${i + 1}`);
+          } catch (inspErr) {
+            console.error(`[batch-submit] Failed to upload inspiration for image ${i + 1}:`, inspErr);
+          }
+        }
+
         imageRecords.push({
           batch_id: batchId,
           sequence_number: i + 1,
@@ -310,6 +339,7 @@ serve(async (req) => {
           classification_is_worn: img.classification?.is_worn ?? null,
           classification_flagged: img.classification?.flagged ?? null,
           status: 'pending',
+          inspiration_url: perImageInspirationUrl,
         });
       } catch (uploadError) {
         console.error(`[batch-submit] Failed to upload image ${i + 1}:`, uploadError);
@@ -334,6 +364,7 @@ serve(async (req) => {
         notification_email: body.notification_email || user.email,
         total_images: imageRecords.length,
         status: 'pending',
+        inspiration_url: globalInspirationUrl,
       });
 
     if (batchError) {
@@ -358,11 +389,12 @@ serve(async (req) => {
       try {
         console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
         const resend = new Resend(RESEND_API_KEY);
+        const hasInspiration = !!globalInspirationUrl || imageRecords.some(r => r.inspiration_url);
         const emailResult = await resend.emails.send({
           from: 'FormaNova <onboarding@resend.dev>',
           to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
-          html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p>`,
+          html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p><p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p>`,
         });
         console.log('[batch-submit] Email sent:', JSON.stringify(emailResult));
       } catch (emailError) {
