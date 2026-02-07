@@ -1,10 +1,12 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Plus, AlertTriangle, Loader2, Check, ImagePlus, X } from 'lucide-react';
+import { Upload, Plus, AlertTriangle, Loader2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useImageValidation } from '@/hooks/use-image-validation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { normalizeImageFile, normalizeImageFiles } from '@/lib/image-normalize';
+import InspirationModal from './InspirationModal';
+import type { InspirationRef } from './InspirationModal';
 
 export type SkinTone = 'fair' | 'light' | 'medium' | 'tan' | 'dark' | 'deep';
 
@@ -17,11 +19,7 @@ const SKIN_TONES: { id: SkinTone; color: string; label: string }[] = [
   { id: 'deep', color: '#3D2314', label: 'Deep' },
 ];
 
-export interface InspirationRef {
-  id: string;
-  file: File;
-  preview: string;
-}
+export { type InspirationRef } from './InspirationModal';
 
 export interface UploadedImage {
   id: string;
@@ -45,9 +43,9 @@ interface BulkUploadZoneProps {
   onGlobalInspirationChange?: (image: InspirationRef | null) => void;
 }
 
-const BulkUploadZone = ({ 
-  images, 
-  onImagesChange, 
+const BulkUploadZone = ({
+  images,
+  onImagesChange,
   maxImages = 10,
   disabled = false,
   category = 'jewelry',
@@ -57,13 +55,11 @@ const BulkUploadZone = ({
   onGlobalInspirationChange,
 }: BulkUploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-  const inspirationInputRef = useRef<HTMLInputElement>(null);
+  const [inspirationModalImageId, setInspirationModalImageId] = useState<string | null>(null);
   const globalInspirationInputRef = useRef<HTMLInputElement>(null);
   const { validateImages, isValidating, error: validationError } = useImageValidation();
   const isMobile = useIsMobile();
 
-  // Show toast when validation service has issues
   useEffect(() => {
     if (validationError) {
       toast.warning('Image validation unavailable', {
@@ -73,15 +69,14 @@ const BulkUploadZone = ({
     }
   }, [validationError]);
 
+  // ── File handling ──────────────────────────────────────────────
+
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!files || disabled) return;
-    
     const remainingSlots = maxImages - images.length;
     const rawFiles = Array.from(files).slice(0, remainingSlots).filter(f => f.type.startsWith('image/'));
-    
-    // Normalize unsupported formats to JPG
     const normalizedFiles = await normalizeImageFiles(rawFiles);
-    
+
     const newImages: UploadedImage[] = normalizedFiles.map(file => ({
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       file,
@@ -89,49 +84,39 @@ const BulkUploadZone = ({
       skinTone: defaultSkinTone,
     }));
 
-    // Add images immediately for responsive UI
     const allImages = [...images, ...newImages];
     onImagesChange(allImages);
 
-    // Run validation in background
     if (newImages.length > 0) {
       const filesToValidate = newImages.map(img => img.file);
       const validationResult = await validateImages(filesToValidate, category);
-      
+
       if (validationResult && validationResult.flagged_count > 0) {
-        // Update images with flagged status
         const updatedImages = allImages.map((img, idx) => {
           const originalIdx = idx - images.length;
           if (originalIdx >= 0 && originalIdx < validationResult.results.length) {
             const result = validationResult.results[originalIdx];
             if (result.flags.length > 0) {
-              return {
-                ...img,
-                flagged: true,
-                flagReason: result.message || 'Image may not meet requirements',
-              };
+              return { ...img, flagged: true, flagReason: result.message || 'Image may not meet requirements' };
             }
           }
           return img;
         });
         onImagesChange(updatedImages);
-        
         toast.warning(`${validationResult.flagged_count} image(s) flagged`, {
           description: 'These may not be worn jewelry photos',
           duration: 5000,
         });
       }
     }
-  }, [images, onImagesChange, maxImages, disabled, category, validateImages]);
+  }, [images, onImagesChange, maxImages, disabled, category, validateImages, defaultSkinTone]);
 
-  // Global paste listener
+  // Paste handler
   useEffect(() => {
     if (disabled) return;
-    
     const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
-      
       const imageFiles: File[] = [];
       for (const item of items) {
         if (item.type.startsWith('image/')) {
@@ -139,29 +124,23 @@ const BulkUploadZone = ({
           if (file) imageFiles.push(file);
         }
       }
-      
       if (imageFiles.length > 0) {
         e.preventDefault();
         const remainingSlots = maxImages - images.length;
         const filesToAdd = imageFiles.slice(0, remainingSlots);
-        
-        // Normalize formats
         const normalizedFiles = await normalizeImageFiles(filesToAdd);
-        
         const newImages: UploadedImage[] = normalizedFiles.map(file => ({
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           file,
           preview: URL.createObjectURL(file),
           skinTone: defaultSkinTone,
         }));
-        
         onImagesChange([...images, ...newImages]);
       }
     };
-
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [images, onImagesChange, maxImages, disabled]);
+  }, [images, onImagesChange, maxImages, disabled, defaultSkinTone]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -184,6 +163,8 @@ const BulkUploadZone = ({
     e.target.value = '';
   }, [handleFiles]);
 
+  // ── Per-image handlers ─────────────────────────────────────────
+
   const handleSkinToneChange = useCallback((imageId: string, tone: SkinTone) => {
     const updated = images.map(img => img.id === imageId ? { ...img, skinTone: tone } : img);
     onImagesChange(updated);
@@ -200,28 +181,20 @@ const BulkUploadZone = ({
       URL.revokeObjectURL(img.preview);
       if (img.inspiration) URL.revokeObjectURL(img.inspiration.preview);
     }
-    if (selectedImageId === imageId) setSelectedImageId(null);
+    if (inspirationModalImageId === imageId) setInspirationModalImageId(null);
     onImagesChange(images.filter(i => i.id !== imageId));
-  }, [images, onImagesChange, selectedImageId]);
+  }, [images, onImagesChange, inspirationModalImageId]);
 
-  const handlePerImageInspiration = useCallback(async (imageId: string, file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    const normalized = await normalizeImageFile(file);
-    const ref: InspirationRef = {
-      id: `insp-${Date.now()}`,
-      file: normalized,
-      preview: URL.createObjectURL(normalized),
-    };
-    const updated = images.map(img => img.id === imageId ? { ...img, inspiration: ref } : img);
+  const handlePerImageInspirationChange = useCallback((imageId: string, ref: InspirationRef | null) => {
+    const updated = images.map(img => {
+      if (img.id !== imageId) return img;
+      if (img.inspiration && ref) URL.revokeObjectURL(img.inspiration.preview);
+      return { ...img, inspiration: ref };
+    });
     onImagesChange(updated);
   }, [images, onImagesChange]);
 
-  const handleRemovePerImageInspiration = useCallback((imageId: string) => {
-    const img = images.find(i => i.id === imageId);
-    if (img?.inspiration) URL.revokeObjectURL(img.inspiration.preview);
-    const updated = images.map(i => i.id === imageId ? { ...i, inspiration: null } : i);
-    onImagesChange(updated);
-  }, [images, onImagesChange]);
+  // ── Global inspiration ─────────────────────────────────────────
 
   const handleGlobalInspirationFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return;
@@ -241,18 +214,23 @@ const BulkUploadZone = ({
 
   const canAddMore = images.length < maxImages;
 
-  // Empty state - single large drop zone
+  // Inspiration modal state
+  const inspirationModalImage = inspirationModalImageId ? images.find(i => i.id === inspirationModalImageId) : null;
+  const inspirationModalIndex = inspirationModalImage ? images.indexOf(inspirationModalImage) : -1;
+
+  // ── Empty state ────────────────────────────────────────────────
+
   if (images.length === 0) {
     return (
       <motion.label
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`relative block w-full aspect-[4/3] marta-frame border-dashed cursor-pointer transition-all duration-200 ${
-          disabled 
-            ? 'opacity-50 cursor-not-allowed' 
-            : isDragOver 
-              ? 'border-formanova-hero-accent bg-formanova-hero-accent/5' 
+        className={`relative block w-full aspect-[4/3] marta-frame cursor-pointer transition-all duration-200 ${
+          disabled
+            ? 'opacity-50 cursor-not-allowed'
+            : isDragOver
+              ? 'border-primary bg-primary/5'
               : 'hover:border-foreground/40 hover:bg-muted/20'
         }`}
         whileHover={disabled ? {} : { scale: 1.005 }}
@@ -266,7 +244,6 @@ const BulkUploadZone = ({
           disabled={disabled}
           className="sr-only"
         />
-        
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
             <Upload className="w-5 h-5 text-muted-foreground" />
@@ -287,145 +264,135 @@ const BulkUploadZone = ({
     );
   }
 
-  // Responsive grid when images exist
+  // ── Grid with uploaded images ──────────────────────────────────
+
   return (
-    <div className="space-y-3 w-full">
-      {/* Sticky Global Settings Bar */}
-      {images.length > 0 && (
-        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border border-border/60 rounded-lg shadow-sm mx-2 sm:mx-4 divide-y divide-border/40">
-          {/* Global Model Skin Tone */}
+    <div className="space-y-0 w-full">
+      {/* ── Global Control Bar (non-scrolling, above grid) ── */}
+      <div className="border-b border-border/40 bg-background px-3 sm:px-4 py-3 space-y-2.5">
+        {/* Explanation — appears once */}
+        <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+          You can optionally upload inspirational images or mood board images to guide the model's style, lighting, and overall vibe.
+        </p>
+
+        {/* Concise global actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-5">
+          {/* Model skin tone — apply to all */}
           {showSkinTone && images.length > 1 && (
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 py-3 px-4">
+            <div className="flex items-center gap-2">
               <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
                 Model skin tone — apply to all
               </span>
               <div className="flex items-center gap-1">
-                <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+                <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Light</span>
                 {SKIN_TONES.map((tone) => (
                   <button
                     key={tone.id}
                     onClick={() => !disabled && handleApplyToneToAll(tone.id)}
                     disabled={disabled}
                     title={`Set all to ${tone.label}`}
-                    className={`relative w-6 h-6 rounded-full transition-all duration-150 ${
-                      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
-                    }`}
+                    className="relative w-5 h-5 rounded-full transition-all duration-150 cursor-pointer hover:scale-110"
                     style={{ backgroundColor: tone.color }}
                   />
                 ))}
-                <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
+                <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Deep</span>
               </div>
             </div>
           )}
 
-          {/* Global Mood Board */}
+          {/* Mood board — apply to all */}
           {onGlobalInspirationChange && (
-            <div className="py-3 px-4">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] sm:text-xs text-foreground/80 leading-snug">
-                    Would you like to upload any inspirational photos or a mood board?
-                  </p>
-                  <p className="text-[9px] text-muted-foreground/50 font-mono mt-0.5">
-                    Optional — affects style and vibe, not product accuracy. Applies to all images.
-                  </p>
-                </div>
-
-                {globalInspiration ? (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-10 h-10 rounded-md overflow-hidden border border-border/50 bg-muted/30">
-                      <img src={globalInspiration.preview} alt="Mood board reference" className="w-full h-full object-cover" />
-                    </div>
-                    <button
-                      onClick={handleRemoveGlobalInspiration}
-                      disabled={disabled}
-                      className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
+                Mood board — apply to all
+              </span>
+              {globalInspiration ? (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded overflow-hidden border border-border/50">
+                    <img src={globalInspiration.preview} alt="" className="w-full h-full object-cover" />
                   </div>
-                ) : (
-                  <label className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-muted-foreground/25 hover:border-foreground/35 hover:bg-muted/10 cursor-pointer transition-all flex-shrink-0">
-                    <ImagePlus className="w-4 h-4 text-muted-foreground/50" />
-                    <span className="text-[10px] text-muted-foreground/60 font-mono">Upload</span>
-                    <input
-                      ref={globalInspirationInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleGlobalInspirationFile(file);
-                        e.target.value = '';
-                      }}
-                      disabled={disabled}
-                    />
-                  </label>
-                )}
-              </div>
+                  <button
+                    onClick={handleRemoveGlobalInspiration}
+                    disabled={disabled}
+                    className="text-[10px] text-muted-foreground hover:text-destructive font-mono uppercase tracking-wide transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="text-[10px] text-primary hover:text-primary/80 font-mono uppercase tracking-wide cursor-pointer transition-colors">
+                  Add
+                  <input
+                    ref={globalInspirationInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleGlobalInspirationFile(file);
+                      e.target.value = '';
+                    }}
+                    disabled={disabled}
+                  />
+                </label>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Responsive grid */}
+      {/* ── Responsive image grid ──────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4">
         <AnimatePresence mode="popLayout">
-          {images.map((image, index) => {
-            const isSelected = selectedImageId === image.id;
-            return (
-              <motion.div
-                key={image.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                layout
-                className="group"
-              >
-                {/* Image tile */}
-                <div
-                  onClick={() => setSelectedImageId(isSelected ? null : image.id)}
-                  className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
-                    image.flagged ? 'ring-2 ring-amber-500/70' : ''
-                  } ${isSelected ? 'ring-2 ring-formanova-hero-accent' : ''}`}
+          {images.map((image, index) => (
+            <motion.div
+              key={image.id}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              layout
+              className="group space-y-1.5"
+            >
+              {/* Image tile */}
+              <div className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
+                image.flagged ? 'ring-2 ring-amber-500/70' : ''
+              }`}>
+                <img
+                  src={image.preview}
+                  alt={`Upload ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                {/* Remove button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRemoveImage(image.id); }}
+                  disabled={disabled}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
                 >
-                  <img
-                    src={image.preview}
-                    alt={`Upload ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Remove button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleRemoveImage(image.id); }}
-                    disabled={disabled}
-                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <span className="text-xs font-bold">✕</span>
-                  </button>
-                  {/* Flagged indicator */}
-                  {image.flagged && (
-                    <div
-                      className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
-                      title={image.flagReason || 'Image may not meet requirements'}
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  )}
-                  {/* Mood board indicator */}
-                  {image.inspiration && (
-                    <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 px-1.5 py-0.5 rounded bg-foreground/70 backdrop-blur-sm" title="Has per-image mood board">
-                      <span className="text-[8px] font-mono text-background uppercase">Mood</span>
-                    </div>
-                  )}
-                  {/* Number badge */}
-                  <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                    <span className="text-sm sm:text-base font-mono text-foreground">{index + 1}</span>
+                  <span className="text-xs font-bold">✕</span>
+                </button>
+                {/* Flagged indicator */}
+                {image.flagged && (
+                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center" title={image.flagReason || 'Image may not meet requirements'}>
+                    <AlertTriangle className="w-3.5 h-3.5 text-white" />
                   </div>
+                )}
+                {/* Mood badge */}
+                {image.inspiration && (
+                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-foreground/70 backdrop-blur-sm">
+                    <span className="text-[8px] font-mono text-background uppercase">Mood</span>
+                  </div>
+                )}
+                {/* Number badge */}
+                <div className="absolute bottom-2 left-2 w-8 h-8 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                  <span className="text-sm font-mono text-foreground">{index + 1}</span>
                 </div>
+              </div>
 
-                {/* Per-image skin tone override */}
+              {/* ── Per-image controls (minimal overrides) ── */}
+              <div className="space-y-1 px-0.5">
+                {/* Model skin tone (this image only) */}
                 {showSkinTone && (
-                  <div className="mt-2 space-y-1">
+                  <div className="space-y-0.5">
                     <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">
                       Model skin tone <span className="text-muted-foreground/40">(this image only)</span>
                     </span>
@@ -447,7 +414,7 @@ const BulkUploadZone = ({
                             {isToneSelected && (
                               <motion.div
                                 layoutId={`skin-ring-${image.id}`}
-                                className="absolute inset-[-2px] rounded-full border-2 border-formanova-hero-accent"
+                                className="absolute inset-[-2px] rounded-full border-2 border-primary"
                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                               />
                             )}
@@ -461,9 +428,28 @@ const BulkUploadZone = ({
                     </div>
                   </div>
                 )}
-              </motion.div>
-            );
-          })}
+
+                {/* Inspiration (this image only) — minimal Add action */}
+                <div className="text-center">
+                  {image.inspiration ? (
+                    <button
+                      onClick={() => setInspirationModalImageId(image.id)}
+                      className="text-[9px] text-primary font-mono uppercase tracking-wide hover:text-primary/80 transition-colors"
+                    >
+                      Mood board set · Edit
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setInspirationModalImageId(image.id)}
+                      className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wide hover:text-foreground/80 transition-colors"
+                    >
+                      Add inspiration <span className="text-muted-foreground/30">(optional)</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </AnimatePresence>
 
         {/* Add more tile */}
@@ -474,10 +460,10 @@ const BulkUploadZone = ({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             className={`relative aspect-square rounded-lg sm:rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center ${
-              disabled 
-                ? 'opacity-50 cursor-not-allowed border-muted' 
-                : isDragOver 
-                  ? 'border-formanova-hero-accent bg-formanova-hero-accent/5' 
+              disabled
+                ? 'opacity-50 cursor-not-allowed border-muted'
+                : isDragOver
+                  ? 'border-primary bg-primary/5'
                   : 'border-muted-foreground/30 hover:border-foreground/50 hover:bg-muted/20'
             }`}
           >
@@ -494,92 +480,33 @@ const BulkUploadZone = ({
         )}
       </div>
 
-      {/* Per-image mood board panel - shown when an image is selected */}
-      {selectedImageId && (() => {
-        const selectedImage = images.find(i => i.id === selectedImageId);
-        if (!selectedImage) return null;
-        const selectedIndex = images.indexOf(selectedImage);
-        return (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mx-2 sm:mx-4 p-3 rounded-lg border border-border/50 bg-muted/20"
-          >
-            <div className="flex items-start gap-3">
-              {/* Selected image thumbnail */}
-              <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 ring-1 ring-formanova-hero-accent">
-                <img src={selectedImage.preview} alt={`Image ${selectedIndex + 1}`} className="w-full h-full object-cover" />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide">
-                    Mood board — image {selectedIndex + 1} only
-                  </span>
-                </div>
-
-                {selectedImage.inspiration ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border border-border/50 bg-muted/30">
-                      <img src={selectedImage.inspiration.preview} alt="Mood board reference" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[9px] text-muted-foreground/70 font-mono">Overrides the global mood board for this image</p>
-                    </div>
-                    <button
-                      onClick={() => handleRemovePerImageInspiration(selectedImage.id)}
-                      disabled={disabled}
-                      className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-muted-foreground/25 cursor-pointer hover:border-foreground/35 hover:bg-muted/10 transition-all">
-                    <input
-                      ref={inspirationInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handlePerImageInspiration(selectedImage.id, file);
-                        e.target.value = '';
-                      }}
-                      disabled={disabled}
-                    />
-                    <ImagePlus className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
-                    <span className="text-[10px] text-muted-foreground font-mono">Add mood board for this image</span>
-                  </label>
-                )}
-              </div>
-
-              {/* Close selection */}
-              <button
-                onClick={() => setSelectedImageId(null)}
-                className="w-5 h-5 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0"
-              >
-                <X className="w-3 h-3 text-muted-foreground" />
-              </button>
-            </div>
-          </motion.div>
-        );
-      })()}
-
       {/* Counter and status */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground px-2 sm:px-4">
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-2 sm:px-4 pb-2">
         <div className="flex items-center gap-2">
           <span>{images.length} of {maxImages}</span>
           {isValidating && (
-            <span className="flex items-center gap-1 text-formanova-hero-accent">
+            <span className="flex items-center gap-1 text-primary">
               <Loader2 className="w-3 h-3 animate-spin" />
-              Checking...
+              Checking…
             </span>
           )}
         </div>
         {!isMobile && <span className="text-[10px]">Ctrl+V to paste</span>}
       </div>
+
+      {/* ── Per-image Inspiration Modal ────────────────────────── */}
+      {inspirationModalImage && (
+        <InspirationModal
+          open={!!inspirationModalImageId}
+          onOpenChange={(open) => { if (!open) setInspirationModalImageId(null); }}
+          imagePreview={inspirationModalImage.preview}
+          imageIndex={inspirationModalIndex}
+          inspiration={inspirationModalImage.inspiration ?? null}
+          onInspirationChange={(ref) => handlePerImageInspirationChange(inspirationModalImage.id, ref)}
+          globalInspiration={globalInspiration}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 };
