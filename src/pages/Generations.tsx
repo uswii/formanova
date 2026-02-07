@@ -21,10 +21,7 @@ export default function Generations() {
         <Card className="border-border/50 bg-card/50">
           <CardContent className="flex flex-col items-center justify-center py-20">
             <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center mb-2">Generation history coming soon</p>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              This feature will be available once connected to your backend.
-            </p>
+            <p className="text-muted-foreground text-center mb-4">Generation history coming soon</p>
             <Button asChild>
               <Link to="/studio">Go to Studio</Link>
             </Button>
