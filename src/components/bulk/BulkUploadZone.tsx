@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Plus, AlertTriangle, Loader2, Check, ImagePlus, X, Sparkles } from 'lucide-react';
+import { Upload, Plus, AlertTriangle, Loader2, Check, ImagePlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useImageValidation } from '@/hooks/use-image-validation';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -290,76 +290,80 @@ const BulkUploadZone = ({
   // Responsive grid when images exist
   return (
     <div className="space-y-3 w-full">
-      {/* Apply to all skin tone bar */}
-      {showSkinTone && images.length > 1 && (
-        <div className="px-2 sm:px-4 py-3 border-b border-border/50">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
-              Apply to all
-            </span>
-            <div className="flex items-center gap-1">
-              <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
-              {SKIN_TONES.map((tone) => (
-                <button
-                  key={tone.id}
-                  onClick={() => !disabled && handleApplyToneToAll(tone.id)}
-                  disabled={disabled}
-                  title={`Set all to ${tone.label}`}
-                  className={`relative w-6 h-6 rounded-full transition-all duration-150 ${
-                    disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
-                  }`}
-                  style={{ backgroundColor: tone.color }}
-                />
-              ))}
-              <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Global inspiration bar */}
-      {onGlobalInspirationChange && images.length > 0 && (
-        <div className="px-2 sm:px-4 py-3 border-b border-border/50">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-3.5 h-3.5 text-formanova-hero-accent flex-shrink-0" />
-            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
-              Inspiration / Mood board
-            </span>
-            <span className="text-[9px] text-muted-foreground/50 font-mono">(optional)</span>
-          </div>
-
-          {globalInspiration ? (
-            <div className="flex items-center gap-3 mt-2">
-              <div className="w-14 h-10 rounded-md overflow-hidden flex-shrink-0 marta-frame">
-                <img src={globalInspiration.preview} alt="Global inspiration" className="w-full h-full object-cover" />
+      {/* Sticky Global Settings Bar */}
+      {images.length > 0 && (
+        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border border-border/60 rounded-lg shadow-sm mx-2 sm:mx-4 divide-y divide-border/40">
+          {/* Global Model Skin Tone */}
+          {showSkinTone && images.length > 1 && (
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 py-3 px-4">
+              <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
+                Model skin tone — apply to all
+              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+                {SKIN_TONES.map((tone) => (
+                  <button
+                    key={tone.id}
+                    onClick={() => !disabled && handleApplyToneToAll(tone.id)}
+                    disabled={disabled}
+                    title={`Set all to ${tone.label}`}
+                    className={`relative w-6 h-6 rounded-full transition-all duration-150 ${
+                      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+                    }`}
+                    style={{ backgroundColor: tone.color }}
+                  />
+                ))}
+                <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
               </div>
-              <span className="text-[9px] text-muted-foreground/70 font-mono flex-1">Applies to all images</span>
-              <button
-                onClick={handleRemoveGlobalInspiration}
-                disabled={disabled}
-                className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
-              >
-                <X className="w-3 h-3" />
-              </button>
             </div>
-          ) : (
-            <label className="flex items-center gap-2 mt-2 px-3 py-2.5 rounded-md border border-dashed border-muted-foreground/30 cursor-pointer hover:border-foreground/40 hover:bg-muted/10 transition-all">
-              <input
-                ref={globalInspirationInputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleGlobalInspirationFile(file);
-                  e.target.value = '';
-                }}
-                disabled={disabled}
-              />
-              <ImagePlus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span className="text-[10px] text-muted-foreground font-mono">Drop or click to add mood reference</span>
-              <span className="text-[8px] text-muted-foreground/50 font-mono ml-auto">JPG, PNG, WEBP</span>
-            </label>
+          )}
+
+          {/* Global Mood Board */}
+          {onGlobalInspirationChange && (
+            <div className="py-3 px-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] sm:text-xs text-foreground/80 leading-snug">
+                    Would you like to upload any inspirational photos or a mood board?
+                  </p>
+                  <p className="text-[9px] text-muted-foreground/50 font-mono mt-0.5">
+                    Optional — affects style and vibe, not product accuracy. Applies to all images.
+                  </p>
+                </div>
+
+                {globalInspiration ? (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-md overflow-hidden border border-border/50 bg-muted/30">
+                      <img src={globalInspiration.preview} alt="Mood board reference" className="w-full h-full object-cover" />
+                    </div>
+                    <button
+                      onClick={handleRemoveGlobalInspiration}
+                      disabled={disabled}
+                      className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-muted-foreground/25 hover:border-foreground/35 hover:bg-muted/10 cursor-pointer transition-all flex-shrink-0">
+                    <ImagePlus className="w-4 h-4 text-muted-foreground/50" />
+                    <span className="text-[10px] text-muted-foreground/60 font-mono">Upload</span>
+                    <input
+                      ref={globalInspirationInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleGlobalInspirationFile(file);
+                        e.target.value = '';
+                      }}
+                      disabled={disabled}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -407,10 +411,10 @@ const BulkUploadZone = ({
                       <AlertTriangle className="w-3.5 h-3.5 text-white" />
                     </div>
                   )}
-                  {/* Inspiration indicator */}
+                  {/* Mood board indicator */}
                   {image.inspiration && (
-                    <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 w-6 h-6 rounded-full bg-formanova-hero-accent/90 backdrop-blur-sm flex items-center justify-center" title="Has per-image inspiration">
-                      <Sparkles className="w-3 h-3 text-white" />
+                    <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 px-1.5 py-0.5 rounded bg-foreground/70 backdrop-blur-sm" title="Has per-image mood board">
+                      <span className="text-[8px] font-mono text-background uppercase">Mood</span>
                     </div>
                   )}
                   {/* Number badge */}
@@ -419,11 +423,11 @@ const BulkUploadZone = ({
                   </div>
                 </div>
 
-                {/* Per-image skin tone selector */}
+                {/* Per-image skin tone override */}
                 {showSkinTone && (
                   <div className="mt-2 space-y-1">
                     <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">
-                      Choose model skin tone
+                      Model skin tone <span className="text-muted-foreground/40">(this image only)</span>
                     </span>
                     <div className="flex items-center justify-center gap-1">
                       <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
@@ -490,7 +494,7 @@ const BulkUploadZone = ({
         )}
       </div>
 
-      {/* Per-image inspiration panel - shown when an image is selected */}
+      {/* Per-image mood board panel - shown when an image is selected */}
       {selectedImageId && (() => {
         const selectedImage = images.find(i => i.id === selectedImageId);
         if (!selectedImage) return null;
@@ -510,19 +514,18 @@ const BulkUploadZone = ({
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Sparkles className="w-3 h-3 text-formanova-hero-accent flex-shrink-0" />
                   <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide">
-                    Inspiration (image {selectedIndex + 1} only)
+                    Mood board — image {selectedIndex + 1} only
                   </span>
                 </div>
 
                 {selectedImage.inspiration ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-16 h-12 rounded-md overflow-hidden flex-shrink-0 marta-frame">
-                      <img src={selectedImage.inspiration.preview} alt="Inspiration" className="w-full h-full object-cover" />
+                    <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border border-border/50 bg-muted/30">
+                      <img src={selectedImage.inspiration.preview} alt="Mood board reference" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[9px] text-muted-foreground/70 font-mono">Overrides global inspiration for this image</p>
+                      <p className="text-[9px] text-muted-foreground/70 font-mono">Overrides the global mood board for this image</p>
                     </div>
                     <button
                       onClick={() => handleRemovePerImageInspiration(selectedImage.id)}
@@ -533,7 +536,7 @@ const BulkUploadZone = ({
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-muted-foreground/30 cursor-pointer hover:border-foreground/40 hover:bg-muted/10 transition-all">
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-muted-foreground/25 cursor-pointer hover:border-foreground/35 hover:bg-muted/10 transition-all">
                     <input
                       ref={inspirationInputRef}
                       type="file"
@@ -546,8 +549,8 @@ const BulkUploadZone = ({
                       }}
                       disabled={disabled}
                     />
-                    <ImagePlus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-[10px] text-muted-foreground font-mono">Add inspiration for this image</span>
+                    <ImagePlus className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
+                    <span className="text-[10px] text-muted-foreground font-mono">Add mood board for this image</span>
                   </label>
                 )}
               </div>

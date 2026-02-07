@@ -32,7 +32,7 @@ const MetadataSelectors = ({
     <div className="space-y-5">
       {/* Skin Tone Selector */}
       <div className="space-y-2">
-        <span className="marta-label text-muted-foreground text-xs">Choose model skin tone</span>
+        <span className="marta-label text-muted-foreground text-xs">Model skin tone</span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">Light</span>
           {SKIN_TONES.map((tone) => {

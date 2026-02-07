@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Plus, Diamond, AlertTriangle, ImagePlus, Sparkles } from 'lucide-react';
+import { ArrowLeft, X, Plus, Diamond, AlertTriangle, ImagePlus } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
@@ -461,10 +461,10 @@ const CategoryUploadStudio = () => {
                           </button>
                         </div>
                         
-                        {/* Per-image skin tone selector (non-necklace only) */}
+                        {/* Per-image skin tone override (non-necklace only) */}
                         {showSkinTone && (
                           <div className="space-y-1">
-                            <span className="block text-[8px] sm:text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">Skin tone</span>
+                            <span className="block text-[8px] sm:text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">Model skin tone <span className="text-muted-foreground/40">(this image only)</span></span>
                             <div className="flex items-center justify-center gap-0.5 sm:gap-1">
                               <span className="text-[7px] sm:text-[8px] text-muted-foreground/60 font-mono uppercase tracking-wide">Light</span>
                               {SKIN_TONES.map((tone) => (
@@ -488,24 +488,24 @@ const CategoryUploadStudio = () => {
                             </div>
                           </div>
                         )}
-                        {/* Per-image inspiration upload */}
+                        {/* Per-image mood board override */}
                         <div className="space-y-1">
                           {image.inspirationPreview ? (
-                            <div className="relative rounded-md overflow-hidden border border-dashed border-formanova-hero-accent/40 aspect-[3/1]">
-                              <img src={image.inspirationPreview} alt="Inspiration" className="w-full h-full object-cover" />
-                              <div className="absolute top-0.5 left-0.5 px-1 py-px rounded bg-formanova-hero-accent/80">
-                                <span className="text-[7px] font-mono uppercase text-white">✨ Mood</span>
+                            <div className="relative flex items-center gap-2 rounded-md border border-dashed border-muted-foreground/30 p-1.5">
+                              <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-border/50 bg-muted/30">
+                                <img src={image.inspirationPreview} alt="Inspiration reference" className="w-full h-full object-cover" />
                               </div>
+                              <span className="text-[7px] text-muted-foreground/60 font-mono leading-tight flex-1">Mood ref <span className="text-muted-foreground/40">(this image)</span></span>
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleInspirationChange(image.id, null); }}
                                 disabled={isSubmitting}
-                                className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-background/80 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground"
+                                className="w-4 h-4 rounded-full bg-muted/60 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground flex-shrink-0"
                               >
                                 <X className="w-2.5 h-2.5" />
                               </button>
                             </div>
                           ) : (
-                            <label className="block w-full rounded-md border border-dashed border-muted-foreground/30 hover:border-foreground/40 hover:bg-muted/10 cursor-pointer transition-all py-1.5">
+                            <label className="block w-full rounded-md border border-dashed border-muted-foreground/20 hover:border-foreground/30 hover:bg-muted/10 cursor-pointer transition-all py-1.5">
                               <input
                                 type="file"
                                 accept="image/*"
@@ -518,8 +518,9 @@ const CategoryUploadStudio = () => {
                                 }}
                               />
                               <div className="flex items-center justify-center gap-1">
-                                <Sparkles className="w-3 h-3 text-muted-foreground/50" />
-                                <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wide">Mood board</span>
+                                <ImagePlus className="w-3 h-3 text-muted-foreground/40" />
+                                <span className="text-[8px] sm:text-[9px] text-muted-foreground/50 font-mono">Add mood board</span>
+                                <span className="text-[7px] text-muted-foreground/30 font-mono">(this image)</span>
                               </div>
                             </label>
                           )}
@@ -550,73 +551,83 @@ const CategoryUploadStudio = () => {
                   )}
                 </div>
 
-                {/* Apply to all skin tone bar */}
-                {showSkinTone && images.length > 1 && (
-                  <div className="mt-4 flex items-center justify-center gap-3 py-2 px-4 rounded-lg bg-muted/40 border border-border/50">
-                    <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">Apply to all:</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Light</span>
-                      {SKIN_TONES.map((tone) => (
-                        <button
-                          key={tone.id}
-                          onClick={() => {
-                            setGlobalSkinTone(tone.id);
-                            setImages(prev => prev.map(img => ({ ...img, skinTone: tone.id })));
-                          }}
-                          disabled={isSubmitting}
-                          title={`Set all to ${tone.label}`}
-                          className={`w-5 h-5 rounded-full transition-all ${
-                            globalSkinTone === tone.id
-                              ? 'ring-1 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110'
-                              : 'opacity-60 hover:opacity-100 hover:scale-105'
-                          }`}
-                          style={{ backgroundColor: tone.color }}
-                        />
-                      ))}
-                      <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Deep</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Apply-to-all Inspiration bar */}
-                {images.length > 1 && (
-                  <div className="mt-3 flex items-center justify-center gap-3 py-2 px-4 rounded-lg bg-muted/40 border border-dashed border-border/50">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-formanova-hero-accent" />
-                      <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
-                        Mood board for all:
-                      </span>
-                    </div>
-                    {globalInspiration ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded overflow-hidden border border-formanova-hero-accent/40">
-                          <img src={globalInspiration.preview} alt="Global inspiration" className="w-full h-full object-cover" />
+                {/* Sticky Global Settings Bar */}
+                {images.length > 0 && (
+                  <div className="sticky top-0 z-10 mt-4 rounded-lg bg-card/95 backdrop-blur-sm border border-border/60 shadow-sm divide-y divide-border/40">
+                    {/* Global Model Skin Tone */}
+                    {showSkinTone && (
+                      <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 py-3 px-4">
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
+                          Model skin tone — apply to all
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Light</span>
+                          {SKIN_TONES.map((tone) => (
+                            <button
+                              key={tone.id}
+                              onClick={() => {
+                                setGlobalSkinTone(tone.id);
+                                setImages(prev => prev.map(img => ({ ...img, skinTone: tone.id })));
+                              }}
+                              disabled={isSubmitting}
+                              title={`Set all to ${tone.label}`}
+                              className={`w-5 h-5 rounded-full transition-all ${
+                                globalSkinTone === tone.id
+                                  ? 'ring-1 ring-formanova-hero-accent ring-offset-1 ring-offset-background scale-110'
+                                  : 'opacity-60 hover:opacity-100 hover:scale-105'
+                              }`}
+                              style={{ backgroundColor: tone.color }}
+                            />
+                          ))}
+                          <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Deep</span>
                         </div>
-                        <button
-                          onClick={() => handleApplyInspirationToAll(null)}
-                          disabled={isSubmitting}
-                          className="text-[9px] text-muted-foreground hover:text-destructive font-mono uppercase"
-                        >
-                          Clear
-                        </button>
                       </div>
-                    ) : (
-                      <label className="flex items-center gap-1.5 px-3 py-1 rounded border border-dashed border-muted-foreground/30 hover:border-foreground/40 cursor-pointer transition-all">
-                        <ImagePlus className="w-3 h-3 text-muted-foreground/50" />
-                        <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 font-mono uppercase">Upload</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          disabled={isSubmitting}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) await handleApplyInspirationToAll(file);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
                     )}
+
+                    {/* Global Mood Board */}
+                    <div className="py-3 px-4">
+                      <div className="flex items-start sm:items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] sm:text-xs text-foreground/80 leading-snug">
+                            Would you like to upload any inspirational photos or a mood board?
+                          </p>
+                          <p className="text-[9px] text-muted-foreground/50 font-mono mt-0.5">
+                            Optional — affects style and vibe, not product accuracy. Applies to all images.
+                          </p>
+                        </div>
+
+                        {globalInspiration ? (
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="w-10 h-10 rounded-md overflow-hidden border border-border/50 bg-muted/30">
+                              <img src={globalInspiration.preview} alt="Mood board reference" className="w-full h-full object-cover" />
+                            </div>
+                            <button
+                              onClick={() => handleApplyInspirationToAll(null)}
+                              disabled={isSubmitting}
+                              className="w-5 h-5 rounded-full bg-muted/60 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-muted-foreground/25 hover:border-foreground/35 hover:bg-muted/10 cursor-pointer transition-all flex-shrink-0">
+                            <ImagePlus className="w-4 h-4 text-muted-foreground/50" />
+                            <span className="text-[10px] text-muted-foreground/60 font-mono">Upload</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="sr-only"
+                              disabled={isSubmitting}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) await handleApplyInspirationToAll(file);
+                                e.target.value = '';
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -752,7 +763,7 @@ const CategoryUploadStudio = () => {
           {/* Skin tone explainer (non-necklace only) */}
           {showSkinTone && images.length > 0 && (
             <div className="mt-6 pt-4 border-t border-border/50">
-              <span className="marta-label text-muted-foreground text-[10px]">Model Skin Tone</span>
+              <span className="marta-label text-muted-foreground text-[10px]">Model skin tone</span>
               <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
                 Select the skin tone for the AI-generated model in each photoshoot.
               </p>

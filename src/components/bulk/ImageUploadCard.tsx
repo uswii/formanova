@@ -66,7 +66,7 @@ const ImageUploadCard = ({
       {/* Skin Tone Selector - Per Image */}
       {showSkinTone && (
         <div className="mt-2 space-y-1">
-          <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">Choose model skin tone</span>
+          <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">Model skin tone</span>
           <div className="flex items-center justify-center gap-1">
             <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
             {SKIN_TONES.map((tone) => {

@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImagePlus, X, Sparkles } from 'lucide-react';
+import { ImagePlus, X } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/image-normalize';
 
 export interface InspirationImage {
@@ -66,7 +66,6 @@ const InspirationUpload = ({
     <div className="space-y-2">
       {/* Label */}
       <div className="flex items-center gap-1.5">
-        <Sparkles className="w-3 h-3 text-formanova-hero-accent" />
         <span className="marta-label text-muted-foreground text-xs">{label}</span>
       </div>
 
