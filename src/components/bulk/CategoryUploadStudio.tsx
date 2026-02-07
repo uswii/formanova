@@ -2,8 +2,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Plus, Diamond, AlertTriangle } from 'lucide-react';
-
+import { ArrowLeft, X, Plus, Diamond, AlertTriangle, ImagePlus, Sparkles } from 'lucide-react';
+import { normalizeImageFile } from '@/lib/image-normalize';
 import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
 import ExampleGuidePanel from './ExampleGuidePanel';
@@ -28,6 +28,8 @@ interface ImageWithSkinTone extends UploadedImage {
   skinTone: SkinTone;
   isFlagged?: boolean;
   flagReason?: string;
+  inspirationFile?: File;
+  inspirationPreview?: string;
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -81,6 +83,7 @@ const CategoryUploadStudio = () => {
   const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
   const [isDragOver, setIsDragOver] = useState(false);
   const [showFlagWarning, setShowFlagWarning] = useState(false);
+  const [globalInspiration, setGlobalInspiration] = useState<{ file: File; preview: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jewelryType = type || 'necklace';
   const categoryName = CATEGORY_NAMES[jewelryType] || 'Jewelry';
@@ -194,6 +197,48 @@ const CategoryUploadStudio = () => {
     );
   }, []);
 
+  // Per-image inspiration handler
+  const handleInspirationChange = useCallback(async (imageId: string, file: File | null) => {
+    if (!file) {
+      setImages(prev => prev.map(img => {
+        if (img.id === imageId && img.inspirationPreview) {
+          URL.revokeObjectURL(img.inspirationPreview);
+        }
+        return img.id === imageId ? { ...img, inspirationFile: undefined, inspirationPreview: undefined } : img;
+      }));
+      return;
+    }
+    const normalized = await normalizeImageFile(file);
+    const preview = URL.createObjectURL(normalized);
+    setImages(prev => prev.map(img =>
+      img.id === imageId ? { ...img, inspirationFile: normalized, inspirationPreview: preview } : img
+    ));
+  }, []);
+
+  // Apply global inspiration to all images
+  const handleApplyInspirationToAll = useCallback(async (file: File | null) => {
+    if (!file) {
+      // Clear global and all per-image
+      if (globalInspiration?.preview) URL.revokeObjectURL(globalInspiration.preview);
+      setGlobalInspiration(null);
+      setImages(prev => prev.map(img => {
+        if (img.inspirationPreview) URL.revokeObjectURL(img.inspirationPreview);
+        return { ...img, inspirationFile: undefined, inspirationPreview: undefined };
+      }));
+      return;
+    }
+    const normalized = await normalizeImageFile(file);
+    const globalPreview = URL.createObjectURL(normalized);
+    if (globalInspiration?.preview) URL.revokeObjectURL(globalInspiration.preview);
+    setGlobalInspiration({ file: normalized, preview: globalPreview });
+    // Apply to each image
+    setImages(prev => prev.map(img => {
+      if (img.inspirationPreview) URL.revokeObjectURL(img.inspirationPreview);
+      const perPreview = URL.createObjectURL(normalized);
+      return { ...img, inspirationFile: normalized, inspirationPreview: perPreview };
+    }));
+  }, [globalInspiration]);
+
   // Check if any images are flagged
   const hasFlaggedImages = images.some(img => img.isFlagged);
 
@@ -220,10 +265,22 @@ const CategoryUploadStudio = () => {
             reader.onerror = reject;
             reader.readAsDataURL(img.file);
           });
+
+          // Read per-image inspiration if present
+          let inspirationDataUri: string | null = null;
+          if (img.inspirationFile) {
+            inspirationDataUri = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(img.inspirationFile!);
+            });
+          }
           
           return {
             data_uri: dataUri,
             skin_tone: img.skinTone,
+            inspiration_data_uri: inspirationDataUri,
             classification: img.isFlagged ? {
               category: img.flagReason || 'unknown',
               is_worn: false,
@@ -248,10 +305,6 @@ const CategoryUploadStudio = () => {
       }
 
       console.log('[CategoryUploadStudio] Submitting to:', `${SUPABASE_URL}/functions/v1/batch-submit`);
-      console.log('[CategoryUploadStudio] Headers:', {
-        'X-User-Token': `${userToken.substring(0, 20)}...`,
-        'Authorization': 'Bearer [anon-key]',
-      });
 
       // Call batch-submit edge function
       const response = await fetch(`${SUPABASE_URL}/functions/v1/batch-submit`, {
@@ -435,6 +488,42 @@ const CategoryUploadStudio = () => {
                             </div>
                           </div>
                         )}
+                        {/* Per-image inspiration upload */}
+                        <div className="space-y-1">
+                          {image.inspirationPreview ? (
+                            <div className="relative rounded-md overflow-hidden border border-dashed border-formanova-hero-accent/40 aspect-[3/1]">
+                              <img src={image.inspirationPreview} alt="Inspiration" className="w-full h-full object-cover" />
+                              <div className="absolute top-0.5 left-0.5 px-1 py-px rounded bg-formanova-hero-accent/80">
+                                <span className="text-[7px] font-mono uppercase text-white">✨ Mood</span>
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleInspirationChange(image.id, null); }}
+                                disabled={isSubmitting}
+                                className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-background/80 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="block w-full rounded-md border border-dashed border-muted-foreground/30 hover:border-foreground/40 hover:bg-muted/10 cursor-pointer transition-all py-1.5">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="sr-only"
+                                disabled={isSubmitting}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) await handleInspirationChange(image.id, file);
+                                  e.target.value = '';
+                                }}
+                              />
+                              <div className="flex items-center justify-center gap-1">
+                                <Sparkles className="w-3 h-3 text-muted-foreground/50" />
+                                <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wide">Mood board</span>
+                              </div>
+                            </label>
+                          )}
+                        </div>
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -486,6 +575,48 @@ const CategoryUploadStudio = () => {
                       ))}
                       <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Deep</span>
                     </div>
+                  </div>
+                )}
+
+                {/* Apply-to-all Inspiration bar */}
+                {images.length > 1 && (
+                  <div className="mt-3 flex items-center justify-center gap-3 py-2 px-4 rounded-lg bg-muted/40 border border-dashed border-border/50">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-formanova-hero-accent" />
+                      <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
+                        Mood board for all:
+                      </span>
+                    </div>
+                    {globalInspiration ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded overflow-hidden border border-formanova-hero-accent/40">
+                          <img src={globalInspiration.preview} alt="Global inspiration" className="w-full h-full object-cover" />
+                        </div>
+                        <button
+                          onClick={() => handleApplyInspirationToAll(null)}
+                          disabled={isSubmitting}
+                          className="text-[9px] text-muted-foreground hover:text-destructive font-mono uppercase"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center gap-1.5 px-3 py-1 rounded border border-dashed border-muted-foreground/30 hover:border-foreground/40 cursor-pointer transition-all">
+                        <ImagePlus className="w-3 h-3 text-muted-foreground/50" />
+                        <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 font-mono uppercase">Upload</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          disabled={isSubmitting}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) await handleApplyInspirationToAll(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
 
