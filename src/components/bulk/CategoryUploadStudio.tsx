@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, X, Plus, Diamond, AlertTriangle, Check } from 'lucide-react';
+import { ArrowLeft, X, Plus, Diamond, AlertTriangle } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob } from '@/lib/image-compression';
 import { SkinTone } from './ImageUploadCard';
@@ -19,6 +19,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+const MAX_INSPIRATIONS = 3;
+
 interface UploadedImage {
   id: string;
   file: File;
@@ -30,7 +32,7 @@ interface ImageWithSkinTone extends UploadedImage {
   skinTone: SkinTone;
   isFlagged?: boolean;
   flagReason?: string;
-  inspiration?: InspirationRef | null;
+  inspirations: InspirationRef[];
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -80,7 +82,7 @@ const CategoryUploadStudio = () => {
   const [globalSkinTone, setGlobalSkinTone] = useState<SkinTone>('medium');
   const [isDragOver, setIsDragOver] = useState(false);
   const [showFlagWarning, setShowFlagWarning] = useState(false);
-  const [globalInspiration, setGlobalInspiration] = useState<InspirationRef | null>(null);
+  const [globalInspirations, setGlobalInspirations] = useState<InspirationRef[]>([]);
   const [applySkinToneToAll, setApplySkinToneToAll] = useState(true);
   const [applyInspirationToAll, setApplyInspirationToAll] = useState(true);
   const [enlargedPreview, setEnlargedPreview] = useState<string | null>(null);
@@ -112,6 +114,7 @@ const CategoryUploadStudio = () => {
       preview: URL.createObjectURL(file),
       skinTone: globalSkinTone,
       index: startIndex + idx,
+      inspirations: [],
     }));
 
     setImages(prev => [...prev, ...newImages]);
@@ -174,7 +177,7 @@ const CategoryUploadStudio = () => {
       const img = prev.find(i => i.id === imageId);
       if (img) {
         URL.revokeObjectURL(img.preview);
-        if (img.inspiration) URL.revokeObjectURL(img.inspiration.preview);
+        img.inspirations.forEach(ins => URL.revokeObjectURL(ins.preview));
       }
       return prev.filter(i => i.id !== imageId);
     });
@@ -184,26 +187,34 @@ const CategoryUploadStudio = () => {
     setImages(prev => prev.map(img => img.id === imageId ? { ...img, skinTone: tone } : img));
   }, []);
 
-  const handlePerImageInspirationUpload = useCallback(async (imageId: string, file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    const normalized = await normalizeImageFile(file);
-    const ref: InspirationRef = {
-      id: `insp-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-      file: normalized,
-      preview: URL.createObjectURL(normalized),
-    };
+  const handlePerImageInspirationUpload = useCallback(async (imageId: string, files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+
+    const newRefs: InspirationRef[] = await Promise.all(
+      imageFiles.map(async (file) => {
+        const normalized = await normalizeImageFile(file);
+        return {
+          id: `insp-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          file: normalized,
+          preview: URL.createObjectURL(normalized),
+        };
+      })
+    );
+
     setImages(prev => prev.map(img => {
       if (img.id !== imageId) return img;
-      if (img.inspiration) URL.revokeObjectURL(img.inspiration.preview);
-      return { ...img, inspiration: ref };
+      const combined = [...img.inspirations, ...newRefs].slice(0, MAX_INSPIRATIONS);
+      return { ...img, inspirations: combined };
     }));
   }, []);
 
-  const handleRemovePerImageInspiration = useCallback((imageId: string) => {
+  const handleRemovePerImageInspiration = useCallback((imageId: string, inspirationId: string) => {
     setImages(prev => prev.map(img => {
       if (img.id !== imageId) return img;
-      if (img.inspiration) URL.revokeObjectURL(img.inspiration.preview);
-      return { ...img, inspiration: null };
+      const target = img.inspirations.find(i => i.id === inspirationId);
+      if (target) URL.revokeObjectURL(target.preview);
+      return { ...img, inspirations: img.inspirations.filter(i => i.id !== inspirationId) };
     }));
   }, []);
 
@@ -223,22 +234,31 @@ const CategoryUploadStudio = () => {
     }
   }, [globalSkinTone]);
 
-  const handleGlobalInspirationFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    const normalized = await normalizeImageFile(file);
-    if (globalInspiration?.preview) URL.revokeObjectURL(globalInspiration.preview);
-    const ref: InspirationRef = {
-      id: `insp-global-${Date.now()}`,
-      file: normalized,
-      preview: URL.createObjectURL(normalized),
-    };
-    setGlobalInspiration(ref);
-  }, [globalInspiration]);
+  const handleGlobalInspirationFiles = useCallback(async (files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
 
-  const handleRemoveGlobalInspiration = useCallback(() => {
-    if (globalInspiration?.preview) URL.revokeObjectURL(globalInspiration.preview);
-    setGlobalInspiration(null);
-  }, [globalInspiration]);
+    const newRefs: InspirationRef[] = await Promise.all(
+      imageFiles.map(async (file) => {
+        const normalized = await normalizeImageFile(file);
+        return {
+          id: `insp-global-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          file: normalized,
+          preview: URL.createObjectURL(normalized),
+        };
+      })
+    );
+
+    setGlobalInspirations(prev => [...prev, ...newRefs].slice(0, MAX_INSPIRATIONS));
+  }, []);
+
+  const handleRemoveGlobalInspiration = useCallback((inspirationId: string) => {
+    setGlobalInspirations(prev => {
+      const target = prev.find(i => i.id === inspirationId);
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter(i => i.id !== inspirationId);
+    });
+  }, []);
 
   // ── Submit ─────────────────────────────────────────────────────
 
@@ -263,11 +283,15 @@ const CategoryUploadStudio = () => {
             reader.readAsDataURL(compressedBlob);
           });
 
-          // Per-image inspiration overrides global (when "apply to all" is checked)
-          const inspirationSource = img.inspiration || (applyInspirationToAll ? globalInspiration : null);
+          // Per-image inspirations override global (when "apply to all" is checked)
+          const inspirationSources = img.inspirations.length > 0
+            ? img.inspirations
+            : (applyInspirationToAll ? globalInspirations : []);
+
+          // Compress first inspiration for backward compat (API expects single inspiration_data_uri)
           let inspirationDataUri: string | null = null;
-          if (inspirationSource) {
-            const { blob: compressedInsp } = await compressImageBlob(inspirationSource.file, BATCH_MAX_KB);
+          if (inspirationSources.length > 0) {
+            const { blob: compressedInsp } = await compressImageBlob(inspirationSources[0].file, BATCH_MAX_KB);
             inspirationDataUri = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = () => resolve(reader.result as string);
@@ -326,19 +350,19 @@ const CategoryUploadStudio = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [images, hasFlaggedImages, showFlagWarning, clearValidation, jewelryType, navigate, globalInspiration, applyInspirationToAll]);
+  }, [images, hasFlaggedImages, showFlagWarning, clearValidation, jewelryType, navigate, globalInspirations, applyInspirationToAll]);
 
   const handleStartAnother = useCallback(() => {
     images.forEach(img => {
       URL.revokeObjectURL(img.preview);
-      if (img.inspiration) URL.revokeObjectURL(img.inspiration.preview);
+      img.inspirations.forEach(ins => URL.revokeObjectURL(ins.preview));
     });
-    if (globalInspiration) URL.revokeObjectURL(globalInspiration.preview);
+    globalInspirations.forEach(ins => URL.revokeObjectURL(ins.preview));
     setImages([]);
-    setGlobalInspiration(null);
+    setGlobalInspirations([]);
     setIsSubmitted(false);
     setSubmittedBatchId(null);
-  }, [images, globalInspiration]);
+  }, [images, globalInspirations]);
 
   useEffect(() => {
     return () => { images.forEach(img => URL.revokeObjectURL(img.preview)); };
@@ -443,41 +467,46 @@ const CategoryUploadStudio = () => {
                     <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
                       Inspiration
                     </span>
-                    {globalInspiration ? (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setEnlargedPreview(globalInspiration.preview)}
-                          className="w-5 h-5 rounded overflow-hidden border border-border/50 hover:ring-1 hover:ring-primary/30 transition-all cursor-pointer flex-shrink-0"
-                        >
-                          <img src={globalInspiration.preview} alt="" className="w-full h-full object-cover" />
-                        </button>
-                        <button
-                          onClick={handleRemoveGlobalInspiration}
-                          disabled={isSubmitting}
-                          className="w-4 h-4 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
-                        >
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="w-5 h-5 rounded border border-dashed border-border/50 flex items-center justify-center">
-                        <label className="cursor-pointer w-full h-full flex items-center justify-center">
+
+                    {/* Global inspiration thumbnails */}
+                    <div className="flex items-center gap-1">
+                      {globalInspirations.map((insp) => (
+                        <div key={insp.id} className="relative group/thumb">
+                          <button
+                            onClick={() => setEnlargedPreview(insp.preview)}
+                            className="w-5 h-5 rounded overflow-hidden border border-border/50 hover:ring-1 hover:ring-primary/30 transition-all cursor-pointer flex-shrink-0"
+                          >
+                            <img src={insp.preview} alt="" className="w-full h-full object-cover" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveGlobalInspiration(insp.id)}
+                            disabled={isSubmitting}
+                            className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-muted flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-all"
+                          >
+                            <X className="w-2 h-2" />
+                          </button>
+                        </div>
+                      ))}
+                      {globalInspirations.length < MAX_INSPIRATIONS && (
+                        <label className="w-5 h-5 rounded border border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-foreground/30 transition-colors">
                           <Plus className="w-2.5 h-2.5 text-muted-foreground/40" />
                           <input
                             ref={globalInspirationInputRef}
                             type="file"
                             accept="image/*"
+                            multiple
                             className="sr-only"
                             disabled={isSubmitting}
                             onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) await handleGlobalInspirationFile(file);
+                              const files = e.target.files;
+                              if (files) await handleGlobalInspirationFiles(Array.from(files));
                               e.target.value = '';
                             }}
                           />
                         </label>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
                     <label className="flex items-center gap-1 cursor-pointer">
                       <Checkbox
                         checked={applyInspirationToAll}
@@ -765,6 +794,8 @@ const CategoryUploadStudio = () => {
 //  ImageCard — Per-image card with inline controls
 // ══════════════════════════════════════════════════════════════
 
+const MAX_INSPIRATIONS_PER_IMAGE = 3;
+
 interface ImageCardProps {
   image: ImageWithSkinTone;
   index: number;
@@ -774,8 +805,8 @@ interface ImageCardProps {
   applySkinToneToAll: boolean;
   onSkinToneChange: (id: string, tone: SkinTone) => void;
   onRemove: (id: string) => void;
-  onInspirationUpload: (id: string, file: File) => void;
-  onInspirationRemove: (id: string) => void;
+  onInspirationUpload: (id: string, files: File[]) => void;
+  onInspirationRemove: (id: string, inspirationId: string) => void;
   onEnlargePreview: (url: string) => void;
 }
 
@@ -864,64 +895,75 @@ const ImageCard = ({
           </div>
         )}
 
-        {/* Inspiration / Mood board */}
-        <div className="space-y-1">
-          <p className="text-[8px] sm:text-[9px] text-muted-foreground font-mono text-center leading-tight">
-            Upload inspirational photo or mood board <span className="text-muted-foreground/40">(Optional)</span>
-          </p>
-
-          {image.inspiration ? (
-            /* After upload: show thumbnails */
+        {/* Inspiration / Mood board — dashed box with text inside */}
+        {image.inspirations.length > 0 ? (
+          /* After upload: show thumbnails row */
+          <div className="space-y-1">
+            <span className="block text-[8px] sm:text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">
+              Inspiration
+            </span>
             <div className="flex items-center justify-center gap-1.5">
-              <button
-                onClick={() => onEnlargePreview(image.inspiration!.preview)}
-                className="w-8 h-8 rounded overflow-hidden border border-border/50 hover:ring-1 hover:ring-primary/30 transition-all cursor-pointer flex-shrink-0"
-              >
-                <img src={image.inspiration.preview} alt="Inspiration" className="w-full h-full object-cover" />
-              </button>
-              <button
-                onClick={() => onInspirationRemove(image.id)}
-                disabled={disabled}
-                className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
-              >
-                <X className="w-2.5 h-2.5" />
-              </button>
-              <label className="text-[8px] text-muted-foreground/60 font-mono uppercase cursor-pointer hover:text-foreground transition-colors">
-                Replace
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={disabled}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) onInspirationUpload(image.id, file);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
+              {image.inspirations.map((insp) => (
+                <div key={insp.id} className="relative group/thumb">
+                  <button
+                    onClick={() => onEnlargePreview(insp.preview)}
+                    className="w-8 h-8 rounded overflow-hidden border border-border/50 hover:ring-1 hover:ring-primary/30 transition-all cursor-pointer flex-shrink-0"
+                  >
+                    <img src={insp.preview} alt="Inspiration" className="w-full h-full object-cover" />
+                  </button>
+                  <button
+                    onClick={() => onInspirationRemove(image.id, insp.id)}
+                    disabled={disabled}
+                    className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-muted flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-all"
+                  >
+                    <X className="w-2 h-2" />
+                  </button>
+                </div>
+              ))}
+              {/* Add more button (up to 3) */}
+              {image.inspirations.length < MAX_INSPIRATIONS_PER_IMAGE && (
+                <label className="w-8 h-8 rounded border border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-foreground/30 hover:bg-muted/10 transition-all flex-shrink-0">
+                  <Plus className="w-3 h-3 text-muted-foreground/40" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    disabled={disabled}
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files) onInspirationUpload(image.id, Array.from(files));
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              )}
             </div>
-          ) : (
-            /* Before upload: dashed upload box */
-            <label className="block cursor-pointer">
-              <div className="flex items-center justify-center py-2 rounded border border-dashed border-border/50 hover:border-foreground/30 hover:bg-muted/10 transition-all">
-                <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wide">Upload</span>
-              </div>
-              <input
-                ref={inspirationInputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                disabled={disabled}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onInspirationUpload(image.id, file);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* Before upload: dashed box with text inside */
+          <label className="block cursor-pointer">
+            <div className="flex flex-col items-center justify-center py-3 rounded border border-dashed border-border/50 hover:border-foreground/30 hover:bg-muted/10 transition-all gap-1">
+              <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 font-mono text-center leading-tight px-2">
+                Upload inspirational photo or mood board <span className="text-muted-foreground/30">(Optional)</span>
+              </span>
+              <span className="text-[9px] text-muted-foreground/50 font-mono uppercase tracking-wide">Upload</span>
+            </div>
+            <input
+              ref={inspirationInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              disabled={disabled}
+              onChange={(e) => {
+                const files = e.target.files;
+                if (files) onInspirationUpload(image.id, Array.from(files));
+                e.target.value = '';
+              }}
+            />
+          </label>
+        )}
       </div>
     </motion.div>
   );
