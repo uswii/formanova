@@ -1,6 +1,6 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Plus, AlertTriangle, Loader2, Check } from 'lucide-react';
+import { Upload, Plus, AlertTriangle, Loader2, Check, ImagePlus, X, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useImageValidation } from '@/hooks/use-image-validation';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,6 +16,12 @@ const SKIN_TONES: { id: SkinTone; color: string; label: string }[] = [
   { id: 'deep', color: '#3D2314', label: 'Deep' },
 ];
 
+export interface InspirationRef {
+  id: string;
+  file: File;
+  preview: string;
+}
+
 export interface UploadedImage {
   id: string;
   file: File;
@@ -23,6 +29,7 @@ export interface UploadedImage {
   flagged?: boolean;
   flagReason?: string;
   skinTone?: SkinTone;
+  inspiration?: InspirationRef | null;
 }
 
 interface BulkUploadZoneProps {
@@ -45,6 +52,8 @@ const BulkUploadZone = ({
   defaultSkinTone = 'medium',
 }: BulkUploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const inspirationInputRef = useRef<HTMLInputElement>(null);
   const { validateImages, isValidating, error: validationError } = useImageValidation();
   const isMobile = useIsMobile();
 
@@ -177,8 +186,31 @@ const BulkUploadZone = ({
 
   const handleRemoveImage = useCallback((imageId: string) => {
     const img = images.find(i => i.id === imageId);
-    if (img) URL.revokeObjectURL(img.preview);
+    if (img) {
+      URL.revokeObjectURL(img.preview);
+      if (img.inspiration) URL.revokeObjectURL(img.inspiration.preview);
+    }
+    if (selectedImageId === imageId) setSelectedImageId(null);
     onImagesChange(images.filter(i => i.id !== imageId));
+  }, [images, onImagesChange, selectedImageId]);
+
+  const handlePerImageInspiration = useCallback((imageId: string, file: File) => {
+    if (file.type === 'image/avif' || file.name.toLowerCase().endsWith('.avif')) return;
+    if (!file.type.startsWith('image/')) return;
+    const ref: InspirationRef = {
+      id: `insp-${Date.now()}`,
+      file,
+      preview: URL.createObjectURL(file),
+    };
+    const updated = images.map(img => img.id === imageId ? { ...img, inspiration: ref } : img);
+    onImagesChange(updated);
+  }, [images, onImagesChange]);
+
+  const handleRemovePerImageInspiration = useCallback((imageId: string) => {
+    const img = images.find(i => i.id === imageId);
+    if (img?.inspiration) URL.revokeObjectURL(img.inspiration.preview);
+    const updated = images.map(i => i.id === imageId ? { ...i, inspiration: null } : i);
+    onImagesChange(updated);
   }, [images, onImagesChange]);
 
   const canAddMore = images.length < maxImages;
@@ -262,87 +294,99 @@ const BulkUploadZone = ({
       {/* Responsive grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4">
         <AnimatePresence mode="popLayout">
-          {images.map((image, index) => (
-            <motion.div
-              key={image.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              layout
-              className="group"
-            >
-              {/* Image tile */}
-              <div className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden ${
-                image.flagged ? 'ring-2 ring-amber-500/70' : ''
-              }`}>
-                <img
-                  src={image.preview}
-                  alt={`Upload ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                {/* Remove button */}
-                <button
-                  onClick={() => handleRemoveImage(image.id)}
-                  disabled={disabled}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+          {images.map((image, index) => {
+            const isSelected = selectedImageId === image.id;
+            return (
+              <motion.div
+                key={image.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                layout
+                className="group"
+              >
+                {/* Image tile */}
+                <div
+                  onClick={() => setSelectedImageId(isSelected ? null : image.id)}
+                  className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
+                    image.flagged ? 'ring-2 ring-amber-500/70' : ''
+                  } ${isSelected ? 'ring-2 ring-formanova-hero-accent' : ''}`}
                 >
-                  <span className="text-xs font-bold">✕</span>
-                </button>
-                {/* Flagged indicator */}
-                {image.flagged && (
-                  <div 
-                    className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
-                    title={image.flagReason || 'Image may not meet requirements'}
+                  <img
+                    src={image.preview}
+                    alt={`Upload ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Remove button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleRemoveImage(image.id); }}
+                    disabled={disabled}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
                   >
-                    <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                    <span className="text-xs font-bold">✕</span>
+                  </button>
+                  {/* Flagged indicator */}
+                  {image.flagged && (
+                    <div
+                      className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
+                      title={image.flagReason || 'Image may not meet requirements'}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  )}
+                  {/* Inspiration indicator */}
+                  {image.inspiration && (
+                    <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 w-6 h-6 rounded-full bg-formanova-hero-accent/90 backdrop-blur-sm flex items-center justify-center" title="Has per-image inspiration">
+                      <Sparkles className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                  {/* Number badge */}
+                  <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                    <span className="text-sm sm:text-base font-mono text-foreground">{index + 1}</span>
+                  </div>
+                </div>
+
+                {/* Per-image skin tone selector */}
+                {showSkinTone && (
+                  <div className="mt-2 space-y-1">
+                    <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">
+                      Choose model skin tone
+                    </span>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+                      {SKIN_TONES.map((tone) => {
+                        const isToneSelected = (image.skinTone || defaultSkinTone) === tone.id;
+                        return (
+                          <button
+                            key={tone.id}
+                            onClick={() => !disabled && handleSkinToneChange(image.id, tone.id)}
+                            disabled={disabled}
+                            title={tone.label}
+                            className={`relative w-5 h-5 rounded-full transition-all duration-150 ${
+                              disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+                            }`}
+                            style={{ backgroundColor: tone.color }}
+                          >
+                            {isToneSelected && (
+                              <motion.div
+                                layoutId={`skin-ring-${image.id}`}
+                                className="absolute inset-[-2px] rounded-full border-2 border-formanova-hero-accent"
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                              />
+                            )}
+                            {isToneSelected && (
+                              <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
+                            )}
+                          </button>
+                        );
+                      })}
+                      <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
+                    </div>
                   </div>
                 )}
-                {/* Number badge */}
-                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                  <span className="text-sm sm:text-base font-mono text-foreground">{index + 1}</span>
-                </div>
-              </div>
-
-              {/* Per-image skin tone selector */}
-              {showSkinTone && (
-                <div className="mt-2 space-y-1">
-                  <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">
-                    Choose model skin tone
-                  </span>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
-                    {SKIN_TONES.map((tone) => {
-                      const isSelected = (image.skinTone || defaultSkinTone) === tone.id;
-                      return (
-                        <button
-                          key={tone.id}
-                          onClick={() => !disabled && handleSkinToneChange(image.id, tone.id)}
-                          disabled={disabled}
-                          title={tone.label}
-                          className={`relative w-5 h-5 rounded-full transition-all duration-150 ${
-                            disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
-                          }`}
-                          style={{ backgroundColor: tone.color }}
-                        >
-                          {isSelected && (
-                            <motion.div
-                              layoutId={`skin-ring-${image.id}`}
-                              className="absolute inset-[-2px] rounded-full border-2 border-formanova-hero-accent"
-                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            />
-                          )}
-                          {isSelected && (
-                            <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
-                          )}
-                        </button>
-                      );
-                    })}
-                    <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {/* Add more tile */}
@@ -372,6 +416,80 @@ const BulkUploadZone = ({
           </motion.label>
         )}
       </div>
+
+      {/* Per-image inspiration panel - shown when an image is selected */}
+      {selectedImageId && (() => {
+        const selectedImage = images.find(i => i.id === selectedImageId);
+        if (!selectedImage) return null;
+        const selectedIndex = images.indexOf(selectedImage);
+        return (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mx-2 sm:mx-4 p-3 rounded-lg border border-border/50 bg-muted/20"
+          >
+            <div className="flex items-start gap-3">
+              {/* Selected image thumbnail */}
+              <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 ring-1 ring-formanova-hero-accent">
+                <img src={selectedImage.preview} alt={`Image ${selectedIndex + 1}`} className="w-full h-full object-cover" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles className="w-3 h-3 text-formanova-hero-accent flex-shrink-0" />
+                  <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide">
+                    Inspiration (image {selectedIndex + 1} only)
+                  </span>
+                </div>
+
+                {selectedImage.inspiration ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-12 rounded-md overflow-hidden flex-shrink-0 marta-frame">
+                      <img src={selectedImage.inspiration.preview} alt="Inspiration" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[9px] text-muted-foreground/70 font-mono">Overrides global inspiration for this image</p>
+                    </div>
+                    <button
+                      onClick={() => handleRemovePerImageInspiration(selectedImage.id)}
+                      disabled={disabled}
+                      className="w-5 h-5 rounded-full bg-muted flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-muted-foreground/30 cursor-pointer hover:border-foreground/40 hover:bg-muted/10 transition-all">
+                    <input
+                      ref={inspirationInputRef}
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp"
+                      className="sr-only"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePerImageInspiration(selectedImage.id, file);
+                        e.target.value = '';
+                      }}
+                      disabled={disabled}
+                    />
+                    <ImagePlus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-[10px] text-muted-foreground font-mono">Add inspiration for this image</span>
+                  </label>
+                )}
+              </div>
+
+              {/* Close selection */}
+              <button
+                onClick={() => setSelectedImageId(null)}
+                className="w-5 h-5 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0"
+              >
+                <X className="w-3 h-3 text-muted-foreground" />
+              </button>
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* Counter and status */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-2 sm:px-4">

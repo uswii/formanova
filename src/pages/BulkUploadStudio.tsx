@@ -10,9 +10,11 @@ import {
   MetadataSelectors,
   BatchReviewConfirm,
   BatchSubmittedConfirmation,
+  InspirationUpload,
   JEWELRY_CATEGORIES,
 } from '@/components/bulk';
 import type { JewelryCategory, UploadedImage, SkinTone, Gender } from '@/components/bulk';
+import type { InspirationImage } from '@/components/bulk';
 import { getStoredToken } from '@/lib/auth-api';
 
 type Step = 'category' | 'upload' | 'review' | 'confirmation';
@@ -31,6 +33,7 @@ const BulkUploadStudio = () => {
   const [hasAgreedToWait, setHasAgreedToWait] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedBatchId, setSubmittedBatchId] = useState<string | null>(null);
+  const [globalInspiration, setGlobalInspiration] = useState<InspirationImage | null>(null);
 
   const currentStepIndex = STEPS.indexOf(currentStep);
 
@@ -130,13 +133,20 @@ const BulkUploadStudio = () => {
     // Reset all state
     setCurrentStep('category');
     setSelectedCategory(null);
-    images.forEach(img => URL.revokeObjectURL(img.preview));
+    images.forEach(img => {
+      URL.revokeObjectURL(img.preview);
+      if (img.inspiration) URL.revokeObjectURL(img.inspiration.preview);
+    });
     setImages([]);
     setSkinTone('medium');
     setGender('female');
     setHasAgreedToWait(false);
     setSubmittedBatchId(null);
-  }, [images]);
+    if (globalInspiration) {
+      URL.revokeObjectURL(globalInspiration.preview);
+      setGlobalInspiration(null);
+    }
+  }, [images, globalInspiration]);
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-4 md:px-8 lg:px-12">
@@ -246,6 +256,13 @@ const BulkUploadStudio = () => {
                       gender={gender}
                       onSkinToneChange={setSkinTone}
                       onGenderChange={setGender}
+                    />
+                  </div>
+
+                  <div className="marta-frame p-4 md:p-6">
+                    <InspirationUpload
+                      image={globalInspiration}
+                      onImageChange={setGlobalInspiration}
                     />
                   </div>
                 </div>
