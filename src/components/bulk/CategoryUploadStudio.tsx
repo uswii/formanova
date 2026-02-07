@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, X, Plus, Diamond, AlertTriangle } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/image-normalize';
+import { compressImageBlob } from '@/lib/image-compression';
 import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
 import ExampleGuidePanel from './ExampleGuidePanel';
@@ -227,24 +228,29 @@ const CategoryUploadStudio = () => {
     setShowFlagWarning(false);
 
     try {
+      // Compress all images to keep payload under gateway limits (~6MB total)
+      const BATCH_MAX_KB = 500; // Target ~500KB per image to keep total payload manageable
       const imageData = await Promise.all(
         images.map(async (img) => {
+          // Compress the image before converting to base64
+          const { blob: compressedBlob } = await compressImageBlob(img.file, BATCH_MAX_KB);
           const dataUri = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
             reader.onerror = reject;
-            reader.readAsDataURL(img.file);
+            reader.readAsDataURL(compressedBlob);
           });
 
           // Per-image inspiration overrides global
           const inspirationSource = img.inspiration || globalInspiration;
           let inspirationDataUri: string | null = null;
           if (inspirationSource) {
+            const { blob: compressedInsp } = await compressImageBlob(inspirationSource.file, BATCH_MAX_KB);
             inspirationDataUri = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = () => resolve(reader.result as string);
               reader.onerror = reject;
-              reader.readAsDataURL(inspirationSource.file);
+              reader.readAsDataURL(compressedInsp);
             });
           }
 
@@ -290,7 +296,12 @@ const CategoryUploadStudio = () => {
       clearValidation();
     } catch (error) {
       console.error('Failed to submit batch:', error);
-      toast({ title: 'Submission failed', description: error instanceof Error ? error.message : 'Please try again', variant: 'destructive' });
+      // Handle network/CORS errors (TypeError: Failed to fetch) with a friendly message
+      const isNetworkError = error instanceof TypeError && error.message.includes('fetch');
+      const description = isNetworkError
+        ? 'Network error — please check your connection and try again.'
+        : error instanceof Error ? error.message : 'Please try again';
+      toast({ title: 'Submission failed', description, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
