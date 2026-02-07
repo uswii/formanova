@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
+import { compressImageBlob } from '@/lib/image-compression';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -98,18 +99,20 @@ export function useImageValidation() {
   });
 
   /**
-   * Convert File to data URI string
+   * Convert File to a compressed data URI string.
+   * Large images are compressed to ~900KB before base64 encoding
+   * so the JSON payload stays under Supabase's ~6MB gateway limit.
    */
   const fileToDataUri = useCallback(async (file: File): Promise<string> => {
+    // Compress first to avoid sending huge payloads
+    const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+    const { blob: compressed } = await compressImageBlob(blob, 900);
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Return full data URI (data:image/xxx;base64,...)
-        resolve(result);
-      };
+      reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressed);
     });
   }, []);
 
