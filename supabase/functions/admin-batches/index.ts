@@ -329,6 +329,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── DELETE BATCH ──
+    if (action === 'delete_batch' && req.method === 'POST') {
+      const body = await req.json();
+      const { batch_id } = body;
+      
+      if (!batch_id) {
+        return new Response(
+          JSON.stringify({ error: 'Missing batch_id' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Delete images first (foreign key dependency)
+      const { error: imgDelError } = await supabaseAdmin
+        .from('batch_images')
+        .delete()
+        .eq('batch_id', batch_id);
+
+      if (imgDelError) {
+        console.error(`[admin-batches] Failed to delete images for batch ${batch_id}:`, imgDelError);
+      }
+
+      const { error: batchDelError } = await supabaseAdmin
+        .from('batch_jobs')
+        .delete()
+        .eq('id', batch_id);
+
+      if (batchDelError) throw batchDelError;
+
+      console.log(`[admin-batches] Batch deleted: ${batch_id} by ${user.email}`);
+      
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

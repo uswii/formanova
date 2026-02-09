@@ -14,8 +14,13 @@ import {
   RefreshCw, Eye, Clock, CheckCircle2, XCircle, Loader2,
   Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut,
   ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash, FileSpreadsheet,
-  Search, Link2, Save, X
+  Search, Link2, Save, X, Trash2
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStoredToken } from '@/lib/auth-api';
@@ -135,6 +140,7 @@ export default function AdminBatches() {
   const [editingDriveLink, setEditingDriveLink] = useState<string | null>(null);
   const [driveLinkInput, setDriveLinkInput] = useState('');
   const [savingDriveLink, setSavingDriveLink] = useState(false);
+  const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -243,6 +249,28 @@ export default function AdminBatches() {
       setUpdatingStatus(null);
     }
   }, [getAdminHeaders]);
+
+  const handleDeleteBatch = useCallback(async (batchId: string) => {
+    setDeletingBatch(batchId);
+    try {
+      const response = await fetch(`${ADMIN_API_URL}?action=delete_batch`, {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch_id: batchId }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete batch');
+      }
+      setBatches(prev => prev.filter(b => b.id !== batchId));
+      if (expandedBatchId === batchId) setExpandedBatchId(null);
+      toast({ title: 'Batch deleted' });
+    } catch (err: any) {
+      toast({ title: err.message || 'Failed to delete', variant: 'destructive' });
+    } finally {
+      setDeletingBatch(null);
+    }
+  }, [getAdminHeaders, expandedBatchId]);
 
   useEffect(() => {
     if (isAuthenticated) fetchBatches();
@@ -665,6 +693,39 @@ export default function AdminBatches() {
                                       </Select>
                                       {updatingStatus === batch.id && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                                     </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground/60 block text-[10px] uppercase tracking-wider mb-0.5">Actions</span>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 text-[11px] text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1"
+                                          disabled={deletingBatch === batch.id}
+                                        >
+                                          {deletingBatch === batch.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                          Delete
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete this batch?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This will permanently delete the batch and all {batch.total_images} associated image records. Azure blobs will not be deleted.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => handleDeleteBatch(batch.id)}
+                                            className="bg-red-600 hover:bg-red-700"
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
                                   </div>
                                 </div>
 
