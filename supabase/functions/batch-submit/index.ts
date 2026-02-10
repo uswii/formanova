@@ -410,6 +410,7 @@ serve(async (req) => {
     }
 
     // Send admin notification (non-blocking)
+    console.log('[batch-submit] Email check: RESEND_API_KEY exists=', !!RESEND_API_KEY, 'ADMIN_EMAILS=', JSON.stringify(ADMIN_EMAILS));
     if (RESEND_API_KEY && ADMIN_EMAILS.length > 0) {
       try {
         console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
