@@ -416,12 +416,10 @@ serve(async (req) => {
         console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
         const resend = new Resend(RESEND_API_KEY);
         const hasInspiration = !!globalInspirationUrl || imageRecords.some(r => r.inspiration_url);
-        // onboarding@resend.dev can ONLY send to the Resend account owner
-        // Send only to the first admin (account owner), others need verified domain
-        const ownerEmail = ADMIN_EMAILS[0]; // uswa@raresense.so
+        // Verified domain — send to all admins
         const emailResult = await resend.emails.send({
-          from: 'FormaNova <onboarding@resend.dev>',
-          to: [ownerEmail],
+          from: 'FormaNova <noreply@formanova.ai>',
+          to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
           html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p><p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p>`,
         });
