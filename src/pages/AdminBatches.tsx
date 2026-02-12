@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -123,8 +124,9 @@ function copyToClipboard(text: string) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 export default function AdminBatches() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, signInWithGoogle, signOut } = useAuth();
-  const [adminSecret, setAdminSecret] = useState<string | null>(() => sessionStorage.getItem('admin_secret'));
+  const [adminSecret, setAdminSecret] = useState<string | null>(() => localStorage.getItem('admin_secret'));
   const [secretInput, setSecretInput] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [gateError, setGateError] = useState('');
@@ -162,7 +164,7 @@ export default function AdminBatches() {
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          sessionStorage.removeItem('admin_secret');
+        localStorage.removeItem('admin_secret');
           setAdminSecret(null);
           return;
         }
@@ -276,6 +278,21 @@ export default function AdminBatches() {
     if (isAuthenticated) fetchBatches();
   }, [isAuthenticated, fetchBatches]);
 
+  // Auto-expand batch from URL ?batch=ID deep link
+  useEffect(() => {
+    const batchParam = searchParams.get('batch');
+    if (batchParam && isAuthenticated && batches.length > 0 && !expandedBatchId) {
+      const found = batches.find(b => b.id === batchParam);
+      if (found) {
+        setExpandedBatchId(batchParam);
+        fetchBatchImages(batchParam);
+        // Clean up URL
+        searchParams.delete('batch');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [batches, isAuthenticated, searchParams, setSearchParams, expandedBatchId, fetchBatchImages]);
+
   const toggleBatch = (batchId: string) => {
     if (expandedBatchId === batchId) {
       setExpandedBatchId(null);
@@ -300,7 +317,7 @@ export default function AdminBatches() {
         },
       });
       if (response.ok) {
-        sessionStorage.setItem('admin_secret', secretInput.trim());
+        localStorage.setItem('admin_secret', secretInput.trim());
         setAdminSecret(secretInput.trim());
       } else {
         const data = await response.json().catch(() => ({}));
@@ -314,7 +331,7 @@ export default function AdminBatches() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('admin_secret');
+    localStorage.removeItem('admin_secret');
     setAdminSecret(null);
     setSecretInput('');
     signOut();

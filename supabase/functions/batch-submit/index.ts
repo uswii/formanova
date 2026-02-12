@@ -421,7 +421,7 @@ serve(async (req) => {
           from: 'FormaNova <noreply@formanova.ai>',
           to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
-          html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p><p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p>`,
+          html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p><p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p><p><a href="https://formanova.ai/admin?batch=${batchId}" style="display:inline-block;margin-top:12px;padding:10px 20px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">View Batch in Dashboard →</a></p>`,
         });
         console.log('[batch-submit] Email sent to admins:', ADMIN_EMAILS, JSON.stringify(emailResult));
       } catch (emailError) {
