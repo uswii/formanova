@@ -65,10 +65,9 @@ const ImageUploadCard = ({
 
       {/* Skin Tone Selector - Per Image */}
       {showSkinTone && (
-        <div className="mt-2 space-y-1">
-          <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">Model skin tone</span>
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+        <div className="mt-3 space-y-1.5">
+          <span className="block text-[10px] text-muted-foreground font-mono uppercase tracking-wide text-center">Skin tone</span>
+          <div className="flex items-center justify-center gap-1.5">
             {SKIN_TONES.map((tone) => {
               const isSelected = skinTone === tone.id;
               return (
@@ -77,7 +76,7 @@ const ImageUploadCard = ({
                   onClick={() => !disabled && onSkinToneChange(id, tone.id)}
                   disabled={disabled}
                   title={tone.label}
-                  className={`relative w-5 h-5 rounded-full transition-all duration-150 ${
+                  className={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all duration-150 ${
                     disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
                   }`}
                   style={{ backgroundColor: tone.color }}
@@ -85,7 +84,7 @@ const ImageUploadCard = ({
                   {isSelected && (
                     <motion.div
                       layoutId={`skin-ring-${id}`}
-                      className="absolute inset-[-2px] rounded-full border-2 border-formanova-hero-accent"
+                      className="absolute inset-[-3px] rounded-full border-2 border-formanova-hero-accent"
                       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     />
                   )}
@@ -95,7 +94,6 @@ const ImageUploadCard = ({
                 </button>
               );
             })}
-            <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
           </div>
         </div>
       )}

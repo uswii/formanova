@@ -23,7 +23,7 @@ const ACCEPTED_FORMATS = 'image/*';
 const InspirationUpload = ({
   image,
   onImageChange,
-  label = 'Inspiration / Mood board (Optional)',
+  label = 'Inspiration / Moodboard',
   helperText = 'Applies to all generated images',
   disabled = false,
   compact = false,
@@ -65,8 +65,9 @@ const InspirationUpload = ({
   return (
     <div className="space-y-2">
       {/* Label */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <span className="marta-label text-muted-foreground text-xs">{label}</span>
+        <span className="text-[9px] text-muted-foreground/50 bg-muted/40 px-2 py-0.5 rounded-full font-mono tracking-wide">Optional</span>
       </div>
 
       <AnimatePresence mode="wait">

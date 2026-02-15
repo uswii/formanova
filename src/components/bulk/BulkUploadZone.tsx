@@ -279,23 +279,21 @@ const BulkUploadZone = ({
         <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-5">
           {/* Model skin tone — apply to all */}
           {showSkinTone && images.length > 1 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide whitespace-nowrap">
-                Model skin tone — apply to all
+                Skin tone — apply to all
               </span>
-              <div className="flex items-center gap-1">
-                <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Light</span>
+              <div className="flex items-center gap-1.5">
                 {SKIN_TONES.map((tone) => (
                   <button
                     key={tone.id}
                     onClick={() => !disabled && handleApplyToneToAll(tone.id)}
                     disabled={disabled}
                     title={`Set all to ${tone.label}`}
-                    className="relative w-5 h-5 rounded-full transition-all duration-150 cursor-pointer hover:scale-110"
+                    className="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all duration-150 cursor-pointer hover:scale-110"
                     style={{ backgroundColor: tone.color }}
                   />
                 ))}
-                <span className="text-[8px] text-muted-foreground/60 font-mono uppercase">Deep</span>
               </div>
             </div>
           )}
@@ -342,7 +340,7 @@ const BulkUploadZone = ({
       </div>
 
       {/* ── Responsive image grid ──────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 p-3 sm:p-5">
         <AnimatePresence mode="popLayout">
           {images.map((image, index) => (
             <motion.div
@@ -351,7 +349,7 @@ const BulkUploadZone = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               layout
-              className="group space-y-1.5"
+              className="group space-y-2"
             >
               {/* Image tile */}
               <div className={`relative aspect-square bg-muted/30 rounded-lg sm:rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
@@ -389,15 +387,14 @@ const BulkUploadZone = ({
               </div>
 
               {/* ── Per-image controls (minimal overrides) ── */}
-              <div className="space-y-1 px-0.5">
+              <div className="space-y-2 px-0.5 pt-1">
                 {/* Model skin tone (this image only) */}
                 {showSkinTone && (
-                  <div className="space-y-0.5">
-                    <span className="block text-[9px] text-muted-foreground font-mono uppercase tracking-wide text-center">
-                      Model skin tone <span className="text-muted-foreground/40">(this image only)</span>
+                  <div className="space-y-1">
+                    <span className="block text-[10px] text-muted-foreground font-mono uppercase tracking-wide text-center">
+                      Skin tone
                     </span>
-                    <div className="flex items-center justify-center gap-1">
-                      <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Light</span>
+                    <div className="flex items-center justify-center gap-1.5">
                       {SKIN_TONES.map((tone) => {
                         const isToneSelected = (image.skinTone || defaultSkinTone) === tone.id;
                         return (
@@ -406,7 +403,7 @@ const BulkUploadZone = ({
                             onClick={() => !disabled && handleSkinToneChange(image.id, tone.id)}
                             disabled={disabled}
                             title={tone.label}
-                            className={`relative w-5 h-5 rounded-full transition-all duration-150 ${
+                            className={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all duration-150 ${
                               disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
                             }`}
                             style={{ backgroundColor: tone.color }}
@@ -414,7 +411,7 @@ const BulkUploadZone = ({
                             {isToneSelected && (
                               <motion.div
                                 layoutId={`skin-ring-${image.id}`}
-                                className="absolute inset-[-2px] rounded-full border-2 border-primary"
+                                className="absolute inset-[-3px] rounded-full border-2 border-primary"
                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                               />
                             )}
@@ -424,13 +421,12 @@ const BulkUploadZone = ({
                           </button>
                         );
                       })}
-                      <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-wide">Deep</span>
                     </div>
                   </div>
                 )}
 
                 {/* Inspiration (this image only) — minimal Add action */}
-                <div className="text-center">
+                <div className="text-center pt-0.5">
                   {image.inspiration ? (
                     <button
                       onClick={() => setInspirationModalImageId(image.id)}
@@ -441,9 +437,10 @@ const BulkUploadZone = ({
                   ) : (
                     <button
                       onClick={() => setInspirationModalImageId(image.id)}
-                      className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wide hover:text-foreground/80 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wide hover:text-foreground/80 transition-colors"
                     >
-                      Add inspiration <span className="text-muted-foreground/30">(optional)</span>
+                      Inspiration / Moodboard
+                      <span className="text-[8px] text-muted-foreground/40 bg-muted/50 px-1.5 py-0.5 rounded-full font-normal">Optional</span>
                     </button>
                   )}
                 </div>
@@ -459,12 +456,12 @@ const BulkUploadZone = ({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`relative aspect-square rounded-lg sm:rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 flex items-center justify-center ${
+            className={`relative aspect-square rounded-xl cursor-pointer transition-all duration-250 flex flex-col items-center justify-center gap-2 ${
               disabled
-                ? 'opacity-50 cursor-not-allowed border-muted'
+                ? 'opacity-50 cursor-not-allowed border border-muted'
                 : isDragOver
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted-foreground/30 hover:border-foreground/50 hover:bg-muted/20'
+                  ? 'border-2 border-primary bg-primary/5 shadow-md'
+                  : 'border-2 border-dashed border-muted-foreground/25 hover:border-foreground/50 hover:bg-muted/15 hover:shadow-sm'
             }`}
           >
             <input
@@ -475,7 +472,12 @@ const BulkUploadZone = ({
               disabled={disabled}
               className="sr-only"
             />
-            <Plus className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground" />
+            <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-colors ${
+              isDragOver ? 'bg-primary/10' : 'bg-muted/40'
+            }`}>
+              <Plus className="w-7 h-7 sm:w-8 sm:h-8 text-foreground/60" strokeWidth={1.5} />
+            </div>
+            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Add</span>
           </motion.label>
         )}
       </div>
