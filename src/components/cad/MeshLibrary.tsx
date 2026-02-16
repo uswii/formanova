@@ -110,7 +110,7 @@ export default function MeshLibrary() {
               ) : (
                 <ChevronRight className="w-3 h-3 text-muted-foreground" />
               )}
-              <span className="text-[10px] font-bold uppercase tracking-[2px] text-foreground/80">
+              <span className="text-[10px] font-bold uppercase tracking-[2px] text-foreground">
                 {group.group}
               </span>
               <span className="text-[9px] text-muted-foreground/50 ml-auto">
@@ -141,7 +141,7 @@ export default function MeshLibrary() {
                         "w-6 h-6 rounded flex items-center justify-center",
                         generating === item.name
                           ? "text-primary animate-pulse"
-                          : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
+                          : "text-foreground/60 hover:text-primary hover:bg-primary/10"
                       )}
                       title="Regenerate this part"
                     >

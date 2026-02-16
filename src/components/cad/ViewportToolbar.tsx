@@ -27,8 +27,8 @@ export default function ViewportToolbar() {
           className={cn(
             "flex flex-col items-center justify-center w-11 h-14 rounded-lg text-[8px] font-bold uppercase tracking-[1.5px] transition-all duration-200",
             active === tool.id
-              ? "bg-primary/10 text-primary border border-primary/20"
-              : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/30"
+              ? "bg-primary/15 text-primary border border-primary/30 shadow-sm"
+              : "text-foreground/70 hover:text-foreground hover:bg-muted/40"
           )}
         >
           <tool.icon className="w-4.5 h-4.5 mb-0.5" strokeWidth={1.5} />

@@ -29,8 +29,8 @@ export default function ViewportTopBar({ onReset }: ViewportTopBarProps) {
             className={cn(
               "px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-[2px] transition-all duration-200",
               mode === tm.id
-                ? "bg-primary/10 text-primary border border-primary/20"
-                : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/20"
+                ? "bg-primary/15 text-primary border border-primary/30 shadow-sm"
+                : "text-foreground/60 hover:text-foreground hover:bg-muted/30"
             )}
           >
             {tm.label}

@@ -184,8 +184,8 @@ export default function TextToCAD() {
                 <div className="mt-2">
                   <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleRefImage} />
                   {!refImage ? (
-                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      <ImageIcon className="w-3.5 h-3.5" />
+                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground transition-colors">
+                      <ImageIcon className="w-4 h-4 text-primary/70" />
                       <span>Attach reference image (optional)</span>
                     </button>
                   ) : (
@@ -197,7 +197,8 @@ export default function TextToCAD() {
                     </div>
                   )}
                 </div>
-                <Button className="w-full mt-3 uppercase tracking-[2px] text-xs font-semibold h-10" disabled={isGenerating || !prompt.trim()} onClick={simulateGeneration}>
+                <Button className="w-full mt-3 uppercase tracking-[2px] text-xs font-bold h-11 shadow-md" disabled={isGenerating || !prompt.trim()} onClick={simulateGeneration}>
+                  <Sparkles className="w-4 h-4 mr-1.5" />
                   {isGenerating && !isEditing ? "Generating…" : "Generate Ring"}
                 </Button>
               </section>
@@ -215,7 +216,7 @@ export default function TextToCAD() {
                       className={`px-3 py-1 rounded-full text-[10px] font-medium border transition-all duration-200 ${
                         selectedModules.includes(mod)
                           ? "border-primary/40 bg-primary/8 text-primary"
-                          : "border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                          : "border-border/40 text-foreground/70 hover:border-border/60 hover:text-foreground"
                       }`}
                     >
                       {mod}
@@ -249,7 +250,7 @@ export default function TextToCAD() {
                         <div className="grid grid-cols-2 gap-2 mt-3">
                           {QUICK_EDITS.map((qe) => (
                             <button key={qe.id} onClick={() => handleQuickEdit(qe.label)} className="flex flex-col items-center p-2.5 rounded-lg border border-border/20 bg-card/20 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 group">
-                              <qe.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors mb-0.5" />
+                              <qe.icon className="w-4.5 h-4.5 text-foreground/70 group-hover:text-primary transition-colors mb-0.5" />
                               <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/80">{qe.label}</span>
                               <span className="text-[7px] text-muted-foreground/60">{qe.desc}</span>
                             </button>
