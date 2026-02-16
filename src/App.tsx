@@ -18,6 +18,8 @@ import Tutorial from "./pages/Tutorial";
 import PhotographyStudioCategories from "./pages/PhotographyStudioCategories";
 import { CategoryUploadStudio } from "@/components/bulk";
 import CADStudio from "./pages/CADStudio";
+import CADToCatalog from "./pages/CADToCatalog";
+import TextToCAD from "./pages/TextToCAD";
 import Auth from "./pages/Auth";
 
 import Generations from "./pages/Generations";
@@ -55,6 +57,8 @@ const App = () => (
                   <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
                   <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} />
                   <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
+                  <Route path="/cad-to-catalog" element={<ProtectedRoute><CADToCatalog /></ProtectedRoute>} />
+                  <Route path="/text-to-cad" element={<ProtectedRoute><TextToCAD /></ProtectedRoute>} />
                   
                   {/* Admin route - secret key protected */}
                   <Route path="/admin" element={<AdminBatches />} />
