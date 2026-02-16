@@ -18,18 +18,18 @@ function RingModel({ mousePosition }: { mousePosition: { x: number; y: number } 
     const idleX = Math.sin(t * 0.4) * 0.08;
     const idleY = t * 0.15 + Math.cos(t * 0.3) * 0.05;
 
-    targetRotation.current.x = mousePosition.y * 0.26 + idleX;
-    targetRotation.current.y = mousePosition.x * 0.26 + idleY;
+    targetRotation.current.x = mousePosition.y * 0.6 + idleX;
+    targetRotation.current.y = mousePosition.x * 0.6 + idleY;
 
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
       groupRef.current.rotation.x,
       targetRotation.current.x,
-      0.06
+      0.12
     );
     groupRef.current.rotation.y = THREE.MathUtils.lerp(
       groupRef.current.rotation.y,
       targetRotation.current.y,
-      0.06
+      0.12
     );
   });
 

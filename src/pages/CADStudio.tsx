@@ -41,8 +41,8 @@ export default function CADStudio() {
           <div className="w-12 h-px bg-muted-foreground/30 mx-auto" />
         </motion.div>
 
-        {/* 3D Ring - contained size */}
-        <div className="w-full max-w-[500px] h-[400px] sm:h-[450px] mx-auto my-4">
+        {/* 3D Ring */}
+        <div className="w-[650px] h-[650px] max-w-full mx-auto my-4">
           <InteractiveRing />
         </div>
 
