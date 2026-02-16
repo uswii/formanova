@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, Suspense } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -68,11 +68,35 @@ function FallbackRing({ mousePosition }: { mousePosition: { x: number; y: number
   );
 }
 
+// Pauses the render loop when the document is hidden (tab switch / navigation)
+function VisibilityController() {
+  const { gl } = useThree();
+  const state = useThree();
+
+  useEffect(() => {
+    const handle = () => {
+      if (document.hidden) {
+        gl.setAnimationLoop(null); // stop render loop
+      } else {
+        gl.setAnimationLoop(() => state.advance(performance.now())); // restart
+      }
+    };
+    document.addEventListener("visibilitychange", handle);
+    return () => {
+      document.removeEventListener("visibilitychange", handle);
+      gl.setAnimationLoop(null); // cleanup on unmount
+    };
+  }, [gl, state]);
+
+  return null;
+}
+
 function Scene({ mousePosition }: { mousePosition: { x: number; y: number } }) {
   const [hasError, setHasError] = useState(false);
 
   return (
     <>
+      <VisibilityController />
       <ambientLight intensity={0.3} />
       <directionalLight position={[5, 5, 5]} intensity={1.5} color="#fffaf0" />
       <directionalLight position={[-3, 3, -3]} intensity={0.6} color="#e8dcc8" />
