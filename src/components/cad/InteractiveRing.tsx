@@ -21,6 +21,9 @@ function RingModel({ mousePosition }: { mousePosition: { x: number; y: number } 
     targetRotation.current.x = mousePosition.y * 0.6 + idleX;
     targetRotation.current.y = mousePosition.x * 0.6 + idleY;
 
+    // Subtle vertical bob
+    groupRef.current.position.y = Math.sin(t * 0.6) * 0.15;
+
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
       groupRef.current.rotation.x,
       targetRotation.current.x,
