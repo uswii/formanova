@@ -8,19 +8,8 @@ function RingModel({ mousePosition }: { mousePosition: { x: number; y: number } 
   const groupRef = useRef<THREE.Group>(null);
   const targetRotation = useRef({ x: 0, y: 0 });
 
-  // Apply a gold metallic material to all meshes
-  const clonedScene = scene.clone();
-  clonedScene.traverse((child) => {
-    if ((child as THREE.Mesh).isMesh) {
-      const mesh = child as THREE.Mesh;
-      mesh.material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(0xd4af37),
-        metalness: 0.95,
-        roughness: 0.15,
-        envMapIntensity: 1.5,
-      });
-    }
-  });
+  // Use the model's own materials
+  const clonedScene = scene.clone(true);
 
   useFrame(() => {
     if (!groupRef.current) return;
@@ -121,12 +110,12 @@ export default function InteractiveRing() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="w-full h-48 sm:h-56"
+      className="w-full h-full"
     >
       <Canvas
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         style={{ background: "transparent" }}
-        camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
+        camera={{ fov: 30, near: 0.1, far: 100, position: [0, 1.5, 6] }}
         onCreated={({ gl }) => {
           gl.setClearColor(0x000000, 0);
         }}
