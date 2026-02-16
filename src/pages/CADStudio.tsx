@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Box, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+// CAD Studio gateway — two-card layout only
 
 const features = [
   {
