@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sparkles, Upload, X, Download, RotateCcw,
-  Box, Gem, Wrench, Maximize2, Shield, Layers,
-  Image as ImageIcon, ChevronDown, ChevronUp,
+  Sparkles, Upload, X, Image as ImageIcon,
+  ChevronDown, ChevronUp, Box, Gem, Wrench,
+  Maximize2, Shield, Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import CADViewport from "@/components/cad/CADViewport";
+import ViewportToolbar from "@/components/cad/ViewportToolbar";
+import ViewportTopBar from "@/components/cad/ViewportTopBar";
+import MeshLibrary from "@/components/cad/MeshLibrary";
 
 const AI_MODELS = [
   { id: "formanova1", name: "FORMANOVA 1", desc: "Advanced" },
@@ -23,12 +26,12 @@ const MODULES = [
 ];
 
 const QUICK_EDITS = [
-  { id: "band", label: "Band", desc: "Material & shape", icon: Box, color: "primary" },
-  { id: "gem", label: "Gemstone", desc: "Cut & color", icon: Gem, color: "primary" },
-  { id: "detail", label: "Details", desc: "Engravings & filigree", icon: Layers, color: "primary" },
-  { id: "prong", label: "Prong", desc: "Setting style", icon: Shield, color: "primary" },
-  { id: "scale", label: "Scale", desc: "Resize parts", icon: Maximize2, color: "primary" },
-  { id: "fix", label: "Repair", desc: "Fix geometry", icon: Wrench, color: "primary" },
+  { id: "band", label: "Band", desc: "Material & shape", icon: Box },
+  { id: "gem", label: "Gemstone", desc: "Cut & color", icon: Gem },
+  { id: "detail", label: "Details", desc: "Engravings & filigree", icon: Layers },
+  { id: "prong", label: "Prong", desc: "Setting style", icon: Shield },
+  { id: "scale", label: "Scale", desc: "Resize parts", icon: Maximize2 },
+  { id: "fix", label: "Repair", desc: "Fix geometry", icon: Wrench },
 ];
 
 const PROGRESS_STEPS = [
@@ -52,6 +55,7 @@ export default function TextToCAD() {
   const [progress, setProgress] = useState(0);
   const [progressStep, setProgressStep] = useState("");
   const [editExpanded, setEditExpanded] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleModule = (mod: string) => {
@@ -126,223 +130,167 @@ export default function TextToCAD() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] overflow-hidden">
-      {/* ── LEFT PANEL ── */}
-      <div className="w-[380px] flex-shrink-0 flex flex-col border-r border-border/40 bg-background overflow-hidden">
-        {/* Panel header */}
-        <div className="px-5 py-4 border-b border-border/30">
-          <h1 className="text-lg font-light tracking-[5px] uppercase">
-            <span className="font-semibold text-primary">Text</span> → 3D
-          </h1>
-        </div>
+    <div className="flex h-[calc(100vh-5rem)] overflow-hidden bg-muted/30">
+      {/* ── LEFT PANEL (collapsible) ── */}
+      <AnimatePresence>
+        {panelOpen && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 340, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="flex-shrink-0 flex flex-col border-r border-border/30 bg-card/80 backdrop-blur-sm overflow-hidden"
+          >
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-thin">
+              {/* Title */}
+              <h1 className="text-lg font-light tracking-[5px] uppercase">
+                <span className="font-semibold text-primary">Text</span> → 3D
+              </h1>
 
-        {/* Panel body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-thin">
-          {/* AI Model selector */}
-          <section>
-            <Label className="text-[10px] uppercase tracking-[2px] text-muted-foreground font-semibold mb-2 block">
-              AI Model
-            </Label>
-            <RadioGroup value={model} onValueChange={setModel} className="grid grid-cols-3 gap-2">
-              {AI_MODELS.map((m) => (
-                <label
-                  key={m.id}
-                  className={`flex flex-col items-center p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
-                    model === m.id
-                      ? "border-primary/40 bg-primary/5 shadow-sm"
-                      : "border-border/30 bg-card/30 hover:border-border/60"
-                  }`}
-                >
-                  <RadioGroupItem value={m.id} className="sr-only" />
-                  <span className="text-xs font-semibold text-foreground tracking-wide">{m.name}</span>
-                  <span className="text-[9px] text-muted-foreground mt-0.5">{m.desc}</span>
-                </label>
-              ))}
-            </RadioGroup>
-          </section>
-
-          {/* Prompt */}
-          <section>
-            <Label className="text-[10px] uppercase tracking-[2px] text-muted-foreground font-semibold mb-2 block">
-              Describe Your Ring
-            </Label>
-            <Textarea
-              placeholder="A platinum solitaire ring with a 2-carat round brilliant diamond, cathedral setting, knife-edge band with micro-pavé accent stones…"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[90px] text-sm bg-card/30 border-border/30 resize-y"
-            />
-
-            {/* Reference image */}
-            <div className="mt-3">
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                className="hidden"
-                onChange={handleRefImage}
-              />
-              {!refImage ? (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>Attach reference image (optional)</span>
-                </button>
-              ) : (
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border/30">
-                  <img src={refImage} alt="Reference" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => setRefImage(null)}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-background/80 rounded-full flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <Button
-              className="w-full mt-4 uppercase tracking-[2px] text-xs font-semibold h-11"
-              disabled={isGenerating || !prompt.trim()}
-              onClick={simulateGeneration}
-            >
-              {isGenerating && !isEditing ? "Generating…" : "Generate Ring"}
-            </Button>
-          </section>
-
-          {/* Modules */}
-          <section>
-            <Label className="text-[10px] uppercase tracking-[2px] text-muted-foreground font-semibold mb-2 block">
-              Components
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {MODULES.map((mod) => (
-                <button
-                  key={mod}
-                  onClick={() => toggleModule(mod)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all duration-200 ${
-                    selectedModules.includes(mod)
-                      ? "border-primary/40 bg-primary/8 text-primary"
-                      : "border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
-                  }`}
-                >
-                  {mod}
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground/60 mt-1.5">
-              Click a module to target edits to that function
-            </p>
-          </section>
-
-          {/* Edit section */}
-          <AnimatePresence>
-            {hasModel && (
-              <motion.section
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="rounded-xl border-2 border-primary/20 bg-primary/[0.03] p-4 relative"
-              >
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[8px] font-bold tracking-[2px] uppercase px-3 py-0.5 rounded-md">
-                  Edit Your Ring
-                </div>
-
-                <button
-                  onClick={() => setEditExpanded(!editExpanded)}
-                  className="flex items-center justify-between w-full mb-2"
-                >
-                  <Label className="text-[10px] uppercase tracking-[2px] text-primary/70 font-semibold cursor-pointer">
-                    Describe changes
-                  </Label>
-                  {editExpanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
-                </button>
-
-                {editExpanded && (
-                  <>
-                    <Textarea
-                      placeholder="Make the band thinner and add side stones…"
-                      value={editPrompt}
-                      onChange={(e) => setEditPrompt(e.target.value)}
-                      className="min-h-[70px] text-sm bg-background/50 border-primary/15 resize-y mb-3"
-                    />
-                    <Button
-                      className="w-full uppercase tracking-[2px] text-xs font-bold h-11"
-                      disabled={isGenerating || !editPrompt.trim()}
-                      onClick={simulateEdit}
+              {/* AI Model selector */}
+              <section>
+                <Label className="text-[10px] uppercase tracking-[2px] text-muted-foreground font-semibold mb-2 block">
+                  AI Model
+                </Label>
+                <RadioGroup value={model} onValueChange={setModel} className="grid grid-cols-3 gap-2">
+                  {AI_MODELS.map((m) => (
+                    <label
+                      key={m.id}
+                      className={`flex flex-col items-center p-2.5 rounded-lg border cursor-pointer transition-all duration-200 ${
+                        model === m.id
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border/30 bg-card/30 hover:border-border/60"
+                      }`}
                     >
-                      ✎ Apply Edit
-                    </Button>
+                      <RadioGroupItem value={m.id} className="sr-only" />
+                      <span className="text-[10px] font-bold text-foreground tracking-wide">{m.name}</span>
+                      <span className="text-[8px] text-muted-foreground">{m.desc}</span>
+                    </label>
+                  ))}
+                </RadioGroup>
+              </section>
 
-                    {/* Quick edit grid */}
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      {QUICK_EDITS.map((qe) => (
-                        <button
-                          key={qe.id}
-                          onClick={() => handleQuickEdit(qe.label)}
-                          className="flex flex-col items-center p-3 rounded-xl border border-border/20 bg-card/20 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 group"
-                        >
-                          <qe.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors mb-1" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/80">{qe.label}</span>
-                          <span className="text-[8px] text-muted-foreground/60">{qe.desc}</span>
-                        </button>
-                      ))}
+              {/* Prompt */}
+              <section>
+                <Label className="text-[10px] uppercase tracking-[2px] text-muted-foreground font-semibold mb-2 block">
+                  Describe Your Ring
+                </Label>
+                <Textarea
+                  placeholder="A platinum solitaire ring with a 2-carat round brilliant diamond…"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="min-h-[80px] text-sm bg-card/30 border-border/30 resize-y"
+                />
+                <div className="mt-2">
+                  <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleRefImage} />
+                  {!refImage ? (
+                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Attach reference image (optional)</span>
+                    </button>
+                  ) : (
+                    <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-border/30">
+                      <img src={refImage} alt="Reference" className="w-full h-full object-cover" />
+                      <button onClick={() => setRefImage(null)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-background/80 rounded-full flex items-center justify-center">
+                        <X className="w-3 h-3" />
+                      </button>
                     </div>
-                  </>
-                )}
-              </motion.section>
-            )}
-          </AnimatePresence>
-        </div>
+                  )}
+                </div>
+                <Button className="w-full mt-3 uppercase tracking-[2px] text-xs font-semibold h-10" disabled={isGenerating || !prompt.trim()} onClick={simulateGeneration}>
+                  {isGenerating && !isEditing ? "Generating…" : "Generate Ring"}
+                </Button>
+              </section>
 
-        {/* Status bar */}
-        <div className="px-5 py-2.5 border-t border-border/20 flex items-center gap-2 text-[10px] text-muted-foreground">
-          <div
-            className={`w-2 h-2 rounded-full ${
-              isGenerating ? "bg-yellow-500 animate-pulse" : "bg-green-500"
-            }`}
-          />
-          <span>{isGenerating ? "Processing…" : "Ready"}</span>
-        </div>
-      </div>
+              {/* Modules */}
+              <section>
+                <Label className="text-[10px] uppercase tracking-[2px] text-muted-foreground font-semibold mb-2 block">
+                  Components
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {MODULES.map((mod) => (
+                    <button
+                      key={mod}
+                      onClick={() => toggleModule(mod)}
+                      className={`px-3 py-1 rounded-full text-[10px] font-medium border transition-all duration-200 ${
+                        selectedModules.includes(mod)
+                          ? "border-primary/40 bg-primary/8 text-primary"
+                          : "border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                      }`}
+                    >
+                      {mod}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {/* Edit section */}
+              <AnimatePresence>
+                {hasModel && (
+                  <motion.section
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="rounded-xl border-2 border-primary/20 bg-primary/[0.03] p-4 relative"
+                  >
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[8px] font-bold tracking-[2px] uppercase px-3 py-0.5 rounded-md">
+                      Edit Your Ring
+                    </div>
+                    <button onClick={() => setEditExpanded(!editExpanded)} className="flex items-center justify-between w-full mb-2">
+                      <Label className="text-[10px] uppercase tracking-[2px] text-primary/70 font-semibold cursor-pointer">Describe changes</Label>
+                      {editExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </button>
+                    {editExpanded && (
+                      <>
+                        <Textarea placeholder="Make the band thinner and add side stones…" value={editPrompt} onChange={(e) => setEditPrompt(e.target.value)} className="min-h-[60px] text-sm bg-background/50 border-primary/15 resize-y mb-3" />
+                        <Button className="w-full uppercase tracking-[2px] text-xs font-bold h-10" disabled={isGenerating || !editPrompt.trim()} onClick={simulateEdit}>
+                          ✎ Apply Edit
+                        </Button>
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                          {QUICK_EDITS.map((qe) => (
+                            <button key={qe.id} onClick={() => handleQuickEdit(qe.label)} className="flex flex-col items-center p-2.5 rounded-lg border border-border/20 bg-card/20 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 group">
+                              <qe.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors mb-0.5" />
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/80">{qe.label}</span>
+                              <span className="text-[7px] text-muted-foreground/60">{qe.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </motion.section>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Status bar */}
+            <div className="px-5 py-2 border-t border-border/20 flex items-center gap-2 text-[10px] text-muted-foreground">
+              <div className={`w-2 h-2 rounded-full ${isGenerating ? "bg-yellow-500 animate-pulse" : "bg-green-500"}`} />
+              <span>{isGenerating ? "Processing…" : "Ready"}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── VERTICAL TOOLBAR ── */}
+      <ViewportToolbar />
 
       {/* ── VIEWPORT ── */}
       <div className="flex-1 relative">
-        <CADViewport
-          isGenerating={isGenerating}
-          hasModel={hasModel}
-          progress={progress}
-          progressStep={progressStep}
-        />
+        <ViewportTopBar onReset={handleReset} />
+        <CADViewport isGenerating={isGenerating} hasModel={hasModel} progress={progress} progressStep={progressStep} />
 
-        {/* Top-right actions */}
-        {hasModel && !isGenerating && (
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs uppercase tracking-wider gap-1.5"
-              onClick={handleReset}
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs uppercase tracking-wider gap-1.5"
-              onClick={() => toast.info("Download coming soon")}
-            >
-              <Download className="w-3.5 h-3.5" /> Export
-            </Button>
-          </div>
-        )}
+        {/* Toggle left panel */}
+        <button
+          onClick={() => setPanelOpen(!panelOpen)}
+          className="absolute bottom-4 left-4 z-10 w-8 h-8 rounded-lg bg-card/60 backdrop-blur-sm border border-border/20 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          title={panelOpen ? "Hide panel" : "Show panel"}
+        >
+          {panelOpen ? <ChevronDown className="w-4 h-4 -rotate-90" /> : <ChevronDown className="w-4 h-4 rotate-90" />}
+        </button>
       </div>
+
+      {/* ── MESH LIBRARY (right) ── */}
+      <MeshLibrary />
     </div>
   );
 }
