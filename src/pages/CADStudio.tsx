@@ -26,30 +26,25 @@ export default function CADStudio() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background">
-      {/* Full-page 3D Ring Background */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center">
-        <div className="w-full h-full max-w-[900px] max-h-[900px] mx-auto" style={{ aspectRatio: "1/1" }}>
-          <InteractiveRing />
-        </div>
-      </div>
-
-      {/* Content overlay */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 sm:px-6">
+      {/* Content */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center px-4 sm:px-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-6 mt-20"
+          className="text-center mt-24 mb-4"
         >
           <p className="text-xs sm:text-sm tracking-[0.35em] uppercase text-muted-foreground/70 mb-4">
             CAD Studio
           </p>
-          <div className="w-12 h-px bg-muted-foreground/30 mx-auto mb-8" />
+          <div className="w-12 h-px bg-muted-foreground/30 mx-auto" />
         </motion.div>
 
-        {/* Spacer to push cards below the ring */}
-        <div className="flex-1 min-h-[280px] sm:min-h-[340px]" />
+        {/* 3D Ring - contained size */}
+        <div className="w-full max-w-[500px] h-[400px] sm:h-[450px] mx-auto my-4">
+          <InteractiveRing />
+        </div>
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-20">
