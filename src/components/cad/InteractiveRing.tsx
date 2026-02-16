@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, Suspense } from "react";
+import { useRef, useState, useCallback, useEffect, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
@@ -11,10 +11,15 @@ function RingModel({ mousePosition }: { mousePosition: { x: number; y: number } 
   // Use the model's own materials
   const clonedScene = scene.clone(true);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    targetRotation.current.x = mousePosition.y * 0.26;
-    targetRotation.current.y = mousePosition.x * 0.26;
+    const t = clock.getElapsedTime();
+    // Subtle idle animation so the ring is never at rest
+    const idleX = Math.sin(t * 0.4) * 0.08;
+    const idleY = t * 0.15 + Math.cos(t * 0.3) * 0.05;
+
+    targetRotation.current.x = mousePosition.y * 0.26 + idleX;
+    targetRotation.current.y = mousePosition.x * 0.26 + idleY;
 
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
       groupRef.current.rotation.x,
@@ -39,10 +44,13 @@ function FallbackRing({ mousePosition }: { mousePosition: { x: number; y: number
   const groupRef = useRef<THREE.Group>(null);
   const targetRotation = useRef({ x: 0, y: 0 });
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    targetRotation.current.x = mousePosition.y * 0.26;
-    targetRotation.current.y = mousePosition.x * 0.26;
+    const t = clock.getElapsedTime();
+    const idleX = Math.sin(t * 0.4) * 0.08;
+    const idleY = t * 0.15 + Math.cos(t * 0.3) * 0.05;
+    targetRotation.current.x = mousePosition.y * 0.26 + idleX;
+    targetRotation.current.y = mousePosition.x * 0.26 + idleY;
     groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, targetRotation.current.x, 0.06);
     groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotation.current.y, 0.06);
   });
@@ -101,15 +109,24 @@ export default function InteractiveRing() {
     setMouse({ x, y });
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
-    setMouse({ x: 0, y: 0 });
+  // Also react to scroll position
+  const handleScroll = useCallback(() => {
+    const scrollY = window.scrollY;
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    const normalized = maxScroll > 0 ? (scrollY / maxScroll) * 2 - 1 : 0;
+    setMouse((prev) => ({ ...prev, y: normalized * 0.5 }));
   }, []);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      onMouseLeave={() => setMouse({ x: 0, y: 0 })}
       className="w-full h-full"
     >
       <Canvas

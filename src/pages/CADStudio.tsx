@@ -43,23 +43,13 @@ export default function CADStudio() {
           className="text-center mb-6 mt-20"
         >
           <p className="text-xs sm:text-sm tracking-[0.35em] uppercase text-muted-foreground/70 mb-4">
-            Handcrafted Collection
+            CAD Studio
           </p>
           <div className="w-12 h-px bg-muted-foreground/30 mx-auto mb-8" />
         </motion.div>
 
         {/* Spacer to push cards below the ring */}
         <div className="flex-1 min-h-[280px] sm:min-h-[340px]" />
-
-        {/* Cursor hint */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="text-sm text-muted-foreground/50 mb-8"
-        >
-          Move your cursor to explore the ring
-        </motion.p>
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-20">
