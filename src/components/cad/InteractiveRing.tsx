@@ -1,27 +1,66 @@
-import { useRef, useState, useCallback, useEffect, Suspense } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
+
+// Premium material definitions
+const goldMaterial = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0xd4a017),
+  metalness: 1.0,
+  roughness: 0.18,
+  envMapIntensity: 2.0,
+  clearcoat: 0.4,
+  clearcoatRoughness: 0.1,
+  reflectivity: 1.0,
+});
+
+const blackDiamondMaterial = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0x0a0a0a),
+  metalness: 0.3,
+  roughness: 0.05,
+  envMapIntensity: 3.0,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.02,
+  reflectivity: 1.0,
+  ior: 2.42,
+  transmission: 0.15,
+  thickness: 0.5,
+  sheen: 0.8,
+  sheenRoughness: 0.2,
+  sheenColor: new THREE.Color(0x333344),
+});
 
 function RingModel({ mousePosition }: { mousePosition: { x: number; y: number } }) {
   const { scene } = useGLTF("/models/ring.glb");
   const groupRef = useRef<THREE.Group>(null);
   const targetRotation = useRef({ x: 0, y: 0 });
 
-  // Use the model's own materials
-  const clonedScene = scene.clone(true);
+  // Clone and apply custom materials per mesh name
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone(true);
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const name = mesh.name.toLowerCase();
+        if (name.includes("circle")) {
+          mesh.material = goldMaterial;
+        } else if (name.includes("round")) {
+          mesh.material = blackDiamondMaterial;
+        }
+      }
+    });
+    return clone;
+  }, [scene]);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
-    // Subtle idle animation so the ring is never at rest
     const idleX = Math.sin(t * 0.4) * 0.08;
     const idleY = t * 0.15 + Math.cos(t * 0.3) * 0.05;
 
     targetRotation.current.x = mousePosition.y * 0.6 + idleX;
     targetRotation.current.y = mousePosition.x * 0.6 + idleY;
 
-    // Subtle vertical bob
     groupRef.current.position.y = Math.sin(t * 0.6) * 0.15;
 
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
