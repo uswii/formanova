@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,7 +15,6 @@ const PLANS = [
     name: 'Starter',
     price: 9,
     credits: 10,
-    features: ['10 generation credits', 'All tools included', 'Standard quality'],
   },
   {
     tier: 'pro',
@@ -23,14 +22,12 @@ const PLANS = [
     price: 39,
     credits: 50,
     popular: true,
-    features: ['50 generation credits', 'All tools included', 'Priority processing', 'Best value'],
   },
   {
     tier: 'power',
     name: 'Power',
     price: 99,
     credits: 150,
-    features: ['150 generation credits', 'All tools included', 'Priority processing', 'Bulk discount'],
   },
 ];
 
@@ -112,15 +109,7 @@ export default function Pricing() {
                   <span className="text-lg font-semibold text-foreground">{plan.credits} credits</span>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+              <CardContent>
                 <Button
                   className="w-full gap-2"
                   size="lg"
