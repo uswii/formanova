@@ -25,65 +25,55 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-background">
-      <div className="relative z-10 min-h-screen flex flex-col items-center px-4 sm:px-6">
-        {/* Subtitle above ring */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-xs sm:text-sm tracking-[0.35em] uppercase text-muted-foreground/50 mt-16 mb-0 z-20"
+    <div className="h-screen relative overflow-hidden bg-background flex flex-col">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
+        {/* Title */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+          className="mb-2"
         >
-          CAD Studio
-        </motion.p>
-
-        {/* 3D Ring + overlapping title */}
-        <div className="relative w-[650px] h-[650px] max-w-full mx-auto -mt-2">
-          <InteractiveRing />
-          {/* Large title overlaying the ring */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+          <span
+            className="font-display text-[clamp(2.5rem,8vw,5.5rem)] leading-none tracking-wide"
+            style={{
+              background: "linear-gradient(180deg, hsl(var(--foreground) / 0.9), hsl(var(--muted-foreground) / 0.5))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
           >
-            <span
-              className="font-display text-[clamp(3rem,10vw,7rem)] leading-none tracking-wide"
-              style={{
-                background: "linear-gradient(180deg, hsl(var(--foreground) / 0.9), hsl(var(--muted-foreground) / 0.5))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              CAD Studio
-            </span>
-          </motion.h1>
+            CAD Studio
+          </span>
+        </motion.h1>
+
+        {/* 3D Ring - compact, below title */}
+        <div className="relative w-[280px] h-[280px] mx-auto -mt-4 mb-4">
+          <InteractiveRing />
         </div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl -mt-4 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
           {cadFeatures.map((feature, i) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 + 0.15 * i }}
-              whileHover={{ y: -4, scale: 1.01 }}
-              className="group relative rounded-xl overflow-hidden flex flex-col items-center text-center p-8 bg-card border border-border/50 hover:border-border transition-colors"
+              transition={{ duration: 0.5, delay: 0.4 + 0.15 * i }}
+              whileHover={{ y: -3, scale: 1.01 }}
+              className="group relative rounded-xl overflow-hidden flex flex-col items-center text-center p-6 bg-card border border-border/50 hover:border-border transition-colors"
             >
-              <div className="w-14 h-14 rounded-xl bg-muted/10 flex items-center justify-center mb-5 group-hover:bg-muted/20 transition-colors">
-                <feature.icon className="w-6 h-6 text-muted-foreground/60" />
+              <div className="w-11 h-11 rounded-lg bg-muted/10 flex items-center justify-center mb-3 group-hover:bg-muted/20 transition-colors">
+                <feature.icon className="w-5 h-5 text-muted-foreground/60" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">
+              <h2 className="text-lg font-semibold text-foreground mb-1">
                 {feature.title}
               </h2>
-              <p className="text-muted-foreground/60 mb-6 leading-relaxed text-sm">
+              <p className="text-muted-foreground/60 mb-4 leading-relaxed text-sm">
                 {feature.description}
               </p>
               <Button
                 variant="secondary"
                 className="w-full mt-auto"
-                size="lg"
                 onClick={() => navigate(feature.route)}
               >
                 Open Studio →
