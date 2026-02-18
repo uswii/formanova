@@ -91,60 +91,71 @@ export function Header() {
             
             {/* User Profile / Auth Button */}
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
-                    {user.avatar_url ? (
-                      <img 
-                        src={user.avatar_url} 
-                        alt={user.full_name || 'User'} 
-                        className="h-8 w-8 rounded-full object-cover aspect-square border border-border hover:border-foreground transition-colors"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors border border-border">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    )}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
-                  <div className="px-3 py-2 border-b border-border">
-                    <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
-                      {user.full_name || user.email?.split('@')[0]}
-                      {user.is_verified && (
-                        <BadgeCheck className="h-4 w-4 text-primary flex-shrink-0" />
+              <div className="flex items-center gap-3">
+                {/* Credit pill - clickable */}
+                <Link
+                  to="/credits"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 hover:border-border transition-colors"
+                >
+                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                  <span className="text-sm font-medium text-foreground">
+                    {credits !== null ? credits : '—'}
+                  </span>
+                </Link>
+
+                {/* Profile dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
+                      {user.avatar_url ? (
+                        <img 
+                          src={user.avatar_url} 
+                          alt={user.full_name || 'User'} 
+                          className="h-8 w-8 rounded-full object-cover aspect-square border border-border hover:border-foreground transition-colors"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors border border-border">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       )}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/generations')}
-                    className="cursor-pointer text-sm"
-                  >
-                    <Image className="h-4 w-4 mr-2" />
-                    Generations
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/credits')}
-                    className="cursor-pointer text-sm"
-                  >
-                    <img src={creditCoinIcon} alt="" className="h-4 w-4 mr-2 object-contain" />
-                    My Credits
-                    {credits !== null && (
-                      <span className="ml-auto text-xs text-muted-foreground">{credits}</span>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => signOut()}
-                    className="cursor-pointer text-sm text-destructive focus:text-destructive"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
+                    <div className="px-3 py-2 border-b border-border">
+                      <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                        {user.full_name || user.email?.split('@')[0]}
+                        {user.is_verified && (
+                          <BadgeCheck className="h-4 w-4 text-primary flex-shrink-0" />
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/generations')}
+                      className="cursor-pointer text-sm"
+                    >
+                      <Image className="h-4 w-4 mr-2" />
+                      Generations
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/credits')}
+                      className="cursor-pointer text-sm"
+                    >
+                      <img src={creditCoinIcon} alt="" className="h-4 w-4 mr-2 object-contain" />
+                      My Credits
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => signOut()}
+                      className="cursor-pointer text-sm text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ) : (
               <Button
                 variant="default"
