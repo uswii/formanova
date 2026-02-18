@@ -33,23 +33,23 @@ export default function Credits() {
   return (
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="max-w-2xl mx-auto">
-        <Link 
-          to="/dashboard" 
+        <button
+          onClick={() => window.history.back()}
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Link>
+          Back
+        </button>
 
         <h1 className="text-3xl font-display mb-8">My Credits</h1>
 
         <Card className="border-border/50 bg-card/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <img src={creditCoinIcon} alt="Credits" className="h-8 w-8 object-contain" />
+            <CardTitle className="flex items-center gap-4">
+              <img src={creditCoinIcon} alt="Credits" className="h-10 w-10 object-contain" />
               Credit Balance
             </CardTitle>
-            <CardDescription>Your available credits for generating images</CardDescription>
+            <CardDescription className="mt-1">Your available credits for generating images</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
