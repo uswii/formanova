@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,13 +11,13 @@ import creditCoinIcon from '@/assets/icons/credit-coin.png';
 const PLANS = [
   {
     tier: 'basic',
-    name: 'Starter',
+    name: 'Basic',
     price: 9,
     credits: 10,
   },
   {
     tier: 'pro',
-    name: 'Professional',
+    name: 'Pro',
     price: 39,
     credits: 50,
     popular: true,
@@ -61,20 +60,20 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="max-w-5xl mx-auto">
-        <Link
-          to="/dashboard"
+        <button
+          onClick={() => window.history.back()}
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Link>
+          Back
+        </button>
 
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <img src={creditCoinIcon} alt="Credits" className="h-12 w-12 object-contain" />
+          <div className="flex items-center justify-center gap-4 mb-5">
+            <img src={creditCoinIcon} alt="Credits" className="h-14 w-14 object-contain" />
             <h1 className="text-4xl font-display">Get Credits</h1>
           </div>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-lg leading-relaxed">
             Purchase credits to generate stunning jewelry photography
           </p>
           {credits !== null && (

@@ -97,7 +97,7 @@ export function Header() {
                   to="/credits"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 hover:border-border transition-colors"
                 >
-                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                  <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" />
                   <span className="text-sm font-medium text-foreground">
                     {credits !== null ? credits : '—'}
                   </span>
