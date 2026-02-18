@@ -1,8 +1,7 @@
 // Custom Auth Service API Client
 // Routes through edge function proxy to avoid mixed content (HTTPS -> HTTP)
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
+const AUTH_URL = 'https://formanova.ai/auth';
 
 export interface AuthUser {
   id: string;
@@ -80,7 +79,7 @@ class AuthApi {
     try {
       // Pass the current origin so backend knows where to redirect back
       const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
-      const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
+      const url = `${AUTH_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
       
       console.log('[Auth] Requesting OAuth with callback:', frontendCallbackUrl);
       const response = await fetch(url);
@@ -107,7 +106,7 @@ class AuthApi {
     if (state) params.append('state', state);
 
     const response = await fetch(
-      `${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`,
+      `${AUTH_URL}/auth/google/callback?${params.toString()}`,
       { method: 'GET' }
     );
 
@@ -122,7 +121,7 @@ class AuthApi {
 
   // Register with email/password - uses proxy
   async register(email: string, password: string): Promise<AuthUser> {
-    const response = await fetch(`${AUTH_PROXY_URL}/auth/register`, {
+    const response = await fetch(`${AUTH_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -142,7 +141,7 @@ class AuthApi {
     formData.append('username', email);
     formData.append('password', password);
 
-    const response = await fetch(`${AUTH_PROXY_URL}/auth/jwt/login`, {
+    const response = await fetch(`${AUTH_URL}/auth/jwt/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData,
@@ -162,7 +161,7 @@ class AuthApi {
     if (!token) return;
 
     try {
-      await fetch(`${AUTH_PROXY_URL}/auth/jwt/logout`, {
+      await fetch(`${AUTH_URL}/auth/jwt/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -183,7 +182,7 @@ class AuthApi {
     if (!token) return null;
 
     try {
-      const response = await fetch(`${AUTH_PROXY_URL}/users/me`, {
+      const response = await fetch(`${AUTH_URL}/users/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
