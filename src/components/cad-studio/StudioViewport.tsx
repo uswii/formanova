@@ -1,9 +1,74 @@
 import { useRef, useState, useCallback, Suspense, useEffect, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, ContactShadows, OrbitControls, useGLTF } from "@react-three/drei";
+import {
+  Environment,
+  ContactShadows,
+  OrbitControls,
+  useGLTF,
+  useEnvironment,
+  MeshRefractionMaterial,
+} from "@react-three/drei";
+import {
+  EffectComposer,
+  Bloom,
+  ChromaticAberration,
+  BrightnessContrast,
+} from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { MaterialDef } from "./materials";
+
+// ── Gem Environment Loader ──
+// Loads the dedicated gem HDRI and provides it via context
+function GemEnvProvider({ children }: { children: (envMap: THREE.Texture) => React.ReactNode }) {
+  const gemEnv = useEnvironment({ files: "/hdri/diamond-gemstone-studio.hdr" });
+  return <>{children(gemEnv)}</>;
+}
+
+// ── Refraction Gem Mesh ──
+// Renders a single mesh with MeshRefractionMaterial
+function RefractionGemMesh({
+  geometry,
+  position,
+  rotation,
+  scale,
+  envMap,
+  gemConfig,
+}: {
+  geometry: THREE.BufferGeometry;
+  position: THREE.Vector3;
+  rotation: THREE.Euler;
+  scale: THREE.Vector3;
+  envMap: THREE.Texture;
+  gemConfig: NonNullable<MaterialDef["gemConfig"]>;
+}) {
+  // Flat shade the geometry for crisp diamond facets
+  const flatGeometry = useMemo(() => {
+    const geo = geometry.clone().toNonIndexed();
+    geo.computeVertexNormals();
+    return geo;
+  }, [geometry]);
+
+  return (
+    <mesh
+      geometry={flatGeometry}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+    >
+      <MeshRefractionMaterial
+        envMap={envMap}
+        color={new THREE.Color(gemConfig.color)}
+        ior={gemConfig.ior}
+        aberrationStrength={gemConfig.aberrationStrength}
+        bounces={gemConfig.bounces}
+        fresnel={gemConfig.fresnel}
+        fastChroma
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
 
 // ── Loaded GLB Model ──
 function LoadedModel({
@@ -11,87 +76,135 @@ function LoadedModel({
   meshMaterials,
   onMeshesDetected,
   selectedMesh,
+  gemEnvMap,
 }: {
   url: string;
   meshMaterials: Record<string, MaterialDef>;
   onMeshesDetected: (meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => void;
   selectedMesh: string | null;
+  gemEnvMap: THREE.Texture | null;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
 
-  const clonedScene = useMemo(() => {
+  // Parse meshes from the scene
+  const meshDataList = useMemo(() => {
+    const list: {
+      name: string;
+      original: THREE.Material | THREE.Material[];
+      geometry: THREE.BufferGeometry;
+      position: THREE.Vector3;
+      rotation: THREE.Euler;
+      scale: THREE.Vector3;
+    }[] = [];
+
     const clone = scene.clone(true);
-    const meshList: { name: string; original: THREE.Material | THREE.Material[] }[] = [];
+    // Auto-center and scale
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const s = 3 / maxDim;
 
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        const name = mesh.name || `Mesh_${meshList.length}`;
-        meshList.push({ name, original: mesh.material });
+        const name = mesh.name || `Mesh_${list.length}`;
+
+        // Get world transform
+        mesh.updateWorldMatrix(true, false);
+        const worldPos = new THREE.Vector3();
+        const worldQuat = new THREE.Quaternion();
+        const worldScale = new THREE.Vector3();
+        mesh.matrixWorld.decompose(worldPos, worldQuat, worldScale);
+
+        list.push({
+          name,
+          original: mesh.material,
+          geometry: mesh.geometry,
+          position: new THREE.Vector3(
+            (worldPos.x - center.x) * s,
+            (worldPos.y - center.y) * s,
+            (worldPos.z - center.z) * s
+          ),
+          rotation: new THREE.Euler().setFromQuaternion(worldQuat),
+          scale: worldScale.multiplyScalar(s),
+        });
       }
     });
 
-    onMeshesDetected(meshList);
-    return clone;
-  }, [scene, onMeshesDetected]);
+    return list;
+  }, [scene]);
 
-  // Apply materials per mesh
   useEffect(() => {
-    clonedScene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        const name = mesh.name;
-        const assigned = meshMaterials[name];
-        if (assigned) {
-          mesh.material = assigned.create();
+    onMeshesDetected(meshDataList.map(m => ({ name: m.name, original: m.original })));
+  }, [meshDataList, onMeshesDetected]);
+
+  // Separate meshes into refraction (gem) and standard (metal/unassigned)
+  const standardMeshes: typeof meshDataList = [];
+  const refractionMeshes: (typeof meshDataList[0] & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
+
+  meshDataList.forEach((md) => {
+    const assigned = meshMaterials[md.name];
+    if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
+      refractionMeshes.push({ ...md, gemConfig: assigned.gemConfig });
+    } else {
+      standardMeshes.push(md);
+    }
+  });
+
+  // Build the standard (non-refraction) scene clone
+  const standardScene = useMemo(() => {
+    const group = new THREE.Group();
+    standardMeshes.forEach((md) => {
+      const mesh = new THREE.Mesh(md.geometry, undefined);
+      mesh.name = md.name;
+      mesh.position.copy(md.position);
+      mesh.rotation.copy(md.rotation);
+      mesh.scale.copy(md.scale);
+
+      const assigned = meshMaterials[md.name];
+      if (assigned) {
+        mesh.material = assigned.create();
+      } else {
+        // Use original material
+        const orig = md.original;
+        mesh.material = Array.isArray(orig) ? orig[0]?.clone() : orig?.clone();
+      }
+
+      // Selection highlight
+      if (selectedMesh && md.name === selectedMesh) {
+        const mat = mesh.material as THREE.MeshPhysicalMaterial;
+        if (mat?.emissive) {
+          mat.emissive = new THREE.Color(0x334455);
+          mat.emissiveIntensity = 0.15;
         }
       }
-    });
-  }, [meshMaterials, clonedScene]);
 
-  // Selection highlight
-  useEffect(() => {
-    clonedScene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        if (selectedMesh && mesh.name === selectedMesh) {
-          // Add a slight emissive to show selection
-          const mat = mesh.material as THREE.MeshPhysicalMaterial;
-          if (mat && mat.emissive) {
-            mat.emissive = new THREE.Color(0x334455);
-            mat.emissiveIntensity = 0.15;
-          }
-        } else {
-          const mat = mesh.material as THREE.MeshPhysicalMaterial;
-          if (mat && mat.emissive) {
-            mat.emissiveIntensity = 0;
-          }
-        }
-      }
+      group.add(mesh);
     });
-  }, [selectedMesh, clonedScene]);
-
-  // Auto-center and scale
-  useEffect(() => {
-    const box = new THREE.Box3().setFromObject(clonedScene);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = 3 / maxDim;
-    clonedScene.scale.setScalar(scale);
-    clonedScene.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-  }, [clonedScene]);
+    return group;
+  }, [standardMeshes, meshMaterials, selectedMesh]);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    // Gentle bobbing
     groupRef.current.position.y = Math.sin(clock.getElapsedTime() * 0.5) * 0.05;
   });
 
   return (
     <group ref={groupRef}>
-      <primitive object={clonedScene} />
+      <primitive object={standardScene} />
+      {refractionMeshes.map((md) => (
+        <RefractionGemMesh
+          key={md.name}
+          geometry={md.geometry}
+          position={md.position}
+          rotation={md.rotation}
+          scale={md.scale}
+          envMap={gemEnvMap!}
+          gemConfig={md.gemConfig}
+        />
+      ))}
     </group>
   );
 }
@@ -119,6 +232,30 @@ function VisibilityController() {
   return null;
 }
 
+// ── Post-Processing Effects ──
+function JewelryPostProcessing() {
+  return (
+    <EffectComposer>
+      <Bloom
+        intensity={0.28}
+        luminanceThreshold={0.92}
+        luminanceSmoothing={0.2}
+        mipmapBlur
+      />
+      <ChromaticAberration
+        blendFunction={BlendFunction.NORMAL}
+        offset={new THREE.Vector2(0.0035, 0.0035)}
+        radialModulation={false}
+        modulationOffset={0.0}
+      />
+      <BrightnessContrast
+        brightness={0}
+        contrast={0.08}
+      />
+    </EffectComposer>
+  );
+}
+
 interface StudioViewportProps {
   modelUrl: string | null;
   meshMaterials: Record<string, MaterialDef>;
@@ -138,6 +275,9 @@ export default function StudioViewport({
   progress,
   progressStep,
 }: StudioViewportProps) {
+  // Check if any mesh uses refraction
+  const hasRefractionMaterials = Object.values(meshMaterials).some(m => m.useRefraction);
+
   return (
     <div className="relative w-full h-full">
       <Canvas
@@ -146,37 +286,70 @@ export default function StudioViewport({
           alpha: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.2,
+          powerPreference: "high-performance",
         }}
         style={{ background: "transparent" }}
         camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
-        onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
+        onCreated={({ gl }) => {
+          gl.setClearColor(0x000000, 0);
+          gl.outputColorSpace = THREE.SRGBColorSpace;
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        }}
       >
         <Suspense fallback={null}>
           <VisibilityController />
-          <ambientLight intensity={0.35} />
-          <directionalLight position={[5, 5, 5]} intensity={1.5} color="#fffaf0" />
-          <directionalLight position={[-3, 3, -3]} intensity={0.5} color="#e8dcc8" />
+
+          {/* Lighting — matches JewelryRenderer setup */}
+          <ambientLight intensity={0.1} />
+          <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" castShadow />
+          <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
+          <hemisphereLight args={["#ffffff", "#e6e6e6", 0.55]} />
           <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
-          <Environment files="/hdri/jewelry-studio.hdr" />
+
+          {/* Metal HDRI environment */}
+          <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
           {modelUrl && (
-            <LoadedModel
-              url={modelUrl}
-              meshMaterials={meshMaterials}
-              onMeshesDetected={onMeshesDetected}
-              selectedMesh={selectedMesh}
-            />
+            <>
+              {hasRefractionMaterials ? (
+                <GemEnvProvider>
+                  {(gemEnv) => (
+                    <LoadedModel
+                      url={modelUrl}
+                      meshMaterials={meshMaterials}
+                      onMeshesDetected={onMeshesDetected}
+                      selectedMesh={selectedMesh}
+                      gemEnvMap={gemEnv}
+                    />
+                  )}
+                </GemEnvProvider>
+              ) : (
+                <LoadedModel
+                  url={modelUrl}
+                  meshMaterials={meshMaterials}
+                  onMeshesDetected={onMeshesDetected}
+                  selectedMesh={selectedMesh}
+                  gemEnvMap={null}
+                />
+              )}
+            </>
           )}
 
           <ContactShadows position={[0, -1.5, 0]} opacity={0.2} scale={8} blur={2.5} />
           <OrbitControls
             enablePan={true}
             enableZoom={true}
+            enableDamping={true}
+            dampingFactor={0.03}
             minDistance={2}
             maxDistance={15}
             autoRotate={!!modelUrl && !isProcessing}
             autoRotateSpeed={0.5}
           />
+
+          {/* Post-processing: bloom + chromatic aberration + contrast */}
+          <JewelryPostProcessing />
         </Suspense>
       </Canvas>
 
