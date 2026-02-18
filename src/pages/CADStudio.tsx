@@ -52,7 +52,7 @@ export default function CADStudio() {
         </div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl pb-6">
           {cadFeatures.map((feature, i) => (
             <motion.div
               key={feature.title}
