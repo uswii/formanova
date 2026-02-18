@@ -1,7 +1,6 @@
 // Credits API client - routes through edge function proxy
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const CREDITS_PROXY_URL = `${SUPABASE_URL}/functions/v1/credits-proxy`;
+const API_GATEWAY_URL = 'https://formanova.ai/api';
 
 import { getStoredToken } from '@/lib/auth-api';
 
@@ -20,7 +19,7 @@ export async function getUserCredits(userId: string): Promise<CreditBalance> {
   const token = getStoredToken();
   if (!token) throw new Error('Not authenticated');
 
-  const response = await fetch(`${CREDITS_PROXY_URL}/credits/balance/${userId}`, {
+  const response = await fetch(`${API_GATEWAY_URL}/credits/balance/${userId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -38,7 +37,7 @@ export async function startCheckout(tierName: string, userId: string): Promise<s
   const token = getStoredToken();
   if (!token) throw new Error('Not authenticated');
 
-  const response = await fetch(`${CREDITS_PROXY_URL}/create-checkout-session`, {
+  const response = await fetch(`${API_GATEWAY_URL}/create-checkout-session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
