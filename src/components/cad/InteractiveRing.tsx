@@ -77,7 +77,7 @@ function RingModel({ mousePosition }: { mousePosition: { x: number; y: number } 
 
   return (
     <group ref={groupRef}>
-      <primitive object={clonedScene} scale={8} position={[0, 0, 0]} />
+      <primitive object={clonedScene} scale={18} position={[0, 0, 0]} />
     </group>
   );
 }
@@ -198,7 +198,7 @@ export default function InteractiveRing() {
       <Canvas
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         style={{ background: "transparent" }}
-        camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1, 4] }}
+        camera={{ fov: 30, near: 0.1, far: 100, position: [0, 1, 3.5] }}
         onCreated={({ gl }) => {
           gl.setClearColor(0x000000, 0);
         }}
