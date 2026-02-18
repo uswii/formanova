@@ -198,7 +198,7 @@ export default function InteractiveRing() {
       <Canvas
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         style={{ background: "transparent" }}
-        camera={{ fov: 30, near: 0.1, far: 100, position: [0, 1.5, 6] }}
+        camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1, 4] }}
         onCreated={({ gl }) => {
           gl.setClearColor(0x000000, 0);
         }}
