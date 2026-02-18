@@ -2,6 +2,14 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+// Preload credit coin icon so it renders instantly in the header
+import creditCoinUrl from "@/assets/icons/credit-coin.png";
+const link = document.createElement("link");
+link.rel = "preload";
+link.as = "image";
+link.href = creditCoinUrl;
+document.head.appendChild(link);
+
 // Redirect all non-production domains to formanova.ai
 const PRODUCTION_DOMAIN = 'formanova.ai';
 if (

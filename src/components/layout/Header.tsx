@@ -97,7 +97,7 @@ export function Header() {
                   to="/credits"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 hover:border-border transition-colors"
                 >
-                  <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" />
+                  <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" width={20} height={20} loading="eager" decoding="sync" />
                   <span className="text-sm font-medium text-foreground">
                     {credits !== null ? credits : '—'}
                   </span>
@@ -142,7 +142,7 @@ export function Header() {
                       onClick={() => navigate('/credits')}
                       className="cursor-pointer text-sm"
                     >
-                      <img src={creditCoinIcon} alt="" className="h-4 w-4 mr-2 object-contain" />
+                      <img src={creditCoinIcon} alt="" className="h-4 w-4 mr-2 object-contain" width={16} height={16} loading="eager" decoding="sync" />
                       My Credits
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -249,7 +249,7 @@ export function Header() {
                 </Link>
                 <Link to="/credits">
                   <Button variant="outline" size="lg" className="gap-2 w-full">
-                    <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" />
+                    <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" width={20} height={20} loading="eager" decoding="sync" />
                     My Credits
                   </Button>
                 </Link>
