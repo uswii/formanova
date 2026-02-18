@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserCredits, TOOL_COSTS, type CreditBalance } from '@/lib/credits-api';
+import { getUserCredits, clearInternalUserIdCache, TOOL_COSTS, type CreditBalance } from '@/lib/credits-api';
 
 interface CreditsContextType {
   credits: number | null;
@@ -21,7 +21,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const data = await getUserCredits(user.id);
+      const data = await getUserCredits();
       setCredits(data.available);
     } catch (error) {
       console.warn('[Credits] Failed to fetch balance:', error);
@@ -35,6 +35,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     if (user?.id) {
       refreshCredits();
     } else {
+      clearInternalUserIdCache();
       setCredits(null);
     }
   }, [user?.id, refreshCredits]);

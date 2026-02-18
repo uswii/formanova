@@ -1,8 +1,8 @@
-// Credits API client - routes through edge function proxy
+// Credits API client - calls API gateway directly
 
 const API_GATEWAY_URL = 'https://formanova.ai/api';
 
-import { getStoredToken } from '@/lib/auth-api';
+import { getStoredToken, authApi } from '@/lib/auth-api';
 
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
@@ -15,11 +15,31 @@ export interface CreditBalance {
   available: number;
 }
 
-export async function getUserCredits(userId: string): Promise<CreditBalance> {
+// Cache the internal user ID to avoid repeated /users/me calls
+let cachedInternalUserId: string | null = null;
+
+async function resolveInternalUserId(): Promise<string> {
+  if (cachedInternalUserId) return cachedInternalUserId;
+
+  const user = await authApi.getCurrentUser();
+  if (!user?.id) throw new Error('Could not resolve internal user ID');
+
+  cachedInternalUserId = user.id;
+  return cachedInternalUserId;
+}
+
+// Clear cache on logout
+export function clearInternalUserIdCache(): void {
+  cachedInternalUserId = null;
+}
+
+export async function getUserCredits(): Promise<CreditBalance> {
   const token = getStoredToken();
   if (!token) throw new Error('Not authenticated');
 
-  const response = await fetch(`${API_GATEWAY_URL}/credits/balance/${userId}`, {
+  const internalId = await resolveInternalUserId();
+
+  const response = await fetch(`${API_GATEWAY_URL}/credits/balance/${internalId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -33,9 +53,11 @@ export async function getUserCredits(userId: string): Promise<CreditBalance> {
   return await response.json();
 }
 
-export async function startCheckout(tierName: string, userId: string): Promise<string> {
+export async function startCheckout(tierName: string): Promise<string> {
   const token = getStoredToken();
   if (!token) throw new Error('Not authenticated');
+
+  const internalId = await resolveInternalUserId();
 
   const response = await fetch(`${API_GATEWAY_URL}/create-checkout-session`, {
     method: 'POST',
@@ -45,7 +67,7 @@ export async function startCheckout(tierName: string, userId: string): Promise<s
     },
     body: JSON.stringify({
       tier: tierName,
-      user_id: userId,
+      user_id: internalId,
     }),
   });
 

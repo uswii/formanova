@@ -43,7 +43,7 @@ export default function Pricing() {
 
     setLoadingTier(tier);
     try {
-      const url = await startCheckout(tier, user.id);
+      const url = await startCheckout(tier);
       window.location.href = url;
     } catch (error) {
       console.error('Checkout failed:', error);
