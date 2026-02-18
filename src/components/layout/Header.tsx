@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User, Image, Coins, BadgeCheck } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import {
@@ -91,17 +91,6 @@ export function Header() {
             
             {/* User Profile / Auth Button */}
             {user ? (
-              <div className="flex items-center gap-3">
-                {/* Credit Balance Pill */}
-                <Link
-                  to="/credits"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted transition-colors text-sm"
-                >
-                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-                  <span className="font-medium text-foreground">
-                    {credits !== null ? credits : '...'}
-                  </span>
-                </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
@@ -140,8 +129,11 @@ export function Header() {
                     onClick={() => navigate('/credits')}
                     className="cursor-pointer text-sm"
                   >
-                    <Coins className="h-4 w-4 mr-2" />
+                    <img src={creditCoinIcon} alt="" className="h-4 w-4 mr-2 object-contain" />
                     My Credits
+                    {credits !== null && (
+                      <span className="ml-auto text-xs text-muted-foreground">{credits}</span>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
@@ -153,7 +145,6 @@ export function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              </div>
             ) : (
               <Button
                 variant="default"
@@ -247,7 +238,7 @@ export function Header() {
                 </Link>
                 <Link to="/credits">
                   <Button variant="outline" size="lg" className="gap-2 w-full">
-                    <Coins className="h-5 w-5" />
+                    <img src={creditCoinIcon} alt="" className="h-5 w-5 object-contain" />
                     My Credits
                   </Button>
                 </Link>
