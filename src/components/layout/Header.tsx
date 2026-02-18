@@ -4,6 +4,7 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, LogOut, User, Image, Coins, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,11 +13,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import formanovaLogo from '@/assets/formanova-logo.png';
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { credits } = useCredits();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -88,6 +91,17 @@ export function Header() {
             
             {/* User Profile / Auth Button */}
             {user ? (
+              <div className="flex items-center gap-3">
+                {/* Credit Balance Pill */}
+                <Link
+                  to="/credits"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted transition-colors text-sm"
+                >
+                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                  <span className="font-medium text-foreground">
+                    {credits !== null ? credits : '...'}
+                  </span>
+                </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
@@ -139,6 +153,7 @@ export function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
             ) : (
               <Button
                 variant="default"

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CreditsProvider } from "@/contexts/CreditsContext";
 import { Header } from "@/components/layout/Header";
 import { ThemeDecorations } from "@/components/ThemeDecorations";
 import { ScrollProgressIndicator } from '@/components/ScrollProgressIndicator';
@@ -24,6 +25,8 @@ import Auth from "./pages/Auth";
 
 import Generations from "./pages/Generations";
 import Credits from "./pages/Credits";
+import Pricing from "./pages/Pricing";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import AdminBatches from "./pages/AdminBatches";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +36,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
+        <CreditsProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -54,6 +58,8 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
                   <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
+                  <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+                  <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
                   <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
                   <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} />
                   <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
@@ -70,6 +76,7 @@ const App = () => (
             </div>
           </BrowserRouter>
         </TooltipProvider>
+        </CreditsProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
