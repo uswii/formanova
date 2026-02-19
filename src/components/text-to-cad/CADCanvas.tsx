@@ -1,7 +1,8 @@
-import { useRef, useState, useEffect, Suspense, useMemo } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, OrbitControls, TransformControls, GizmoHelper, GizmoViewport } from "@react-three/drei";
 import * as THREE from "three";
+import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 
 // Auto-fit: compute a uniform scale so the model's bounding box fits within a target size
 function computeAutoScale(scene: THREE.Object3D, targetSize = 3): number {
@@ -13,7 +14,7 @@ function computeAutoScale(scene: THREE.Object3D, targetSize = 3): number {
   return targetSize / maxDim;
 }
 
-// Selectable mesh — uses a ref so TransformControls can mutate it
+// Selectable mesh with emissive highlight
 function SelectableMesh({
   mesh,
   isSelected,
@@ -43,25 +44,78 @@ function SelectableMesh({
   );
 }
 
-function LoadedModel({
-  url,
-  selectedMeshNames,
-  onMeshClick,
-  transformMode,
-  onMeshesDetected,
+// Disable OrbitControls while dragging TransformControls
+function TransformControlsWrapper({
+  object,
+  mode,
 }: {
-  url: string;
-  selectedMeshNames: Set<string>;
-  onMeshClick: (name: string, multi: boolean) => void;
-  transformMode: string;
-  onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
+  object: THREE.Object3D;
+  mode: "translate" | "rotate" | "scale";
 }) {
+  const { gl } = useThree();
+  const controlsRef = useRef<any>(null);
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const onDragStart = () => {
+      const orbitControls = (gl.domElement as any).__orbitControls;
+      if (orbitControls) orbitControls.enabled = false;
+    };
+    const onDragEnd = () => {
+      const orbitControls = (gl.domElement as any).__orbitControls;
+      if (orbitControls) orbitControls.enabled = true;
+    };
+    controls.addEventListener("dragging-changed", (e: any) => {
+      if (e.value) onDragStart();
+      else onDragEnd();
+    });
+    return () => {
+      controls.removeEventListener("dragging-changed", onDragStart);
+      controls.removeEventListener("dragging-changed", onDragEnd);
+    };
+  }, [gl]);
+
+  return (
+    <TransformControls
+      ref={controlsRef}
+      object={object}
+      mode={mode}
+      size={1.5}
+    />
+  );
+}
+
+function OrbitControlsWithRef(props: any) {
+  const { gl } = useThree();
+  const ref = useRef<any>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      (gl.domElement as any).__orbitControls = ref.current;
+    }
+  }, [gl]);
+
+  return <OrbitControls ref={ref} {...props} />;
+}
+
+// Internal model component with imperative API
+const LoadedModel = forwardRef<
+  { applyMaterial: (matId: string, meshNames: string[]) => void; resetTransform: (meshNames: string[]) => void; deleteMeshes: (meshNames: string[]) => void; duplicateMeshes: (meshNames: string[]) => void; flipNormals: (meshNames: string[]) => void; centerOrigin: (meshNames: string[]) => void; subdivideMesh: (meshNames: string[], iterations: number) => void; setWireframe: (on: boolean) => void; setAutoRotate: (on: boolean) => void },
+  {
+    url: string;
+    selectedMeshNames: Set<string>;
+    onMeshClick: (name: string, multi: boolean) => void;
+    transformMode: string;
+    onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
+  }
+>(({ url, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected }, ref) => {
   const { scene } = useGLTF(url);
   const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
   const groupRef = useRef<THREE.Group>(null);
   const meshRefs = useRef<Map<string, React.RefObject<THREE.Mesh>>>(new Map());
+  const originalTransforms = useRef<Map<string, { pos: THREE.Vector3; rot: THREE.Euler; scale: THREE.Vector3 }>>(new Map());
 
-  // Auto-scale
   const autoScale = useMemo(() => computeAutoScale(scene), [scene]);
 
   useEffect(() => {
@@ -70,21 +124,24 @@ function LoadedModel({
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const m = child as THREE.Mesh;
-        // Give unnamed meshes a name
         if (!m.name) m.name = `Mesh_${idx}`;
-        // Clone material so emissive changes are independent
         if (Array.isArray(m.material)) {
           m.material = m.material.map((mat) => mat.clone());
         } else {
           m.material = m.material.clone();
         }
+        // Store original transforms for undo
+        originalTransforms.current.set(m.name, {
+          pos: m.position.clone(),
+          rot: m.rotation.clone(),
+          scale: m.scale.clone(),
+        });
         found.push(m);
         idx++;
       }
     });
     setMeshes(found);
 
-    // Report detected meshes back to parent
     if (onMeshesDetected) {
       onMeshesDetected(
         found.map((m) => ({
@@ -96,6 +153,110 @@ function LoadedModel({
     }
   }, [scene, onMeshesDetected]);
 
+  // Expose imperative methods
+  useImperativeHandle(ref, () => ({
+    applyMaterial: (matId: string, meshNames: string[]) => {
+      const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
+      if (!matDef) return;
+      const names = new Set(meshNames);
+      meshes.forEach((mesh) => {
+        if (names.has(mesh.name)) {
+          const newMat = matDef.create();
+          mesh.material = newMat;
+          // Re-apply emissive for selected
+          if (selectedMeshNames.has(mesh.name) && "emissive" in newMat) {
+            newMat.emissive = new THREE.Color(0x334455);
+            newMat.emissiveIntensity = 0.4;
+          }
+        }
+      });
+    },
+    resetTransform: (meshNames: string[]) => {
+      const names = new Set(meshNames);
+      meshes.forEach((mesh) => {
+        if (names.has(mesh.name)) {
+          const orig = originalTransforms.current.get(mesh.name);
+          if (orig) {
+            mesh.position.copy(orig.pos);
+            mesh.rotation.copy(orig.rot);
+            mesh.scale.copy(orig.scale);
+          }
+        }
+      });
+    },
+    deleteMeshes: (meshNames: string[]) => {
+      const names = new Set(meshNames);
+      meshes.forEach((mesh) => {
+        if (names.has(mesh.name)) {
+          mesh.visible = false;
+          mesh.removeFromParent();
+        }
+      });
+      setMeshes((prev) => prev.filter((m) => !names.has(m.name)));
+    },
+    duplicateMeshes: (meshNames: string[]) => {
+      const names = new Set(meshNames);
+      const newMeshes: THREE.Mesh[] = [];
+      meshes.forEach((mesh) => {
+        if (names.has(mesh.name)) {
+          const clone = mesh.clone();
+          clone.name = `${mesh.name}_copy`;
+          clone.position.x += 0.5;
+          if (Array.isArray(clone.material)) {
+            clone.material = clone.material.map((m) => m.clone());
+          } else {
+            clone.material = clone.material.clone();
+          }
+          if (groupRef.current) groupRef.current.add(clone);
+          newMeshes.push(clone);
+        }
+      });
+      if (newMeshes.length > 0) {
+        setMeshes((prev) => [...prev, ...newMeshes]);
+      }
+    },
+    flipNormals: (meshNames: string[]) => {
+      const names = new Set(meshNames);
+      meshes.forEach((mesh) => {
+        if (names.has(mesh.name) && mesh.geometry) {
+          const normals = mesh.geometry.attributes.normal;
+          if (normals) {
+            for (let i = 0; i < normals.count; i++) {
+              normals.setXYZ(i, -normals.getX(i), -normals.getY(i), -normals.getZ(i));
+            }
+            normals.needsUpdate = true;
+          }
+        }
+      });
+    },
+    centerOrigin: (meshNames: string[]) => {
+      const names = new Set(meshNames);
+      meshes.forEach((mesh) => {
+        if (names.has(mesh.name) && mesh.geometry) {
+          mesh.geometry.computeBoundingBox();
+          const center = new THREE.Vector3();
+          mesh.geometry.boundingBox?.getCenter(center);
+          mesh.geometry.translate(-center.x, -center.y, -center.z);
+          mesh.position.add(center);
+        }
+      });
+    },
+    subdivideMesh: (_meshNames: string[], _iterations: number) => {
+      // Subdivision would need a library; placeholder
+    },
+    setWireframe: (on: boolean) => {
+      meshes.forEach((mesh) => {
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (mat && "wireframe" in mat) {
+          mat.wireframe = on;
+        }
+      });
+    },
+    setAutoRotate: (_on: boolean) => {
+      // Handled via OrbitControls props
+    },
+  }), [meshes, selectedMeshNames]);
+
   // Ensure refs exist for each mesh
   meshes.forEach((m) => {
     if (!meshRefs.current.has(m.name)) {
@@ -103,7 +264,6 @@ function LoadedModel({
     }
   });
 
-  // Get the ref of the first selected mesh for TransformControls
   const selectedMeshName = meshes.find((m) => selectedMeshNames.has(m.name))?.name;
   const selectedRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : null;
 
@@ -122,14 +282,28 @@ function LoadedModel({
         />
       ))}
       {selectedRef?.current && transformMode !== "orbit" && (
-        <TransformControls
+        <TransformControlsWrapper
           object={selectedRef.current}
           mode={transformMode as "translate" | "rotate" | "scale"}
-          size={0.6}
         />
       )}
     </group>
   );
+});
+
+LoadedModel.displayName = "LoadedModel";
+
+// ── Public API ──
+export interface CADCanvasHandle {
+  applyMaterial: (matId: string, meshNames: string[]) => void;
+  resetTransform: (meshNames: string[]) => void;
+  deleteMeshes: (meshNames: string[]) => void;
+  duplicateMeshes: (meshNames: string[]) => void;
+  flipNormals: (meshNames: string[]) => void;
+  centerOrigin: (meshNames: string[]) => void;
+  subdivideMesh: (meshNames: string[], iterations: number) => void;
+  setWireframe: (on: boolean) => void;
+  setAutoRotate: (on: boolean) => void;
 }
 
 interface CADCanvasProps {
@@ -141,72 +315,89 @@ interface CADCanvasProps {
   onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
 }
 
-export default function CADCanvas({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected }: CADCanvasProps) {
-  const modelUrl = glbUrl || "/models/ring.glb";
+const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
+  ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected }, ref) => {
+    const modelUrl = glbUrl || "/models/ring.glb";
+    const modelRef = useRef<CADCanvasHandle>(null);
 
-  return (
-    <div className="w-full h-full" style={{ background: "#111" }}>
-      <Canvas
-        gl={{
-          antialias: true,
-          alpha: false,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2,
-        }}
-        dpr={[1, 2]}
-        camera={{ fov: 30, near: 0.1, far: 100, position: [0, 2, 5] }}
-        onPointerMissed={() => onMeshClick("", false)}
-      >
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[5, 10, 7.5]} intensity={5.0} castShadow />
-          <directionalLight position={[-5, 4, -8]} intensity={2.0} />
-          <directionalLight position={[0, -5, 3]} intensity={1.0} color="#aaccff" />
-          <directionalLight position={[8, 2, 0]} intensity={1.5} color="#aaccff" />
-          <Environment preset="studio" />
-          {hasModel && (
-            <LoadedModel
-              url={modelUrl}
-              selectedMeshNames={selectedMeshNames}
-              onMeshClick={onMeshClick}
-              transformMode={transformMode}
-              onMeshesDetected={onMeshesDetected}
+    useImperativeHandle(ref, () => ({
+      applyMaterial: (matId, meshNames) => modelRef.current?.applyMaterial(matId, meshNames),
+      resetTransform: (meshNames) => modelRef.current?.resetTransform(meshNames),
+      deleteMeshes: (meshNames) => modelRef.current?.deleteMeshes(meshNames),
+      duplicateMeshes: (meshNames) => modelRef.current?.duplicateMeshes(meshNames),
+      flipNormals: (meshNames) => modelRef.current?.flipNormals(meshNames),
+      centerOrigin: (meshNames) => modelRef.current?.centerOrigin(meshNames),
+      subdivideMesh: (meshNames, iters) => modelRef.current?.subdivideMesh(meshNames, iters),
+      setWireframe: (on) => modelRef.current?.setWireframe(on),
+      setAutoRotate: (on) => modelRef.current?.setAutoRotate(on),
+    }));
+
+    return (
+      <div className="w-full h-full" style={{ background: "#111" }}>
+        <Canvas
+          gl={{
+            antialias: true,
+            alpha: false,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.2,
+          }}
+          dpr={[1, 2]}
+          camera={{ fov: 30, near: 0.1, far: 100, position: [0, 2, 5] }}
+          onPointerMissed={() => onMeshClick("", false)}
+        >
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.6} />
+            <directionalLight position={[5, 10, 7.5]} intensity={5.0} castShadow />
+            <directionalLight position={[-5, 4, -8]} intensity={2.0} />
+            <directionalLight position={[0, -5, 3]} intensity={1.0} color="#aaccff" />
+            <directionalLight position={[8, 2, 0]} intensity={1.5} color="#aaccff" />
+            <Environment preset="studio" />
+            {hasModel && (
+              <LoadedModel
+                ref={modelRef}
+                url={modelUrl}
+                selectedMeshNames={selectedMeshNames}
+                onMeshClick={onMeshClick}
+                transformMode={transformMode}
+                onMeshesDetected={onMeshesDetected}
+              />
+            )}
+            <OrbitControlsWithRef
+              enablePan={true}
+              enableZoom={true}
+              enableDamping
+              dampingFactor={0.05}
+              autoRotate={false}
+              minDistance={0.5}
+              maxDistance={50}
+              makeDefault
             />
-          )}
-          <OrbitControls
-            enablePan={true}
-            enableZoom={true}
-            enableDamping
-            dampingFactor={0.05}
-            autoRotate={false}
-            autoRotateSpeed={1.0}
-            minDistance={0.5}
-            maxDistance={50}
-            makeDefault
-          />
-          <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
-            <GizmoViewport labelColor="white" axisHeadScale={0.8} />
-          </GizmoHelper>
-        </Suspense>
-      </Canvas>
+            <GizmoHelper alignment="bottom-right" margin={[70, 70]}>
+              <GizmoViewport labelColor="white" axisHeadScale={0.8} />
+            </GizmoHelper>
+          </Suspense>
+        </Canvas>
 
-      {/* Empty state */}
-      {!hasModel && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ border: "1px solid #333" }}>
-              <svg className="w-8 h-8 text-[#444]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V15m0 0l-2.25 1.313" />
-              </svg>
+        {!hasModel && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ border: "1px solid #333" }}>
+                <svg className="w-8 h-8 text-[#444]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V15m0 0l-2.25 1.313" />
+                </svg>
+              </div>
+              <p className="text-[#555] text-[10px] uppercase tracking-[3px]">
+                Describe your ring to begin
+              </p>
             </div>
-            <p className="text-[#555] text-[10px] uppercase tracking-[3px]">
-              Describe your ring to begin
-            </p>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        )}
+      </div>
+    );
+  }
+);
+
+CADCanvas.displayName = "CADCanvas";
+export default CADCanvas;
 
 useGLTF.preload("/models/ring.glb");

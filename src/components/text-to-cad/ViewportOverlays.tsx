@@ -20,7 +20,7 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
         <button
           key={tm.id}
           onClick={() => setMode(tm.id)}
-          className={`px-5 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 ${
+          className={`px-5 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 flex items-center gap-2 ${
             mode === tm.id ? "text-black scale-[1.02]" : "text-[#999] hover:text-white hover:bg-white/5"
           }`}
           style={{
@@ -31,9 +31,16 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
               : "transparent",
             border: `1px solid ${mode === tm.id ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.06)"}`,
             boxShadow: mode === tm.id ? `0 2px 16px ${tm.color || "rgba(255,255,255,0.1)"}40` : "none",
-            fontFamily: "Inter, sans-serif",
           }}
         >
+          {/* Axis indicator lines for active transform modes */}
+          {tm.id !== "orbit" && mode === tm.id && (
+            <span className="flex gap-[2px] mr-1">
+              <span className="w-[3px] h-[14px] rounded-full" style={{ background: "#ef4444" }} />
+              <span className="w-[3px] h-[14px] rounded-full" style={{ background: "#22c55e" }} />
+              <span className="w-[3px] h-[14px] rounded-full" style={{ background: "#3b82f6" }} />
+            </span>
+          )}
           {tm.label}
           {tm.shortcut && <kbd className="text-[9px] ml-1.5 font-semibold opacity-60">{tm.shortcut}</kbd>}
         </button>
@@ -54,10 +61,7 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
   return (
     <div
       className={`absolute top-0 left-1/2 -translate-x-1/2 z-[200] min-w-[700px] max-w-[92%] rounded-b-2xl ${collapsed ? "py-2 px-7" : "px-7 pt-4 pb-5"}`}
-      style={{
-        ...glassStyle,
-        borderTop: "none",
-      }}
+      style={{ ...glassStyle, borderTop: "none" }}
     >
       <div
         className={`text-center uppercase tracking-[3px] font-bold text-white cursor-pointer ${collapsed ? "text-[11px] mb-0" : "text-[13px] mb-3.5"}`}
@@ -71,8 +75,6 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
           <p className="text-center text-[11px] text-[#666] -mt-2 mb-3 tracking-[0.5px]">
             Click any part below to rebuild it, or add something new
           </p>
-
-          {/* Parts */}
           <div className="flex gap-1.5 flex-wrap justify-center mb-3.5">
             {PART_REGEN_PARTS.map((part) => (
               <button
@@ -95,8 +97,6 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
               </button>
             ))}
           </div>
-
-          {/* Rebuild row */}
           <div className="flex gap-2.5 items-center">
             <input
               value={desc}
@@ -107,7 +107,6 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
                 background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
                 backdropFilter: "blur(12px)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                fontFamily: "Inter, sans-serif",
               }}
             />
             <button
@@ -122,11 +121,7 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
               ⚙ Rebuild This Part
             </button>
           </div>
-
-          {/* Divider */}
           <div className="h-px bg-white/5 my-4" />
-
-          {/* Add new part */}
           <div className="text-center text-[11px] font-bold text-white tracking-[2px] uppercase mb-2.5">
             ✚ Generate Something New
           </div>
@@ -134,13 +129,12 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
             <input
               value={newPartDesc}
               onChange={(e) => setNewPartDesc(e.target.value)}
-              placeholder="Describe a new part to add, e.g. 'a second thinner band' or 'extra accent diamonds on the sides'..."
+              placeholder="Describe a new part to add..."
               className="flex-1 px-4 py-3 rounded-xl text-[14px] text-[#e0e0e0] placeholder:text-[#555] focus:outline-none"
               style={{
                 background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
                 backdropFilter: "blur(12px)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                fontFamily: "Inter, sans-serif",
               }}
             />
             <button
@@ -156,8 +150,6 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
           </div>
         </>
       )}
-
-      {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center text-[14px] text-[#999] cursor-pointer transition-all duration-200 hover:bg-white/10 hover:text-white"
@@ -184,17 +176,12 @@ export function ProgressOverlay({ visible, progress, currentStep }: { visible: b
         <div className="w-full h-1 rounded-full overflow-hidden mt-4 mb-5" style={{ background: "rgba(255,255,255,0.06)" }}>
           <div
             className="h-full rounded-full transition-all duration-500 relative"
-            style={{
-              width: `${progress}%`,
-              background: "linear-gradient(90deg, #888 0%, #fff 100%)",
-            }}
+            style={{ width: `${progress}%`, background: "linear-gradient(90deg, #888 0%, #fff 100%)" }}
           />
         </div>
         <div className="text-[14px] text-[#e0e0e0] tracking-[1.5px] font-medium mb-1.5 min-h-[22px]">
           {currentStep}
         </div>
-
-        {/* Timeline steps */}
         <div className="flex flex-col gap-0 mt-7 text-left">
           {PROGRESS_STEPS.map((s, i) => {
             const stepIdx = PROGRESS_STEPS.findIndex((ps) => ps === currentStep);
@@ -227,7 +214,6 @@ export function ProgressOverlay({ visible, progress, currentStep }: { visible: b
 // ── Stats Bar ──
 export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsData }) {
   if (!visible) return null;
-
   const items = [
     { val: stats.meshes.toString(), label: "Meshes" },
     { val: `${stats.sizeKB}`, label: "KB" },
@@ -240,9 +226,7 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
     >
       {items.map((item) => (
         <div key={item.label} className="text-center">
-          <div className="text-[18px] font-bold text-white">
-            {item.val}
-          </div>
+          <div className="text-[18px] font-bold text-white">{item.val}</div>
           <div className="text-[8px] uppercase tracking-[1.5px] text-[#666] mt-0.5">{item.label}</div>
         </div>
       ))}
@@ -250,30 +234,45 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
   );
 }
 
-// ── Action Buttons (top right) ──
-export function ActionButtons({ visible, onReset }: { visible: boolean; onReset: () => void }) {
+// ── Action Buttons (top right) — now with Undo ──
+export function ActionButtons({ visible, onReset, onUndo, undoCount }: {
+  visible: boolean; onReset: () => void; onUndo: () => void; undoCount: number;
+}) {
   if (!visible) return null;
 
   return (
     <>
+      {/* Download */}
       <button
         className="absolute top-4 right-4 z-50 px-6 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-black hover:shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:scale-[1.02] active:scale-[0.98]"
         style={{
           background: "linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)",
           border: "1px solid rgba(255,255,255,0.3)",
           boxShadow: "0 2px 16px rgba(0,0,0,0.3)",
-          fontFamily: "Inter, sans-serif",
         }}
       >
         Download
       </button>
+
+      {/* Undo */}
+      <button
+        onClick={onUndo}
+        disabled={undoCount === 0}
+        className="absolute top-4 right-[136px] z-50 px-5 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+        style={{ ...glassStyle }}
+      >
+        <span className="text-[16px]">↶</span>
+        Undo
+        {undoCount > 0 && (
+          <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded-full">{undoCount}</span>
+        )}
+      </button>
+
+      {/* Start Over */}
       <button
         onClick={onReset}
-        className="absolute top-4 right-36 z-50 px-6 py-3 rounded-xl text-[12px] font-bold uppercase tracking-[1px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white hover:scale-[1.02] active:scale-[0.98]"
-        style={{
-          ...glassStyle,
-          fontFamily: "Inter, sans-serif",
-        }}
+        className="absolute top-4 right-[260px] z-50 px-6 py-3 rounded-xl text-[12px] font-bold uppercase tracking-[1px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white hover:scale-[1.02] active:scale-[0.98]"
+        style={{ ...glassStyle }}
       >
         Start Over
       </button>

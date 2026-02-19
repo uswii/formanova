@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
+import type { CADCanvasHandle } from "@/components/text-to-cad/CADCanvas";
 import {
   ViewportToolbar,
   PartRegenBar,
@@ -14,7 +15,6 @@ import {
 import { PROGRESS_STEPS } from "@/components/text-to-cad/types";
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
 
-// Demo mesh data (populated after generation)
 const DEMO_MESHES: MeshItemData[] = [
   { name: "Band_Main", verts: 1240, faces: 2400, visible: true, selected: false },
   { name: "Band_Inner", verts: 620, faces: 1200, visible: true, selected: false },
@@ -26,6 +26,12 @@ const DEMO_MESHES: MeshItemData[] = [
   { name: "Stone_Side_0", verts: 128, faces: 256, visible: true, selected: false },
   { name: "Stone_Side_1", verts: 128, faces: 256, visible: true, selected: false },
 ];
+
+// Undo history entry
+interface UndoEntry {
+  label: string;
+  meshes: MeshItemData[];
+}
 
 export default function TextToCAD() {
   const [model, setModel] = useState("gemini");
@@ -44,11 +50,33 @@ export default function TextToCAD() {
   const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+
+  const canvasRef = useRef<CADCanvasHandle>(null);
 
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
     [meshes]
   );
+
+  const selectedNames = useMemo(
+    () => meshes.filter((m) => m.selected).map((m) => m.name),
+    [meshes]
+  );
+
+  const pushUndo = useCallback((label: string) => {
+    setUndoStack((prev) => [...prev.slice(-19), { label, meshes: meshes.map((m) => ({ ...m })) }]);
+  }, [meshes]);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack((prev) => {
+      if (prev.length === 0) { toast.info("Nothing to undo"); return prev; }
+      const last = prev[prev.length - 1];
+      setMeshes(last.meshes);
+      toast.success(`Undo: ${last.label}`);
+      return prev.slice(0, -1);
+    });
+  }, []);
 
   const toggleModule = (mod: string) => {
     setSelectedModules((prev) =>
@@ -110,6 +138,7 @@ export default function TextToCAD() {
     setMeshes([]);
     setModules([]);
     setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
+    setUndoStack([]);
     toast.success(`Loaded ${file.name}`);
   }, [glbUrl]);
 
@@ -129,13 +158,13 @@ export default function TextToCAD() {
     setShowPartRegen(false);
     setMeshes([]);
     setModules([]);
+    setUndoStack([]);
     if (glbUrl) URL.revokeObjectURL(glbUrl);
     setGlbUrl(undefined);
   };
 
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
-      // Clicked empty space — deselect all
       setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
       return;
     }
@@ -163,9 +192,85 @@ export default function TextToCAD() {
     });
   };
 
+  // ── Scene operations dispatched from EditToolbar ──
+  const handleApplyMaterial = useCallback((matId: string) => {
+    if (selectedNames.length === 0) {
+      toast.error("Select meshes first, then apply a material");
+      return;
+    }
+    pushUndo("Apply material");
+    canvasRef.current?.applyMaterial(matId, selectedNames);
+    const matName = matId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    toast.success(`Applied ${matName} to ${selectedNames.length} mesh(es)`);
+  }, [selectedNames, pushUndo]);
+
+  const handleSceneAction = useCallback((action: string) => {
+    const names = selectedNames;
+    switch (action) {
+      case "reset-transform":
+        pushUndo("Reset transform");
+        canvasRef.current?.resetTransform(names.length ? names : meshes.map((m) => m.name));
+        toast.success("Transform reset");
+        break;
+      case "delete":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Delete meshes");
+        canvasRef.current?.deleteMeshes(names);
+        setMeshes((prev) => prev.filter((m) => !names.includes(m.name)));
+        toast.success(`Deleted ${names.length} mesh(es)`);
+        break;
+      case "duplicate":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Duplicate meshes");
+        canvasRef.current?.duplicateMeshes(names);
+        toast.success(`Duplicated ${names.length} mesh(es)`);
+        break;
+      case "flip-normals":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Flip normals");
+        canvasRef.current?.flipNormals(names);
+        toast.success("Normals flipped");
+        break;
+      case "center-origin":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Center origin");
+        canvasRef.current?.centerOrigin(names);
+        toast.success("Origin centered");
+        break;
+      case "wireframe-on":
+        canvasRef.current?.setWireframe(true);
+        toast.success("Wireframe ON");
+        break;
+      case "wireframe-off":
+        canvasRef.current?.setWireframe(false);
+        toast.success("Wireframe OFF");
+        break;
+      default:
+        toast.info(`${action} — coming soon`);
+    }
+  }, [selectedNames, meshes, pushUndo]);
+
+  // Keyboard shortcuts
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (e.ctrlKey && e.key === "z") { e.preventDefault(); handleUndo(); return; }
+    switch (e.key.toLowerCase()) {
+      case "g": setTransformMode("translate"); break;
+      case "r": setTransformMode("rotate"); break;
+      case "s": setTransformMode("scale"); break;
+      case "escape": setTransformMode("orbit"); break;
+      case "x":
+      case "delete": handleSceneAction("delete"); break;
+    }
+  }, [handleUndo, handleSceneAction]);
+
   return (
-    <div className="flex h-[calc(100vh-5rem)] overflow-hidden" style={{ background: "#0d0d0d" }}>
-      {/* Left Panel */}
+    <div
+      className="flex h-[calc(100vh-5rem)] overflow-hidden"
+      style={{ background: "#0d0d0d" }}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
       <LeftPanel
         model={model} setModel={setModel}
         prompt={prompt} setPrompt={setPrompt}
@@ -181,10 +286,9 @@ export default function TextToCAD() {
         onGlbUpload={handleGlbUpload}
       />
 
-      {/* Viewport */}
       <div className="flex-1 relative" style={{ background: "#111" }}>
-        {/* 3D Canvas */}
         <CADCanvas
+          ref={canvasRef}
           hasModel={hasModel}
           glbUrl={glbUrl}
           selectedMeshNames={selectedMeshNames}
@@ -193,16 +297,22 @@ export default function TextToCAD() {
           onMeshesDetected={handleMeshesDetected}
         />
 
-        {/* Overlays */}
-        <EditToolbar onApplyMaterial={(preset) => toast.info(`Applied ${preset}`)} />
+        <EditToolbar
+          onApplyMaterial={handleApplyMaterial}
+          onSceneAction={handleSceneAction}
+        />
         <ViewportToolbar mode={transformMode} setMode={setTransformMode} />
         <PartRegenBar visible={showPartRegen} onClose={() => setShowPartRegen(false)} />
         <ProgressOverlay visible={isGenerating} progress={progress} currentStep={progressStep} />
         <StatsBar visible={hasModel && !isGenerating} stats={stats} />
-        <ActionButtons visible={hasModel && !isGenerating} onReset={handleReset} />
+        <ActionButtons
+          visible={hasModel && !isGenerating}
+          onReset={handleReset}
+          onUndo={handleUndo}
+          undoCount={undoStack.length}
+        />
       </div>
 
-      {/* Right Mesh Panel */}
       <MeshPanel
         meshes={meshes}
         onSelectMesh={handleSelectMesh}
