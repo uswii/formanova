@@ -1,37 +1,43 @@
-import { useRef, useState, useCallback, useEffect, Suspense } from "react";
-import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { useRef, useState, useEffect, Suspense, useMemo } from "react";
+import { Canvas } from "@react-three/fiber";
 import { useGLTF, Environment, OrbitControls, TransformControls, GizmoHelper, GizmoViewport } from "@react-three/drei";
 import * as THREE from "three";
 
-// Clickable mesh wrapper — highlights selected, emits click
+// Auto-fit: compute a uniform scale so the model's bounding box fits within a target size
+function computeAutoScale(scene: THREE.Object3D, targetSize = 3): number {
+  const box = new THREE.Box3().setFromObject(scene);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  if (maxDim === 0) return 1;
+  return targetSize / maxDim;
+}
+
+// Selectable mesh — uses a ref so TransformControls can mutate it
 function SelectableMesh({
   mesh,
   isSelected,
   onClick,
+  meshRef,
 }: {
   mesh: THREE.Mesh;
   isSelected: boolean;
   onClick: (e: any) => void;
+  meshRef: React.RefObject<THREE.Mesh>;
 }) {
-  const ref = useRef<THREE.Mesh>(null);
-
   useEffect(() => {
-    if (!ref.current) return;
-    const mat = ref.current.material as THREE.MeshStandardMaterial;
+    if (!meshRef.current) return;
+    const mat = meshRef.current.material as THREE.MeshStandardMaterial;
     if (mat && "emissive" in mat) {
       mat.emissive = new THREE.Color(isSelected ? 0x334455 : 0x000000);
       mat.emissiveIntensity = isSelected ? 0.4 : 0;
     }
-  }, [isSelected]);
+  }, [isSelected, meshRef]);
 
   return (
-    <mesh
-      ref={ref}
-      geometry={mesh.geometry}
-      material={mesh.material}
-      position={mesh.position.clone()}
-      rotation={mesh.rotation.clone()}
-      scale={mesh.scale.clone()}
+    <primitive
+      ref={meshRef}
+      object={mesh}
       onClick={onClick}
     />
   );
@@ -42,42 +48,72 @@ function LoadedModel({
   selectedMeshNames,
   onMeshClick,
   transformMode,
+  onMeshesDetected,
 }: {
   url: string;
   selectedMeshNames: Set<string>;
   onMeshClick: (name: string, multi: boolean) => void;
   transformMode: string;
+  onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
 }) {
   const { scene } = useGLTF(url);
   const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
   const groupRef = useRef<THREE.Group>(null);
+  const meshRefs = useRef<Map<string, React.RefObject<THREE.Mesh>>>(new Map());
+
+  // Auto-scale
+  const autoScale = useMemo(() => computeAutoScale(scene), [scene]);
 
   useEffect(() => {
     const found: THREE.Mesh[] = [];
+    let idx = 0;
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const m = child as THREE.Mesh;
-        // Ensure material is cloned so emissive changes are independent
+        // Give unnamed meshes a name
+        if (!m.name) m.name = `Mesh_${idx}`;
+        // Clone material so emissive changes are independent
         if (Array.isArray(m.material)) {
           m.material = m.material.map((mat) => mat.clone());
         } else {
           m.material = m.material.clone();
         }
         found.push(m);
+        idx++;
       }
     });
     setMeshes(found);
-  }, [scene]);
 
-  // Get the first selected mesh for TransformControls
-  const selectedMesh = meshes.find((m) => selectedMeshNames.has(m.name));
+    // Report detected meshes back to parent
+    if (onMeshesDetected) {
+      onMeshesDetected(
+        found.map((m) => ({
+          name: m.name,
+          verts: m.geometry?.attributes?.position?.count || 0,
+          faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
+        }))
+      );
+    }
+  }, [scene, onMeshesDetected]);
+
+  // Ensure refs exist for each mesh
+  meshes.forEach((m) => {
+    if (!meshRefs.current.has(m.name)) {
+      meshRefs.current.set(m.name, { current: null } as React.RefObject<THREE.Mesh>);
+    }
+  });
+
+  // Get the ref of the first selected mesh for TransformControls
+  const selectedMeshName = meshes.find((m) => selectedMeshNames.has(m.name))?.name;
+  const selectedRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : null;
 
   return (
-    <group ref={groupRef} scale={10}>
+    <group ref={groupRef} scale={autoScale}>
       {meshes.map((mesh) => (
         <SelectableMesh
           key={mesh.uuid}
           mesh={mesh}
+          meshRef={meshRefs.current.get(mesh.name)!}
           isSelected={selectedMeshNames.has(mesh.name)}
           onClick={(e) => {
             e.stopPropagation();
@@ -85,9 +121,9 @@ function LoadedModel({
           }}
         />
       ))}
-      {selectedMesh && transformMode !== "orbit" && (
+      {selectedRef?.current && transformMode !== "orbit" && (
         <TransformControls
-          object={selectedMesh}
+          object={selectedRef.current}
           mode={transformMode as "translate" | "rotate" | "scale"}
           size={0.6}
         />
@@ -96,31 +132,16 @@ function LoadedModel({
   );
 }
 
-// Deselect on empty click
-function ClickAwayHandler({ onDeselect }: { onDeselect: () => void }) {
-  const { gl } = useThree();
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      // Only if clicking on the canvas background
-      if ((e.target as HTMLElement)?.tagName === "CANVAS") {
-        // We'll rely on the mesh onClick stopPropagation
-      }
-    };
-    gl.domElement.addEventListener("pointerdown", handler);
-    return () => gl.domElement.removeEventListener("pointerdown", handler);
-  }, [gl, onDeselect]);
-  return null;
-}
-
 interface CADCanvasProps {
   hasModel: boolean;
   glbUrl?: string;
   selectedMeshNames: Set<string>;
   onMeshClick: (name: string, multi: boolean) => void;
   transformMode: string;
+  onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
 }
 
-export default function CADCanvas({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode }: CADCanvasProps) {
+export default function CADCanvas({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected }: CADCanvasProps) {
   const modelUrl = glbUrl || "/models/ring.glb";
 
   return (
@@ -149,6 +170,7 @@ export default function CADCanvas({ hasModel, glbUrl, selectedMeshNames, onMeshC
               selectedMeshNames={selectedMeshNames}
               onMeshClick={onMeshClick}
               transformMode={transformMode}
+              onMeshesDetected={onMeshesDetected}
             />
           )}
           <OrbitControls
@@ -158,8 +180,8 @@ export default function CADCanvas({ hasModel, glbUrl, selectedMeshNames, onMeshC
             dampingFactor={0.05}
             autoRotate={false}
             autoRotateSpeed={1.0}
-            minDistance={1}
-            maxDistance={20}
+            minDistance={0.5}
+            maxDistance={50}
             makeDefault
           />
           <GizmoHelper alignment="bottom-right" margin={[70, 70]}>

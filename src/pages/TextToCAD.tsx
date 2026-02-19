@@ -102,17 +102,20 @@ export default function TextToCAD() {
   }, []);
 
   const handleGlbUpload = useCallback((file: File) => {
+    if (glbUrl) URL.revokeObjectURL(glbUrl);
     const url = URL.createObjectURL(file);
     setGlbUrl(url);
     setHasModel(true);
     setShowPartRegen(true);
-    // We can't introspect real mesh data from the file input alone, so use placeholder
-    setMeshes([
-      { name: "Uploaded_Model", verts: 0, faces: 0, visible: true, selected: false },
-    ]);
+    setMeshes([]);
     setModules([]);
-    setStats({ meshes: 1, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
+    setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
     toast.success(`Loaded ${file.name}`);
+  }, [glbUrl]);
+
+  const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
+    setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
+    setStats((prev) => ({ ...prev, meshes: detected.length }));
   }, []);
 
   const handleReset = () => {
@@ -187,6 +190,7 @@ export default function TextToCAD() {
           selectedMeshNames={selectedMeshNames}
           onMeshClick={handleSelectMesh}
           transformMode={transformMode}
+          onMeshesDetected={handleMeshesDetected}
         />
 
         {/* Overlays */}
