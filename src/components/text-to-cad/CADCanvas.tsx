@@ -19,16 +19,16 @@ import * as THREE from "three";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import type { MaterialDef } from "@/components/cad-studio/materials";
 
-// ── Gem Environment Loader (identical to StudioViewport) ──
+// ── Gem Environment Loader ──
 function GemEnvProvider({ children }: { children: (envMap: THREE.Texture) => React.ReactNode }) {
   const gemEnv = useEnvironment({ files: "/hdri/diamond-gemstone-studio.hdr" });
   return <>{children(gemEnv)}</>;
 }
 
-// ── Post-Processing (identical to StudioViewport) ──
+// ── Post-Processing (lightweight) ──
 function JewelryPostProcessing() {
   return (
-    <EffectComposer>
+    <EffectComposer multisampling={0}>
       <Bloom intensity={0.28} luminanceThreshold={0.92} luminanceSmoothing={0.2} mipmapBlur />
       <BrightnessContrast brightness={0} contrast={0.08} />
     </EffectComposer>
@@ -39,9 +39,11 @@ function JewelryPostProcessing() {
 function TransformControlsWrapper({
   object,
   mode,
+  onDragEnd,
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
+  onDragEnd?: () => void;
 }) {
   const { gl } = useThree();
   const controlsRef = useRef<any>(null);
@@ -52,17 +54,19 @@ function TransformControlsWrapper({
     const handler = (e: any) => {
       const orbitControls = (gl.domElement as any).__orbitControls;
       if (orbitControls) orbitControls.enabled = !e.value;
+      // Fire onDragEnd when user finishes dragging
+      if (!e.value && onDragEnd) onDragEnd();
     };
     controls.addEventListener("dragging-changed", handler);
     return () => controls.removeEventListener("dragging-changed", handler);
-  }, [gl]);
+  }, [gl, onDragEnd]);
 
   return (
     <TransformControls
       ref={controlsRef}
       object={object}
       mode={mode}
-      size={5}
+      size={1.5}
     />
   );
 }
@@ -87,7 +91,13 @@ interface MeshData {
   origScale: THREE.Vector3;
 }
 
-// ── Loaded Model — uses EXACT same decomposition as StudioViewport ──
+// ── Snapshot for undo ──
+export interface CanvasSnapshot {
+  meshDataList: MeshData[];
+  assignedMaterials: Record<string, MaterialDef>;
+}
+
+// ── Loaded Model ──
 const LoadedModel = forwardRef<
   {
     applyMaterial: (matId: string, meshNames: string[]) => void;
@@ -99,6 +109,8 @@ const LoadedModel = forwardRef<
     subdivideMesh: (meshNames: string[], iterations: number) => void;
     setWireframe: (on: boolean) => void;
     smoothMesh: (meshNames: string[], iterations: number) => void;
+    getSnapshot: () => CanvasSnapshot;
+    restoreSnapshot: (snap: CanvasSnapshot) => void;
   },
   {
     url: string;
@@ -107,14 +119,17 @@ const LoadedModel = forwardRef<
     transformMode: string;
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
     gemEnvMap: THREE.Texture | null;
+    onTransformEnd?: () => void;
   }
->(({ url, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, gemEnvMap }, ref) => {
+>(({ url, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, gemEnvMap, onTransformEnd }, ref) => {
   const { scene } = useGLTF(url);
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
+  // Cache flat geometries for refraction gems to avoid re-creating every render
+  const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
 
-  // ── Decompose scene into individual mesh data (SAME as StudioViewport) ──
+  // ── Decompose scene into individual mesh data ──
   useEffect(() => {
     const clone = scene.clone(true);
     const box = new THREE.Box3().setFromObject(clone);
@@ -161,6 +176,7 @@ const LoadedModel = forwardRef<
 
     setMeshDataList(list);
     setAssignedMaterials({});
+    flatGeoCache.current.clear();
 
     if (onMeshesDetected) {
       onMeshesDetected(list.map((m) => ({
@@ -176,6 +192,8 @@ const LoadedModel = forwardRef<
     applyMaterial: (matId: string, meshNames: string[]) => {
       const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
       if (!matDef) return;
+      // Clear flat geo cache for gems that change material type
+      meshNames.forEach((n) => flatGeoCache.current.delete(n));
       setAssignedMaterials((prev) => {
         const next = { ...prev };
         meshNames.forEach((n) => { next[n] = matDef; });
@@ -194,7 +212,7 @@ const LoadedModel = forwardRef<
       setMeshDataList((prev) => prev.filter((m) => !names.has(m.name)));
       setAssignedMaterials((prev) => {
         const next = { ...prev };
-        meshNames.forEach((n) => delete next[n]);
+        meshNames.forEach((n) => { delete next[n]; flatGeoCache.current.delete(n); });
         return next;
       });
     },
@@ -261,22 +279,41 @@ const LoadedModel = forwardRef<
         if (names.has(md.name)) md.geometry.computeVertexNormals();
       });
     },
-  }), [meshDataList]);
+    getSnapshot: (): CanvasSnapshot => ({
+      meshDataList: meshDataList.map((md) => ({
+        ...md,
+        position: md.position.clone(),
+        rotation: md.rotation.clone(),
+        scale: md.scale.clone(),
+        origPos: md.origPos.clone(),
+        origRot: md.origRot.clone(),
+        origScale: md.origScale.clone(),
+      })),
+      assignedMaterials: { ...assignedMaterials },
+    }),
+    restoreSnapshot: (snap: CanvasSnapshot) => {
+      setMeshDataList(snap.meshDataList);
+      setAssignedMaterials(snap.assignedMaterials);
+      flatGeoCache.current.clear();
+    },
+  }), [meshDataList, assignedMaterials]);
 
-  // ── Separate standard vs refraction meshes (SAME logic as StudioViewport) ──
-  const standardMeshes: MeshData[] = [];
-  const refractionMeshes: (MeshData & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
+  // ── Separate standard vs refraction meshes (memoized) ──
+  const { standardMeshes, refractionMeshes } = useMemo(() => {
+    const std: MeshData[] = [];
+    const ref: (MeshData & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
+    meshDataList.forEach((md) => {
+      const assigned = assignedMaterials[md.name];
+      if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
+        ref.push({ ...md, gemConfig: assigned.gemConfig });
+      } else {
+        std.push(md);
+      }
+    });
+    return { standardMeshes: std, refractionMeshes: ref };
+  }, [meshDataList, assignedMaterials, gemEnvMap]);
 
-  meshDataList.forEach((md) => {
-    const assigned = assignedMaterials[md.name];
-    if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
-      refractionMeshes.push({ ...md, gemConfig: assigned.gemConfig });
-    } else {
-      standardMeshes.push(md);
-    }
-  });
-
-  // Build materials for standard meshes
+  // Build materials for standard meshes (memoized)
   const standardElements = useMemo(() => {
     return standardMeshes.map((md) => {
       const assigned = assignedMaterials[md.name];
@@ -286,8 +323,6 @@ const LoadedModel = forwardRef<
       } else {
         material = md.originalMaterial.clone();
       }
-
-      // Selection highlight
       if (selectedMeshNames.has(md.name)) {
         const mat = material as THREE.MeshPhysicalMaterial;
         if (mat?.emissive) {
@@ -295,10 +330,20 @@ const LoadedModel = forwardRef<
           mat.emissiveIntensity = 0.15;
         }
       }
-
       return { ...md, material };
     });
   }, [standardMeshes, assignedMaterials, selectedMeshNames]);
+
+  // Get or create cached flat geometry for refraction meshes
+  const getFlatGeo = useCallback((name: string, geometry: THREE.BufferGeometry) => {
+    let cached = flatGeoCache.current.get(name);
+    if (!cached) {
+      cached = geometry.clone().toNonIndexed();
+      cached.computeVertexNormals();
+      flatGeoCache.current.set(name, cached);
+    }
+    return cached;
+  }, []);
 
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
@@ -306,7 +351,6 @@ const LoadedModel = forwardRef<
 
   return (
     <group>
-      {/* Standard meshes — explicit <mesh> elements, NOT <primitive> */}
       {standardElements.map((md) => (
         <mesh
           key={md.name}
@@ -323,42 +367,37 @@ const LoadedModel = forwardRef<
         />
       ))}
 
-      {/* Refraction gem meshes — flat geometry + MeshRefractionMaterial (SAME as StudioViewport) */}
-      {refractionMeshes.map((md) => {
-        const flatGeo = md.geometry.clone().toNonIndexed();
-        flatGeo.computeVertexNormals();
-        return (
-          <mesh
-            key={md.name}
-            ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
-            geometry={flatGeo}
-            position={md.position}
-            rotation={md.rotation}
-            scale={md.scale}
-            onClick={(e: ThreeEvent<MouseEvent>) => {
-              e.stopPropagation();
-              onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
-            }}
-          >
-            <MeshRefractionMaterial
-              envMap={gemEnvMap!}
-              color={new THREE.Color(md.gemConfig.color)}
-              ior={md.gemConfig.ior}
-              aberrationStrength={md.gemConfig.aberrationStrength}
-              bounces={md.gemConfig.bounces}
-              fresnel={md.gemConfig.fresnel}
-              fastChroma
-              toneMapped={false}
-            />
-          </mesh>
-        );
-      })}
+      {refractionMeshes.map((md) => (
+        <mesh
+          key={md.name}
+          ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
+          geometry={getFlatGeo(md.name, md.geometry)}
+          position={md.position}
+          rotation={md.rotation}
+          scale={md.scale}
+          onClick={(e: ThreeEvent<MouseEvent>) => {
+            e.stopPropagation();
+            onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
+          }}
+        >
+          <MeshRefractionMaterial
+            envMap={gemEnvMap!}
+            color={new THREE.Color(md.gemConfig.color)}
+            ior={md.gemConfig.ior}
+            aberrationStrength={md.gemConfig.aberrationStrength}
+            bounces={md.gemConfig.bounces}
+            fresnel={md.gemConfig.fresnel}
+            fastChroma
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
 
-      {/* TransformControls for selected mesh */}
       {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
+          onDragEnd={onTransformEnd}
         />
       )}
     </group>
@@ -378,6 +417,8 @@ export interface CADCanvasHandle {
   subdivideMesh: (meshNames: string[], iterations: number) => void;
   setWireframe: (on: boolean) => void;
   smoothMesh: (meshNames: string[], iterations: number) => void;
+  getSnapshot: () => CanvasSnapshot;
+  restoreSnapshot: (snap: CanvasSnapshot) => void;
 }
 
 interface CADCanvasProps {
@@ -387,10 +428,11 @@ interface CADCanvasProps {
   onMeshClick: (name: string, multi: boolean) => void;
   transformMode: string;
   onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
+  onTransformEnd?: () => void;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected }, ref) => {
+  ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
     const [hasRefractionGems, setHasRefractionGems] = useState(false);
@@ -409,6 +451,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       subdivideMesh: (meshNames, iters) => modelRef.current?.subdivideMesh(meshNames, iters),
       setWireframe: (on) => modelRef.current?.setWireframe(on),
       smoothMesh: (meshNames, iters) => modelRef.current?.smoothMesh(meshNames, iters),
+      getSnapshot: () => modelRef.current!.getSnapshot(),
+      restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
     }));
 
     return (
@@ -421,25 +465,25 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             toneMappingExposure: 1.2,
             powerPreference: "high-performance",
           }}
-          dpr={[1, 2]}
+          dpr={[1, 1.5]}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
-          onCreated={({ gl }) => {
+          frameloop="demand"
+          onCreated={({ gl, invalidate }) => {
             gl.setClearColor(0x000000, 0);
             gl.outputColorSpace = THREE.SRGBColorSpace;
-            gl.shadowMap.enabled = true;
-            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+            // Continuously invalidate so controls/transforms work with demand mode
+            const loop = () => { invalidate(); requestAnimationFrame(loop); };
+            loop();
           }}
         >
           <Suspense fallback={null}>
-            {/* Lighting — IDENTICAL to StudioViewport */}
             <ambientLight intensity={0.1} />
-            <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" castShadow />
+            <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" />
             <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
             <hemisphereLight args={["#ffffff", "#e6e6e6", 0.55]} />
             <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
 
-            {/* Metal HDRI environment — IDENTICAL to StudioViewport */}
             <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
             {hasModel && (
@@ -455,6 +499,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                         transformMode={transformMode}
                         onMeshesDetected={onMeshesDetected}
                         gemEnvMap={gemEnv}
+                        onTransformEnd={onTransformEnd}
                       />
                     )}
                   </GemEnvProvider>
@@ -467,6 +512,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                     transformMode={transformMode}
                     onMeshesDetected={onMeshesDetected}
                     gemEnvMap={null}
+                    onTransformEnd={onTransformEnd}
                   />
                 )}
               </>
@@ -485,7 +531,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               <GizmoViewport labelColor="white" axisHeadScale={0.8} />
             </GizmoHelper>
 
-            {/* Post-processing — IDENTICAL to StudioViewport */}
             <JewelryPostProcessing />
           </Suspense>
         </Canvas>

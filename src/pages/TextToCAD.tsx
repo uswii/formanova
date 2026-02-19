@@ -4,7 +4,7 @@ import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
-import type { CADCanvasHandle } from "@/components/text-to-cad/CADCanvas";
+import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
 import {
   ViewportToolbar,
   PartRegenBar,
@@ -27,10 +27,11 @@ const DEMO_MESHES: MeshItemData[] = [
   { name: "Stone_Side_1", verts: 128, faces: 256, visible: true, selected: false },
 ];
 
-// Undo history entry
+// Full undo entry captures both UI mesh list AND 3D canvas state
 interface UndoEntry {
   label: string;
   meshes: MeshItemData[];
+  canvasSnapshot: CanvasSnapshot | null;
 }
 
 export default function TextToCAD() {
@@ -53,6 +54,8 @@ export default function TextToCAD() {
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
+  const meshesRef = useRef<MeshItemData[]>(meshes);
+  meshesRef.current = meshes;
 
   const selectedMeshNames = useMemo(
     () => new Set(meshes.filter((m) => m.selected).map((m) => m.name)),
@@ -64,19 +67,31 @@ export default function TextToCAD() {
     [meshes]
   );
 
+  // Push full state (UI + 3D) onto undo stack — always reads current state via ref
   const pushUndo = useCallback((label: string) => {
-    setUndoStack((prev) => [...prev.slice(-19), { label, meshes: meshes.map((m) => ({ ...m })) }]);
-  }, [meshes]);
+    const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
+    const snap = canvasRef.current?.getSnapshot() ?? null;
+    setUndoStack((prev) => [...prev, { label, meshes: currentMeshes, canvasSnapshot: snap }]);
+  }, []);
 
+  // LIFO undo — pops the most recent entry and restores both UI + 3D state
   const handleUndo = useCallback(() => {
     setUndoStack((prev) => {
       if (prev.length === 0) { toast.info("Nothing to undo"); return prev; }
       const last = prev[prev.length - 1];
       setMeshes(last.meshes);
+      if (last.canvasSnapshot) {
+        canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
+      }
       toast.success(`Undo: ${last.label}`);
       return prev.slice(0, -1);
     });
   }, []);
+
+  // Called when user finishes a transform drag (move/rotate/scale)
+  const handleTransformEnd = useCallback(() => {
+    pushUndo(`Transform (${transformMode})`);
+  }, [pushUndo, transformMode]);
 
   const toggleModule = (mod: string) => {
     setSelectedModules((prev) =>
@@ -110,6 +125,7 @@ export default function TextToCAD() {
 
   const simulateEdit = useCallback(async () => {
     if (!editPrompt.trim()) { toast.error("Please describe the edit"); return; }
+    pushUndo("AI edit");
     setIsEditing(true);
     setIsGenerating(true);
     setProgress(0);
@@ -123,7 +139,7 @@ export default function TextToCAD() {
     setIsEditing(false);
     setEditPrompt("");
     toast.success("Edit applied");
-  }, [editPrompt]);
+  }, [editPrompt, pushUndo]);
 
   const handleQuickEdit = useCallback((preset: string) => {
     setEditPrompt(preset);
@@ -243,7 +259,6 @@ export default function TextToCAD() {
       case "recalc-normals":
         if (!names.length) { toast.error("Select meshes first"); return; }
         pushUndo("Recalculate normals");
-        // Recalc = just compute vertex normals
         toast.success("Normals recalculated");
         break;
       case "subdivide-1":
@@ -305,7 +320,8 @@ export default function TextToCAD() {
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    if (e.ctrlKey && e.key === "z") { e.preventDefault(); handleUndo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); handleUndo(); return; }
+    if (e.key === "u" || e.key === "U") { handleUndo(); return; }
     switch (e.key.toLowerCase()) {
       case "g": setTransformMode("translate"); break;
       case "r": setTransformMode("rotate"); break;
@@ -347,6 +363,7 @@ export default function TextToCAD() {
           onMeshClick={handleSelectMesh}
           transformMode={transformMode}
           onMeshesDetected={handleMeshesDetected}
+          onTransformEnd={handleTransformEnd}
         />
 
         <EditToolbar
