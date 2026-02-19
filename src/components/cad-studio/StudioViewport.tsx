@@ -1,8 +1,7 @@
-import { useRef, useState, useCallback, Suspense, useEffect, useMemo } from "react";
-import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import { useRef, useCallback, Suspense, useEffect, useMemo } from "react";
+import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
 import {
   Environment,
-  ContactShadows,
   OrbitControls,
   useGLTF,
   useEnvironment,
@@ -40,7 +39,7 @@ function RefractionGemMesh({
   envMap: THREE.Texture;
   gemConfig: NonNullable<MaterialDef["gemConfig"]>;
   meshName: string;
-  onClick: (name: string) => void;
+  onClick: (name: string, e?: ThreeEvent<MouseEvent>) => void;
 }) {
   const flatGeometry = useMemo(() => {
     const geo = geometry.clone().toNonIndexed();
@@ -54,7 +53,7 @@ function RefractionGemMesh({
       position={position}
       rotation={rotation}
       scale={scale}
-      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onClick(meshName); }}
+      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onClick(meshName, e); }}
     >
       <MeshRefractionMaterial
         envMap={envMap}
@@ -75,16 +74,16 @@ function LoadedModel({
   url,
   meshMaterials,
   onMeshesDetected,
-  selectedMesh,
+  selectedMeshes,
   gemEnvMap,
   onMeshClick,
 }: {
   url: string;
   meshMaterials: Record<string, MaterialDef>;
   onMeshesDetected: (meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => void;
-  selectedMesh: string | null;
+  selectedMeshes: Set<string>;
   gemEnvMap: THREE.Texture | null;
-  onMeshClick: (name: string) => void;
+  onMeshClick: (name: string, e?: ThreeEvent<MouseEvent>) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
@@ -164,7 +163,7 @@ function LoadedModel({
       }
 
       // Selection highlight
-      if (selectedMesh && md.name === selectedMesh) {
+      if (selectedMeshes.has(md.name)) {
         const mat = material as THREE.MeshPhysicalMaterial;
         if (mat?.emissive) {
           mat.emissive = new THREE.Color(0x334455);
@@ -174,12 +173,9 @@ function LoadedModel({
 
       return { ...md, material };
     });
-  }, [standardMeshes, meshMaterials, selectedMesh]);
+  }, [standardMeshes, meshMaterials, selectedMeshes]);
 
-  useFrame(({ clock }) => {
-    if (!groupRef.current) return;
-    groupRef.current.position.y = Math.sin(clock.getElapsedTime() * 0.5) * 0.05;
-  });
+  // No bobbing animation — static model for performance
 
   return (
     <group ref={groupRef}>
@@ -191,7 +187,7 @@ function LoadedModel({
           position={md.position}
           rotation={md.rotation}
           scale={md.scale}
-          onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(md.name); }}
+          onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(md.name, e); }}
         />
       ))}
       {refractionMeshes.map((md) => (
@@ -256,27 +252,29 @@ interface StudioViewportProps {
   modelUrl: string | null;
   meshMaterials: Record<string, MaterialDef>;
   onMeshesDetected: (meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => void;
-  selectedMesh: string | null;
-  onMeshClick?: (name: string) => void;
+  selectedMeshes: Set<string>;
+  onMeshClick?: (name: string, multiSelect?: boolean) => void;
   isProcessing: boolean;
   progress: number;
   progressStep: string;
+  autoRotate?: boolean;
 }
 
 export default function StudioViewport({
   modelUrl,
   meshMaterials,
   onMeshesDetected,
-  selectedMesh,
+  selectedMeshes,
   onMeshClick,
   isProcessing,
   progress,
   progressStep,
+  autoRotate = false,
 }: StudioViewportProps) {
   const hasRefractionMaterials = Object.values(meshMaterials).some(m => m.useRefraction);
 
-  const handleMeshClick = useCallback((name: string) => {
-    onMeshClick?.(name);
+  const handleMeshClick = useCallback((name: string, e?: ThreeEvent<MouseEvent>) => {
+    onMeshClick?.(name, e?.shiftKey || e?.ctrlKey || e?.metaKey);
   }, [onMeshClick]);
 
   return (
@@ -321,7 +319,7 @@ export default function StudioViewport({
                       url={modelUrl}
                       meshMaterials={meshMaterials}
                       onMeshesDetected={onMeshesDetected}
-                      selectedMesh={selectedMesh}
+                      selectedMeshes={selectedMeshes}
                       gemEnvMap={gemEnv}
                       onMeshClick={handleMeshClick}
                     />
@@ -332,7 +330,7 @@ export default function StudioViewport({
                   url={modelUrl}
                   meshMaterials={meshMaterials}
                   onMeshesDetected={onMeshesDetected}
-                  selectedMesh={selectedMesh}
+                  selectedMeshes={selectedMeshes}
                   gemEnvMap={null}
                   onMeshClick={handleMeshClick}
                 />
@@ -340,7 +338,6 @@ export default function StudioViewport({
             </>
           )}
 
-          <ContactShadows position={[0, -1.5, 0]} opacity={0.2} scale={8} blur={2.5} />
           <OrbitControls
             enablePan={true}
             enableZoom={true}
@@ -348,7 +345,7 @@ export default function StudioViewport({
             dampingFactor={0.03}
             minDistance={2}
             maxDistance={15}
-            autoRotate={!!modelUrl && !isProcessing}
+            autoRotate={autoRotate}
             autoRotateSpeed={0.5}
           />
 
