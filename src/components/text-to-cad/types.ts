@@ -65,12 +65,12 @@ export const GEM_PRESETS = [
 ] as const;
 
 export const PROGRESS_STEPS = [
-  "Calling AI Model…",
-  "Generating geometry code…",
-  "Running Blender…",
-  "Validating mesh…",
-  "Exporting GLB…",
-  "Loading into viewer…",
+  "Analyzing your design…",
+  "Sculpting geometry…",
+  "Refining details…",
+  "Polishing surfaces…",
+  "Preparing your ring…",
+  "Almost ready…",
 ] as const;
 
 export interface MeshItemData {
@@ -81,19 +81,8 @@ export interface MeshItemData {
   selected: boolean;
 }
 
-export interface CostData {
-  inputTokens: number;
-  outputTokens: number;
-  apiCalls: number;
-  thisCost: number;
-  totalCost: number;
-}
-
 export interface StatsData {
-  lines: number;
-  modules: number;
   meshes: number;
   sizeKB: number;
   timeSec: number;
-  cost: number;
 }
