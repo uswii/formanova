@@ -316,6 +316,7 @@ const LoadedModel = forwardRef<
   // Build materials for standard meshes (memoized)
   const standardElements = useMemo(() => {
     return standardMeshes.map((md) => {
+      const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
       let material: THREE.Material;
       if (assigned) {
@@ -323,14 +324,21 @@ const LoadedModel = forwardRef<
       } else {
         material = md.originalMaterial.clone();
       }
-      if (selectedMeshNames.has(md.name)) {
-        const mat = material as THREE.MeshPhysicalMaterial;
-        if (mat?.emissive) {
-          mat.emissive = new THREE.Color(0x334455);
-          mat.emissiveIntensity = 0.15;
-        }
+      if (isSelected) {
+        // Transparent blue selection overlay
+        material = new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color(0x3399ff),
+          transparent: true,
+          opacity: 0.35,
+          depthWrite: false,
+          roughness: 0.4,
+          metalness: 0.1,
+          emissive: new THREE.Color(0x2277dd),
+          emissiveIntensity: 0.3,
+          side: THREE.DoubleSide,
+        });
       }
-      return { ...md, material };
+      return { ...md, material, isSelected };
     });
   }, [standardMeshes, assignedMaterials, selectedMeshNames]);
 
