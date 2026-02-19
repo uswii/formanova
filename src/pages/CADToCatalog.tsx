@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Camera, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Upload, Camera, ChevronLeft, ChevronRight, Trash2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import StudioViewport from "@/components/cad-studio/StudioViewport";
@@ -29,13 +29,14 @@ export default function CADToCatalog() {
   const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [meshes, setMeshes] = useState<MeshInfo[]>([]);
-  const [selectedMesh, setSelectedMesh] = useState<string | null>(null);
+  const [selectedMeshes, setSelectedMeshes] = useState<Set<string>>(new Set());
   const [meshMaterials, setMeshMaterials] = useState<Record<string, MaterialDef>>({});
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStep, setProgressStep] = useState("");
+  const [autoRotate, setAutoRotate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,7 +50,7 @@ export default function CADToCatalog() {
     setModelUrl(url);
     setFileName(file.name);
     setMeshes([]);
-    setSelectedMesh(null);
+    setSelectedMeshes(new Set());
     setMeshMaterials({});
     toast.success(`Loaded: ${file.name}`);
   }, []);
@@ -57,17 +58,37 @@ export default function CADToCatalog() {
   const handleMeshesDetected = useCallback((detected: MeshInfo[]) => {
     setMeshes(detected);
     if (detected.length > 0) {
-      setSelectedMesh(detected[0].name);
+      setSelectedMeshes(new Set([detected[0].name]));
     }
+  }, []);
+
+  const handleMeshClick = useCallback((name: string, multiSelect?: boolean) => {
+    setSelectedMeshes((prev) => {
+      if (multiSelect) {
+        const next = new Set(prev);
+        if (next.has(name)) {
+          next.delete(name);
+        } else {
+          next.add(name);
+        }
+        return next;
+      }
+      return new Set([name]);
+    });
   }, []);
 
   const handleApplyMaterial = useCallback(
     (material: MaterialDef) => {
-      if (!selectedMesh) return;
-      setMeshMaterials((prev) => ({ ...prev, [selectedMesh]: material }));
-      toast.success(`Applied ${material.name} to ${selectedMesh}`);
+      if (selectedMeshes.size === 0) return;
+      setMeshMaterials((prev) => {
+        const next = { ...prev };
+        selectedMeshes.forEach((name) => { next[name] = material; });
+        return next;
+      });
+      const names = Array.from(selectedMeshes);
+      toast.success(`Applied ${material.name} to ${names.length > 1 ? `${names.length} meshes` : names[0]}`);
     },
-    [selectedMesh]
+    [selectedMeshes]
   );
 
   const handleRemoveModel = useCallback(() => {
@@ -75,7 +96,7 @@ export default function CADToCatalog() {
     setModelUrl(null);
     setFileName(null);
     setMeshes([]);
-    setSelectedMesh(null);
+    setSelectedMeshes(new Set());
     setMeshMaterials({});
   }, [modelUrl]);
 
@@ -113,7 +134,7 @@ export default function CADToCatalog() {
             className="flex-shrink-0 flex flex-col border-r border-border/30 bg-card/80 backdrop-blur-sm overflow-hidden"
           >
             <MaterialLibrary
-              selectedMesh={selectedMesh}
+              selectedMesh={selectedMeshes.size > 0 ? Array.from(selectedMeshes)[0] : null}
               onApplyMaterial={handleApplyMaterial}
             />
           </motion.div>
@@ -151,6 +172,15 @@ export default function CADToCatalog() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setAutoRotate(!autoRotate)}
+              className={`text-xs gap-1.5 tracking-wider uppercase ${autoRotate ? 'bg-primary/10 border-primary/30' : ''}`}
+            >
+              <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
+              Rotate
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
               className="text-xs gap-1.5 tracking-wider uppercase"
             >
@@ -175,12 +205,22 @@ export default function CADToCatalog() {
             modelUrl={modelUrl}
             meshMaterials={meshMaterials}
             onMeshesDetected={handleMeshesDetected}
-            selectedMesh={selectedMesh}
-            onMeshClick={setSelectedMesh}
+            selectedMeshes={selectedMeshes}
+            onMeshClick={handleMeshClick}
             isProcessing={isProcessing}
             progress={progress}
             progressStep={progressStep}
+            autoRotate={autoRotate}
           />
+
+          {/* Selection hint */}
+          {modelUrl && selectedMeshes.size > 0 && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-card/70 backdrop-blur-sm border border-border/20">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                {selectedMeshes.size} mesh{selectedMeshes.size > 1 ? 'es' : ''} selected · Hold Shift to multi-select
+              </span>
+            </div>
+          )}
 
           {/* Toggle buttons */}
           <button
@@ -210,8 +250,8 @@ export default function CADToCatalog() {
           >
             <MeshInspector
               meshes={meshes}
-              selectedMesh={selectedMesh}
-              onSelectMesh={setSelectedMesh}
+              selectedMeshes={selectedMeshes}
+              onSelectMesh={handleMeshClick}
               meshMaterials={meshMaterials}
             />
           </motion.div>

@@ -7,14 +7,14 @@ interface MeshInfo {
 
 interface MeshInspectorProps {
   meshes: MeshInfo[];
-  selectedMesh: string | null;
-  onSelectMesh: (name: string) => void;
+  selectedMeshes: Set<string>;
+  onSelectMesh: (name: string, multiSelect?: boolean) => void;
   meshMaterials: Record<string, MaterialDef>;
 }
 
 export default function MeshInspector({
   meshes,
-  selectedMesh,
+  selectedMeshes,
   onSelectMesh,
   meshMaterials,
 }: MeshInspectorProps) {
@@ -33,17 +33,20 @@ export default function MeshInspector({
 
   return (
     <div className="px-4 py-3">
-      <h2 className="text-[10px] uppercase tracking-[3px] text-muted-foreground font-semibold mb-3">
+      <h2 className="text-[10px] uppercase tracking-[3px] text-muted-foreground font-semibold mb-1">
         Mesh Inspector
       </h2>
+      <p className="text-[9px] text-muted-foreground/50 mb-3">
+        Shift+click to multi-select
+      </p>
       <div className="space-y-1">
         {meshes.map((mesh) => {
           const assigned = meshMaterials[mesh.name];
-          const isSelected = selectedMesh === mesh.name;
+          const isSelected = selectedMeshes.has(mesh.name);
           return (
             <button
               key={mesh.name}
-              onClick={() => onSelectMesh(mesh.name)}
+              onClick={(e) => onSelectMesh(mesh.name, e.shiftKey || e.ctrlKey || e.metaKey)}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
                 isSelected
                   ? "bg-primary/10 border border-primary/30"
