@@ -42,7 +42,7 @@ export default function TextToCAD() {
   const [showPartRegen, setShowPartRegen] = useState(false);
   const [meshes, setMeshes] = useState<MeshItemData[]>([]);
   const [modules, setModules] = useState<string[]>([]);
-  const [stats, setStats] = useState<StatsData>({ lines: 0, modules: 0, meshes: 0, sizeKB: 0, timeSec: 0, cost: 0 });
+  const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
 
   const toggleModule = (mod: string) => {
     setSelectedModules((prev) =>
@@ -69,8 +69,8 @@ export default function TextToCAD() {
     setHasModel(true);
     setShowPartRegen(true);
     setMeshes(DEMO_MESHES);
-    setModules(["create_band", "create_prongs", "create_gems", "create_setting"]);
-    setStats({ lines: 2847, modules: 4, meshes: 9, sizeKB: 384, timeSec: 12, cost: 0.08 });
+    setModules(["Band", "Prongs", "Gems", "Setting"]);
+    setStats({ meshes: 9, sizeKB: 384, timeSec: 12 });
     toast.success("Ring generated successfully");
   }, [prompt]);
 

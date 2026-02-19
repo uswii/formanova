@@ -216,12 +216,9 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
   if (!visible) return null;
 
   const items = [
-    { val: stats.lines.toString(), label: "Lines" },
-    { val: stats.modules.toString(), label: "Modules" },
     { val: stats.meshes.toString(), label: "Meshes" },
-    { val: stats.sizeKB.toString(), label: "KB" },
-    { val: stats.timeSec.toString(), label: "Sec" },
-    { val: `$${stats.cost.toFixed(2)}`, label: "Cost", green: true },
+    { val: `${stats.sizeKB}`, label: "KB" },
+    { val: `${stats.timeSec}s`, label: "Time" },
   ];
 
   return (
@@ -235,7 +232,7 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
     >
       {items.map((item) => (
         <div key={item.label} className="text-center">
-          <div className={`text-[18px] font-bold ${item.green ? "text-[#4ade80]" : "text-white"}`}>
+          <div className={`text-[18px] font-bold text-white`}>
             {item.val}
           </div>
           <div className="text-[8px] uppercase tracking-[1.5px] text-[#555] mt-0.5">{item.label}</div>
@@ -260,23 +257,11 @@ export function ActionButtons({ visible, onReset }: { visible: boolean; onReset:
           fontFamily: "Inter, sans-serif",
         }}
       >
-        Download GLB
-      </button>
-      <button
-        className="absolute top-4 right-40 z-50 px-5 py-2.5 rounded-md text-[12px] font-semibold uppercase tracking-[1px] cursor-pointer transition-all duration-200 text-[#999] hover:text-white"
-        style={{
-          background: "linear-gradient(180deg, rgba(35,35,35,0.9) 0%, rgba(25,25,25,0.95) 100%)",
-          backdropFilter: "blur(15px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
-          fontFamily: "Inter, sans-serif",
-        }}
-      >
-        Debug Info
+        Download
       </button>
       <button
         onClick={onReset}
-        className="absolute top-4 right-[300px] z-50 px-5 py-2.5 rounded-md text-[12px] font-semibold uppercase tracking-[1px] cursor-pointer transition-all duration-200 text-[#999] hover:text-white"
+        className="absolute top-4 right-32 z-50 px-5 py-2.5 rounded-md text-[12px] font-semibold uppercase tracking-[1px] cursor-pointer transition-all duration-200 text-[#999] hover:text-white"
         style={{
           background: "linear-gradient(180deg, rgba(35,35,35,0.9) 0%, rgba(25,25,25,0.95) 100%)",
           backdropFilter: "blur(15px)",
@@ -285,7 +270,7 @@ export function ActionButtons({ visible, onReset }: { visible: boolean; onReset:
           fontFamily: "Inter, sans-serif",
         }}
       >
-        Reset to Original
+        Start Over
       </button>
     </>
   );

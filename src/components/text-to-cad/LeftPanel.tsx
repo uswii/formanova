@@ -190,7 +190,7 @@ export default function LeftPanel({
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-[#555] mt-1">Click a module to target edits to that function</p>
+              <p className="text-[10px] text-[#555] mt-1">Click a component to target your edits</p>
             </motion.section>
           )}
         </AnimatePresence>
