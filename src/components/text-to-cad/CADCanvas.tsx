@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
+import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
 import {
   useGLTF,
@@ -19,21 +19,40 @@ import * as THREE from "three";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import type { MaterialDef } from "@/components/cad-studio/materials";
 
-// ── Gem Environment Loader ──
-function GemEnvProvider({ children }: { children: (envMap: THREE.Texture) => React.ReactNode }) {
-  const gemEnv = useEnvironment({ files: "/hdri/diamond-gemstone-studio.hdr" });
-  return <>{children(gemEnv)}</>;
+// ── Preload gem HDRI once at module level ──
+const GEM_HDRI_PATH = "/hdri/diamond-gemstone-studio.hdr";
+
+// ── Gem env loaded once inside Canvas, never unmounts ──
+function GemEnvLoader({ onLoaded }: { onLoaded: (tex: THREE.Texture) => void }) {
+  const gemEnv = useEnvironment({ files: GEM_HDRI_PATH });
+  useEffect(() => { onLoaded(gemEnv); }, [gemEnv, onLoaded]);
+  return null;
 }
 
+// ── Shared selection material (reused, never re-created) ──
+const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0x3399ff),
+  transparent: true,
+  opacity: 0.35,
+  depthWrite: false,
+  roughness: 0.4,
+  metalness: 0.1,
+  emissive: new THREE.Color(0x2277dd),
+  emissiveIntensity: 0.3,
+  side: THREE.DoubleSide,
+});
+
 // ── Post-Processing (lightweight) ──
-function JewelryPostProcessing() {
+const JewelryPostProcessing = React.memo(function JewelryPostProcessing() {
   return (
     <EffectComposer multisampling={0}>
       <Bloom intensity={0.28} luminanceThreshold={0.92} luminanceSmoothing={0.2} mipmapBlur />
       <BrightnessContrast brightness={0} contrast={0.08} />
     </EffectComposer>
   );
-}
+});
+
+
 
 // ── Disable OrbitControls while dragging TransformControls ──
 function TransformControlsWrapper({
@@ -177,6 +196,7 @@ const LoadedModel = forwardRef<
     setMeshDataList(list);
     setAssignedMaterials({});
     flatGeoCache.current.clear();
+    materialCache.current.clear();
 
     if (onMeshesDetected) {
       onMeshesDetected(list.map((m) => ({
@@ -192,8 +212,8 @@ const LoadedModel = forwardRef<
     applyMaterial: (matId: string, meshNames: string[]) => {
       const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
       if (!matDef) return;
-      // Clear flat geo cache for gems that change material type
-      meshNames.forEach((n) => flatGeoCache.current.delete(n));
+      // Clear caches for meshes that change material type
+      meshNames.forEach((n) => { flatGeoCache.current.delete(n); materialCache.current.delete(`assigned_${n}_${matDef.id}`); });
       setAssignedMaterials((prev) => {
         const next = { ...prev };
         meshNames.forEach((n) => { next[n] = matDef; });
@@ -295,6 +315,7 @@ const LoadedModel = forwardRef<
       setMeshDataList(snap.meshDataList);
       setAssignedMaterials(snap.assignedMaterials);
       flatGeoCache.current.clear();
+      materialCache.current.clear();
     },
   }), [meshDataList, assignedMaterials]);
 
@@ -313,30 +334,22 @@ const LoadedModel = forwardRef<
     return { standardMeshes: std, refractionMeshes: ref };
   }, [meshDataList, assignedMaterials, gemEnvMap]);
 
+  // ── Material cache to avoid re-creating every render ──
+  const materialCache = useRef<Map<string, THREE.Material>>(new Map());
+
   // Build materials for standard meshes (memoized)
   const standardElements = useMemo(() => {
     return standardMeshes.map((md) => {
       const isSelected = selectedMeshNames.has(md.name);
-      const assigned = assignedMaterials[md.name];
-      let material: THREE.Material;
-      if (assigned) {
-        material = assigned.create();
-      } else {
-        material = md.originalMaterial.clone();
-      }
       if (isSelected) {
-        // Transparent blue selection overlay
-        material = new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color(0x3399ff),
-          transparent: true,
-          opacity: 0.35,
-          depthWrite: false,
-          roughness: 0.4,
-          metalness: 0.1,
-          emissive: new THREE.Color(0x2277dd),
-          emissiveIntensity: 0.3,
-          side: THREE.DoubleSide,
-        });
+        return { ...md, material: SELECTION_MATERIAL, isSelected };
+      }
+      const assigned = assignedMaterials[md.name];
+      const cacheKey = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
+      let material = materialCache.current.get(cacheKey);
+      if (!material) {
+        material = assigned ? assigned.create() : md.originalMaterial.clone();
+        materialCache.current.set(cacheKey, material);
       }
       return { ...md, material, isSelected };
     });
@@ -443,13 +456,15 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
   ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
-    const [hasRefractionGems, setHasRefractionGems] = useState(false);
+    // Gem env map loaded once and cached
+    const [gemEnvMap, setGemEnvMap] = useState<THREE.Texture | null>(null);
+    const handleGemEnvLoaded = useCallback((tex: THREE.Texture) => {
+      setGemEnvMap(tex);
+    }, []);
 
     useImperativeHandle(ref, () => ({
       applyMaterial: (matId, meshNames) => {
         modelRef.current?.applyMaterial(matId, meshNames);
-        const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
-        if (matDef?.useRefraction) setHasRefractionGems(true);
       },
       resetTransform: (meshNames) => modelRef.current?.resetTransform(meshNames),
       deleteMeshes: (meshNames) => modelRef.current?.deleteMeshes(meshNames),
@@ -476,13 +491,10 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           dpr={[1, 1.5]}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
-          frameloop="demand"
-          onCreated={({ gl, invalidate }) => {
+          frameloop="always"
+          onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
             gl.outputColorSpace = THREE.SRGBColorSpace;
-            // Continuously invalidate so controls/transforms work with demand mode
-            const loop = () => { invalidate(); requestAnimationFrame(loop); };
-            loop();
           }}
         >
           <Suspense fallback={null}>
@@ -494,36 +506,20 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
 
             <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
+            {/* Always load gem env so toggling diamond doesn't remount */}
+            <GemEnvLoader onLoaded={handleGemEnvLoaded} />
+
             {hasModel && (
-              <>
-                {hasRefractionGems ? (
-                  <GemEnvProvider>
-                    {(gemEnv) => (
-                      <LoadedModel
-                        ref={modelRef}
-                        url={modelUrl}
-                        selectedMeshNames={selectedMeshNames}
-                        onMeshClick={onMeshClick}
-                        transformMode={transformMode}
-                        onMeshesDetected={onMeshesDetected}
-                        gemEnvMap={gemEnv}
-                        onTransformEnd={onTransformEnd}
-                      />
-                    )}
-                  </GemEnvProvider>
-                ) : (
-                  <LoadedModel
-                    ref={modelRef}
-                    url={modelUrl}
-                    selectedMeshNames={selectedMeshNames}
-                    onMeshClick={onMeshClick}
-                    transformMode={transformMode}
-                    onMeshesDetected={onMeshesDetected}
-                    gemEnvMap={null}
-                    onTransformEnd={onTransformEnd}
-                  />
-                )}
-              </>
+              <LoadedModel
+                ref={modelRef}
+                url={modelUrl}
+                selectedMeshNames={selectedMeshNames}
+                onMeshClick={onMeshClick}
+                transformMode={transformMode}
+                onMeshesDetected={onMeshesDetected}
+                gemEnvMap={gemEnvMap}
+                onTransformEnd={onTransformEnd}
+              />
             )}
 
             <OrbitControlsWithRef
