@@ -19,69 +19,13 @@ import * as THREE from "three";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import type { MaterialDef } from "@/components/cad-studio/materials";
 
-// ── Gem Environment Loader (same as StudioViewport) ──
+// ── Gem Environment Loader (identical to StudioViewport) ──
 function GemEnvProvider({ children }: { children: (envMap: THREE.Texture) => React.ReactNode }) {
   const gemEnv = useEnvironment({ files: "/hdri/diamond-gemstone-studio.hdr" });
   return <>{children(gemEnv)}</>;
 }
 
-// ── Refraction Gem Mesh (exact same as CAD-to-Catalog) ──
-function RefractionGemMesh({
-  mesh,
-  envMap,
-  gemConfig,
-  isSelected,
-  onClick,
-}: {
-  mesh: THREE.Mesh;
-  envMap: THREE.Texture;
-  gemConfig: NonNullable<MaterialDef["gemConfig"]>;
-  isSelected: boolean;
-  onClick: (e: ThreeEvent<MouseEvent>) => void;
-}) {
-  const flatGeometry = useMemo(() => {
-    const geo = mesh.geometry.clone().toNonIndexed();
-    geo.computeVertexNormals();
-    return geo;
-  }, [mesh.geometry]);
-
-  // Compute world matrix to correctly position refraction mesh
-  const worldData = useMemo(() => {
-    mesh.updateWorldMatrix(true, false);
-    const pos = new THREE.Vector3();
-    const rot = new THREE.Quaternion();
-    const scl = new THREE.Vector3();
-    mesh.matrixWorld.decompose(pos, rot, scl);
-    return { pos, rot, scl };
-  }, [mesh]);
-
-  return (
-    <mesh
-      ref={(ref) => {
-        if (ref) {
-          ref.position.copy(worldData.pos);
-          ref.quaternion.copy(worldData.rot);
-          ref.scale.copy(worldData.scl);
-        }
-      }}
-      geometry={flatGeometry}
-      onClick={onClick}
-    >
-      <MeshRefractionMaterial
-        envMap={envMap}
-        color={new THREE.Color(gemConfig.color)}
-        ior={gemConfig.ior}
-        aberrationStrength={gemConfig.aberrationStrength}
-        bounces={gemConfig.bounces}
-        fresnel={gemConfig.fresnel}
-        fastChroma
-        toneMapped={false}
-      />
-    </mesh>
-  );
-}
-
-// ── Post-Processing (same as StudioViewport) ──
+// ── Post-Processing (identical to StudioViewport) ──
 function JewelryPostProcessing() {
   return (
     <EffectComposer>
@@ -130,41 +74,20 @@ function OrbitControlsWithRef(props: any) {
   return <OrbitControls ref={ref} {...props} />;
 }
 
-// ── Auto-fit scale ──
-function computeAutoScale(scene: THREE.Object3D, targetSize = 3): number {
-  const box = new THREE.Box3().setFromObject(scene);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-  const maxDim = Math.max(size.x, size.y, size.z);
-  if (maxDim === 0) return 1;
-  return targetSize / maxDim;
+// ── Mesh data extracted from GLB ──
+interface MeshData {
+  name: string;
+  geometry: THREE.BufferGeometry;
+  originalMaterial: THREE.Material;
+  position: THREE.Vector3;
+  rotation: THREE.Euler;
+  scale: THREE.Vector3;
+  origPos: THREE.Vector3;
+  origRot: THREE.Euler;
+  origScale: THREE.Vector3;
 }
 
-// ── Selectable Mesh with emissive highlight ──
-function SelectableMesh({
-  mesh,
-  isSelected,
-  onClick,
-  meshRef,
-}: {
-  mesh: THREE.Mesh;
-  isSelected: boolean;
-  onClick: (e: ThreeEvent<MouseEvent>) => void;
-  meshRef: React.RefObject<THREE.Mesh>;
-}) {
-  useEffect(() => {
-    if (!meshRef.current) return;
-    const mat = meshRef.current.material as THREE.MeshStandardMaterial;
-    if (mat && "emissive" in mat) {
-      mat.emissive = new THREE.Color(isSelected ? 0x334455 : 0x000000);
-      mat.emissiveIntensity = isSelected ? 0.4 : 0;
-    }
-  }, [isSelected, meshRef]);
-
-  return <primitive ref={meshRef} object={mesh} onClick={onClick} />;
-}
-
-// ── Internal model component with imperative API ──
+// ── Loaded Model — uses EXACT same decomposition as StudioViewport ──
 const LoadedModel = forwardRef<
   {
     applyMaterial: (matId: string, meshNames: string[]) => void;
@@ -187,133 +110,119 @@ const LoadedModel = forwardRef<
   }
 >(({ url, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, gemEnvMap }, ref) => {
   const { scene } = useGLTF(url);
-  const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
-  const [refractionMeshes, setRefractionMeshes] = useState<Map<string, NonNullable<MaterialDef["gemConfig"]>>>(new Map());
-  const groupRef = useRef<THREE.Group>(null);
-  const meshRefs = useRef<Map<string, React.RefObject<THREE.Mesh>>>(new Map());
-  const originalTransforms = useRef<Map<string, { pos: THREE.Vector3; rot: THREE.Euler; scale: THREE.Vector3 }>>(new Map());
+  const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
+  const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
+  const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
 
-  const autoScale = useMemo(() => computeAutoScale(scene), [scene]);
-
+  // ── Decompose scene into individual mesh data (SAME as StudioViewport) ──
   useEffect(() => {
-    const found: THREE.Mesh[] = [];
+    const clone = scene.clone(true);
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const s = maxDim === 0 ? 1 : 3 / maxDim;
+
+    const list: MeshData[] = [];
     let idx = 0;
-    scene.traverse((child) => {
+    clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
-        const m = child as THREE.Mesh;
-        if (!m.name) m.name = `Mesh_${idx}`;
-        if (Array.isArray(m.material)) {
-          m.material = m.material.map((mat) => mat.clone());
-        } else {
-          m.material = m.material.clone();
-        }
-        originalTransforms.current.set(m.name, {
-          pos: m.position.clone(),
-          rot: m.rotation.clone(),
-          scale: m.scale.clone(),
+        const mesh = child as THREE.Mesh;
+        const name = mesh.name || `Mesh_${idx}`;
+        mesh.updateWorldMatrix(true, false);
+        const worldPos = new THREE.Vector3();
+        const worldQuat = new THREE.Quaternion();
+        const worldScale = new THREE.Vector3();
+        mesh.matrixWorld.decompose(worldPos, worldQuat, worldScale);
+
+        const pos = new THREE.Vector3(
+          (worldPos.x - center.x) * s,
+          (worldPos.y - center.y) * s,
+          (worldPos.z - center.z) * s
+        );
+        const rot = new THREE.Euler().setFromQuaternion(worldQuat);
+        const scl = worldScale.multiplyScalar(s);
+        const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
+
+        list.push({
+          name,
+          geometry: mesh.geometry,
+          originalMaterial: origMat,
+          position: pos.clone(),
+          rotation: rot.clone(),
+          scale: scl.clone(),
+          origPos: pos.clone(),
+          origRot: rot.clone(),
+          origScale: scl.clone(),
         });
-        found.push(m);
         idx++;
       }
     });
-    setMeshes(found);
+
+    setMeshDataList(list);
+    setAssignedMaterials({});
+
     if (onMeshesDetected) {
-      onMeshesDetected(
-        found.map((m) => ({
-          name: m.name,
-          verts: m.geometry?.attributes?.position?.count || 0,
-          faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
-        }))
-      );
+      onMeshesDetected(list.map((m) => ({
+        name: m.name,
+        verts: m.geometry?.attributes?.position?.count || 0,
+        faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
+      })));
     }
   }, [scene, onMeshesDetected]);
 
+  // ── Imperative API ──
   useImperativeHandle(ref, () => ({
     applyMaterial: (matId: string, meshNames: string[]) => {
       const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
       if (!matDef) return;
-      const names = new Set(meshNames);
-
-      // Handle refraction gems
-      if (matDef.useRefraction && matDef.gemConfig) {
-        setRefractionMeshes((prev) => {
-          const next = new Map(prev);
-          names.forEach((n) => next.set(n, matDef.gemConfig!));
-          return next;
-        });
-        return;
-      }
-
-      // Remove from refraction if switching to standard
-      setRefractionMeshes((prev) => {
-        const next = new Map(prev);
-        names.forEach((n) => next.delete(n));
+      setAssignedMaterials((prev) => {
+        const next = { ...prev };
+        meshNames.forEach((n) => { next[n] = matDef; });
         return next;
-      });
-
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name)) {
-          const newMat = matDef.create();
-          mesh.material = newMat;
-          if (selectedMeshNames.has(mesh.name) && "emissive" in newMat) {
-            newMat.emissive = new THREE.Color(0x334455);
-            newMat.emissiveIntensity = 0.4;
-          }
-        }
       });
     },
     resetTransform: (meshNames: string[]) => {
       const names = new Set(meshNames);
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name)) {
-          const orig = originalTransforms.current.get(mesh.name);
-          if (orig) {
-            mesh.position.copy(orig.pos);
-            mesh.rotation.copy(orig.rot);
-            mesh.scale.copy(orig.scale);
-          }
-        }
-      });
+      setMeshDataList((prev) => prev.map((md) => {
+        if (!names.has(md.name)) return md;
+        return { ...md, position: md.origPos.clone(), rotation: md.origRot.clone(), scale: md.origScale.clone() };
+      }));
     },
     deleteMeshes: (meshNames: string[]) => {
       const names = new Set(meshNames);
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name)) {
-          mesh.visible = false;
-          mesh.removeFromParent();
-        }
-      });
-      setMeshes((prev) => prev.filter((m) => !names.has(m.name)));
-      setRefractionMeshes((prev) => {
-        const next = new Map(prev);
-        names.forEach((n) => next.delete(n));
+      setMeshDataList((prev) => prev.filter((m) => !names.has(m.name)));
+      setAssignedMaterials((prev) => {
+        const next = { ...prev };
+        meshNames.forEach((n) => delete next[n]);
         return next;
       });
     },
     duplicateMeshes: (meshNames: string[]) => {
       const names = new Set(meshNames);
-      const newMeshes: THREE.Mesh[] = [];
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name)) {
-          const clone = mesh.clone();
-          clone.name = `${mesh.name}_copy`;
-          clone.position.x += 0.5;
-          if (Array.isArray(clone.material)) {
-            clone.material = clone.material.map((m) => m.clone());
-          } else {
-            clone.material = clone.material.clone();
+      setMeshDataList((prev) => {
+        const newItems: MeshData[] = [];
+        prev.forEach((md) => {
+          if (names.has(md.name)) {
+            const newPos = md.position.clone();
+            newPos.x += 0.5;
+            newItems.push({
+              ...md,
+              name: `${md.name}_copy`,
+              geometry: md.geometry.clone(),
+              position: newPos,
+              origPos: newPos.clone(),
+            });
           }
-          if (groupRef.current) groupRef.current.add(clone);
-          newMeshes.push(clone);
-        }
+        });
+        return [...prev, ...newItems];
       });
-      if (newMeshes.length > 0) setMeshes((prev) => [...prev, ...newMeshes]);
     },
     flipNormals: (meshNames: string[]) => {
       const names = new Set(meshNames);
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name) && mesh.geometry) {
-          const normals = mesh.geometry.attributes.normal;
+      meshDataList.forEach((md) => {
+        if (names.has(md.name)) {
+          const normals = md.geometry.attributes.normal;
           if (normals) {
             for (let i = 0; i < normals.count; i++) {
               normals.setXYZ(i, -normals.getX(i), -normals.getY(i), -normals.getZ(i));
@@ -325,101 +234,130 @@ const LoadedModel = forwardRef<
     },
     centerOrigin: (meshNames: string[]) => {
       const names = new Set(meshNames);
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name) && mesh.geometry) {
-          mesh.geometry.computeBoundingBox();
-          const center = new THREE.Vector3();
-          mesh.geometry.boundingBox?.getCenter(center);
-          mesh.geometry.translate(-center.x, -center.y, -center.z);
-          mesh.position.add(center);
-        }
-      });
+      setMeshDataList((prev) => prev.map((md) => {
+        if (!names.has(md.name)) return md;
+        md.geometry.computeBoundingBox();
+        const c = new THREE.Vector3();
+        md.geometry.boundingBox?.getCenter(c);
+        md.geometry.translate(-c.x, -c.y, -c.z);
+        return { ...md, position: md.position.clone().add(c) };
+      }));
     },
     subdivideMesh: (meshNames: string[], _iterations: number) => {
-      // Subdivision placeholder — would need LoopSubdivision library
       const names = new Set(meshNames);
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name) && mesh.geometry) {
-          mesh.geometry.computeVertexNormals();
-        }
+      meshDataList.forEach((md) => {
+        if (names.has(md.name)) md.geometry.computeVertexNormals();
       });
     },
     setWireframe: (on: boolean) => {
-      meshes.forEach((mesh) => {
-        const mat = mesh.material as THREE.MeshStandardMaterial;
+      meshRefs.current.forEach((meshObj) => {
+        const mat = meshObj.material as THREE.MeshStandardMaterial;
         if (mat && "wireframe" in mat) mat.wireframe = on;
       });
     },
-    smoothMesh: (meshNames: string[], iterations: number) => {
-      // Laplacian smooth approximation
+    smoothMesh: (meshNames: string[], _iterations: number) => {
       const names = new Set(meshNames);
-      meshes.forEach((mesh) => {
-        if (names.has(mesh.name) && mesh.geometry) {
-          const pos = mesh.geometry.attributes.position;
-          if (!pos) return;
-          for (let iter = 0; iter < iterations; iter++) {
-            const newPos = new Float32Array(pos.array.length);
-            for (let i = 0; i < pos.count; i++) {
-              // Simple averaging with neighbors (self-smoothing)
-              const x = pos.getX(i);
-              const y = pos.getY(i);
-              const z = pos.getZ(i);
-              newPos[i * 3] = x * 0.8;
-              newPos[i * 3 + 1] = y * 0.8;
-              newPos[i * 3 + 2] = z * 0.8;
-            }
-          }
-          mesh.geometry.computeVertexNormals();
-          pos.needsUpdate = true;
-        }
+      meshDataList.forEach((md) => {
+        if (names.has(md.name)) md.geometry.computeVertexNormals();
       });
     },
-  }), [meshes, selectedMeshNames]);
+  }), [meshDataList]);
 
-  // Ensure refs exist for each mesh
-  meshes.forEach((m) => {
-    if (!meshRefs.current.has(m.name)) {
-      meshRefs.current.set(m.name, { current: null } as React.RefObject<THREE.Mesh>);
+  // ── Separate standard vs refraction meshes (SAME logic as StudioViewport) ──
+  const standardMeshes: MeshData[] = [];
+  const refractionMeshes: (MeshData & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
+
+  meshDataList.forEach((md) => {
+    const assigned = assignedMaterials[md.name];
+    if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
+      refractionMeshes.push({ ...md, gemConfig: assigned.gemConfig });
+    } else {
+      standardMeshes.push(md);
     }
   });
 
-  const selectedMeshName = meshes.find((m) => selectedMeshNames.has(m.name))?.name;
-  const selectedRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : null;
+  // Build materials for standard meshes
+  const standardElements = useMemo(() => {
+    return standardMeshes.map((md) => {
+      const assigned = assignedMaterials[md.name];
+      let material: THREE.Material;
+      if (assigned) {
+        material = assigned.create();
+      } else {
+        material = md.originalMaterial.clone();
+      }
 
-  // Split meshes into standard and refraction
-  const standardMeshes = meshes.filter((m) => !refractionMeshes.has(m.name));
-  const gemMeshEntries = meshes.filter((m) => refractionMeshes.has(m.name));
+      // Selection highlight
+      if (selectedMeshNames.has(md.name)) {
+        const mat = material as THREE.MeshPhysicalMaterial;
+        if (mat?.emissive) {
+          mat.emissive = new THREE.Color(0x334455);
+          mat.emissiveIntensity = 0.15;
+        }
+      }
+
+      return { ...md, material };
+    });
+  }, [standardMeshes, assignedMaterials, selectedMeshNames]);
+
+  // Find selected mesh ref for TransformControls
+  const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
+  const selectedMeshRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : undefined;
 
   return (
-    <group ref={groupRef} scale={autoScale}>
-      {standardMeshes.map((mesh) => (
-        <SelectableMesh
-          key={mesh.uuid}
-          mesh={mesh}
-          meshRef={meshRefs.current.get(mesh.name)!}
-          isSelected={selectedMeshNames.has(mesh.name)}
-          onClick={(e) => {
+    <group>
+      {/* Standard meshes — explicit <mesh> elements, NOT <primitive> */}
+      {standardElements.map((md) => (
+        <mesh
+          key={md.name}
+          ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
+          geometry={md.geometry}
+          material={md.material}
+          position={md.position}
+          rotation={md.rotation}
+          scale={md.scale}
+          onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
-            onMeshClick(mesh.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
+            onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
           }}
         />
       ))}
-      {gemEnvMap && gemMeshEntries.map((mesh) => (
-        <RefractionGemMesh
-          key={mesh.uuid}
-          mesh={mesh}
-          envMap={gemEnvMap}
-          gemConfig={refractionMeshes.get(mesh.name)!}
-          isSelected={selectedMeshNames.has(mesh.name)}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMeshClick(mesh.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
-          }}
-        />
-      ))}
-      {selectedRef?.current && transformMode !== "orbit" && (
+
+      {/* Refraction gem meshes — flat geometry + MeshRefractionMaterial (SAME as StudioViewport) */}
+      {refractionMeshes.map((md) => {
+        const flatGeo = md.geometry.clone().toNonIndexed();
+        flatGeo.computeVertexNormals();
+        return (
+          <mesh
+            key={md.name}
+            ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
+            geometry={flatGeo}
+            position={md.position}
+            rotation={md.rotation}
+            scale={md.scale}
+            onClick={(e: ThreeEvent<MouseEvent>) => {
+              e.stopPropagation();
+              onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
+            }}
+          >
+            <MeshRefractionMaterial
+              envMap={gemEnvMap!}
+              color={new THREE.Color(md.gemConfig.color)}
+              ior={md.gemConfig.ior}
+              aberrationStrength={md.gemConfig.aberrationStrength}
+              bounces={md.gemConfig.bounces}
+              fresnel={md.gemConfig.fresnel}
+              fastChroma
+              toneMapped={false}
+            />
+          </mesh>
+        );
+      })}
+
+      {/* TransformControls for selected mesh */}
+      {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
-          object={selectedRef.current}
+          object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
         />
       )}
@@ -460,7 +398,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     useImperativeHandle(ref, () => ({
       applyMaterial: (matId, meshNames) => {
         modelRef.current?.applyMaterial(matId, meshNames);
-        // Check if any gem materials are now applied
         const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
         if (matDef?.useRefraction) setHasRefractionGems(true);
       },
@@ -488,20 +425,21 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
           onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 0);
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.shadowMap.enabled = true;
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
           }}
         >
           <Suspense fallback={null}>
-            {/* Lighting — exact same as StudioViewport */}
+            {/* Lighting — IDENTICAL to StudioViewport */}
             <ambientLight intensity={0.1} />
             <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" castShadow />
             <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
             <hemisphereLight args={["#ffffff", "#e6e6e6", 0.55]} />
             <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
 
-            {/* Metal HDRI environment — same as StudioViewport */}
+            {/* Metal HDRI environment — IDENTICAL to StudioViewport */}
             <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
             {hasModel && (
@@ -547,7 +485,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               <GizmoViewport labelColor="white" axisHeadScale={0.8} />
             </GizmoHelper>
 
-            {/* Post-processing — same as StudioViewport */}
+            {/* Post-processing — IDENTICAL to StudioViewport */}
             <JewelryPostProcessing />
           </Suspense>
         </Canvas>
