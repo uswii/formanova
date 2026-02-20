@@ -127,7 +127,7 @@ export default function AdminBatches() {
   const { user, signInWithGoogle, signOut } = useAuth();
   const [searchParams] = useSearchParams();
   const deepLinkBatchId = searchParams.get('batch');
-  const [adminSecret, setAdminSecret] = useState<string | null>(() => sessionStorage.getItem('admin_secret'));
+  const [adminSecret, setAdminSecret] = useState<string | null>(() => localStorage.getItem('admin_secret'));
   const [secretInput, setSecretInput] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [gateError, setGateError] = useState('');
@@ -166,7 +166,7 @@ export default function AdminBatches() {
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          sessionStorage.removeItem('admin_secret');
+          localStorage.removeItem('admin_secret');
           setAdminSecret(null);
           return;
         }
@@ -317,7 +317,7 @@ export default function AdminBatches() {
         },
       });
       if (response.ok) {
-        sessionStorage.setItem('admin_secret', secretInput.trim());
+        localStorage.setItem('admin_secret', secretInput.trim());
         setAdminSecret(secretInput.trim());
       } else {
         const data = await response.json().catch(() => ({}));
@@ -331,7 +331,7 @@ export default function AdminBatches() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('admin_secret');
+    localStorage.removeItem('admin_secret');
     setAdminSecret(null);
     setSecretInput('');
     signOut();
