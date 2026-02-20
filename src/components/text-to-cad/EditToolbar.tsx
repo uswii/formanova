@@ -96,10 +96,8 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
               left: "70px",
               top: activeFlyout === "transform" ? "56px"
                 : activeFlyout === "mesh" ? "100px"
-                : activeFlyout === "modifiers" ? "144px"
-                : activeFlyout === "materials" ? "188px"
-                : activeFlyout === "display" ? "232px"
-                : "276px",
+                : activeFlyout === "materials" ? "144px"
+                : "188px",
               background: "linear-gradient(180deg, rgba(30,30,30,0.88) 0%, rgba(18,18,18,0.94) 100%)",
               backdropFilter: "blur(30px)",
               border: "1px solid rgba(255,255,255,0.1)",
@@ -114,10 +112,8 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
             )}
             {activeFlyout === "transform" && <TransformFlyout onAction={onSceneAction} />}
             {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
-            {activeFlyout === "modifiers" && <ModifiersFlyout onAction={onSceneAction} />}
             {activeFlyout === "materials" && <MaterialsFlyout metals={metals} gems={gems} onApply={onApplyMaterial} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
-            {activeFlyout === "sculpt" && <SculptFlyout onAction={onSceneAction} />}
           </motion.div>
         )}
       </AnimatePresence>
@@ -186,6 +182,7 @@ function TransformFlyout({ onAction }: { onAction: (a: string) => void }) {
       <FoBtn shortcut="S" onClick={() => onAction("set-mode-scale")}>Scale</FoBtn>
       <FoSep />
       <FoBtn onClick={() => onAction("reset-transform")}>Reset Transform</FoBtn>
+      <FoBtn onClick={() => onAction("apply-transform")}>Apply Transform</FoBtn>
       <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
       <FoSep />
       <FlyoutSubtitle>Mirror</FlyoutSubtitle>
@@ -208,22 +205,6 @@ function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
       <FoBtn onClick={() => onAction("flip-normals")}>Flip Normals</FoBtn>
       <FoBtn onClick={() => onAction("center-origin")}>Center Origin</FoBtn>
       <FoBtn onClick={() => onAction("recalc-normals")}>Recalculate Normals</FoBtn>
-    </>
-  );
-}
-
-function ModifiersFlyout({ onAction }: { onAction: (a: string) => void }) {
-  return (
-    <>
-      <FlyoutTitle>Modifiers</FlyoutTitle>
-      <FlyoutSubtitle>Geometry</FlyoutSubtitle>
-      <FoBtn onClick={() => onAction("subdivide-1")}>Subdivide (x1)</FoBtn>
-      <FoBtn onClick={() => onAction("subdivide-2")}>Subdivide (x2)</FoBtn>
-      <FoBtn onClick={() => onAction("smooth-3")}>Smooth (3 iter)</FoBtn>
-      <FoBtn onClick={() => onAction("smooth-10")}>Smooth (10 iter)</FoBtn>
-      <FlyoutSubtitle>Reduce</FlyoutSubtitle>
-      <FoBtn onClick={() => onAction("decimate-50")}>Decimate 50%</FoBtn>
-      <FoBtn onClick={() => onAction("decimate-25")}>Decimate 25%</FoBtn>
     </>
   );
 }
@@ -289,36 +270,6 @@ function DisplayFlyout({ toggles, onToggle }: { toggles: Set<string>; onToggle: 
       {["Wireframe", "Flat Shading", "Bounding Box", "Show Normals"].map((label) => (
         <FoBtn key={label} active={toggles.has(label)} onClick={() => onToggle(label)}>{label}</FoBtn>
       ))}
-    </>
-  );
-}
-
-function SculptFlyout({ onAction }: { onAction: (a: string) => void }) {
-  const [brushSize, setBrushSize] = useState(0.2);
-  const [brushStrength, setBrushStrength] = useState(0.3);
-
-  return (
-    <>
-      <FlyoutTitle>Sculpt</FlyoutTitle>
-      <FoBtn onClick={() => onAction("sculpt-grab")}>Grab</FoBtn>
-      <FoBtn onClick={() => onAction("sculpt-smooth")}>Smooth</FoBtn>
-      <FoBtn onClick={() => onAction("sculpt-inflate")}>Inflate</FoBtn>
-      <FoBtn onClick={() => onAction("sculpt-flatten")}>Flatten</FoBtn>
-      <FoSep />
-      <div className="flex items-center gap-2 mb-2">
-        <label className="text-[13px] font-bold text-white">Size</label>
-        <input type="range" min="0.02" max="1" step="0.01" value={brushSize}
-          onChange={(e) => setBrushSize(parseFloat(e.target.value))}
-          className="flex-1 h-[3px] accent-white" />
-        <span className="text-[10px] text-[#888] w-9 text-right font-mono">{brushSize.toFixed(2)}</span>
-      </div>
-      <div className="flex items-center gap-2 mb-2">
-        <label className="text-[13px] font-bold text-white">Strength</label>
-        <input type="range" min="0.01" max="1" step="0.01" value={brushStrength}
-          onChange={(e) => setBrushStrength(parseFloat(e.target.value))}
-          className="flex-1 h-[3px] accent-white" />
-        <span className="text-[10px] text-[#888] w-9 text-right font-mono">{brushStrength.toFixed(2)}</span>
-      </div>
     </>
   );
 }

@@ -71,6 +71,12 @@ function useInvalidate() {
 }
 
 // ── Disable OrbitControls while dragging TransformControls ──
+// Transform is applied around the object's local origin (pivot).
+// Three.js TransformControls already handles this correctly:
+//   - Rotation rotates around the object's own position (pivot)
+//   - Scale scales from the object's own position (pivot)
+//   - Move changes position only
+// The key fix is syncing the resulting transform back to React state.
 function TransformControlsWrapper({
   object,
   mode,
@@ -78,7 +84,7 @@ function TransformControlsWrapper({
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
-  onDragEnd?: () => void;
+  onDragEnd?: (obj: THREE.Object3D) => void;
 }) {
   const { gl } = useThree();
   const inv = useInvalidate();
@@ -90,22 +96,20 @@ function TransformControlsWrapper({
     const handler = (e: any) => {
       const orbitControls = (gl.domElement as any).__orbitControls;
       if (orbitControls) orbitControls.enabled = !e.value;
-      // While dragging, invalidate every frame
       if (e.value) {
         inv();
       }
-      // Fire onDragEnd when user finishes dragging
-      if (!e.value && onDragEnd) onDragEnd();
+      // When drag ends, pass the object back so we can sync state
+      if (!e.value && onDragEnd) onDragEnd(object);
     };
     controls.addEventListener("dragging-changed", handler);
-    // Also invalidate on object-change during drag
     const onChange = () => inv();
     controls.addEventListener("objectChange", onChange);
     return () => {
       controls.removeEventListener("dragging-changed", handler);
       controls.removeEventListener("objectChange", onChange);
     };
-  }, [gl, onDragEnd, inv]);
+  }, [gl, onDragEnd, inv, object]);
 
   return (
     <TransformControls
@@ -113,6 +117,7 @@ function TransformControlsWrapper({
       object={object}
       mode={mode}
       size={1.5}
+      space="local"
     />
   );
 }
@@ -157,6 +162,7 @@ const LoadedModel = forwardRef<
     smoothMesh: (meshNames: string[], iterations: number) => void;
     getSnapshot: () => CanvasSnapshot;
     restoreSnapshot: (snap: CanvasSnapshot) => void;
+    applyTransform: (meshNames: string[]) => void;
   },
   {
     url: string;
@@ -239,6 +245,35 @@ const LoadedModel = forwardRef<
       })));
     }
   }, [scene, onMeshesDetected, inv]);
+
+  // ── Sync transform from Three.js object back to React state ──
+  // This is the CRITICAL fix: after TransformControls modifies the object,
+  // we read back position/rotation/scale and store them in state.
+  // This prevents React re-renders from reverting transforms.
+  const syncTransformFromObject = useCallback((meshName: string, obj: THREE.Object3D) => {
+    setMeshDataList((prev) => prev.map((md) => {
+      if (md.name !== meshName) return md;
+      return {
+        ...md,
+        position: obj.position.clone(),
+        rotation: obj.rotation.clone(),
+        scale: obj.scale.clone(),
+      };
+    }));
+  }, []);
+
+  // Called when TransformControls drag ends
+  const handleDragEnd = useCallback((obj: THREE.Object3D) => {
+    // Find which mesh this object corresponds to
+    for (const [name, meshObj] of meshRefs.current.entries()) {
+      if (meshObj === obj) {
+        syncTransformFromObject(name, obj);
+        break;
+      }
+    }
+    onTransformEnd?.();
+    inv();
+  }, [syncTransformFromObject, onTransformEnd, inv]);
 
   // ── Imperative API ──
   useImperativeHandle(ref, () => ({
@@ -350,6 +385,41 @@ const LoadedModel = forwardRef<
       });
       inv();
     },
+    // Apply Transform: bake current transform into geometry, reset transform to identity
+    applyTransform: (meshNames: string[]) => {
+      const names = new Set(meshNames);
+      setMeshDataList((prev) => prev.map((md) => {
+        if (!names.has(md.name)) return md;
+        // Build the object matrix: T * R * S
+        const matrix = new THREE.Matrix4();
+        const quat = new THREE.Quaternion().setFromEuler(md.rotation);
+        matrix.compose(md.position, quat, md.scale);
+        // Apply matrix to geometry vertices
+        const newGeo = md.geometry.clone();
+        newGeo.applyMatrix4(matrix);
+        newGeo.computeVertexNormals();
+        // Reset transform to identity
+        const identityPos = new THREE.Vector3(0, 0, 0);
+        const identityRot = new THREE.Euler(0, 0, 0);
+        const identityScale = new THREE.Vector3(1, 1, 1);
+        return {
+          ...md,
+          geometry: newGeo,
+          position: identityPos,
+          rotation: identityRot,
+          scale: identityScale,
+          origPos: identityPos.clone(),
+          origRot: identityRot.clone(),
+          origScale: identityScale.clone(),
+        };
+      }));
+      // Clear caches since geometry changed
+      flatGeoCache.current.forEach((g) => g.dispose());
+      flatGeoCache.current.clear();
+      materialCache.current.forEach((m) => m.dispose());
+      materialCache.current.clear();
+      inv();
+    },
     getSnapshot: (): CanvasSnapshot => ({
       meshDataList: meshDataList.map((md) => ({
         ...md,
@@ -371,7 +441,7 @@ const LoadedModel = forwardRef<
       materialCache.current.clear();
       inv();
     },
-  }), [meshDataList, assignedMaterials, inv]);
+  }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd]);
 
   // ── Separate standard vs refraction meshes (memoized) ──
   const { standardMeshes, refractionMeshes } = useMemo(() => {
@@ -465,11 +535,11 @@ const LoadedModel = forwardRef<
         </mesh>
       ))}
 
-      {selectedMeshRef && transformMode !== "orbit" && (
+  {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
-          onDragEnd={onTransformEnd}
+          onDragEnd={handleDragEnd}
         />
       )}
     </group>
@@ -489,6 +559,7 @@ export interface CADCanvasHandle {
   subdivideMesh: (meshNames: string[], iterations: number) => void;
   setWireframe: (on: boolean) => void;
   smoothMesh: (meshNames: string[], iterations: number) => void;
+  applyTransform: (meshNames: string[]) => void;
   getSnapshot: () => CanvasSnapshot;
   restoreSnapshot: (snap: CanvasSnapshot) => void;
 }
@@ -525,6 +596,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       subdivideMesh: (meshNames, iters) => modelRef.current?.subdivideMesh(meshNames, iters),
       setWireframe: (on) => modelRef.current?.setWireframe(on),
       smoothMesh: (meshNames, iters) => modelRef.current?.smoothMesh(meshNames, iters),
+      applyTransform: (meshNames) => modelRef.current?.applyTransform(meshNames),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
     }));

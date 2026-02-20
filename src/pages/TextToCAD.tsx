@@ -231,6 +231,12 @@ export default function TextToCAD() {
         canvasRef.current?.resetTransform(names.length ? names : meshes.map((m) => m.name));
         toast.success("Transform reset");
         break;
+      case "apply-transform":
+        if (!names.length) { toast.error("Select meshes first"); return; }
+        pushUndo("Apply transform");
+        canvasRef.current?.applyTransform(names);
+        toast.success("Transform applied to geometry");
+        break;
       case "delete":
         if (!names.length) { toast.error("Select meshes first"); return; }
         pushUndo("Delete meshes");
@@ -261,30 +267,6 @@ export default function TextToCAD() {
         pushUndo("Recalculate normals");
         toast.success("Normals recalculated");
         break;
-      case "subdivide-1":
-        if (!names.length) { toast.error("Select meshes first"); return; }
-        pushUndo("Subdivide x1");
-        canvasRef.current?.subdivideMesh(names, 1);
-        toast.success("Subdivided (x1)");
-        break;
-      case "subdivide-2":
-        if (!names.length) { toast.error("Select meshes first"); return; }
-        pushUndo("Subdivide x2");
-        canvasRef.current?.subdivideMesh(names, 2);
-        toast.success("Subdivided (x2)");
-        break;
-      case "smooth-3":
-        if (!names.length) { toast.error("Select meshes first"); return; }
-        pushUndo("Smooth 3 iter");
-        canvasRef.current?.smoothMesh(names, 3);
-        toast.success("Smoothed (3 iterations)");
-        break;
-      case "smooth-10":
-        if (!names.length) { toast.error("Select meshes first"); return; }
-        pushUndo("Smooth 10 iter");
-        canvasRef.current?.smoothMesh(names, 10);
-        toast.success("Smoothed (10 iterations)");
-        break;
       case "wireframe-on":
         canvasRef.current?.setWireframe(true);
         toast.success("Wireframe ON");
@@ -299,18 +281,6 @@ export default function TextToCAD() {
         if (!names.length) { toast.error("Select meshes first"); return; }
         pushUndo(`Mirror ${action.split("-")[1].toUpperCase()}`);
         toast.success(`Mirrored on ${action.split("-")[1].toUpperCase()} axis`);
-        break;
-      case "decimate-50":
-      case "decimate-25":
-        if (!names.length) { toast.error("Select meshes first"); return; }
-        pushUndo("Decimate");
-        toast.success(`Decimated to ${action.split("-")[1]}%`);
-        break;
-      case "sculpt-grab":
-      case "sculpt-smooth":
-      case "sculpt-inflate":
-      case "sculpt-flatten":
-        toast.info(`Sculpt: ${action.split("-")[1]} mode activated`);
         break;
       default:
         toast.info(`${action} — coming soon`);

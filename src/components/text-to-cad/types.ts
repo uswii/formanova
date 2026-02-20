@@ -42,10 +42,8 @@ export const TRANSFORM_MODES = [
 export const EDIT_TOOLS = [
   { id: "transform", icon: "↔", label: "Move", flyout: "transform", tip: "Transform tools" },
   { id: "mesh", icon: "▭", label: "Mesh", flyout: "mesh", tip: "Mesh editing" },
-  { id: "modifiers", icon: "⚙", label: "Mods", flyout: "modifiers", tip: "Modifiers" },
   { id: "materials", icon: "◉", label: "Mat", flyout: "materials", tip: "Materials" },
   { id: "display", icon: "◭", label: "View", flyout: "display", tip: "Display options" },
-  { id: "sculpt", icon: "✎", label: "Sculpt", flyout: "sculpt", tip: "Sculpt tools" },
 ] as const;
 
 export const PROGRESS_STEPS = [
