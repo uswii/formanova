@@ -416,16 +416,27 @@ serve(async (req) => {
         console.log('[batch-submit] Sending email to:', ADMIN_EMAILS);
         const resend = new Resend(RESEND_API_KEY);
         const hasInspiration = !!globalInspirationUrl || imageRecords.some(r => r.inspiration_url);
-        // onboarding@resend.dev can ONLY send to the Resend account owner
-        // Send only to the first admin (account owner), others need verified domain
-        const ownerEmail = ADMIN_EMAILS[0]; // uswa@raresense.so
+        const adminDashboardUrl = `https://formanova.lovable.app/admin?batch=${batchId}`;
         const emailResult = await resend.emails.send({
-          from: 'FormaNova <onboarding@resend.dev>',
-          to: [ownerEmail],
+          from: 'FormaNova <noreply@formanova.ai>',
+          to: ADMIN_EMAILS,
           subject: `New Batch: ${user.email} submitted ${imageRecords.length} ${body.jewelry_category} images`,
-          html: `<p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p><p><strong>Batch ID:</strong> ${batchId}</p><p><strong>Category:</strong> ${body.jewelry_category}</p><p><strong>Images:</strong> ${imageRecords.length}</p><p><strong>Notification email:</strong> ${body.notification_email || user.email}</p><p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p>`,
+          html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #C9A55C;">New Batch Submitted</h2>
+            <p><strong>User:</strong> ${user.email} (${user.display_name || 'N/A'})</p>
+            <p><strong>Batch ID:</strong> <code>${batchId}</code></p>
+            <p><strong>Category:</strong> ${body.jewelry_category}</p>
+            <p><strong>Images:</strong> ${imageRecords.length}</p>
+            <p><strong>Notification email:</strong> ${body.notification_email || user.email}</p>
+            <p><strong>Inspiration:</strong> ${hasInspiration ? 'Yes' : 'No'}${globalInspirationUrl ? ' (global)' : ''}${imageRecords.filter(r => r.inspiration_url).length > 0 ? ` + ${imageRecords.filter(r => r.inspiration_url).length} per-image` : ''}</p>
+            <p style="margin-top: 24px;">
+              <a href="${adminDashboardUrl}" style="display: inline-block; background: #C9A55C; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                View Batch Photos →
+              </a>
+            </p>
+          </div>`,
         });
-        console.log('[batch-submit] Email sent to owner:', ownerEmail, JSON.stringify(emailResult));
+        console.log('[batch-submit] Email sent to all admins:', ADMIN_EMAILS, JSON.stringify(emailResult));
       } catch (emailError) {
         console.error('[batch-submit] Email failed:', emailError instanceof Error ? emailError.message : emailError);
       }

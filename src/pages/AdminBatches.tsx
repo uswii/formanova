@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -124,6 +125,8 @@ function copyToClipboard(text: string) {
 // ═══════════════════════════════════════════════════════════════
 export default function AdminBatches() {
   const { user, signInWithGoogle, signOut } = useAuth();
+  const [searchParams] = useSearchParams();
+  const deepLinkBatchId = searchParams.get('batch');
   const [adminSecret, setAdminSecret] = useState<string | null>(() => sessionStorage.getItem('admin_secret'));
   const [secretInput, setSecretInput] = useState('');
   const [verifying, setVerifying] = useState(false);
@@ -141,6 +144,7 @@ export default function AdminBatches() {
   const [driveLinkInput, setDriveLinkInput] = useState('');
   const [savingDriveLink, setSavingDriveLink] = useState(false);
   const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
+  const deepLinkHandled = useRef(false);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -275,6 +279,19 @@ export default function AdminBatches() {
   useEffect(() => {
     if (isAuthenticated) fetchBatches();
   }, [isAuthenticated, fetchBatches]);
+
+  // Auto-expand batch from email deep-link (?batch=<id>)
+  useEffect(() => {
+    if (!isAuthenticated || !deepLinkBatchId || deepLinkHandled.current || loading) return;
+    if (batches.length === 0) return;
+    deepLinkHandled.current = true;
+    setExpandedBatchId(deepLinkBatchId);
+    fetchBatchImages(deepLinkBatchId);
+    setTimeout(() => {
+      const el = document.getElementById(`batch-${deepLinkBatchId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
+  }, [isAuthenticated, deepLinkBatchId, batches, loading, fetchBatchImages]);
 
   const toggleBatch = (batchId: string) => {
     if (expandedBatchId === batchId) {
@@ -587,6 +604,7 @@ export default function AdminBatches() {
                       <>
                         {/* Batch Row */}
                         <tr
+                          id={`batch-${batch.id}`}
                           key={batch.id}
                           className={`border-b border-border/20 cursor-pointer transition-colors ${
                             isExpanded ? 'bg-primary/5' : 'hover:bg-card/40'
