@@ -1,106 +1,98 @@
 
+# Silent Token Refresh via Authenticated Fetch Interceptor
 
-# Image Performance Optimization Plan
+## Problem
 
-## Current State
+The app has 6+ API modules that independently call `fetch()` with the stored JWT. When the token expires:
+- Each module fails independently with 401 errors
+- UI components show errors, flash, and reset state
+- The admin dashboard's ad-hoc retry in `fetchBatches` doesn't cover other calls
+- There is no refresh token -- the FastAPI backend only issues access tokens via Google OAuth
 
-The project loads ~30+ high-resolution PNG/JPG images across pages (Welcome hero carousel with 10 images, CinematicShowcase, JewelryShowcase, PhotographyStudioCategories, BeforeAfterShowcase, bulk upload examples, etc.). Currently:
+## Solution: Centralized Fetch Wrapper with Silent Re-Authentication
 
-- No `loading="lazy"` on any below-the-fold images
-- No `width`/`height` attributes (causes Cumulative Layout Shift)
-- No `fetchpriority="high"` on LCP hero images
-- No `decoding="async"` on non-critical images
-- All images served as original PNG/JPG with no WebP conversion
-- No responsive `srcset` -- every device downloads full-resolution images
-- No build-time image compression or optimization
+Since the backend has no refresh token endpoint, the only way to get a fresh token is to silently re-initiate Google OAuth. However, Google OAuth requires a full-page redirect, making truly silent refresh impossible without backend changes.
 
-## Implementation
+**Practical approach**: Create a centralized `authFetch` wrapper that:
 
-### 1. Create a reusable `OptimizedImage` component
+1. Intercepts all API calls
+2. On 401, queues pending requests and attempts a single background token validation
+3. If validation fails, shows a non-disruptive inline re-auth prompt (NOT a logout) -- a small banner or modal saying "Session expired -- click to reconnect" that re-triggers Google OAuth
+4. Never clears app state, never logs out, never flashes errors
+5. Retries queued requests after successful re-auth
 
-A drop-in replacement for `<img>` that enforces best practices:
-- `loading="lazy"` by default (overridable for above-the-fold)
-- `decoding="async"` by default
-- `fetchpriority` prop for LCP images
-- Explicit `width`/`height` to prevent CLS
-- CSS `aspect-ratio` fallback
-- Optional blur-up placeholder via a tiny inline base64
+## Implementation Details
 
-**File**: `src/components/ui/optimized-image.tsx`
+### 1. Create `src/lib/auth-fetch.ts` -- Centralized fetch interceptor
 
-### 2. Install `vite-imagetools` for build-time optimization
+- Wraps native `fetch` with automatic 401 handling
+- Maintains a request queue during re-auth
+- Uses a mutex/lock so only one refresh attempt happens at a time
+- On 401: pauses new requests, attempts `getCurrentUser()`, if that also 401s, sets a `needsReauth` flag (but does NOT clear session)
+- On successful reauth: replays all queued requests with the new token
 
-This Vite plugin generates WebP variants and multiple sizes at build time via import query parameters:
-
-```typescript
-import heroImg from '@/assets/jewelry/hero-diamond-choker.png?w=640;1024;1920&format=webp&as=srcset'
+```
+authFetch(url, options)
+  --> fetch(url, options)
+  --> if 401:
+       if already refreshing: queue this request, wait
+       else: lock, try getCurrentUser()
+         success: unlock, retry this + queued requests
+         fail: set needsReauth flag, reject with AuthExpiredError
 ```
 
-This produces responsive WebP images with srcset automatically. The component will use `<picture>` with WebP source and original format fallback.
+### 2. Create `src/components/SessionExpiredBanner.tsx`
 
-**File**: `vite.config.ts` (add plugin)
+- A small, non-intrusive banner at the top of the page
+- Only appears when `needsReauth` is true
+- Shows "Session expired -- click to reconnect" with a Google sign-in button
+- Clicking it opens a popup or redirects for Google OAuth
+- After successful re-auth, banner disappears and app continues normally
+- Never clears user state or navigates away
 
-### 3. Apply optimizations across all pages/components
+### 3. Update `src/contexts/AuthContext.tsx`
 
-For each file with images, replace raw `<img>` tags with `OptimizedImage`, categorized by priority:
+- Add `needsReauth` state to the context
+- Expose a `refreshSession` method that re-triggers OAuth
+- The `SessionExpiredBanner` reads from this context
+- Background validation no longer returns null silently -- it sets `needsReauth` if token is expired
 
-**Above-the-fold (eager loading, high priority)**:
-- `CinematicHero.tsx` -- hero carousel images (first image eager, rest lazy-preload)
-- `Header.tsx` -- logo image (already has some optimization)
+### 4. Update all API modules to use `authFetch`
 
-**Below-the-fold (lazy loading)**:
-- `CinematicShowcase.tsx` -- showcase images
-- `JewelryShowcase.tsx` -- model images and metrics
-- `BeforeAfterShowcase.tsx` -- before/after slider images
-- `PhotographyStudioCategories.tsx` -- category grid images
-- `ImageUploadCard.tsx` -- user-uploaded previews
-- `StepUploadMark.tsx` -- example images
-- `UploadGuideBillboard.tsx` -- guide images
-- Bulk upload components -- inspiration/upload previews
-
-### 4. Preload critical hero image
-
-Add a `<link rel="preload">` for the first hero image in `index.html` to eliminate LCP delay, and use `fetchpriority="high"` on the active hero image in `CinematicHero`.
-
-### 5. Add caching headers via Vite config
-
-Vite already hashes static assets in production builds (e.g., `hero-diamond-choker-abc123.png`), enabling aggressive caching. We will verify the build output includes proper `Cache-Control` headers. For the Lovable preview/published URLs, caching is handled by the platform CDN.
-
-## Technical Details
-
-### OptimizedImage component API
-
-```typescript
-interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  priority?: boolean;       // true = eager load + high fetchpriority
-  aspectRatio?: string;     // e.g. "3/4", "16/9" for CLS prevention
-  sizes?: string;           // responsive sizes attribute
-}
-```
-
-### Files to modify
+Replace raw `fetch` calls with `authFetch` in:
 
 | File | Change |
 |------|--------|
-| `vite.config.ts` | Add `vite-imagetools` plugin |
-| `src/components/ui/optimized-image.tsx` | New component |
-| `src/components/CinematicHero.tsx` | Use OptimizedImage with priority for active slide |
-| `src/components/CinematicShowcase.tsx` | Lazy load showcase images |
-| `src/components/JewelryShowcase.tsx` | Lazy load model images |
-| `src/components/BeforeAfterShowcase.tsx` | Lazy load slider images |
-| `src/pages/PhotographyStudioCategories.tsx` | Lazy load category images |
-| `src/components/bulk/ImageUploadCard.tsx` | Lazy load upload previews |
-| `src/components/bulk/UploadGuideBillboard.tsx` | Lazy load guide images |
-| `src/components/bulk/InspirationUpload.tsx` | Lazy load inspiration images |
-| `src/components/bulk/InspirationModal.tsx` | Lazy load modal images |
-| `src/pages/Welcome.tsx` | No img tags directly (delegates to components) |
-| `src/components/layout/Header.tsx` | Already partially optimized, minor improvements |
-| `index.html` | Add preload link for first hero image |
+| `src/lib/auth-api.ts` | Export `authFetch`, update `getCurrentUser` |
+| `src/lib/temporal-api.ts` | Replace `fetch` with `authFetch` in all methods |
+| `src/lib/microservices-api.ts` | Replace `fetch` with `authFetch` in all functions |
+| `src/lib/credits-api.ts` | Replace `fetch` with `authFetch` |
+| `src/lib/jewelry-generate-api.ts` | Replace `fetch` with `authFetch` |
+| `src/hooks/use-image-validation.ts` | Replace `fetch` with `authFetch` |
+| `src/pages/AdminBatches.tsx` | Replace `fetch` with `authFetch`, remove ad-hoc retry logic |
 
-### Expected improvements
+### 5. Update `src/App.tsx`
 
-- **LCP**: 30-50% faster via preloading, priority hints, and WebP format
-- **CLS**: Near-zero via explicit dimensions and aspect ratios
-- **Total page weight**: 40-60% reduction via WebP conversion and responsive srcset
-- **Below-fold images**: Zero impact on initial load via native lazy loading
+- Add `SessionExpiredBanner` component at the top level inside `AuthProvider`
 
+## What This Achieves
+
+- **Zero UI disruption**: 401 errors are caught before they reach components
+- **Request queuing**: Multiple simultaneous 401s trigger only one re-auth attempt
+- **No forced logout**: User stays visually logged in; app state is preserved
+- **Graceful re-auth**: A small banner prompts reconnection only when truly needed
+- **Centralized**: All future API calls automatically get 401 protection
+
+## Files to Create
+- `src/lib/auth-fetch.ts`
+- `src/components/SessionExpiredBanner.tsx`
+
+## Files to Modify
+- `src/contexts/AuthContext.tsx`
+- `src/lib/temporal-api.ts`
+- `src/lib/microservices-api.ts`
+- `src/lib/credits-api.ts`
+- `src/lib/jewelry-generate-api.ts`
+- `src/hooks/use-image-validation.ts`
+- `src/pages/AdminBatches.tsx`
+- `src/App.tsx`
