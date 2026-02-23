@@ -500,6 +500,44 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── PROXY IMAGE (binary passthrough for ZIP downloads) ──
+    if (action === 'proxy_image') {
+      const imageUrl = url.searchParams.get('url');
+      if (!imageUrl) {
+        return new Response(
+          JSON.stringify({ error: 'Missing url parameter' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Only allow Azure blob URLs
+      if (!imageUrl.includes('.blob.core.windows.net')) {
+        return new Response(
+          JSON.stringify({ error: 'Only Azure Blob URLs are allowed' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const imgResponse = await fetch(imageUrl);
+      if (!imgResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: `Azure fetch failed: ${imgResponse.status}` }),
+          { status: imgResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
+      const blob = await imgResponse.arrayBuffer();
+
+      return new Response(blob, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': contentType,
+          'Content-Length': blob.byteLength.toString(),
+        },
+      });
+    }
+
     // ── DELETE BATCH ──
     if (action === 'delete_batch' && req.method === 'POST') {
       const body = await req.json();

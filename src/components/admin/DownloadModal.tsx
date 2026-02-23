@@ -54,13 +54,24 @@ interface DownloadModalProps {
 
 const ALL_STATUSES = ['pending', 'processing', 'completed', 'failed', 'partial', 'delivered'];
 
-async function fetchImageBlob(url: string): Promise<Uint8Array | null> {
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+async function fetchImageBlob(
+  url: string,
+  headers: Record<string, string>,
+): Promise<Uint8Array | null> {
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
+    // Proxy through admin-batches edge function to avoid CORS issues with Azure
+    const proxyUrl = `${SUPABASE_URL}/functions/v1/admin-batches?action=proxy_image&url=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl, { headers });
+    if (!response.ok) {
+      console.warn(`[ZIP] proxy_image failed ${response.status} for ${url.substring(0, 80)}…`);
+      return null;
+    }
     const buffer = await response.arrayBuffer();
     return new Uint8Array(buffer);
-  } catch {
+  } catch (e) {
+    console.warn('[ZIP] fetchImageBlob error:', e);
     return null;
   }
 }
@@ -214,7 +225,7 @@ export default function DownloadModal({ open, onClose, batches, getAdminHeaders 
             for (const img of batchImages) {
               if (!img.original_url) continue;
               setProgressLabel(`Downloading upload ${uploadIdx} for ${email}…`);
-              const blob = await fetchImageBlob(img.original_url);
+              const blob = await fetchImageBlob(img.original_url, getAdminHeaders());
               if (blob) {
                 const ext = img.original_url.includes('.png') ? 'png' : 'jpg';
                 zip.file(`${folderName}/uploads/upload_${String(uploadIdx).padStart(2, '0')}.${ext}`, blob);
@@ -231,7 +242,7 @@ export default function DownloadModal({ open, onClose, batches, getAdminHeaders 
             for (const img of batchImages) {
               if (!img.result_url) continue;
               setProgressLabel(`Downloading output ${outputIdx} for ${email}…`);
-              const blob = await fetchImageBlob(img.result_url);
+              const blob = await fetchImageBlob(img.result_url, getAdminHeaders());
               if (blob) {
                 const ext = img.result_url.includes('.png') ? 'png' : 'jpg';
                 zip.file(`${folderName}/outputs/output_v${outputIdx}.${ext}`, blob);
@@ -248,7 +259,7 @@ export default function DownloadModal({ open, onClose, batches, getAdminHeaders 
             for (const img of batchImages) {
               if (!img.inspiration_url) continue;
               setProgressLabel(`Downloading inspiration for ${email}…`);
-              const blob = await fetchImageBlob(img.inspiration_url);
+              const blob = await fetchImageBlob(img.inspiration_url, getAdminHeaders());
               if (blob) {
                 const ext = img.inspiration_url.includes('.png') ? 'png' : 'jpg';
                 zip.file(`${folderName}/inspiration/inspo_general_${String(inspoIdx).padStart(2, '0')}.${ext}`, blob);
@@ -259,7 +270,7 @@ export default function DownloadModal({ open, onClose, batches, getAdminHeaders 
             }
             // Batch-level inspiration
             if (batch.inspiration_url) {
-              const blob = await fetchImageBlob(batch.inspiration_url);
+              const blob = await fetchImageBlob(batch.inspiration_url, getAdminHeaders());
               if (blob) {
                 const ext = batch.inspiration_url.includes('.png') ? 'png' : 'jpg';
                 zip.file(`${folderName}/inspiration/inspo_batch_reference.${ext}`, blob);
