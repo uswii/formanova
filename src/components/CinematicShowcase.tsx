@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { OptimizedImage, preloadImages } from '@/components/ui/optimized-image';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Import images
 import mannequinInput from '@/assets/showcase/mannequin-input.png';
@@ -46,11 +46,6 @@ export function CinematicShowcase() {
   const currentImageIndex = Math.floor(currentEntry / 2);
   const showOverlay = currentEntry % 2 === 1;
   
-  // Preload all showcase images on mount
-  useEffect(() => {
-    preloadImages(allImages);
-  }, []);
-
   // Simple continuous cycling
   useEffect(() => {
     const interval = setInterval(() => {
@@ -352,7 +347,7 @@ export function CinematicShowcase() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5">
         
         {/* SECTION A — Zero Alteration */}
-        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted border border-border">
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           {/* Simple toggle - show current image only */}
           <div className="absolute inset-0">
             <OptimizedImage

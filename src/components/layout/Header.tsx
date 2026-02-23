@@ -12,7 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { OptimizedImage } from '@/components/ui/optimized-image';
 import formanovaLogo from '@/assets/formanova-logo.png';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
@@ -61,10 +60,9 @@ export function Header() {
               to="/" 
               className="flex items-center group relative z-10"
             >
-              <OptimizedImage 
+              <img 
                 src={formanovaLogo} 
                 alt="FormaNova" 
-                priority
                 className="h-10 md:h-12 lg:h-14 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
@@ -110,10 +108,9 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
                       {user.avatar_url ? (
-                        <OptimizedImage 
+                        <img 
                           src={user.avatar_url} 
                           alt={user.full_name || 'User'} 
-                          priority
                           className="h-8 w-8 rounded-full object-cover aspect-square border border-border hover:border-foreground transition-colors"
                         />
                       ) : (
@@ -225,10 +222,9 @@ export function Header() {
             >
               <div className="flex items-center gap-3">
                 {user.avatar_url ? (
-                  <OptimizedImage 
+                  <img 
                     src={user.avatar_url} 
                     alt={user.full_name || 'User'} 
-                    priority
                     className="h-12 w-12 rounded-full object-cover aspect-square border border-border"
                   />
                 ) : (

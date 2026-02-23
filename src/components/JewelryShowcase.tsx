@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles, CheckCircle2, Target } from 'lucide-react';
-import { OptimizedImage, preloadImages } from '@/components/ui/optimized-image';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Import showcase images
 import mannequinInput from '@/assets/showcase/mannequin-input.png';
@@ -54,11 +54,6 @@ export function JewelryShowcase() {
   const [showOverlay, setShowOverlay] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  // Preload all model output images on mount
-  useEffect(() => {
-    preloadImages([...models.map((m) => m.image), ...models.map((m) => m.metrics), mannequinInput, jewelryOverlay]);
-  }, []);
-
   // Auto-advance through models
   useEffect(() => {
     if (!isAutoPlaying) return;
@@ -98,7 +93,7 @@ export function JewelryShowcase() {
           </div>
           
           <div 
-            className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted cursor-pointer group"
+            className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted/20 cursor-pointer group"
             onMouseEnter={() => setShowOverlay(true)}
             onMouseLeave={() => setShowOverlay(false)}
           >
@@ -162,23 +157,18 @@ export function JewelryShowcase() {
           </div>
           
           {/* Model image carousel */}
-          <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted">
+          <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted/20">
             <AnimatePresence mode="wait">
-              <motion.div
+              <motion.img
                 key={currentModel}
+                src={models[currentModel].image}
+                alt={models[currentModel].label}
                 initial={{ opacity: 0, scale: 1.05 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.5 }}
-                className="absolute inset-0"
-              >
-                <OptimizedImage
-                  src={models[currentModel].image}
-                  alt={models[currentModel].label}
-                  className="w-full h-full object-cover"
-                  noFade
-                />
-              </motion.div>
+                className="absolute inset-0 w-full h-full object-cover"
+              />
             </AnimatePresence>
             
             {/* Model label badge */}

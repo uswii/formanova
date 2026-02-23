@@ -1,90 +1,98 @@
 
+# Silent Token Refresh via Authenticated Fetch Interceptor
 
-# Seamless Image Loading -- Eliminate Pop-in and Visual Delays
+## Problem
 
-## What's causing the current issues
+The app has 6+ API modules that independently call `fetch()` with the stored JWT. When the token expires:
+- Each module fails independently with 401 errors
+- UI components show errors, flash, and reset state
+- The admin dashboard's ad-hoc retry in `fetchBatches` doesn't cover other calls
+- There is no refresh token -- the FastAPI backend only issues access tokens via Google OAuth
 
-After reviewing every component that displays images, I found these gaps:
+## Solution: Centralized Fetch Wrapper with Silent Re-Authentication
 
-1. **No fade-in on load**: When a lazy-loaded image finishes loading, it appears instantly causing a visible "pop-in". The `OptimizedImage` component has no opacity transition on load.
-2. **No placeholder/skeleton while loading**: Image containers show empty space (transparent or `bg-muted/20`) until the image arrives, causing a flash from empty to loaded.
-3. **Raw `<img>` tags still in use**: `BeforeAfterSlider.tsx`, `JewelryShowcase.tsx` (motion.img carousel), `InspirationModal.tsx`, and `Header.tsx` still use unoptimized `<img>` tags.
-4. **No preloading for upcoming carousel slides**: The hero has 10 images but only the first is preloaded. When the carousel advances, the next image hasn't been fetched yet, causing a visible delay.
-5. **CinematicShowcase cycling images**: Cycles through 4 images every 800ms with no preloading -- images can appear blank on first pass.
+Since the backend has no refresh token endpoint, the only way to get a fresh token is to silently re-initiate Google OAuth. However, Google OAuth requires a full-page redirect, making truly silent refresh impossible without backend changes.
 
-## Changes
+**Practical approach**: Create a centralized `authFetch` wrapper that:
 
-### 1. Enhance `OptimizedImage` with fade-in on load
-Add an `onLoad` handler that transitions opacity from 0 to 1 over ~200ms. This makes images appear to smoothly materialize rather than pop in. A subtle background color placeholder is shown during load.
+1. Intercepts all API calls
+2. On 401, queues pending requests and attempts a single background token validation
+3. If validation fails, shows a non-disruptive inline re-auth prompt (NOT a logout) -- a small banner or modal saying "Session expired -- click to reconnect" that re-triggers Google OAuth
+4. Never clears app state, never logs out, never flashes errors
+5. Retries queued requests after successful re-auth
 
-### 2. Add image preloading utility
-Create a simple `preloadImages(urls[])` helper that creates `Image()` objects to warm the browser cache. Use this in:
-- `CinematicHero`: preload all hero carousel images on mount
-- `CinematicShowcase`: preload all showcase images on mount
-- `JewelryShowcase`: preload all model output images on mount
+## Implementation Details
 
-### 3. Replace remaining raw `<img>` tags
-- `BeforeAfterSlider.tsx`: Replace both `<img>` with `OptimizedImage`
-- `JewelryShowcase.tsx`: Replace `motion.img` carousel with `OptimizedImage` inside a motion wrapper
-- `InspirationModal.tsx`: Replace thumbnail and enlarged `<img>` with `OptimizedImage`
-- `Header.tsx`: Replace logo and avatar `<img>` with `OptimizedImage` (with `priority={true}` for logo)
+### 1. Create `src/lib/auth-fetch.ts` -- Centralized fetch interceptor
 
-### 4. Add background placeholders to image containers
-Add `bg-muted` to all image container divs so there's a neutral tone visible instead of transparency while images load. This prevents the empty-to-content flash.
+- Wraps native `fetch` with automatic 401 handling
+- Maintains a request queue during re-auth
+- Uses a mutex/lock so only one refresh attempt happens at a time
+- On 401: pauses new requests, attempts `getCurrentUser()`, if that also 401s, sets a `needsReauth` flag (but does NOT clear session)
+- On successful reauth: replays all queued requests with the new token
 
-## Technical Details
-
-### OptimizedImage enhancement (fade-in)
-
-```typescript
-const [loaded, setLoaded] = useState(false);
-
-<img
-  onLoad={() => setLoaded(true)}
-  style={{
-    opacity: loaded ? 1 : 0,
-    transition: 'opacity 0.2s ease-in',
-    aspectRatio,
-    ...style,
-  }}
-/>
+```
+authFetch(url, options)
+  --> fetch(url, options)
+  --> if 401:
+       if already refreshing: queue this request, wait
+       else: lock, try getCurrentUser()
+         success: unlock, retry this + queued requests
+         fail: set needsReauth flag, reject with AuthExpiredError
 ```
 
-For `priority` images, `loaded` starts as `true` (no fade needed).
+### 2. Create `src/components/SessionExpiredBanner.tsx`
 
-### Preload utility
+- A small, non-intrusive banner at the top of the page
+- Only appears when `needsReauth` is true
+- Shows "Session expired -- click to reconnect" with a Google sign-in button
+- Clicking it opens a popup or redirects for Google OAuth
+- After successful re-auth, banner disappears and app continues normally
+- Never clears user state or navigates away
 
-```typescript
-export function preloadImages(srcs: string[]) {
-  srcs.forEach(src => {
-    const img = new Image();
-    img.src = src;
-  });
-}
-```
+### 3. Update `src/contexts/AuthContext.tsx`
 
-Called in `useEffect` on mount in carousel components.
+- Add `needsReauth` state to the context
+- Expose a `refreshSession` method that re-triggers OAuth
+- The `SessionExpiredBanner` reads from this context
+- Background validation no longer returns null silently -- it sets `needsReauth` if token is expired
 
-### Files to modify
+### 4. Update all API modules to use `authFetch`
+
+Replace raw `fetch` calls with `authFetch` in:
 
 | File | Change |
 |------|--------|
-| `src/components/ui/optimized-image.tsx` | Add fade-in on load + placeholder background |
-| `src/components/CinematicHero.tsx` | Preload all hero images on mount |
-| `src/components/CinematicShowcase.tsx` | Preload showcase images on mount |
-| `src/components/JewelryShowcase.tsx` | Preload model images, replace `motion.img` |
-| `src/components/studio/BeforeAfterSlider.tsx` | Replace raw `<img>` with `OptimizedImage` |
-| `src/components/bulk/InspirationModal.tsx` | Replace raw `<img>` with `OptimizedImage` |
-| `src/components/layout/Header.tsx` | Replace logo/avatar `<img>` with `OptimizedImage` |
+| `src/lib/auth-api.ts` | Export `authFetch`, update `getCurrentUser` |
+| `src/lib/temporal-api.ts` | Replace `fetch` with `authFetch` in all methods |
+| `src/lib/microservices-api.ts` | Replace `fetch` with `authFetch` in all functions |
+| `src/lib/credits-api.ts` | Replace `fetch` with `authFetch` |
+| `src/lib/jewelry-generate-api.ts` | Replace `fetch` with `authFetch` |
+| `src/hooks/use-image-validation.ts` | Replace `fetch` with `authFetch` |
+| `src/pages/AdminBatches.tsx` | Replace `fetch` with `authFetch`, remove ad-hoc retry logic |
 
-### No new files created
+### 5. Update `src/App.tsx`
 
-Only modifications to existing components.
+- Add `SessionExpiredBanner` component at the top level inside `AuthProvider`
 
-### Expected result
+## What This Achieves
 
-- Images fade in smoothly over 200ms instead of popping in
-- Carousel slides are pre-cached so transitions are instant
-- Neutral background shows during load instead of empty space
-- All images use consistent loading behavior via the shared component
+- **Zero UI disruption**: 401 errors are caught before they reach components
+- **Request queuing**: Multiple simultaneous 401s trigger only one re-auth attempt
+- **No forced logout**: User stays visually logged in; app state is preserved
+- **Graceful re-auth**: A small banner prompts reconnection only when truly needed
+- **Centralized**: All future API calls automatically get 401 protection
 
+## Files to Create
+- `src/lib/auth-fetch.ts`
+- `src/components/SessionExpiredBanner.tsx`
+
+## Files to Modify
+- `src/contexts/AuthContext.tsx`
+- `src/lib/temporal-api.ts`
+- `src/lib/microservices-api.ts`
+- `src/lib/credits-api.ts`
+- `src/lib/jewelry-generate-api.ts`
+- `src/hooks/use-image-validation.ts`
+- `src/pages/AdminBatches.tsx`
+- `src/App.tsx`
