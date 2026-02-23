@@ -3,6 +3,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getStoredToken } from '@/lib/auth-api';
+import { authFetch } from '@/lib/auth-fetch';
 
 // Use Supabase edge function proxy
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -282,7 +283,7 @@ class TemporalApi {
       point_labels: pointLabels,
     }));
 
-    const response = await fetch(getProxyUrl('/process'), {
+    const response = await authFetch(getProxyUrl('/process'), {
       method: 'POST',
       headers: this.getFormDataHeaders(),
       body: formData,
@@ -323,7 +324,7 @@ class TemporalApi {
     );
 
     // DO NOT set Content-Type for FormData - browser sets boundary automatically
-    const response = await fetch(getProxyUrl('/process'), {
+    const response = await authFetch(getProxyUrl('/process'), {
       method: 'POST',
       headers: this.getFormDataHeaders(),
       body: formData,
@@ -338,7 +339,7 @@ class TemporalApi {
   }
 
   async getDAGStatus(workflowId: string): Promise<DAGStatusResponse> {
-    const response = await fetch(getProxyUrl(`/status/${workflowId}`), {
+    const response = await authFetch(getProxyUrl(`/status/${workflowId}`), {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -352,7 +353,7 @@ class TemporalApi {
   }
 
   async getDAGResult(workflowId: string): Promise<DAGResultResponse> {
-    const response = await fetch(getProxyUrl(`/result/${workflowId}`), {
+    const response = await authFetch(getProxyUrl(`/result/${workflowId}`), {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -369,7 +370,7 @@ class TemporalApi {
 
   async checkHealth(): Promise<HealthResponse | null> {
     try {
-      const response = await fetch(getProxyUrl('/health'), {
+      const response = await authFetch(getProxyUrl('/health'), {
         method: 'GET',
         headers: this.getAuthHeaders(),
       });
@@ -386,7 +387,7 @@ class TemporalApi {
   }
 
   async startPreprocessing(request: PreprocessingRequest): Promise<WorkflowStartResponse> {
-    const response = await fetch(getProxyUrl('/workflow/preprocess'), {
+    const response = await authFetch(getProxyUrl('/workflow/preprocess'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(request),
@@ -401,7 +402,7 @@ class TemporalApi {
   }
 
   async startGeneration(request: GenerationRequest): Promise<WorkflowStartResponse> {
-    const response = await fetch(getProxyUrl('/workflow/generate'), {
+    const response = await authFetch(getProxyUrl('/workflow/generate'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(request),
@@ -416,7 +417,7 @@ class TemporalApi {
   }
 
   async startWorkflow(request: any): Promise<WorkflowStartResponse> {
-    const response = await fetch(getProxyUrl('/workflow/start'), {
+    const response = await authFetch(getProxyUrl('/workflow/start'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(request),
@@ -431,7 +432,7 @@ class TemporalApi {
   }
 
   async getWorkflowStatus(workflowId: string): Promise<WorkflowStatusResponse> {
-    const response = await fetch(getProxyUrl(`/workflow/${workflowId}`), {
+    const response = await authFetch(getProxyUrl(`/workflow/${workflowId}`), {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -485,7 +486,7 @@ class TemporalApi {
   }
 
   async cancelWorkflow(workflowId: string): Promise<void> {
-    const response = await fetch(getProxyUrl(`/workflow/${workflowId}/cancel`), {
+    const response = await authFetch(getProxyUrl(`/workflow/${workflowId}/cancel`), {
       method: 'POST',
       headers: this.getAuthHeaders(),
     });
@@ -497,7 +498,7 @@ class TemporalApi {
   }
 
   async fetchOverlay(imageUri: string, maskUri: string): Promise<OverlayResponse> {
-    const response = await fetch(getProxyUrl('/overlay'), {
+    const response = await authFetch(getProxyUrl('/overlay'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ imageUri, maskUri }),
@@ -531,7 +532,7 @@ class TemporalApi {
       }
       
       try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/azure-fetch-image`, {
+        const response = await authFetch(`${SUPABASE_URL}/functions/v1/azure-fetch-image`, {
           method: 'POST',
           headers: this.getAuthHeaders(),
           body: JSON.stringify({ azure_uri: azureUri }),

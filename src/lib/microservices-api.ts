@@ -2,6 +2,7 @@
 // Routes through Edge Functions to Azure, Image Manipulator, BiRefNet, and SAM3
 
 import { getStoredToken } from './auth-api';
+import { authFetch } from './auth-fetch';
 
 const AZURE_UPLOAD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/azure-upload`;
 const MICROSERVICES_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/microservices-proxy`;
@@ -32,7 +33,7 @@ export async function uploadToAzure(
 ): Promise<AzureUploadResponse> {
   console.log('[microservices] Uploading to Azure...');
   
-  const response = await fetch(AZURE_UPLOAD_URL, {
+  const response = await authFetch(AZURE_UPLOAD_URL, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ 
@@ -81,7 +82,7 @@ export async function resize(request: ResizeRequest): Promise<ResizeResponse> {
     flag: request.flag,
   };
   
-  const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/resize`, {
+  const response = await authFetch(`${MICROSERVICES_PROXY_URL}?endpoint=/resize`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -114,7 +115,7 @@ export async function zoomCheck(request: ZoomCheckRequest): Promise<ZoomCheckRes
     image: { uri: request.image },
   };
   
-  const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/zoom-check`, {
+  const response = await authFetch(`${MICROSERVICES_PROXY_URL}?endpoint=/zoom-check`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -151,7 +152,7 @@ export async function submitBiRefNetJob(imageUri: string): Promise<BiRefNetJobRe
   console.log('[microservices] Submitting BiRefNet job...');
   
   // BiRefNet expects { data: { image: { uri: "..." } } }
-  const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/birefnet/jobs`, {
+  const response = await authFetch(`${MICROSERVICES_PROXY_URL}?endpoint=/birefnet/jobs`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ data: { image: { uri: imageUri } } }),
@@ -169,7 +170,7 @@ export async function submitBiRefNetJob(imageUri: string): Promise<BiRefNetJobRe
 }
 
 export async function pollBiRefNetJob(jobId: string): Promise<BiRefNetJobStatus> {
-  const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/birefnet/jobs/${jobId}`, {
+  const response = await authFetch(`${MICROSERVICES_PROXY_URL}?endpoint=/birefnet/jobs/${jobId}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -229,7 +230,7 @@ export async function submitSAM3Job(request: SAM3JobRequest): Promise<SAM3JobRes
     }
   };
   
-  const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/sam3/jobs`, {
+  const response = await authFetch(`${MICROSERVICES_PROXY_URL}?endpoint=/sam3/jobs`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -247,7 +248,7 @@ export async function submitSAM3Job(request: SAM3JobRequest): Promise<SAM3JobRes
 }
 
 export async function pollSAM3Job(jobId: string): Promise<SAM3JobStatus> {
-  const response = await fetch(`${MICROSERVICES_PROXY_URL}?endpoint=/sam3/jobs/${jobId}`, {
+  const response = await authFetch(`${MICROSERVICES_PROXY_URL}?endpoint=/sam3/jobs/${jobId}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -307,7 +308,7 @@ export async function fetchImageAsBase64(uri: string): Promise<string> {
   // Handle azure:// URIs via edge function to avoid CORS
   if (uri.startsWith('azure://')) {
     console.log('[microservices] Fetching via edge function to avoid CORS...');
-    const response = await fetch(AZURE_FETCH_IMAGE_URL, {
+    const response = await authFetch(AZURE_FETCH_IMAGE_URL, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ azure_uri: uri }),

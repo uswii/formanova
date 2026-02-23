@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
+import { authFetch } from '@/lib/auth-fetch';
 import { compressImageBlob } from '@/lib/image-compression';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -128,7 +129,7 @@ export function useImageValidation() {
 
     try {
       console.log('[ImageValidation] Starting classification request...');
-      const response = await fetch(getClassificationUrl(), {
+      const response = await authFetch(getClassificationUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

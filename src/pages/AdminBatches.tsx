@@ -27,6 +27,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStoredToken } from '@/lib/auth-api';
+import { authFetch, AuthExpiredError } from '@/lib/auth-fetch';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -166,33 +167,17 @@ export default function AdminBatches() {
     try {
       const searchParam = search !== undefined ? search : activeSearch;
       const queryStr = searchParam ? `&search=${encodeURIComponent(searchParam)}` : '';
-      const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
+      const response = await authFetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          // Token may have expired — do NOT clear admin session.
-          // Just warn; user stays logged in and can retry.
-          console.warn('[Admin] API returned 401/403 — session preserved, retrying silently');
-          toast({ title: 'Session refresh needed', description: 'Retrying...', variant: 'default' });
-          // Attempt background token refresh via getCurrentUser, then retry once
-          try {
-            const { authApi } = await import('@/lib/auth-api');
-            await authApi.getCurrentUser();
-            const retryResponse = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
-            if (retryResponse.ok) {
-              const retryData = await retryResponse.json();
-              setBatches(retryData.batches || []);
-              return;
-            }
-          } catch { /* silent */ }
-          // If retry also fails, just warn — don't logout
-          toast({ title: 'Could not refresh session', description: 'Please try again or sign out and back in.', variant: 'destructive' });
-          return;
-        }
         throw new Error('Failed to fetch batches');
       }
       const data = await response.json();
       setBatches(data.batches || []);
     } catch (err) {
+      if (err instanceof AuthExpiredError) {
+        // authFetch handles reauth banner — don't show toast
+        return;
+      }
       console.error('Failed to fetch batches:', err);
       toast({ title: 'Failed to load batches', variant: 'destructive' });
     } finally {
@@ -214,7 +199,7 @@ export default function AdminBatches() {
   const handleSaveDriveLink = useCallback(async (batchId: string) => {
     setSavingDriveLink(true);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=update_drive_link`, {
+      const response = await authFetch(`${ADMIN_API_URL}?action=update_drive_link`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_id: batchId, drive_link: driveLinkInput.trim() || null }),
@@ -238,7 +223,7 @@ export default function AdminBatches() {
     if (batchImages[batchId]) return; // already loaded
     setLoadingImages(batchId);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=get_images&batch_id=${batchId}`, { headers: getAdminHeaders() });
+      const response = await authFetch(`${ADMIN_API_URL}?action=get_images&batch_id=${batchId}`, { headers: getAdminHeaders() });
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
       setBatchImages(prev => ({ ...prev, [batchId]: data.images || [] }));
@@ -253,7 +238,7 @@ export default function AdminBatches() {
   const handleUpdateStatus = useCallback(async (batchId: string, newStatus: string) => {
     setUpdatingStatus(batchId);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=update_status`, {
+      const response = await authFetch(`${ADMIN_API_URL}?action=update_status`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_id: batchId, status: newStatus }),
@@ -275,7 +260,7 @@ export default function AdminBatches() {
   const handleDeleteBatch = useCallback(async (batchId: string) => {
     setDeletingBatch(batchId);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=delete_batch`, {
+      const response = await authFetch(`${ADMIN_API_URL}?action=delete_batch`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_id: batchId }),
@@ -372,7 +357,7 @@ export default function AdminBatches() {
   const exportFullDashboard = useCallback(async () => {
     try {
       // Fetch all images
-      const response = await fetch(`${ADMIN_API_URL}?action=all_images`, { headers: getAdminHeaders() });
+      const response = await authFetch(`${ADMIN_API_URL}?action=all_images`, { headers: getAdminHeaders() });
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
       const allImages = (data.images || []) as BatchImage[];
