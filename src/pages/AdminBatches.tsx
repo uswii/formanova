@@ -15,8 +15,10 @@ import {
   RefreshCw, Eye, Clock, CheckCircle2, XCircle, Loader2,
   Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut,
   ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash, FileSpreadsheet,
-  Search, Link2, Save, X, Trash2
+  Search, Link2, Save, X, Trash2, Package
 } from 'lucide-react';
+import DownloadModal from '@/components/admin/DownloadModal';
+import OutputUploadButton from '@/components/admin/OutputUploadButton';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -145,6 +147,7 @@ export default function AdminBatches() {
   const [savingDriveLink, setSavingDriveLink] = useState(false);
   const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
   const deepLinkHandled = useRef(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -504,6 +507,9 @@ export default function AdminBatches() {
             </span>
           </div>
           <div className="flex items-center gap-1">
+            <Button onClick={() => setDownloadModalOpen(true)} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Download ZIP with images">
+              <Package className="h-3.5 w-3.5" /> ZIP Download
+            </Button>
             <Button onClick={exportBatchesCSV} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Export batches summary">
               <Download className="h-3.5 w-3.5" /> Batches
             </Button>
@@ -907,14 +913,35 @@ export default function AdminBatches() {
                                                 ) : <span className="text-muted-foreground/30">—</span>}
                                               </td>
                                               <td className="px-2.5 py-1.5">
-                                                {img.result_url ? (
-                                                  <button
-                                                    onClick={() => setImagePreview({ url: img.result_url!, title: `#${img.sequence_number} Result` })}
-                                                    className="text-[10px] text-emerald-400 hover:underline truncate max-w-[140px] block text-left"
-                                                  >
-                                                    View Result
-                                                  </button>
-                                                ) : <span className="text-muted-foreground/30">—</span>}
+                                                <OutputUploadButton
+                                                  batchId={batch.id}
+                                                  imageId={img.id}
+                                                  currentResultUrl={img.result_url}
+                                                  getAdminHeaders={getAdminHeaders}
+                                                  onUploaded={(imgId, url) => {
+                                                    setBatchImages(prev => ({
+                                                      ...prev,
+                                                      [batch.id]: (prev[batch.id] || []).map(i =>
+                                                        i.id === imgId ? { ...i, result_url: url, status: 'completed' } : i
+                                                      ),
+                                                    }));
+                                                    setBatches(prev => prev.map(b =>
+                                                      b.id === batch.id ? { ...b, completed_images: b.completed_images + 1 } : b
+                                                    ));
+                                                  }}
+                                                  onDeleted={(imgId) => {
+                                                    setBatchImages(prev => ({
+                                                      ...prev,
+                                                      [batch.id]: (prev[batch.id] || []).map(i =>
+                                                        i.id === imgId ? { ...i, result_url: null, status: 'pending' } : i
+                                                      ),
+                                                    }));
+                                                    setBatches(prev => prev.map(b =>
+                                                      b.id === batch.id ? { ...b, completed_images: Math.max(0, b.completed_images - 1) } : b
+                                                    ));
+                                                  }}
+                                                  onPreview={(url, title) => setImagePreview({ url, title: `#${img.sequence_number} ${title}` })}
+                                                />
                                               </td>
                                               <td className="px-2.5 py-1.5">
                                                 {img.mask_url ? (
@@ -998,6 +1025,14 @@ export default function AdminBatches() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Download ZIP Modal */}
+      <DownloadModal
+        open={downloadModalOpen}
+        onClose={() => setDownloadModalOpen(false)}
+        batches={batches}
+        getAdminHeaders={getAdminHeaders}
+      />
     </div>
   );
 }

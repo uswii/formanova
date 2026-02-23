@@ -116,6 +116,53 @@ async function addSasToImages(images: any[], accountName: string, accountKey: st
   })));
 }
 
+// Upload binary to Azure Blob Storage
+async function uploadToAzure(
+  binaryData: Uint8Array,
+  blobName: string,
+  contentType: string,
+  accountName: string,
+  accountKey: string,
+  containerName: string,
+): Promise<string> {
+  const url = `https://${accountName}.blob.core.windows.net/${containerName}/${encodeURIComponent(blobName)}`;
+  const dateStr = new Date().toUTCString();
+  const blobType = 'BlockBlob';
+
+  const stringToSign = [
+    'PUT', '', '', binaryData.length.toString(), '', contentType,
+    '', '', '', '', '', '',
+    `x-ms-blob-type:${blobType}`, `x-ms-date:${dateStr}`, `x-ms-version:2020-10-02`,
+    `/${accountName}/${containerName}/${blobName}`,
+  ].join('\n');
+
+  const encoder = new TextEncoder();
+  const keyData = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(stringToSign));
+  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `SharedKey ${accountName}:${signatureBase64}`,
+      'x-ms-date': dateStr,
+      'x-ms-version': '2020-10-02',
+      'x-ms-blob-type': blobType,
+      'Content-Type': contentType,
+      'Content-Length': binaryData.length.toString(),
+    },
+    body: binaryData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Azure upload failed: ${response.status} - ${errorText}`);
+  }
+
+  return url; // Return the HTTPS URL (without SAS)
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
@@ -129,7 +176,6 @@ Deno.serve(async (req) => {
     const batchId = url.searchParams.get('batch_id');
 
     // ── Dual Authentication ──
-    // 1. Validate user token
     const userToken = req.headers.get('X-User-Token');
     if (!userToken) {
       return new Response(
@@ -146,7 +192,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Check email whitelist
     const adminEmails = getAdminEmails();
     if (adminEmails.length > 0 && !adminEmails.includes(user.email)) {
       console.warn(`[admin-batches] Access denied for ${user.email} - not in ADMIN_EMAILS`);
@@ -156,7 +201,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Validate admin secret
     const adminSecret = req.headers.get('X-Admin-Secret') || url.searchParams.get('key');
     if (!adminSecret || adminSecret !== ADMIN_SECRET) {
       return new Response(
@@ -170,6 +214,7 @@ Deno.serve(async (req) => {
     // ── Data Access ──
     const azureAccountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
     const azureAccountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
+    const azureContainerName = (Deno.env.get('AZURE_CONTAINER_NAME') ?? 'jewelry-uploads').toLowerCase();
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -177,7 +222,7 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // ── LIST BATCHES (with skin tone summary from images + search) ──
+    // ── LIST BATCHES ──
     if (action === 'list_batches') {
       const searchQuery = url.searchParams.get('search')?.trim().toLowerCase() || '';
 
@@ -187,7 +232,6 @@ Deno.serve(async (req) => {
         .order('created_at', { ascending: false });
       if (batchError) throw batchError;
 
-      // Client-side search filtering (email, batch ID, category, status, user name, drive link)
       let filteredBatches = batchData || [];
       if (searchQuery) {
         filteredBatches = filteredBatches.filter((b: any) => {
@@ -199,7 +243,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Fetch skin tones per batch
       const batchIds = filteredBatches.map((b: any) => b.id);
       let skinToneMap: Record<string, string[]> = {};
       if (batchIds.length > 0) {
@@ -217,7 +260,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // SAS-sign batch-level inspiration URLs
       const batches = await Promise.all(filteredBatches.map(async (b: any) => ({
         ...b,
         skin_tones: skinToneMap[b.id] || [],
@@ -329,6 +371,135 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── UPLOAD OUTPUT IMAGE ──
+    if (action === 'upload_output' && req.method === 'POST') {
+      const body = await req.json();
+      const { batch_id, image_id, base64, content_type, filename } = body;
+
+      if (!batch_id || !image_id || !base64) {
+        return new Response(
+          JSON.stringify({ error: 'Missing batch_id, image_id, or base64' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Strip data URI prefix
+      let cleanBase64 = base64;
+      if (base64.includes(',')) {
+        cleanBase64 = base64.split(',')[1];
+      }
+
+      const binaryData = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
+      const ct = content_type || 'image/jpeg';
+      const ext = ct.includes('png') ? 'png' : 'jpg';
+      const blobName = `outputs/${batch_id}/${image_id}_output.${ext}`;
+
+      console.log(`[admin-batches] Uploading output: ${blobName} (${binaryData.length} bytes)`);
+
+      const httpsUrl = await uploadToAzure(
+        binaryData, blobName, ct,
+        azureAccountName, azureAccountKey, azureContainerName
+      );
+
+      // Update the batch_images record
+      const { data, error } = await supabaseAdmin
+        .from('batch_images')
+        .update({
+          result_url: httpsUrl,
+          status: 'completed',
+          processing_completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', image_id)
+        .eq('batch_id', batch_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Generate SAS URL for immediate preview
+      const sasUrl = await generateSasUrl(httpsUrl, azureAccountName, azureAccountKey);
+
+      // Update batch completed count
+      const { data: allImages } = await supabaseAdmin
+        .from('batch_images')
+        .select('status')
+        .eq('batch_id', batch_id);
+
+      if (allImages) {
+        const completedCount = allImages.filter((i: any) => i.status === 'completed').length;
+        const failedCount = allImages.filter((i: any) => i.status === 'failed').length;
+        await supabaseAdmin
+          .from('batch_jobs')
+          .update({
+            completed_images: completedCount,
+            failed_images: failedCount,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', batch_id);
+      }
+
+      console.log(`[admin-batches] Output uploaded: ${blobName} by ${user.email}`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        image: { ...data, result_url: sasUrl },
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── DELETE OUTPUT IMAGE ──
+    if (action === 'delete_output' && req.method === 'POST') {
+      const body = await req.json();
+      const { batch_id, image_id } = body;
+
+      if (!batch_id || !image_id) {
+        return new Response(
+          JSON.stringify({ error: 'Missing batch_id or image_id' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('batch_images')
+        .update({
+          result_url: null,
+          status: 'pending',
+          processing_completed_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', image_id)
+        .eq('batch_id', batch_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update batch completed count
+      const { data: allImages } = await supabaseAdmin
+        .from('batch_images')
+        .select('status')
+        .eq('batch_id', batch_id);
+
+      if (allImages) {
+        const completedCount = allImages.filter((i: any) => i.status === 'completed').length;
+        await supabaseAdmin
+          .from('batch_jobs')
+          .update({
+            completed_images: completedCount,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', batch_id);
+      }
+
+      console.log(`[admin-batches] Output deleted for image ${image_id} by ${user.email}`);
+
+      return new Response(JSON.stringify({ success: true, image: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ── DELETE BATCH ──
     if (action === 'delete_batch' && req.method === 'POST') {
       const body = await req.json();
@@ -341,7 +512,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Delete images first (foreign key dependency)
       const { error: imgDelError } = await supabaseAdmin
         .from('batch_images')
         .delete()
