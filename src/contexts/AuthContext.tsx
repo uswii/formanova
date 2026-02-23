@@ -44,26 +44,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Background validation - don't block UI
+    // Background validation - non-destructive
+    // Never auto-logout on token expiry; only explicit signOut clears session
     const validateSession = async () => {
       const token = getStoredToken();
       
       if (token) {
         try {
-          // Validate token in background — only clear on explicit 401
           const currentUser = await authApi.getCurrentUser();
           if (currentUser) {
             setUser(currentUser);
           }
-          // If currentUser is null due to 401, auth-api.ts already clears storage
-          // and dispatches the auth change event — no need to duplicate here
+          // If 401: getCurrentUser returns null but we keep the stored user
+          // so the session persists. User will be prompted to re-auth
+          // only when an actual admin/API action fails.
         } catch (error) {
-          // Network error / timeout — keep existing session, don't log out
+          // Network error / timeout — keep existing session
           console.warn('[AuthContext] Background validation failed (network), keeping session:', error);
         }
-      } else {
-        // No token at all, ensure clean state
-        removeStoredUser();
+      } else if (!getStoredUser()) {
+        // No token AND no stored user — clean state
         setUser(null);
       }
     };

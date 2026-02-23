@@ -177,6 +177,8 @@ class AuthApi {
   }
 
   // Get current user - uses proxy
+  // NOTE: Does NOT clear session on 401. Only explicit signOut clears auth.
+  // This prevents auto-logout when JWT expires during inactivity.
   async getCurrentUser(): Promise<AuthUser | null> {
     const token = getStoredToken();
     if (!token) return null;
@@ -190,9 +192,11 @@ class AuthApi {
 
       if (!response.ok) {
         if (response.status === 401) {
-          removeStoredToken();
-          removeStoredUser();
-          dispatchAuthChange(null);
+          // Token expired — do NOT clear storage or dispatch logout.
+          // Session persists until explicit signOut. API calls that need
+          // fresh auth will handle 401 individually (e.g., admin dashboard
+          // prompts re-auth).
+          console.warn('[Auth] Token validation returned 401 — session preserved, token may need refresh');
           return null;
         }
         throw new Error('Failed to get user');
