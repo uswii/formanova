@@ -169,8 +169,23 @@ export default function AdminBatches() {
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('admin_secret');
-          setAdminSecret(null);
+          // Token may have expired — do NOT clear admin session.
+          // Just warn; user stays logged in and can retry.
+          console.warn('[Admin] API returned 401/403 — session preserved, retrying silently');
+          toast({ title: 'Session refresh needed', description: 'Retrying...', variant: 'default' });
+          // Attempt background token refresh via getCurrentUser, then retry once
+          try {
+            const { authApi } = await import('@/lib/auth-api');
+            await authApi.getCurrentUser();
+            const retryResponse = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
+            if (retryResponse.ok) {
+              const retryData = await retryResponse.json();
+              setBatches(retryData.batches || []);
+              return;
+            }
+          } catch { /* silent */ }
+          // If retry also fails, just warn — don't logout
+          toast({ title: 'Could not refresh session', description: 'Please try again or sign out and back in.', variant: 'destructive' });
           return;
         }
         throw new Error('Failed to fetch batches');
