@@ -1,5 +1,6 @@
 import { Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Using existing hero images to demonstrate acceptable vs not acceptable
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
@@ -33,7 +34,7 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
           </span>
         </div>
         <div className="relative aspect-[4/3] marta-frame overflow-hidden">
-          <img 
+          <OptimizedImage
             src={heroNecklace} 
             alt="Acceptable: Jewelry worn on model or product shot" 
             className="w-full h-full object-cover"
@@ -60,7 +61,7 @@ const UploadGuideBillboard = ({ categoryName = 'jewelry' }: UploadGuideBillboard
           </span>
         </div>
         <div className="relative aspect-[4/3] marta-frame overflow-hidden opacity-60">
-          <img 
+          <OptimizedImage
             src={necklacePearl} 
             alt="Not acceptable: Product shots" 
             className="w-full h-full object-cover grayscale"

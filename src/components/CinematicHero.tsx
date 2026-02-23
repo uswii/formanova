@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 interface CinematicHeroProps {
   images: { src: string; alt: string }[];
@@ -94,9 +95,10 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
               isActive ? "opacity-100 z-10" : "opacity-0 z-0"
             )}
           >
-            <img 
+            <OptimizedImage
               src={image.src} 
               alt={image.alt} 
+              priority={index === 0}
               className="w-full h-full object-cover"
               style={{
                 transform: isActive ? `scale(${1 + scrollProgress * 0.05})` : 'scale(1)',

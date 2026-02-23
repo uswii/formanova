@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/image-normalize';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 export interface InspirationImage {
   id: string;
@@ -80,7 +81,7 @@ const InspirationUpload = ({
             exit={{ opacity: 0, scale: 0.95 }}
             className={`relative marta-frame overflow-hidden ${compact ? 'aspect-[3/2]' : 'aspect-[4/3]'}`}
           >
-            <img
+            <OptimizedImage
               src={image.preview}
               alt="Inspiration reference"
               className="w-full h-full object-cover"

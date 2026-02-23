@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Import jewelry images
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
@@ -115,7 +116,7 @@ const PhotographyStudio = () => {
             }`}
           >
             {/* Background Image */}
-            <img
+            <OptimizedImage
               src={category.image}
               alt={category.name}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"

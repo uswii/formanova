@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { BeforeAfterSlider } from './studio/BeforeAfterSlider';
+// Note: BeforeAfterSlider handles its own images internally
 
 // Assets
 import mannequinInput from '@/assets/showcase/mannequin-input.png';

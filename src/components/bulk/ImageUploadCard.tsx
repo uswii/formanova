@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Check } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 export type SkinTone = 'fair' | 'light' | 'medium' | 'tan' | 'dark' | 'deep';
 
@@ -45,7 +46,7 @@ const ImageUploadCard = ({
     >
       {/* Image Preview */}
       <div className="aspect-square marta-frame overflow-hidden bg-muted/30">
-        <img
+        <OptimizedImage
           src={preview}
           alt="Jewelry upload"
           className="w-full h-full object-cover"

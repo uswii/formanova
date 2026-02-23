@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles, CheckCircle2, Target } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Import showcase images
 import mannequinInput from '@/assets/showcase/mannequin-input.png';
@@ -97,7 +98,7 @@ export function JewelryShowcase() {
             onMouseLeave={() => setShowOverlay(false)}
           >
             {/* Base mannequin image */}
-            <img 
+            <OptimizedImage
               src={mannequinInput} 
               alt="Mannequin with jewelry" 
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
@@ -105,7 +106,7 @@ export function JewelryShowcase() {
             />
             
             {/* Overlay with jewelry highlight */}
-            <img 
+            <OptimizedImage
               src={jewelryOverlay} 
               alt="Jewelry highlighted" 
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Import images
 import mannequinInput from '@/assets/showcase/mannequin-input.png';
@@ -349,7 +350,7 @@ export function CinematicShowcase() {
         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted/20 border border-border">
           {/* Simple toggle - show current image only */}
           <div className="absolute inset-0">
-            <img
+            <OptimizedImage
               src={allImages[currentImageIndex]}
               alt="Current"
               className="w-full h-full object-contain"
