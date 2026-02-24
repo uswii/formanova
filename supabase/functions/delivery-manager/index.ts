@@ -286,11 +286,15 @@ Deno.serve(async (req) => {
 
       for (const img of images) {
         try {
-          // Use stored URL directly if it already has SAS, otherwise generate one
-          const hasSas = img.image_url.includes('?sv=') || img.image_url.includes('?sig=');
+          // Normalize URL and check for existing SAS
+          let imgUrl = img.image_url;
+          if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
+            imgUrl = `https://${imgUrl}`;
+          }
+          const hasSas = imgUrl.includes('?sv=') || imgUrl.includes('?sig=');
           const fetchUrl = hasSas 
-            ? img.image_url 
-            : await generateSasUrlFromHttps(img.image_url, '', accountKey, 60);
+            ? imgUrl 
+            : await generateSasUrlFromHttps(imgUrl, '', accountKey, 60);
           
           const debugUrl = fetchUrl.split('?')[0];
           console.log(`[delivery-manager] ZIP: fetching ${debugUrl} (hasSas=${hasSas})`);
@@ -399,9 +403,14 @@ Deno.serve(async (req) => {
         if (!groups[key]) {
           groups[key] = { batch_id: row.batch_id, user_email: row.user_email, safe_email: row.safe_email, images: [] };
         }
+        // Normalize URL: ensure https:// prefix
+        let imageUrl = row.image_url;
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+          imageUrl = `https://${imageUrl}`;
+        }
         // Extract filename from URL or use image_filename column
-        const filename = row.image_filename || row.image_url.split('/').pop()?.split('?')[0] || `image_${groups[key].images.length + 1}.jpg`;
-        groups[key].images.push({ filename, url: row.image_url }); // keep full URL including any SAS token
+        const filename = row.image_filename || imageUrl.split('/').pop()?.split('?')[0] || `image_${groups[key].images.length + 1}.jpg`;
+        groups[key].images.push({ filename, url: imageUrl }); // keep full URL including any SAS token
       }
 
       const category = body.category || 'necklace';
