@@ -175,16 +175,6 @@ export default function LeftPanel({
             {isGenerating && !isEditing ? "Generating…" : "Generate Ring"}
           </button>
 
-          {/* GLB Upload */}
-          <input type="file" ref={glbInputRef} accept=".glb,.gltf" className="hidden" onChange={handleGlbUpload} />
-          <button
-            onClick={() => glbInputRef.current?.click()}
-            className="w-full py-3 mt-2 rounded-xl text-[12px] font-semibold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white flex items-center justify-center gap-2"
-            style={glassBtn}
-          >
-            <Upload className="w-4 h-4" />
-            Upload GLB Model
-          </button>
 
           {/* Magic Texturing */}
           {hasModel && (
