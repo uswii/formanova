@@ -284,20 +284,20 @@ Deno.serve(async (req) => {
       const zip = new JSZip();
       let fetched = 0;
 
-      const azureAccountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
-      console.log(`[delivery-manager] ZIP: AZURE_ACCOUNT_NAME=${azureAccountName}, key length=${accountKey.length}, images=${images.length}`);
-
       for (const img of images) {
         try {
-          console.log(`[delivery-manager] ZIP: original image_url=${img.image_url}`);
-          const sasUrl = await generateSasUrlFromHttps(img.image_url, '', accountKey, 60);
-          // Log URL without signature for debugging
-          const debugUrl = sasUrl.split('?')[0];
-          console.log(`[delivery-manager] ZIP: fetching ${debugUrl}`);
-          const resp = await fetch(sasUrl);
+          // Use stored URL directly if it already has SAS, otherwise generate one
+          const hasSas = img.image_url.includes('?sv=') || img.image_url.includes('?sig=');
+          const fetchUrl = hasSas 
+            ? img.image_url 
+            : await generateSasUrlFromHttps(img.image_url, '', accountKey, 60);
+          
+          const debugUrl = fetchUrl.split('?')[0];
+          console.log(`[delivery-manager] ZIP: fetching ${debugUrl} (hasSas=${hasSas})`);
+          const resp = await fetch(fetchUrl);
           if (!resp.ok) {
             const errBody = await resp.text();
-            console.error(`[delivery-manager] ZIP: failed to fetch ${img.image_filename}: ${resp.status} - ${errBody.substring(0, 300)}`);
+            console.error(`[delivery-manager] ZIP: failed to fetch ${img.image_filename}: ${resp.status} - ${errBody.substring(0, 200)}`);
             continue;
           }
           const buf = await resp.arrayBuffer();
@@ -401,7 +401,7 @@ Deno.serve(async (req) => {
         }
         // Extract filename from URL or use image_filename column
         const filename = row.image_filename || row.image_url.split('/').pop()?.split('?')[0] || `image_${groups[key].images.length + 1}.jpg`;
-        groups[key].images.push({ filename, url: row.image_url.split('?')[0] }); // strip any existing SAS
+        groups[key].images.push({ filename, url: row.image_url }); // keep full URL including any SAS token
       }
 
       const category = body.category || 'necklace';
