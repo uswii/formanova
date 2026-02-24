@@ -127,11 +127,20 @@ async function generateSasUrlFromHttps(blobUrl: string, _accountName: string, ac
     // Extract account name from hostname (e.g. "snapwear" from "snapwear.blob.core.windows.net")
     const hostAccountName = url.hostname.split('.')[0];
     const pathParts = url.pathname.split('/').filter(Boolean);
-    if (pathParts.length < 2) return blobUrl;
-    const containerName = decodeURIComponent(pathParts[0]);
-    const blobPath = pathParts.slice(1).map(p => decodeURIComponent(p)).join('/');
+    if (pathParts.length < 2) {
+      console.error('[delivery-manager] SAS: not enough path parts in URL:', blobUrl);
+      return blobUrl;
+    }
+    const containerName = pathParts[0];
+    // Keep blob path as-is (no decoding) to match azure-get-sas behavior
+    const blobPath = pathParts.slice(1).join('/');
+    
+    console.log(`[delivery-manager] SAS debug: account=${hostAccountName}, container=${containerName}, blob=${blobPath}`);
+    
     const sas = await generateSasToken(hostAccountName, accountKey, containerName, blobPath, expiryMinutes);
-    return `${blobUrl}?${sas}`;
+    const sasUrl = `https://${hostAccountName}.blob.core.windows.net/${containerName}/${blobPath}?${sas}`;
+    console.log(`[delivery-manager] SAS URL constructed (without sig): https://${hostAccountName}.blob.core.windows.net/${containerName}/${blobPath}?sv=...`);
+    return sasUrl;
   } catch (err) {
     console.error('[delivery-manager] SAS generation error:', err);
     return blobUrl;
@@ -272,7 +281,9 @@ Deno.serve(async (req) => {
       if (iErr || !image) return json({ error: 'Image not found' }, 404);
 
       const accountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
-      const sasUrl = await generateSasUrlFromHttps(image.image_url, '', accountKey, 60);
+      const accountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
+      console.log(`[delivery-manager] Azure config: accountName=${accountName}, keyLength=${accountKey.length}, imageUrl=${image.image_url}`);
+      const sasUrl = await generateSasUrlFromHttps(image.image_url, accountName, accountKey, 60);
 
       try {
         const blobResp = await fetch(sasUrl);
