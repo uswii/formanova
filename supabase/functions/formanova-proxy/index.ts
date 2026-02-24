@@ -13,6 +13,90 @@ const MODEL_MAP: Record<string, string> = {
 
 const FORMANOVA_BASE = "https://formanova.ai/api";
 
+// ── SAS Token Generation ──
+
+async function generateSasUrl(azureUri: string): Promise<string | null> {
+  const accountName = Deno.env.get("AZURE_ACCOUNT_NAME");
+  const accountKey = Deno.env.get("AZURE_ACCOUNT_KEY");
+  if (!accountName || !accountKey) {
+    console.error("[formanova-proxy] Missing AZURE_ACCOUNT_NAME or AZURE_ACCOUNT_KEY");
+    return null;
+  }
+
+  const path = azureUri.replace("azure://", "");
+  const slashIndex = path.indexOf("/");
+  if (slashIndex === -1) return null;
+
+  const containerName = path.substring(0, slashIndex);
+  const blobName = path.substring(slashIndex + 1);
+
+  const now = new Date();
+  const expiry = new Date(now.getTime() + 60 * 60 * 1000);
+  const fmt = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+  const st = fmt(now);
+  const se = fmt(expiry);
+
+  const stringToSign = [
+    "r", st, se,
+    `/blob/${accountName}/${containerName}/${blobName}`,
+    "", "", "https", "2020-10-02", "b",
+    "", "", "", "", "", "",
+  ].join("\n");
+
+  const keyData = Uint8Array.from(atob(accountKey), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(stringToSign));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
+
+  const qs = new URLSearchParams({ sv: "2020-10-02", st, se, sr: "b", sp: "r", spr: "https", sig: sigB64 });
+  const url = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${qs.toString()}`;
+  console.log(`[formanova-proxy] Resolved: ${containerName}/${blobName}`);
+  return url;
+}
+
+// ── Helpers ──
+
+function findAzureUri(obj: unknown, nodeKey?: string): string | null {
+  if (!obj || typeof obj !== "object") return null;
+  const rec = obj as Record<string, unknown>;
+  if (nodeKey && nodeKey in rec) {
+    const found = findAzureUri(rec[nodeKey]);
+    if (found) return found;
+  }
+  for (const val of Object.values(rec)) {
+    if (typeof val === "string" && val.startsWith("azure://")) return val;
+    if (val && typeof val === "object") {
+      const found = findAzureUri(val);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function findGlbUrl(obj: unknown): string | null {
+  if (typeof obj === "string") {
+    if (obj.endsWith(".glb") || obj.includes(".glb")) return obj;
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findGlbUrl(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (obj && typeof obj === "object") {
+    const record = obj as Record<string, unknown>;
+    for (const val of Object.values(record)) {
+      const found = findGlbUrl(val);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// ── Main Handler ──
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -28,9 +112,9 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const action = url.searchParams.get("action"); // "run" | "status" | "result"
+    const action = url.searchParams.get("action");
 
-    // ── RUN: Start the ring pipeline ──
+    // ── RUN ──
     if (action === "run" && req.method === "POST") {
       const body = await req.json();
       const { prompt, model } = body as { prompt: string; model: string };
@@ -52,11 +136,7 @@ serve(async (req) => {
           "X-On-Behalf-Of": "nimra-dev",
         },
         body: JSON.stringify({
-          payload: {
-            prompt,
-            llm_name: llmName,
-            max_retries: 3,
-          },
+          payload: { prompt, llm_name: llmName, max_retries: 3 },
           return_nodes: ["ring-generate", "ring-validate"],
         }),
       });
@@ -70,13 +150,12 @@ serve(async (req) => {
         );
       }
 
-      // Return workflow_id, status_url, result_url, projected_cost
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ── STATUS: Poll workflow progress ──
+    // ── STATUS ──
     if (action === "status" && req.method === "POST") {
       const body = await req.json();
       const { status_url } = body as { status_url: string };
@@ -88,16 +167,13 @@ serve(async (req) => {
         );
       }
 
-      // Ensure URL is on our domain
       const fullUrl = status_url.startsWith("http")
         ? status_url
         : `${FORMANOVA_BASE}${status_url.startsWith("/") ? "" : "/"}${status_url}`;
 
       const statusRes = await fetch(fullUrl, {
         method: "GET",
-        headers: {
-          "X-API-Key": apiKey,
-        },
+        headers: { "X-API-Key": apiKey },
       });
 
       const data = await statusRes.json();
@@ -107,7 +183,7 @@ serve(async (req) => {
       });
     }
 
-    // ── RESULT: Fetch final result and extract GLB URL ──
+    // ── RESULT ──
     if (action === "result" && req.method === "POST") {
       const body = await req.json();
       const { result_url } = body as { result_url: string };
@@ -125,9 +201,7 @@ serve(async (req) => {
 
       const resultRes = await fetch(fullUrl, {
         method: "GET",
-        headers: {
-          "X-API-Key": apiKey,
-        },
+        headers: { "X-API-Key": apiKey },
       });
 
       const data = await resultRes.json();
@@ -139,12 +213,23 @@ serve(async (req) => {
         );
       }
 
-      // Extract GLB URL from the result payload
-      // The result JSON can be nested; search for azure artifact URL ending in .glb
-      const glbUrl = findGlbUrl(data);
+      // Extract azure:// URIs — prefer ring-validate, fallback to ring-generate
+      const validateUri = findAzureUri(data, "ring-validate");
+      const generateUri = findAzureUri(data, "ring-generate");
+      const azureUri = validateUri || generateUri;
+
+      let glbUrl: string | null = null;
+
+      if (azureUri) {
+        glbUrl = await generateSasUrl(azureUri);
+      } else {
+        glbUrl = findGlbUrl(data);
+      }
+
+      const source = validateUri ? "ring-validate" : generateUri ? "ring-generate" : null;
 
       return new Response(
-        JSON.stringify({ ...data, glb_url: glbUrl }),
+        JSON.stringify({ ...data, glb_url: glbUrl, azure_source: source }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -161,39 +246,3 @@ serve(async (req) => {
     );
   }
 });
-
-/**
- * Recursively search JSON for a URL ending in .glb
- * Handles Azure blob URLs and nested result structures
- */
-function findGlbUrl(obj: unknown): string | null {
-  if (typeof obj === "string") {
-    if (obj.endsWith(".glb") || obj.includes(".glb")) return obj;
-    return null;
-  }
-  if (Array.isArray(obj)) {
-    for (const item of obj) {
-      const found = findGlbUrl(item);
-      if (found) return found;
-    }
-    return null;
-  }
-  if (obj && typeof obj === "object") {
-    // Prioritize keys that likely contain the artifact URL
-    const priorityKeys = ["artifact_url", "artifact_uri", "glb_url", "model_url", "output_url", "url", "file_url", "blob_url"];
-    const record = obj as Record<string, unknown>;
-    for (const key of priorityKeys) {
-      if (key in record) {
-        const found = findGlbUrl(record[key]);
-        if (found) return found;
-      }
-    }
-    for (const [key, val] of Object.entries(record)) {
-      if (!priorityKeys.includes(key)) {
-        const found = findGlbUrl(val);
-        if (found) return found;
-      }
-    }
-  }
-  return null;
-}
