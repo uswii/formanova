@@ -29,6 +29,7 @@ import Pricing from "./pages/Pricing";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import AdminBatches from "./pages/AdminBatches";
 import NotFound from "./pages/NotFound";
+import DeliveryResults from "./pages/DeliveryResults";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,9 @@ const App = () => (
                   
                   {/* Admin route - secret key protected */}
                   <Route path="/admin" element={<AdminBatches />} />
+                  
+                  {/* Public delivery results page */}
+                  <Route path="/results/:token" element={<DeliveryResults />} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.formanova-proxy]
 verify_jwt = false
+
+[functions.delivery-manager]
+verify_jwt = false

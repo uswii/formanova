@@ -145,6 +145,86 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_batches: {
+        Row: {
+          batch_id: string
+          category: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_status: string
+          email_sent_at: string | null
+          id: string
+          override_email: string | null
+          safe_email: string
+          token: string | null
+          updated_at: string
+          user_email: string
+        }
+        Insert: {
+          batch_id: string
+          category?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string
+          email_sent_at?: string | null
+          id?: string
+          override_email?: string | null
+          safe_email: string
+          token?: string | null
+          updated_at?: string
+          user_email: string
+        }
+        Update: {
+          batch_id?: string
+          category?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string
+          email_sent_at?: string | null
+          id?: string
+          override_email?: string | null
+          safe_email?: string
+          token?: string | null
+          updated_at?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
+      delivery_images: {
+        Row: {
+          created_at: string
+          delivery_batch_id: string
+          id: string
+          image_filename: string
+          image_url: string
+          sequence: number
+        }
+        Insert: {
+          created_at?: string
+          delivery_batch_id: string
+          id?: string
+          image_filename: string
+          image_url: string
+          sequence?: number
+        }
+        Update: {
+          created_at?: string
+          delivery_batch_id?: string
+          id?: string
+          image_filename?: string
+          image_url?: string
+          sequence?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_images_delivery_batch_id_fkey"
+            columns: ["delivery_batch_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

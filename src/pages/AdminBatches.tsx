@@ -15,11 +15,12 @@ import {
   RefreshCw, Eye, Clock, CheckCircle2, XCircle, Loader2,
   Mail, Image as ImageIcon, Download, ExternalLink, ShieldCheck, LogOut,
   ChevronDown, ChevronRight, Copy, Truck, AlertTriangle, Hash, FileSpreadsheet,
-  Search, Link2, Save, X, Trash2, Package
+  Search, Link2, Save, X, Trash2, Package, Send
 } from 'lucide-react';
 import DownloadModal from '@/components/admin/DownloadModal';
 import BatchEmailSender from '@/components/admin/BatchEmailSender';
 import OutputUploadButton from '@/components/admin/OutputUploadButton';
+import DeliveryManager from '@/components/admin/DeliveryManager';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -150,6 +151,7 @@ export default function AdminBatches() {
   const deepLinkHandled = useRef(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [emailSenderOpen, setEmailSenderOpen] = useState(false);
+  const [deliveryManagerOpen, setDeliveryManagerOpen] = useState(false);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -510,6 +512,9 @@ export default function AdminBatches() {
             </span>
           </div>
           <div className="flex items-center gap-1">
+            <Button onClick={() => setDeliveryManagerOpen(true)} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="CSV-driven delivery system">
+              <Send className="h-3.5 w-3.5" /> Delivery
+            </Button>
             <Button onClick={() => setEmailSenderOpen(true)} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Send result emails to users">
               <Mail className="h-3.5 w-3.5" /> Email Results
             </Button>
@@ -1066,6 +1071,13 @@ export default function AdminBatches() {
         onBatchStatusUpdated={(batchId, newStatus) => {
           setBatches(prev => prev.map(b => b.id === batchId ? { ...b, status: newStatus } : b));
         }}
+      />
+
+      {/* Delivery Manager Modal */}
+      <DeliveryManager
+        open={deliveryManagerOpen}
+        onOpenChange={setDeliveryManagerOpen}
+        getAdminHeaders={getAdminHeaders}
       />
     </div>
   );
