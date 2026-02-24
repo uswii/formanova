@@ -169,21 +169,9 @@ export default function AdminBatches() {
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Silent background retry — no toast, no interruption
-          console.warn('[Admin] API returned 401/403 — attempting silent retry');
-          try {
-            const { authApi } = await import('@/lib/auth-api');
-            await authApi.getCurrentUser();
-            const retryResponse = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
-            if (retryResponse.ok) {
-              const retryData = await retryResponse.json();
-              setBatches(retryData.batches || []);
-              return;
-            }
-          } catch { /* silent */ }
-          // Only show toast if retry also failed — non-blocking, no loop
-          console.warn('[Admin] Silent retry failed — user can manually refresh');
-          toast({ title: 'Session needs refresh', description: 'Please sign out and back in if data looks stale.', variant: 'default' });
+          // Session expired — clean redirect to re-authenticate
+          localStorage.removeItem('admin_secret');
+          setAdminSecret(null);
           return;
         }
         throw new Error('Failed to fetch batches');
