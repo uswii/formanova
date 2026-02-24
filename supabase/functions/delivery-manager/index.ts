@@ -345,10 +345,26 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Look up notification_email from original batch_jobs for this user
+        let overrideEmail: string | null = null;
+        const { data: originalBatches } = await db.from('batch_jobs')
+          .select('notification_email')
+          .eq('user_email', group.user_email)
+          .not('notification_email', 'is', null)
+          .limit(1);
+        if (originalBatches && originalBatches.length > 0) {
+          const notifyEmail = originalBatches[0].notification_email;
+          if (notifyEmail && notifyEmail.toLowerCase() !== group.user_email.toLowerCase()) {
+            overrideEmail = notifyEmail;
+            console.log(`[delivery-manager] Auto-set override email for ${group.user_email} → ${notifyEmail}`);
+          }
+        }
+
         const { data: batch, error: bErr } = await db.from('delivery_batches').insert({
           batch_id: group.batch_id,
           user_email: group.user_email,
           safe_email: group.safe_email,
+          override_email: overrideEmail,
           category,
           delivery_status: 'completed',
         }).select().single();
