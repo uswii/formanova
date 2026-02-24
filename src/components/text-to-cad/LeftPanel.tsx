@@ -170,11 +170,12 @@ export default function LeftPanel({
           {/* Generate button */}
           <button
             onClick={onGenerate}
-            disabled={isGenerating || !prompt.trim()}
-            className="w-full py-4 mt-3 rounded-xl text-[14px] font-bold uppercase tracking-[2px] cursor-pointer transition-all duration-200 text-black disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[0_6px_30px_rgba(255,255,255,0.2)] hover:scale-[1.01] active:scale-[0.99]"
+            disabled={true}
+            className="w-full py-4 mt-3 rounded-xl text-[14px] font-bold uppercase tracking-[2px] cursor-pointer transition-all duration-200 text-black disabled:opacity-30 disabled:cursor-not-allowed"
             style={primaryBtn}
+            title="Coming soon"
           >
-            {isGenerating && !isEditing ? "Generating…" : "Generate Ring"}
+            Generate Ring (Coming Soon)
           </button>
 
 
