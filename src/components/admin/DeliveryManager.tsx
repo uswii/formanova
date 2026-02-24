@@ -92,6 +92,9 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders }:
       setUploadResult(data.created || []);
       toast({ title: `${data.total} delivery batches created` });
       setCsvText('');
+      // Auto-switch to deliveries tab and refresh
+      fetchDeliveries();
+      setTab('deliveries');
     } catch (err: any) {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
@@ -203,7 +206,7 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders }:
         <Tabs value={tab} onValueChange={setTab} className="mt-2">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upload" className="gap-1.5 text-xs"><Upload className="h-3.5 w-3.5" /> Upload CSV</TabsTrigger>
-            <TabsTrigger value="deliveries" className="gap-1.5 text-xs" onClick={() => { if (deliveries.length === 0) fetchDeliveries(); }}>
+            <TabsTrigger value="deliveries" className="gap-1.5 text-xs" onClick={() => fetchDeliveries()}>
               <Mail className="h-3.5 w-3.5" /> Deliveries
             </TabsTrigger>
           </TabsList>
