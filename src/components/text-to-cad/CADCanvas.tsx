@@ -198,6 +198,8 @@ const LoadedModel = forwardRef<
       (error) => {
         console.error("[CADCanvas] Failed to load GLB:", error);
         console.error("[CADCanvas] URL was:", url.substring(0, 120));
+        // Reset loaded ref so user can retry
+        loadedUrlRef.current = "";
       }
     );
   }, [url]);

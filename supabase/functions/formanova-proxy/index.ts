@@ -41,11 +41,14 @@ async function generateSasUrl(azureUri: string): Promise<string | null> {
   // rsct = response content-type override so Azure serves as GLB
   const rsct = "model/gltf-binary";
 
+  // 16 fields (15 newlines) required for Azure SAS v2020-10-02:
+  // sp, st, se, canonicalizedResource, si, sip, spr, sv, sr,
+  // snapshot, encryptionScope, rscc, rscd, rsce, rscl, rsct
   const stringToSign = [
     "r", st, se,
     `/blob/${accountName}/${containerName}/${blobName}`,
     "", "", "https", "2020-10-02", "b",
-    "", "", "", "", "", rsct,
+    "", "", "", "", "", "", rsct,
   ].join("\n");
 
   const keyData = Uint8Array.from(atob(accountKey), (c) => c.charCodeAt(0));
