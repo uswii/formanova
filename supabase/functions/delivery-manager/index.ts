@@ -159,33 +159,64 @@ function buildDeliveryEmailHtml(params: {
   resultsUrl: string;
   imageCount: number;
 }): string {
-  const { recipientName, category, resultsUrl, imageCount } = params;
+  const { recipientName, resultsUrl, imageCount } = params;
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <!-- Header -->
     <div style="text-align: center; margin-bottom: 40px;">
-      <h1 style="color: #c8a97e; font-size: 28px; letter-spacing: 6px; font-weight: 300; margin: 0;">FORMANOVA</h1>
+      <h1 style="color: #c8a97e; font-size: 28px; letter-spacing: 6px; font-weight: 300; margin: 0;">FORMA NOVA</h1>
       <div style="width: 60px; height: 1px; background: linear-gradient(90deg, transparent, #c8a97e, transparent); margin: 16px auto;"></div>
     </div>
+
+    <!-- Body -->
     <div style="background-color: #111; border: 1px solid #222; border-radius: 8px; padding: 32px;">
-      <p style="color: #e0e0e0; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">Hi ${recipientName},</p>
-      <p style="color: #999; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
-        Your <strong style="color: #c8a97e; text-transform: capitalize;">${category}</strong> results are ready!
-        You have ${imageCount} image${imageCount !== 1 ? 's' : ''} available for download.
+      <p style="color: #e0e0e0; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+        Dear ${recipientName},
       </p>
-      <div style="text-align: center; margin: 32px 0;">
-        <a href="${resultsUrl}" style="display: inline-block; background: linear-gradient(135deg, #c8a97e, #a88b5e); color: #0a0a0a; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase;">
-          View & Download Results
+      <p style="color: #bbb; font-size: 14px; line-height: 1.7; margin: 0 0 20px;">
+        Thank you for using Forma Nova to create your jewelry photos. Your requested images are attached.
+      </p>
+      <p style="color: #bbb; font-size: 14px; line-height: 1.7; margin: 0 0 24px;">
+        If you have any questions or feedback, please reply to this email and a member of our team will get back to you.
+      </p>
+
+      <!-- Pro Tip -->
+      <div style="background-color: #1a1a1a; border-left: 3px solid #c8a97e; border-radius: 4px; padding: 16px; margin-bottom: 28px;">
+        <p style="color: #c8a97e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;">💡 Pro Tip</p>
+        <p style="color: #999; font-size: 13px; line-height: 1.6; margin: 0;">
+          For the best results, please upload <strong style="color: #bbb;">worn images</strong> (jewelry on a person) rather than product-only images. If you need a specific model, look, background, or vibe, use the <strong style="color: #bbb;">"Inspirational Photos"</strong> option to upload reference images that match your desired final result.
+        </p>
+      </div>
+
+      <!-- Photo Count -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <p style="color: #999; font-size: 13px; margin: 0 0 4px;">Total Photos Attached</p>
+        <p style="color: #c8a97e; font-size: 28px; font-weight: 300; margin: 0;">${imageCount}</p>
+      </div>
+
+      <!-- CTA -->
+      <div style="text-align: center; margin: 28px 0 16px;">
+        <a href="${resultsUrl}" style="display: inline-block; background: linear-gradient(135deg, #c8a97e, #a88b5e); color: #0a0a0a; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-weight: 600; font-size: 14px; letter-spacing: 1px;">
+          Download Your Photos
         </a>
       </div>
-      <p style="color: #666; font-size: 12px; line-height: 1.6; margin: 0;">
-        This link does not expire. You can access your results anytime.
+      <p style="color: #666; font-size: 11px; text-align: center; margin: 0;">
+        Click the link to download your generated photoshoot with Forma Nova.
       </p>
     </div>
-    <div style="text-align: center; margin-top: 32px;">
-      <p style="color: #555; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} FormaNova · AI-Powered Jewelry Photography</p>
+
+    <!-- Sign-off -->
+    <div style="padding: 24px 0 0; text-align: center;">
+      <p style="color: #999; font-size: 14px; margin: 0 0 4px;">Warmest Regards,</p>
+      <p style="color: #c8a97e; font-size: 15px; font-weight: 500; letter-spacing: 1px; margin: 0;">Forma Nova AI Agent</p>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #1a1a1a;">
+      <p style="color: #444; font-size: 10px; margin: 0;">© ${new Date().getFullYear()} Forma Nova · AI-Powered Jewelry Photography</p>
     </div>
   </div>
 </body>
