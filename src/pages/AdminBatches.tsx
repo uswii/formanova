@@ -154,6 +154,7 @@ export default function AdminBatches() {
   const deepLinkHandled = useRef(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [deliveryManagerOpen, setDeliveryManagerOpen] = useState(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -1170,7 +1171,12 @@ export default function AdminBatches() {
         open={deliveryManagerOpen}
         onOpenChange={setDeliveryManagerOpen}
         getAdminHeaders={getAdminHeaders}
-        onDeliverySent={() => fetchBatches()}
+        onDeliverySent={() => {
+          // Debounce: during bulk sending, many rapid calls come in.
+          // Only refresh once after the last call settles.
+          if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+          refreshTimerRef.current = setTimeout(() => fetchBatches(), 500);
+        }}
       />
     </div>
   );
