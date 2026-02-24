@@ -125,14 +125,14 @@ async function generateSasToken(
 async function generateSasUrlFromHttps(blobUrl: string, _accountName: string, accountKey: string, expiryMinutes = 120): Promise<string> {
   try {
     const url = new URL(blobUrl);
-    // Extract account name from hostname (e.g. "snapwear" from "snapwear.blob.core.windows.net")
     const hostAccountName = url.hostname.split('.')[0];
     const pathParts = url.pathname.split('/').filter(Boolean);
     if (pathParts.length < 2) return blobUrl;
     const containerName = decodeURIComponent(pathParts[0]);
     const blobPath = pathParts.slice(1).map(p => decodeURIComponent(p)).join('/');
+    console.log(`[delivery-manager] SAS: account=${hostAccountName}, container=${containerName}, blob=${blobPath}`);
     const sas = await generateSasToken(hostAccountName, accountKey, containerName, blobPath, expiryMinutes);
-    return `${blobUrl}?${sas}`;
+    return `${url.origin}/${containerName}/${blobPath}?${sas}`;
   } catch (err) {
     console.error('[delivery-manager] SAS generation error:', err);
     return blobUrl;
@@ -284,12 +284,20 @@ Deno.serve(async (req) => {
       const zip = new JSZip();
       let fetched = 0;
 
+      const azureAccountName = Deno.env.get('AZURE_ACCOUNT_NAME') ?? '';
+      console.log(`[delivery-manager] ZIP: AZURE_ACCOUNT_NAME=${azureAccountName}, key length=${accountKey.length}, images=${images.length}`);
+
       for (const img of images) {
         try {
+          console.log(`[delivery-manager] ZIP: original image_url=${img.image_url}`);
           const sasUrl = await generateSasUrlFromHttps(img.image_url, '', accountKey, 60);
+          // Log URL without signature for debugging
+          const debugUrl = sasUrl.split('?')[0];
+          console.log(`[delivery-manager] ZIP: fetching ${debugUrl}`);
           const resp = await fetch(sasUrl);
           if (!resp.ok) {
-            console.error(`[delivery-manager] ZIP: failed to fetch ${img.image_filename}: ${resp.status}`);
+            const errBody = await resp.text();
+            console.error(`[delivery-manager] ZIP: failed to fetch ${img.image_filename}: ${resp.status} - ${errBody.substring(0, 300)}`);
             continue;
           }
           const buf = await resp.arrayBuffer();
