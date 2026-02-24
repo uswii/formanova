@@ -423,11 +423,9 @@ Deno.serve(async (req) => {
         const { data: existing } = await db.from('delivery_batches')
           .select('id, delivery_status').eq('batch_id', group.batch_id).eq('user_email', group.user_email).limit(1);
         if (existing && existing.length > 0) {
+          // Already delivered — skip entirely to prevent duplicate emails
           if (existing[0].delivery_status === 'delivered') {
-            // Already delivered — reset to completed so it can be re-sent
-            await db.from('delivery_batches').update({ delivery_status: 'completed', token: null, delivered_at: null, email_sent_at: null }).eq('id', existing[0].id);
-            console.log(`[delivery-manager] Reset delivered → completed for ${group.user_email} / ${group.batch_id}`);
-            created.push({ id: existing[0].id, batch_id: group.batch_id, user_email: group.user_email, image_count: group.images.length });
+            console.log(`[delivery-manager] Skipping already delivered: ${group.user_email} / ${group.batch_id}`);
           } else {
             console.log(`[delivery-manager] Skipping existing (${existing[0].delivery_status}) delivery for ${group.user_email} / ${group.batch_id}`);
           }
