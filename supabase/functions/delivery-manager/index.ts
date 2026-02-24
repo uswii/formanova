@@ -399,9 +399,11 @@ Deno.serve(async (req) => {
       // Group by batch_id + user_email
       const groups: Record<string, { batch_id: string; user_email: string; safe_email: string; images: { filename: string; url: string }[] }> = {};
       for (const row of rows) {
-        const key = `${row.batch_id}::${row.user_email}`;
+        // Strip trailing .N suffix from user_email (e.g. "user@gmail.com.1" → "user@gmail.com")
+        const cleanEmail = row.user_email.replace(/\.\d+$/, '');
+        const key = `${row.batch_id}::${cleanEmail}`;
         if (!groups[key]) {
-          groups[key] = { batch_id: row.batch_id, user_email: row.user_email, safe_email: row.safe_email, images: [] };
+          groups[key] = { batch_id: row.batch_id, user_email: cleanEmail, safe_email: row.safe_email.replace(/_\d+$/, ''), images: [] };
         }
         // Normalize URL: ensure https:// prefix
         let imageUrl = row.image_url;
