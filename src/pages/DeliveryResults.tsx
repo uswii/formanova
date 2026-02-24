@@ -10,6 +10,7 @@ interface GalleryImage {
   id: string;
   image_filename: string;
   sequence: number;
+  download_url: string;
 }
 
 interface GalleryData {
@@ -23,8 +24,6 @@ export default function DeliveryResults() {
   const [data, setData] = useState<GalleryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [downloading, setDownloading] = useState<string | null>(null);
-  const [downloadingAll, setDownloadingAll] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -37,40 +36,6 @@ export default function DeliveryResults() {
       .catch(() => setError('Failed to load results'))
       .finally(() => setLoading(false));
   }, [token]);
-
-  const getThumbnailUrl = (imageId: string) =>
-    `${DELIVERY_API}?action=thumbnail&token=${token}&image_id=${imageId}`;
-
-  const handleDownload = async (image: GalleryImage) => {
-    setDownloading(image.id);
-    try {
-      const resp = await fetch(`${DELIVERY_API}?action=download&token=${token}&image_id=${image.id}`);
-      if (!resp.ok) throw new Error('Download failed');
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = image.image_filename || `image_${image.sequence}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      alert('Download failed. Please try again.');
-    } finally {
-      setDownloading(null);
-    }
-  };
-
-  const handleDownloadAll = async () => {
-    if (!data) return;
-    setDownloadingAll(true);
-    for (const img of data.images) {
-      await handleDownload(img);
-      await new Promise(r => setTimeout(r, 500));
-    }
-    setDownloadingAll(false);
-  };
 
   if (loading) {
     return (
@@ -106,14 +71,7 @@ export default function DeliveryResults() {
       {/* Download All */}
       {data.images.length > 1 && (
         <div className="text-center mb-8">
-          <Button
-            onClick={handleDownloadAll}
-            disabled={downloadingAll}
-            className="bg-gradient-to-r from-[#c8a97e] to-[#a88b5e] text-[#0a0a0a] hover:opacity-90 font-semibold tracking-wide gap-2"
-          >
-            {downloadingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Download All Images
-          </Button>
+          <p className="text-[#888] text-xs mb-3">Click each image below to download individually</p>
         </div>
       )}
 
@@ -124,7 +82,7 @@ export default function DeliveryResults() {
             <div key={img.id} className="group relative bg-[#111] border border-[#222] rounded-lg overflow-hidden">
               <div className="aspect-square bg-[#1a1a1a]">
                 <img
-                  src={getThumbnailUrl(img.id)}
+                  src={img.download_url}
                   alt={img.image_filename}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -132,20 +90,14 @@ export default function DeliveryResults() {
               </div>
               <div className="p-3 flex items-center justify-between">
                 <p className="text-[#999] text-xs truncate flex-1">{img.image_filename}</p>
-                <Button
-                  onClick={() => handleDownload(img)}
-                  disabled={downloading === img.id}
-                  variant="ghost"
-                  size="sm"
-                  className="text-[#c8a97e] hover:text-[#e0c99e] gap-1 text-xs shrink-0"
+                <a
+                  href={img.download_url}
+                  download={img.image_filename || `image_${img.sequence}.jpg`}
+                  className="inline-flex items-center gap-1 text-xs text-[#c8a97e] hover:text-[#e0c99e] shrink-0 ml-2"
                 >
-                  {downloading === img.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" />
-                  )}
+                  <Download className="h-3.5 w-3.5" />
                   Download
-                </Button>
+                </a>
               </div>
             </div>
           ))}
