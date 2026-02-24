@@ -184,7 +184,7 @@ function buildDeliveryEmailHtml(params: {
         Thank you for using Forma Nova to create your jewelry photos. Your requested images are attached.
       </p>
       <p style="color: #bbb; font-size: 14px; line-height: 1.7; margin: 0 0 24px;">
-        If you have any questions or feedback, please reply to this email and a member of our team will get back to you.
+        If you have any questions or feedback, please email us at <a href="mailto:studio@formanova.ai" style="color: #c8a97e; text-decoration: underline;">studio@formanova.ai</a> and a member of our team will get back to you.
       </p>
 
       <!-- Pro Tip -->
@@ -554,6 +554,7 @@ Deno.serve(async (req) => {
             headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: 'FormaNova <noreply@formanova.ai>',
+              reply_to: 'studio@formanova.ai',
               to: [recipientEmail],
               subject: `Your ${category} results are ready — FormaNova`,
               html,
