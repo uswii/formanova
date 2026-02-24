@@ -186,8 +186,9 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, o
 
       setSendProgress({ sent: totalSent, failed: totalFailed, total: unsent.length });
 
-      // Refresh list so statuses update live
+      // Refresh both delivery list and parent batch list so statuses update live
       await fetchDeliveries();
+      onDeliverySent?.();
 
       // Small yield between batches
       if (i + BATCH_SIZE < unsent.length) {
