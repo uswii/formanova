@@ -473,6 +473,8 @@ Deno.serve(async (req) => {
 
           const html = buildDeliveryEmailHtml({ recipientName, category, resultsUrl, imageCount });
 
+          // Unique headers to prevent email threading
+          const uniqueId = crypto.randomUUID();
           const resendResp = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -481,6 +483,11 @@ Deno.serve(async (req) => {
               to: [recipientEmail],
               subject: `Your ${category} results are ready — FormaNova`,
               html,
+              headers: {
+                'X-Entity-Ref-ID': uniqueId,
+                'References': `<${uniqueId}@formanova.ai>`,
+                'Message-ID': `<${uniqueId}@formanova.ai>`,
+              },
             }),
           });
 
@@ -502,11 +509,11 @@ Deno.serve(async (req) => {
             email_sent_at: now,
           }).eq('id', deliveryId);
 
-          // Also update corresponding batch_jobs to 'delivered' using batch_id for precise match
+          // Also update corresponding batch_jobs to 'delivered' (any current status)
           await db.from('batch_jobs').update({
             status: 'delivered',
             completed_at: now,
-          }).eq('id', delivery.batch_id).in('status', ['completed', 'partial']);
+          }).eq('id', delivery.batch_id);
 
           console.log(`[delivery-manager] Email sent to ${recipientEmail} for delivery ${deliveryId}`);
           results.push({ id: deliveryId, email: recipientEmail, status: 'sent' });
