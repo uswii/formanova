@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import JSZip from 'https://esm.sh/jszip@3.10.1';
 
 // ═══════════════════════════════════════════════════════════════
 // CORS
@@ -241,7 +242,7 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   // ── Public actions (token-validated, no admin auth) ──
-  if (action === 'gallery' || action === 'download' || action === 'thumbnail') {
+  if (action === 'gallery' || action === 'download' || action === 'thumbnail' || action === 'download_zip') {
     const token = url.searchParams.get('token');
     if (!token) return json({ error: 'Missing token' }, 400);
 
@@ -268,6 +269,53 @@ Deno.serve(async (req) => {
         category: delivery.category,
         user_email: delivery.user_email,
         images: imagesWithSas,
+      });
+    }
+
+    // ── Download all images as ZIP ──
+    if (action === 'download_zip') {
+      const { data: images } = await db
+        .from('delivery_images').select('id, image_filename, image_url, sequence')
+        .eq('delivery_batch_id', delivery.id).order('sequence');
+
+      if (!images || images.length === 0) return json({ error: 'No images found' }, 404);
+
+      const accountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
+      const zip = new JSZip();
+      let fetched = 0;
+
+      for (const img of images) {
+        try {
+          const sasUrl = await generateSasUrlFromHttps(img.image_url, '', accountKey, 60);
+          const resp = await fetch(sasUrl);
+          if (!resp.ok) {
+            console.error(`[delivery-manager] ZIP: failed to fetch ${img.image_filename}: ${resp.status}`);
+            continue;
+          }
+          const buf = await resp.arrayBuffer();
+          zip.file(img.image_filename || `image_${img.sequence}.jpg`, buf);
+          fetched++;
+        } catch (err) {
+          console.error(`[delivery-manager] ZIP: error fetching ${img.image_filename}:`, err);
+        }
+      }
+
+      if (fetched === 0) return json({ error: 'Failed to fetch any images' }, 502);
+
+      const zipBuffer = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      const category = delivery.category || 'jewelry';
+      const zipFilename = `FormaNova_${category}_results.zip`;
+
+      console.log(`[delivery-manager] ZIP created: ${fetched}/${images.length} images, ${(zipBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+
+      return new Response(zipBuffer, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="${zipFilename}"`,
+          'Cache-Control': 'private, no-cache',
+        },
       });
     }
 
@@ -447,9 +495,9 @@ Deno.serve(async (req) => {
       const deliveryIds = body.delivery_ids as string[];
       if (!deliveryIds || deliveryIds.length === 0) return json({ error: 'delivery_ids required' }, 400);
 
-      // Determine the base URL for results page
-      const origin = req.headers.get('Origin') || 'https://formanova.ai';
-      const resultsBaseUrl = origin.includes('lovable.app') ? origin : 'https://formanova.ai';
+      // Build ZIP download URL directly to the edge function
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+      const edgeFunctionBase = `${supabaseUrl}/functions/v1/delivery-manager`;
 
       const results: { id: string; email: string; status: string; error?: string }[] = [];
 
@@ -468,7 +516,7 @@ Deno.serve(async (req) => {
 
           const recipientEmail = delivery.override_email || delivery.user_email;
           const recipientName = recipientEmail.split('@')[0];
-          const resultsUrl = `${resultsBaseUrl}/results/${token}`;
+          const resultsUrl = `${edgeFunctionBase}?action=download_zip&token=${token}`;
           const category = delivery.category || 'jewelry';
 
           const html = buildDeliveryEmailHtml({ recipientName, category, resultsUrl, imageCount });
@@ -510,17 +558,19 @@ Deno.serve(async (req) => {
           }).eq('id', deliveryId);
 
           // Also update corresponding batch_jobs to 'delivered'
-          // Match by user_email since CSV batch_id may not be the batch_jobs UUID
+          // Match by user_email + category
+          const matchFilter: any = { user_email: delivery.user_email };
+          if (delivery.category) matchFilter.jewelry_category = delivery.category;
           const { data: matchedJobs } = await db.from('batch_jobs')
             .select('id')
-            .eq('user_email', delivery.user_email);
+            .match(matchFilter);
           if (matchedJobs && matchedJobs.length > 0) {
             const jobIds = matchedJobs.map((j: any) => j.id);
             await db.from('batch_jobs').update({
               status: 'delivered',
               completed_at: now,
             }).in('id', jobIds);
-            console.log(`[delivery-manager] Updated ${jobIds.length} batch_jobs to delivered for ${delivery.user_email}`);
+            console.log(`[delivery-manager] Updated ${jobIds.length} batch_jobs to delivered for ${delivery.user_email} / ${delivery.category}`);
           }
 
           console.log(`[delivery-manager] Email sent to ${recipientEmail} for delivery ${deliveryId}`);
