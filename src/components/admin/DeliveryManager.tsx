@@ -56,6 +56,8 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, o
   const [deliveries, setDeliveries] = useState<DeliveryBatch[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [sendProgress, setSendProgress] = useState<{ sent: number; failed: number; total: number } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const [previewDeliveryId, setPreviewDeliveryId] = useState<string | null>(null);
@@ -134,7 +136,7 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, o
     }
   };
 
-  // ── Send ──
+  // ── Send single or small batch ──
   const handleSend = async (deliveryIds: string[]) => {
     setSending(deliveryIds[0]);
     try {
@@ -153,6 +155,50 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, o
     } finally {
       setSending(null);
     }
+  };
+
+  // ── Send All in batches ──
+  const BATCH_SIZE = 5;
+  const handleSendAll = async () => {
+    const unsent = deliveries.filter(d => d.delivery_status !== 'delivered').map(d => d.id);
+    if (unsent.length === 0) { toast({ title: 'All deliveries already sent' }); return; }
+
+    setSendingAll(true);
+    setSendProgress({ sent: 0, failed: 0, total: unsent.length });
+
+    let totalSent = 0;
+    let totalFailed = 0;
+
+    for (let i = 0; i < unsent.length; i += BATCH_SIZE) {
+      const batch = unsent.slice(i, i + BATCH_SIZE);
+      try {
+        const resp = await fetch(`${DELIVERY_API}?action=send`, {
+          method: 'POST', headers: headers(),
+          body: JSON.stringify({ delivery_ids: batch }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error);
+        totalSent += data.summary?.sent || 0;
+        totalFailed += data.summary?.failed || 0;
+      } catch {
+        totalFailed += batch.length;
+      }
+
+      setSendProgress({ sent: totalSent, failed: totalFailed, total: unsent.length });
+
+      // Refresh list so statuses update live
+      await fetchDeliveries();
+
+      // Small yield between batches
+      if (i + BATCH_SIZE < unsent.length) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+
+    toast({ title: `Done! Sent: ${totalSent}, Failed: ${totalFailed}` });
+    setSendingAll(false);
+    setSendProgress(null);
+    onDeliverySent?.();
   };
 
   // ── Delete ──
@@ -257,14 +303,19 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, o
           {/* ── Deliveries Tab ── */}
           <TabsContent value="deliveries" className="space-y-4 mt-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">{deliveries.length} deliveries</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">{deliveries.length} deliveries</p>
+                {sendProgress && (
+                  <span className="text-[10px] text-primary font-medium">
+                    Sending {sendProgress.sent + sendProgress.failed}/{sendProgress.total}
+                    {sendProgress.failed > 0 && <span className="text-destructive ml-1">({sendProgress.failed} failed)</span>}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-1">
-                <Button onClick={() => {
-                  const unsent = deliveries.filter(d => d.delivery_status !== 'delivered').map(d => d.id);
-                  if (unsent.length === 0) { toast({ title: 'All deliveries already sent' }); return; }
-                  handleSend(unsent);
-                }} variant="outline" size="sm" className="gap-1.5 text-xs" disabled={!!sending}>
-                  <Send className="h-3 w-3" /> Send All Unsent
+                <Button onClick={handleSendAll} variant="outline" size="sm" className="gap-1.5 text-xs" disabled={!!sending || sendingAll}>
+                  {sendingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                  {sendingAll ? `Sending...` : 'Send All Unsent'}
                 </Button>
                 <Button onClick={fetchDeliveries} variant="ghost" size="sm" className="gap-1">
                   <RefreshCw className={`h-3.5 w-3.5 ${loadingList ? 'animate-spin' : ''}`} />
