@@ -96,22 +96,24 @@ export default function LeftPanel({
           <h3 className="text-[10px] uppercase tracking-[2px] text-[#777] font-semibold mb-2.5">AI Model</h3>
           <div className="flex gap-2.5">
             {AI_MODELS.map((m) => (
-              <label key={m.id} className="flex-1 cursor-pointer" onClick={() => setModel(m.id)}>
-                <div className={`flex flex-col items-center py-4 px-2 rounded-xl transition-all duration-200 ${
-                  model === m.id
-                    ? "text-white shadow-[0_0_16px_rgba(255,255,255,0.08)]"
-                    : "text-[#888] hover:text-white"
+              <label key={m.id} className={`flex-1 ${m.comingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !m.comingSoon && setModel(m.id)}>
+                <div className={`flex flex-col items-center py-4 px-2 rounded-xl transition-all duration-200 relative ${
+                  m.comingSoon
+                    ? "text-[#555] opacity-50"
+                    : model === m.id
+                      ? "text-white shadow-[0_0_16px_rgba(255,255,255,0.08)]"
+                      : "text-[#888] hover:text-white"
                 }`} style={{
-                  background: model === m.id
+                  background: model === m.id && !m.comingSoon
                     ? "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%)"
                     : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
                   backdropFilter: "blur(16px)",
-                  border: model === m.id
+                  border: model === m.id && !m.comingSoon
                     ? "1px solid rgba(255,255,255,0.25)"
                     : "1px solid rgba(255,255,255,0.06)",
                 }}>
                   <span className="text-[13px] font-semibold tracking-[0.5px]">{m.name}</span>
-                  <span className="text-[9px] text-[#666] mt-0.5 tracking-[0.5px]">{m.desc}</span>
+                  <span className="text-[9px] text-[#666] mt-0.5 tracking-[0.5px]">{m.comingSoon ? "Coming Soon" : m.desc}</span>
                 </div>
               </label>
             ))}
