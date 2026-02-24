@@ -222,28 +222,92 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // ── LIST BATCHES ──
+    // ── LIST BATCHES (with server-side pagination) ──
     if (action === 'list_batches') {
       const searchQuery = url.searchParams.get('search')?.trim().toLowerCase() || '';
+      const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+      const pageSize = Math.min(200, Math.max(1, parseInt(url.searchParams.get('page_size') || '50', 10)));
 
-      // Fetch with explicit high limit to avoid Supabase 1000-row default
-      const { data: batchData, error: batchError } = await supabaseAdmin
-        .from('batch_jobs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5000);
-      if (batchError) throw batchError;
+      // Always compute status counts from full dataset using count queries
+      // This avoids fetching all rows just for stats
+      const { count: totalCount } = await supabaseAdmin
+        .from('batch_jobs').select('*', { count: 'exact', head: true });
 
-      let filteredBatches = batchData || [];
+      const statusCounts: Record<string, number> = {};
+      for (const s of ['pending', 'processing', 'completed', 'failed', 'partial', 'delivered']) {
+        const { count: c } = await supabaseAdmin
+          .from('batch_jobs').select('*', { count: 'exact', head: true }).eq('status', s);
+        if (c && c > 0) statusCounts[s] = c;
+      }
+
+      // If searching, fetch all and filter (search is across multiple fields)
       if (searchQuery) {
-        filteredBatches = filteredBatches.filter((b: any) => {
+        const { data: batchData, error: batchError } = await supabaseAdmin
+          .from('batch_jobs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5000);
+        if (batchError) throw batchError;
+
+        let filteredBatches = (batchData || []).filter((b: any) => {
           const fields = [
             b.id, b.user_email, b.notification_email, b.user_display_name,
             b.jewelry_category, b.status, b.workflow_id, b.drive_link,
           ].filter(Boolean).map((f: string) => f.toLowerCase());
           return fields.some((f: string) => f.includes(searchQuery));
         });
+
+        const totalFiltered = filteredBatches.length;
+        const totalPages = Math.ceil(totalFiltered / pageSize);
+        const paginatedBatches = filteredBatches.slice((page - 1) * pageSize, page * pageSize);
+
+        const batchIds = paginatedBatches.map((b: any) => b.id);
+        let skinToneMap: Record<string, string[]> = {};
+        if (batchIds.length > 0) {
+          const { data: imageData } = await supabaseAdmin
+            .from('batch_images')
+            .select('batch_id, skin_tone')
+            .in('batch_id', batchIds);
+          if (imageData) {
+            for (const img of imageData) {
+              if (!skinToneMap[img.batch_id]) skinToneMap[img.batch_id] = [];
+              if (img.skin_tone && !skinToneMap[img.batch_id].includes(img.skin_tone)) {
+                skinToneMap[img.batch_id].push(img.skin_tone);
+              }
+            }
+          }
+        }
+
+        const batches = await Promise.all(paginatedBatches.map(async (b: any) => ({
+          ...b,
+          skin_tones: skinToneMap[b.id] || [],
+          inspiration_url: b.inspiration_url ? await generateSasUrl(b.inspiration_url, azureAccountName, azureAccountKey) : null,
+        })));
+
+        return new Response(JSON.stringify({
+          batches,
+          page,
+          page_size: pageSize,
+          total_filtered: totalFiltered,
+          total_pages: totalPages,
+          total_unfiltered: totalCount || 0,
+          status_counts: statusCounts,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
+
+      // No search — use efficient range-based pagination
+      const offset = (page - 1) * pageSize;
+      const { data: batchData, error: batchError } = await supabaseAdmin
+        .from('batch_jobs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (batchError) throw batchError;
+
+      const filteredBatches = batchData || [];
+      const totalPages = Math.ceil((totalCount || 0) / pageSize);
 
       const batchIds = filteredBatches.map((b: any) => b.id);
       let skinToneMap: Record<string, string[]> = {};
@@ -268,16 +332,13 @@ Deno.serve(async (req) => {
         inspiration_url: b.inspiration_url ? await generateSasUrl(b.inspiration_url, azureAccountName, azureAccountKey) : null,
       })));
 
-      // Compute status counts from all unfiltered data for accurate stats
-      const allBatches = batchData || [];
-      const statusCounts: Record<string, number> = {};
-      for (const b of allBatches) {
-        statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
-      }
-
-      return new Response(JSON.stringify({ 
-        batches, 
-        total_unfiltered: allBatches.length,
+      return new Response(JSON.stringify({
+        batches,
+        page,
+        page_size: pageSize,
+        total_filtered: totalCount || 0,
+        total_pages: totalPages,
+        total_unfiltered: totalCount || 0,
         status_counts: statusCounts,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -582,6 +643,47 @@ Deno.serve(async (req) => {
       console.log(`[admin-batches] Batch deleted: ${batch_id} by ${user.email}`);
       
       return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── SYNC DELIVERED STATUSES ──
+    // Retroactively update batch_jobs to 'delivered' for all delivery_batches that are already delivered
+    if (action === 'sync_delivered' && req.method === 'POST') {
+      const { data: deliveredBatches, error: dbErr } = await supabaseAdmin
+        .from('delivery_batches')
+        .select('user_email, category')
+        .eq('delivery_status', 'delivered');
+      if (dbErr) throw dbErr;
+
+      let updatedCount = 0;
+      const seen = new Set<string>();
+      for (const d of (deliveredBatches || [])) {
+        const key = `${d.user_email}|${d.category || ''}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const matchFilter: any = { user_email: d.user_email };
+        if (d.category) matchFilter.jewelry_category = d.category;
+
+        const { data: jobs } = await supabaseAdmin
+          .from('batch_jobs')
+          .select('id')
+          .match(matchFilter)
+          .neq('status', 'delivered');
+
+        if (jobs && jobs.length > 0) {
+          const ids = jobs.map((j: any) => j.id);
+          await supabaseAdmin.from('batch_jobs').update({
+            status: 'delivered',
+            completed_at: new Date().toISOString(),
+          }).in('id', ids);
+          updatedCount += ids.length;
+        }
+      }
+
+      console.log(`[admin-batches] Synced ${updatedCount} batch_jobs to delivered by ${user.email}`);
+      return new Response(JSON.stringify({ success: true, updated_count: updatedCount }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

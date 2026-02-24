@@ -136,6 +136,10 @@ export default function AdminBatches() {
   const [gateError, setGateError] = useState('');
   const [batches, setBatches] = useState<BatchJob[]>([]);
   const [serverStatusCounts, setServerStatusCounts] = useState<Record<string, number> | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalFiltered, setTotalFiltered] = useState(0);
+  const PAGE_SIZE = 50;
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [batchImages, setBatchImages] = useState<Record<string, BatchImage[]>>({});
   const [loadingImages, setLoadingImages] = useState<string | null>(null);
@@ -165,11 +169,12 @@ export default function AdminBatches() {
 
   const [loading, setLoading] = useState(false);
 
-  const fetchBatches = useCallback(async (search?: string) => {
+  const fetchBatches = useCallback(async (search?: string, page?: number) => {
     setLoading(true);
     try {
       const searchParam = search !== undefined ? search : activeSearch;
-      const queryStr = searchParam ? `&search=${encodeURIComponent(searchParam)}` : '';
+      const p = page || currentPage;
+      const queryStr = `&page=${p}&page_size=${PAGE_SIZE}${searchParam ? `&search=${encodeURIComponent(searchParam)}` : ''}`;
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
@@ -184,24 +189,53 @@ export default function AdminBatches() {
       if (data.status_counts) {
         setServerStatusCounts(data.status_counts);
       }
+      setTotalPages(data.total_pages || 1);
+      setTotalFiltered(data.total_filtered || 0);
     } catch (err) {
       console.error('Failed to fetch batches:', err);
       toast({ title: 'Failed to load batches', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [getAdminHeaders, activeSearch]);
+  }, [getAdminHeaders, activeSearch, currentPage]);
 
   const handleSearch = useCallback(() => {
     setActiveSearch(searchQuery);
-    fetchBatches(searchQuery);
+    setCurrentPage(1);
+    fetchBatches(searchQuery, 1);
   }, [searchQuery, fetchBatches]);
 
   const clearSearch = useCallback(() => {
     setSearchQuery('');
     setActiveSearch('');
-    fetchBatches('');
+    setCurrentPage(1);
+    fetchBatches('', 1);
   }, [fetchBatches]);
+
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(page);
+    fetchBatches(undefined, page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [fetchBatches]);
+
+  const [syncing, setSyncing] = useState(false);
+  const handleSyncDelivered = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch(`${ADMIN_API_URL}?action=sync_delivered`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+      });
+      if (!response.ok) throw new Error('Sync failed');
+      const data = await response.json();
+      toast({ title: `Synced ${data.updated_count} batches to delivered` });
+      fetchBatches();
+    } catch (err: any) {
+      toast({ title: err.message || 'Sync failed', variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  }, [getAdminHeaders, fetchBatches]);
 
   const handleSaveDriveLink = useCallback(async (batchId: string) => {
     setSavingDriveLink(true);
@@ -535,6 +569,9 @@ export default function AdminBatches() {
             <Button onClick={exportFullDashboard} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Export all batches + images with skin tones">
               <FileSpreadsheet className="h-3.5 w-3.5" /> Full Export
             </Button>
+            <Button onClick={handleSyncDelivered} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Sync delivered statuses from delivery system" disabled={syncing}>
+              <CheckCircle2 className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync'}
+            </Button>
             <Button onClick={() => fetchBatches()} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -583,12 +620,70 @@ export default function AdminBatches() {
           <Button onClick={handleSearch} size="sm" variant="outline" className="h-9 gap-1.5 text-xs">
             <Search className="h-3.5 w-3.5" /> Search
           </Button>
-          {activeSearch && (
+          {activeSearch ? (
             <span className="text-[10px] text-muted-foreground">
-              Showing {batches.length} result{batches.length !== 1 ? 's' : ''} for "{activeSearch}"
+              Showing {totalFiltered} result{totalFiltered !== 1 ? 's' : ''} for "{activeSearch}"
+            </span>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">
+              Page {currentPage} of {totalPages} ({totalFiltered} total)
             </span>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={currentPage <= 1}
+              onClick={() => goToPage(currentPage - 1)}
+            >
+              Previous
+            </Button>
+            {(() => {
+              const pages: number[] = [];
+              const maxVisible = 7;
+              if (totalPages <= maxVisible) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+              } else {
+                pages.push(1);
+                let start = Math.max(2, currentPage - 2);
+                let end = Math.min(totalPages - 1, currentPage + 2);
+                if (start > 2) pages.push(-1); // ellipsis
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (end < totalPages - 1) pages.push(-2); // ellipsis
+                pages.push(totalPages);
+              }
+              return pages.map((p, idx) =>
+                p < 0 ? (
+                  <span key={`e${idx}`} className="px-1 text-xs text-muted-foreground">…</span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={p === currentPage ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-8 w-8 text-xs p-0"
+                    onClick={() => goToPage(p)}
+                  >
+                    {p}
+                  </Button>
+                )
+              );
+            })()}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={currentPage >= totalPages}
+              onClick={() => goToPage(currentPage + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        )}
 
         {/* Main Table */}
         {loading ? (
