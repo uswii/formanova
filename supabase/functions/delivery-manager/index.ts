@@ -509,11 +509,11 @@ Deno.serve(async (req) => {
             email_sent_at: now,
           }).eq('id', deliveryId);
 
-          // Also update corresponding batch_jobs to 'delivered' (any current status)
+          // Also update corresponding batch_jobs to 'delivered'
           await db.from('batch_jobs').update({
             status: 'delivered',
             completed_at: now,
-          }).eq('id', delivery.batch_id);
+          }).eq('id', delivery.batch_id).in('status', ['completed', 'partial']);
 
           console.log(`[delivery-manager] Email sent to ${recipientEmail} for delivery ${deliveryId}`);
           results.push({ id: deliveryId, email: recipientEmail, status: 'sent' });
