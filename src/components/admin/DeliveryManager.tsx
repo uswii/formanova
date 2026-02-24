@@ -43,9 +43,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   getAdminHeaders: () => Record<string, string>;
+  onDeliverySent?: () => void;
 }
 
-export default function DeliveryManager({ open, onOpenChange, getAdminHeaders }: Props) {
+export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, onDeliverySent }: Props) {
   const [tab, setTab] = useState('upload');
   const [csvText, setCsvText] = useState('');
   const [category, setCategory] = useState('necklace');
@@ -146,6 +147,7 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders }:
       const { sent, failed, skipped } = data.summary;
       toast({ title: `Sent: ${sent}, Failed: ${failed}, Skipped: ${skipped}` });
       fetchDeliveries();
+      onDeliverySent?.();
     } catch (err: any) {
       toast({ title: err.message, variant: 'destructive' });
     } finally {
