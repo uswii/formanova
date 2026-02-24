@@ -1,3 +1,4 @@
+// Formanova CAD proxy – secures API key server-side
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -188,12 +189,42 @@ serve(async (req) => {
         ? status_url
         : `${FORMANOVA_BASE}${status_url.startsWith("/") ? "" : "/"}${status_url}`;
 
+      console.log(`[formanova-proxy] Polling status: ${fullUrl}`);
+
       const statusRes = await fetch(fullUrl, {
         method: "GET",
         headers: { "X-API-Key": apiKey },
       });
 
-      const data = await statusRes.json();
+      const rawStatus = await statusRes.text();
+      console.log(`[formanova-proxy] Status response (${statusRes.status}): ${rawStatus.substring(0, 500)}`);
+
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(rawStatus);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: `Status returned non-JSON`, raw: rawStatus.substring(0, 200) }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Enrich with computed progress if Formanova doesn't provide it directly
+      if (data.progress == null && data.steps_completed == null) {
+        const s = String(data.status || "").toLowerCase();
+        if (s === "completed" || s === "done") data.progress = 100;
+        else if (s === "running" || s === "in_progress" || s === "processing") {
+          // Try to estimate from nodes_completed
+          const completed = data.nodes_completed ?? data.completed_nodes;
+          const total = data.nodes_total ?? data.total_nodes;
+          if (typeof completed === "number" && typeof total === "number" && total > 0) {
+            data.progress = Math.round((completed / total) * 100);
+            data.steps_completed = completed;
+            data.steps_total = total;
+          }
+        }
+      }
+
       return new Response(JSON.stringify(data), {
         status: statusRes.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -216,12 +247,26 @@ serve(async (req) => {
         ? result_url
         : `${FORMANOVA_BASE}${result_url.startsWith("/") ? "" : "/"}${result_url}`;
 
+      console.log(`[formanova-proxy] Fetching result: ${fullUrl}`);
+
       const resultRes = await fetch(fullUrl, {
         method: "GET",
         headers: { "X-API-Key": apiKey },
       });
 
-      const data = await resultRes.json();
+      const rawResult = await resultRes.text();
+      console.log(`[formanova-proxy] Result response (${resultRes.status}), length=${rawResult.length}`);
+      console.log(`[formanova-proxy] Result preview: ${rawResult.substring(0, 500)}`);
+
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(rawResult);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: `Result returned non-JSON`, raw: rawResult.substring(0, 200) }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       if (!resultRes.ok) {
         return new Response(
