@@ -252,12 +252,22 @@ Deno.serve(async (req) => {
 
     if (action === 'gallery') {
       const { data: images } = await db
-        .from('delivery_images').select('id, image_filename, sequence')
+        .from('delivery_images').select('id, image_filename, image_url, sequence')
         .eq('delivery_batch_id', delivery.id).order('sequence');
+
+      // Generate SAS URLs for direct download
+      const accountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
+      const imagesWithSas = await Promise.all((images || []).map(async (img: any) => ({
+        id: img.id,
+        image_filename: img.image_filename,
+        sequence: img.sequence,
+        download_url: await generateSasUrlFromHttps(img.image_url, '', accountKey, 120),
+      })));
+
       return json({
         category: delivery.category,
         user_email: delivery.user_email,
-        images: images || [],
+        images: imagesWithSas,
       });
     }
 
@@ -492,11 +502,11 @@ Deno.serve(async (req) => {
             email_sent_at: now,
           }).eq('id', deliveryId);
 
-          // Also update corresponding batch_jobs to 'delivered'
+          // Also update corresponding batch_jobs to 'delivered' using batch_id for precise match
           await db.from('batch_jobs').update({
             status: 'delivered',
             completed_at: now,
-          }).eq('user_email', delivery.user_email).in('status', ['completed', 'partial']);
+          }).eq('id', delivery.batch_id).in('status', ['completed', 'partial']);
 
           console.log(`[delivery-manager] Email sent to ${recipientEmail} for delivery ${deliveryId}`);
           results.push({ id: deliveryId, email: recipientEmail, status: 'sent' });
