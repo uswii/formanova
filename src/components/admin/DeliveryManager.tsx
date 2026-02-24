@@ -260,11 +260,11 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, o
               <p className="text-xs text-muted-foreground">{deliveries.length} deliveries</p>
               <div className="flex gap-1">
                 <Button onClick={() => {
-                  const pending = deliveries.filter(d => d.delivery_status === 'completed').map(d => d.id);
-                  if (pending.length === 0) { toast({ title: 'No pending deliveries' }); return; }
-                  handleSend(pending);
+                  const unsent = deliveries.filter(d => d.delivery_status !== 'delivered').map(d => d.id);
+                  if (unsent.length === 0) { toast({ title: 'All deliveries already sent' }); return; }
+                  handleSend(unsent);
                 }} variant="outline" size="sm" className="gap-1.5 text-xs" disabled={!!sending}>
-                  <Send className="h-3 w-3" /> Send All Pending
+                  <Send className="h-3 w-3" /> Send All Unsent
                 </Button>
                 <Button onClick={fetchDeliveries} variant="ghost" size="sm" className="gap-1">
                   <RefreshCw className={`h-3.5 w-3.5 ${loadingList ? 'animate-spin' : ''}`} />
@@ -303,11 +303,9 @@ export default function DeliveryManager({ open, onOpenChange, getAdminHeaders, o
                           </Button>
                         )}
                         <Button onClick={() => handlePreview(d.id)} variant="ghost" size="sm" className="h-6 w-6 p-0" title="Preview"><Eye className="h-3 w-3" /></Button>
-                        {d.delivery_status === 'completed' && (
-                          <Button onClick={() => handleSend([d.id])} variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-400" disabled={!!sending} title="Send email">
-                            {sending === d.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-                          </Button>
-                        )}
+                        <Button onClick={() => handleSend([d.id])} variant="ghost" size="sm" className="h-6 w-6 p-0 text-emerald-400" disabled={!!sending} title={d.delivery_status === 'delivered' ? 'Re-send email' : 'Send email'}>
+                          {sending === d.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                        </Button>
                         {d.delivery_status === 'delivered' && <CheckCircle2 className="h-3.5 w-3.5 text-violet-400" />}
                         <Button onClick={() => handleDelete(d.id)} variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-400" disabled={!!deleting} title="Delete">
                           {deleting === d.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}

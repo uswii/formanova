@@ -419,9 +419,16 @@ Deno.serve(async (req) => {
       for (const group of Object.values(groups)) {
         // Check if delivery already exists for this batch_id + user_email
         const { data: existing } = await db.from('delivery_batches')
-          .select('id').eq('batch_id', group.batch_id).eq('user_email', group.user_email).limit(1);
+          .select('id, delivery_status').eq('batch_id', group.batch_id).eq('user_email', group.user_email).limit(1);
         if (existing && existing.length > 0) {
-          console.log(`[delivery-manager] Skipping existing delivery for ${group.user_email} / ${group.batch_id}`);
+          if (existing[0].delivery_status === 'delivered') {
+            // Already delivered — reset to completed so it can be re-sent
+            await db.from('delivery_batches').update({ delivery_status: 'completed', token: null, delivered_at: null, email_sent_at: null }).eq('id', existing[0].id);
+            console.log(`[delivery-manager] Reset delivered → completed for ${group.user_email} / ${group.batch_id}`);
+            created.push({ id: existing[0].id, batch_id: group.batch_id, user_email: group.user_email, image_count: group.images.length });
+          } else {
+            console.log(`[delivery-manager] Skipping existing (${existing[0].delivery_status}) delivery for ${group.user_email} / ${group.batch_id}`);
+          }
           continue;
         }
 
@@ -522,7 +529,7 @@ Deno.serve(async (req) => {
         try {
           const { data: delivery } = await db.from('delivery_batches').select('*').eq('id', deliveryId).single();
           if (!delivery) { results.push({ id: deliveryId, email: '', status: 'failed', error: 'Not found' }); continue; }
-          if (delivery.delivery_status === 'delivered') { results.push({ id: deliveryId, email: delivery.override_email || delivery.user_email, status: 'skipped', error: 'Already delivered' }); continue; }
+          // Allow re-sending delivered items (admin explicitly selected them)
 
           // Generate unique token
           const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
