@@ -10,7 +10,7 @@ interface GalleryImage {
   id: string;
   image_filename: string;
   sequence: number;
-  download_url: string;
+  download_url: string; // SAS URL for display
 }
 
 interface GalleryData {
@@ -24,6 +24,7 @@ export default function DeliveryResults() {
   const [data, setData] = useState<GalleryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -36,6 +37,28 @@ export default function DeliveryResults() {
       .catch(() => setError('Failed to load results'))
       .finally(() => setLoading(false));
   }, [token]);
+
+  const handleDownload = async (image: GalleryImage) => {
+    setDownloading(image.id);
+    try {
+      // Proxy download through edge function to get proper Content-Disposition
+      const resp = await fetch(`${DELIVERY_API}?action=download&token=${token}&image_id=${image.id}`);
+      if (!resp.ok) throw new Error('Download failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = image.image_filename || `image_${image.sequence}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Download failed. Please try again.');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -68,13 +91,6 @@ export default function DeliveryResults() {
         <p className="text-[#666] text-sm mt-1">{data.images.length} image{data.images.length !== 1 ? 's' : ''}</p>
       </div>
 
-      {/* Download All */}
-      {data.images.length > 1 && (
-        <div className="text-center mb-8">
-          <p className="text-[#888] text-xs mb-3">Click each image below to download individually</p>
-        </div>
-      )}
-
       {/* Gallery */}
       <div className="max-w-5xl mx-auto px-6 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -90,14 +106,20 @@ export default function DeliveryResults() {
               </div>
               <div className="p-3 flex items-center justify-between">
                 <p className="text-[#999] text-xs truncate flex-1">{img.image_filename}</p>
-                <a
-                  href={img.download_url}
-                  download={img.image_filename || `image_${img.sequence}.jpg`}
-                  className="inline-flex items-center gap-1 text-xs text-[#c8a97e] hover:text-[#e0c99e] shrink-0 ml-2"
+                <Button
+                  onClick={() => handleDownload(img)}
+                  disabled={downloading === img.id}
+                  variant="ghost"
+                  size="sm"
+                  className="text-[#c8a97e] hover:text-[#e0c99e] gap-1 text-xs shrink-0"
                 >
-                  <Download className="h-3.5 w-3.5" />
+                  {downloading === img.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
                   Download
-                </a>
+                </Button>
               </div>
             </div>
           ))}
