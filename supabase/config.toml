@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.batch-submit]
 verify_jwt = false
+
+[functions.send-results-email]
+verify_jwt = false

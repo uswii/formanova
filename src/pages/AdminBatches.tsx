@@ -18,6 +18,7 @@ import {
   Search, Link2, Save, X, Trash2, Package
 } from 'lucide-react';
 import DownloadModal from '@/components/admin/DownloadModal';
+import BatchEmailSender from '@/components/admin/BatchEmailSender';
 import OutputUploadButton from '@/components/admin/OutputUploadButton';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -148,6 +149,7 @@ export default function AdminBatches() {
   const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
   const deepLinkHandled = useRef(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [emailSenderOpen, setEmailSenderOpen] = useState(false);
 
   const isAuthenticated = !!user && !!adminSecret;
 
@@ -508,6 +510,9 @@ export default function AdminBatches() {
             </span>
           </div>
           <div className="flex items-center gap-1">
+            <Button onClick={() => setEmailSenderOpen(true)} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Send result emails to users">
+              <Mail className="h-3.5 w-3.5" /> Email Results
+            </Button>
             <Button onClick={() => setDownloadModalOpen(true)} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Download ZIP with images">
               <Package className="h-3.5 w-3.5" /> ZIP Download
             </Button>
@@ -1050,6 +1055,17 @@ export default function AdminBatches() {
         onClose={() => setDownloadModalOpen(false)}
         batches={batches}
         getAdminHeaders={getAdminHeaders}
+      />
+
+      {/* Email Results Modal */}
+      <BatchEmailSender
+        open={emailSenderOpen}
+        onClose={() => setEmailSenderOpen(false)}
+        batches={batches}
+        getAdminHeaders={getAdminHeaders}
+        onBatchStatusUpdated={(batchId, newStatus) => {
+          setBatches(prev => prev.map(b => b.id === batchId ? { ...b, status: newStatus } : b));
+        }}
       />
     </div>
   );
