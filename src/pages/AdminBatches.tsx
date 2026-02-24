@@ -238,6 +238,31 @@ export default function AdminBatches() {
     }
   }, [getAdminHeaders, fetchBatches]);
 
+  const [sendingApology, setSendingApology] = useState(false);
+  const handleSendApology = useCallback(async (dryRun = false) => {
+    setSendingApology(true);
+    try {
+      const DELIVERY_API = `${SUPABASE_URL}/functions/v1/delivery-manager`;
+      const response = await fetch(`${DELIVERY_API}?action=send_apology`, {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: dryRun }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed');
+      if (dryRun) {
+        const users = data.duplicate_users?.map((u: any) => `${u.email} (${u.count}x)`).join('\n') || 'None';
+        toast({ title: `${data.total} users received duplicates`, description: users });
+      } else {
+        toast({ title: `Apology sent: ${data.summary.sent} sent, ${data.summary.failed} failed` });
+      }
+    } catch (err: any) {
+      toast({ title: err.message || 'Failed', variant: 'destructive' });
+    } finally {
+      setSendingApology(false);
+    }
+  }, [getAdminHeaders]);
+
   const handleSaveDriveLink = useCallback(async (batchId: string) => {
     setSavingDriveLink(true);
     try {
@@ -573,6 +598,30 @@ export default function AdminBatches() {
             <Button onClick={handleSyncDelivered} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Sync delivered statuses from delivery system" disabled={syncing}>
               <CheckCircle2 className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync'}
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-amber-400 hover:text-amber-300" disabled={sendingApology}>
+                  <AlertTriangle className="h-3.5 w-3.5" /> {sendingApology ? 'Sending…' : 'Apology'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Send Apology Email</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will send an apology email to all users who received duplicate delivery emails. Are you sure?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <Button variant="outline" onClick={() => handleSendApology(true)} disabled={sendingApology}>
+                    Preview List
+                  </Button>
+                  <AlertDialogAction onClick={() => handleSendApology(false)} disabled={sendingApology}>
+                    Send Apology Emails
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button onClick={() => fetchBatches()} variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>

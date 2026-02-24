@@ -634,6 +634,106 @@ Deno.serve(async (req) => {
       return json({ deleted: delivery_ids.length });
     }
 
+    // ── send_apology (one-time) ──
+    if (action === 'send_apology' && req.method === 'POST') {
+      if (!RESEND_API_KEY) return json({ error: 'Resend API key not configured' }, 500);
+
+      const body = await req.json();
+      const dryRun = body.dry_run === true;
+
+      // Find users who received duplicate emails
+      const { data: allDelivered } = await db.from('delivery_batches')
+        .select('user_email, override_email')
+        .eq('delivery_status', 'delivered');
+
+      const emailCounts: Record<string, number> = {};
+      for (const d of (allDelivered || [])) {
+        const email = (d as any).override_email || (d as any).user_email;
+        emailCounts[email] = (emailCounts[email] || 0) + 1;
+      }
+
+      const duplicateEmails = Object.entries(emailCounts)
+        .filter(([_, count]) => count > 1)
+        .map(([email, count]) => ({ email, count }));
+
+      if (dryRun) {
+        return json({ duplicate_users: duplicateEmails, total: duplicateEmails.length });
+      }
+
+      const results: { email: string; status: string; error?: string }[] = [];
+
+      for (const { email, count } of duplicateEmails) {
+        try {
+          const recipientName = email.split('@')[0];
+          const apologyHtml = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0; padding:0; background:#0a0a0a; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px; margin:0 auto; padding:40px 24px;">
+    <div style="text-align:center; margin-bottom:24px;">
+      <p style="color:#c8a97e; font-size:22px; font-weight:300; letter-spacing:3px; margin:0;">FORMA NOVA</p>
+    </div>
+    <div style="background:#111; border:1px solid #1a1a1a; border-radius:8px; padding:32px 28px;">
+      <p style="color:#e0e0e0; font-size:15px; margin:0 0 16px;">Dear ${recipientName},</p>
+      <p style="color:#ccc; font-size:14px; line-height:1.7; margin:0 0 16px;">
+        We sincerely apologize — due to a brief technical issue on our end, you may have received 
+        <strong style="color:#c8a97e;">${count} duplicate email(s)</strong> regarding your jewelry photography results.
+      </p>
+      <p style="color:#ccc; font-size:14px; line-height:1.7; margin:0 0 16px;">
+        Rest assured, your results are perfectly fine and the most recent download link you received is the correct one. 
+        You can safely disregard the earlier duplicate message(s).
+      </p>
+      <p style="color:#ccc; font-size:14px; line-height:1.7; margin:0 0 16px;">
+        We've already resolved the issue to prevent this from happening again. We value your trust and appreciate your understanding.
+      </p>
+      <p style="color:#e0e0e0; font-size:14px; margin:24px 0 4px;">Warmest regards,</p>
+      <p style="color:#c8a97e; font-size:15px; font-weight:500; letter-spacing:1px; margin:0;">The Forma Nova Team</p>
+    </div>
+    <div style="text-align:center; margin-top:24px;">
+      <p style="color:#666; font-size:11px; margin:0;">
+        If you have any questions, please email us at 
+        <a href="mailto:studio@formanova.ai" style="color:#c8a97e; text-decoration:none;">studio@formanova.ai</a>
+      </p>
+      <p style="color:#444; font-size:10px; margin:8px 0 0;">© ${new Date().getFullYear()} Forma Nova · AI-Powered Jewelry Photography</p>
+    </div>
+  </div>
+</body></html>`;
+
+          const uniqueId = crypto.randomUUID();
+          const resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'FormaNova <noreply@formanova.ai>',
+              reply_to: 'studio@formanova.ai',
+              to: [email],
+              subject: 'Our apologies — duplicate email notification',
+              html: apologyHtml,
+              headers: {
+                'X-Entity-Ref-ID': uniqueId,
+                'References': `<${uniqueId}@formanova.ai>`,
+                'Message-ID': `<${uniqueId}@formanova.ai>`,
+              },
+            }),
+          });
+
+          if (!resendResp.ok) {
+            const errText = await resendResp.text();
+            results.push({ email, status: 'failed', error: errText });
+          } else {
+            await resendResp.json();
+            results.push({ email, status: 'sent' });
+          }
+        } catch (err) {
+          results.push({ email, status: 'failed', error: err instanceof Error ? err.message : 'Unknown' });
+        }
+      }
+
+      const sent = results.filter(r => r.status === 'sent').length;
+      const failed = results.filter(r => r.status === 'failed').length;
+      console.log(`[delivery-manager] Apology emails: sent=${sent}, failed=${failed}`);
+      return json({ results, summary: { sent, failed, total: results.length } });
+    }
+
     return json({ error: `Unknown action: ${action}` }, 400);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
