@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
           if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
             imgUrl = `https://${imgUrl}`;
           }
-          const hasSas = imgUrl.includes('?sv=') || imgUrl.includes('?sig=');
+          const hasSas = imgUrl.includes('sv=') && imgUrl.includes('sig=');
           const fetchUrl = hasSas 
             ? imgUrl 
             : await generateSasUrlFromHttps(imgUrl, '', accountKey, 60);
