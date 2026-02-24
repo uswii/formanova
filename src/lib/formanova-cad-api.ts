@@ -21,6 +21,7 @@ export interface StatusResponse {
   current_step?: string;
   steps_completed?: number;
   steps_total?: number;
+  glb_url?: string | null;
   [key: string]: unknown;
 }
 

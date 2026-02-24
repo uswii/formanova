@@ -113,10 +113,12 @@ export default function TextToCAD() {
       const { status_url, result_url, projected_cost } = runRes;
       if (projected_cost) toast.info(`Estimated cost: $${projected_cost.toFixed(2)}`);
 
-      // 2. Poll status until complete
+      // 2. Poll status until complete — status now returns numeric progress
       setProgressStep("Analyzing your design…");
       let done = false;
       let pollErrors = 0;
+      let resolvedGlbUrl: string | null = null;
+
       while (!done) {
         await new Promise((r) => setTimeout(r, 3000));
         try {
@@ -127,6 +129,10 @@ export default function TextToCAD() {
 
           const s = (statusRes.status || "").toLowerCase();
           if (s === "completed" || s === "done" || pct >= 100) {
+            // GLB may already be resolved in the status response
+            if (statusRes.glb_url) {
+              resolvedGlbUrl = statusRes.glb_url as string;
+            }
             done = true;
           } else if (s === "failed" || s === "error") {
             throw new Error("Pipeline failed");
@@ -135,26 +141,25 @@ export default function TextToCAD() {
         } catch (err) {
           pollErrors++;
           if (pollErrors >= 5) throw err;
-          // transient error — keep polling
         }
       }
 
-      // 3. Fetch result and extract GLB URL
-      setProgress(95);
-      setProgressStep("Downloading your ring…");
-      const resultRes = await fetchResult(result_url);
-      const glbUrl = resultRes.glb_url;
+      // 3. If GLB wasn't in status, fetch result separately
+      if (!resolvedGlbUrl) {
+        setProgress(95);
+        setProgressStep("Downloading your ring…");
+        const resultRes = await fetchResult(result_url);
+        resolvedGlbUrl = resultRes.glb_url;
+      }
 
-      if (!glbUrl) {
+      if (!resolvedGlbUrl) {
         toast.error("No 3D model found in the result");
         setIsGenerating(false);
         return;
       }
 
       // 4. Load the GLB into the viewer
-      if (glbUrl) {
-        setGlbUrl(glbUrl);
-      }
+      setGlbUrl(resolvedGlbUrl);
       setProgress(100);
       setIsGenerating(false);
       setHasModel(true);

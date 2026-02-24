@@ -209,19 +209,53 @@ serve(async (req) => {
         );
       }
 
-      // Enrich with computed progress if Formanova doesn't provide it directly
-      if (data.progress == null && data.steps_completed == null) {
+      // ── Normalize progress ──
+      // The API returns progress as an OBJECT: {completed_nodes, total_nodes, state, visited}
+      // Frontend expects a top-level numeric `progress` (0-100) and string `status`
+      const progressObj = data.progress as Record<string, unknown> | undefined;
+      let progressPct = 0;
+      let normalizedStatus = String(data.status || "running").toLowerCase();
+
+      if (progressObj && typeof progressObj === "object") {
+        const completed = Number(progressObj.completed_nodes ?? 0);
+        const total = Number(progressObj.total_nodes ?? 1);
+        const state = String(progressObj.state || "running").toLowerCase();
+        normalizedStatus = state;
+
+        if (state === "completed" || state === "done") {
+          progressPct = 100;
+        } else if (total > 0) {
+          progressPct = Math.round((completed / total) * 100);
+        }
+
+        data.steps_completed = completed;
+        data.steps_total = total;
+        console.log(`[formanova-proxy] Progress: ${completed}/${total} = ${progressPct}%, state=${state}`);
+      } else if (typeof data.progress === "number") {
+        progressPct = data.progress as number;
+      } else {
         const s = String(data.status || "").toLowerCase();
-        if (s === "completed" || s === "done") data.progress = 100;
-        else if (s === "running" || s === "in_progress" || s === "processing") {
-          // Try to estimate from nodes_completed
-          const completed = data.nodes_completed ?? data.completed_nodes;
-          const total = data.nodes_total ?? data.total_nodes;
-          if (typeof completed === "number" && typeof total === "number" && total > 0) {
-            data.progress = Math.round((completed / total) * 100);
-            data.steps_completed = completed;
-            data.steps_total = total;
-          }
+        if (s === "completed" || s === "done") progressPct = 100;
+      }
+
+      // Overwrite with normalized values
+      data.progress = progressPct;
+      data.status = normalizedStatus;
+
+      // ── If completed, extract GLB URL from inline results ──
+      let glbUrl: string | null = null;
+      if (progressPct >= 100 && data.results) {
+        const validateUri = findAzureUri(data.results, "ring-validate");
+        const generateUri = findAzureUri(data.results, "ring-generate");
+        const azureUri = validateUri || generateUri;
+
+        if (azureUri) {
+          glbUrl = await generateSasUrl(azureUri);
+          console.log(`[formanova-proxy] Resolved GLB from status: ${azureUri} -> ${glbUrl ? "OK" : "FAILED"}`);
+        }
+        if (glbUrl) {
+          data.glb_url = glbUrl;
+          data.azure_source = validateUri ? "ring-validate" : "ring-generate";
         }
       }
 
