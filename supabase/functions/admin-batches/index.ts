@@ -226,10 +226,12 @@ Deno.serve(async (req) => {
     if (action === 'list_batches') {
       const searchQuery = url.searchParams.get('search')?.trim().toLowerCase() || '';
 
+      // Fetch with explicit high limit to avoid Supabase 1000-row default
       const { data: batchData, error: batchError } = await supabaseAdmin
         .from('batch_jobs')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5000);
       if (batchError) throw batchError;
 
       let filteredBatches = batchData || [];
@@ -266,7 +268,18 @@ Deno.serve(async (req) => {
         inspiration_url: b.inspiration_url ? await generateSasUrl(b.inspiration_url, azureAccountName, azureAccountKey) : null,
       })));
 
-      return new Response(JSON.stringify({ batches, total_unfiltered: (batchData || []).length }), {
+      // Compute status counts from all unfiltered data for accurate stats
+      const allBatches = batchData || [];
+      const statusCounts: Record<string, number> = {};
+      for (const b of allBatches) {
+        statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
+      }
+
+      return new Response(JSON.stringify({ 
+        batches, 
+        total_unfiltered: allBatches.length,
+        status_counts: statusCounts,
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

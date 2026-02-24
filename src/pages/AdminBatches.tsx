@@ -135,7 +135,7 @@ export default function AdminBatches() {
   const [verifying, setVerifying] = useState(false);
   const [gateError, setGateError] = useState('');
   const [batches, setBatches] = useState<BatchJob[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [serverStatusCounts, setServerStatusCounts] = useState<Record<string, number> | null>(null);
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [batchImages, setBatchImages] = useState<Record<string, BatchImage[]>>({});
   const [loadingImages, setLoadingImages] = useState<string | null>(null);
@@ -163,6 +163,8 @@ export default function AdminBatches() {
     };
   }, [adminSecret]);
 
+  const [loading, setLoading] = useState(false);
+
   const fetchBatches = useCallback(async (search?: string) => {
     setLoading(true);
     try {
@@ -171,7 +173,6 @@ export default function AdminBatches() {
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Session expired — clean redirect to re-authenticate
           localStorage.removeItem('admin_secret');
           setAdminSecret(null);
           return;
@@ -180,6 +181,9 @@ export default function AdminBatches() {
       }
       const data = await response.json();
       setBatches(data.batches || []);
+      if (data.status_counts) {
+        setServerStatusCounts(data.status_counts);
+      }
     } catch (err) {
       console.error('Failed to fetch batches:', err);
       toast({ title: 'Failed to load batches', variant: 'destructive' });
@@ -488,7 +492,16 @@ export default function AdminBatches() {
   // ═══════════════════════════════════════════════════════════════
   // DASHBOARD
   // ═══════════════════════════════════════════════════════════════
-  const stats = {
+  // Use server-side counts when available (accurate beyond 1000 rows), fall back to local
+  const sc = serverStatusCounts;
+  const stats = sc ? {
+    total: Object.values(sc).reduce((a, b) => a + b, 0),
+    pending: (sc['pending'] || 0),
+    processing: (sc['processing'] || 0),
+    completed: (sc['completed'] || 0),
+    delivered: (sc['delivered'] || 0),
+    failed: (sc['failed'] || 0),
+  } : {
     total: batches.length,
     pending: batches.filter(b => b.status === 'pending').length,
     processing: batches.filter(b => b.status === 'processing').length,
