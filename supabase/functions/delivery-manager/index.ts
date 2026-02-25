@@ -372,6 +372,71 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ── User-authenticated actions (no admin required) ──
+  if (action === 'my_deliveries') {
+    const userToken = req.headers.get('X-User-Token');
+    if (!userToken) return json({ error: 'Unauthorized' }, 401);
+    const user = await authenticateUser(userToken);
+    if (!user) return json({ error: 'Invalid token' }, 401);
+
+    const db = getSupabaseAdmin();
+    const { data: batches, error: bErr } = await db
+      .from('delivery_batches')
+      .select('id, batch_id, category, token, created_at, delivery_status')
+      .eq('user_email', user.email)
+      .order('created_at', { ascending: false });
+
+    if (bErr) {
+      console.error('[delivery-manager] my_deliveries query error:', bErr);
+      return json({ error: 'Failed to fetch deliveries' }, 500);
+    }
+
+    if (!batches || batches.length === 0) {
+      return json({ deliveries: [] });
+    }
+
+    const accountKey = Deno.env.get('AZURE_ACCOUNT_KEY') ?? '';
+    const batchIds = batches.map((b: any) => b.id);
+
+    const { data: allImages } = await db
+      .from('delivery_images')
+      .select('id, delivery_batch_id, image_filename, image_url, sequence')
+      .in('delivery_batch_id', batchIds)
+      .order('sequence');
+
+    // Group images by batch and generate SAS for first 3 thumbnails per batch
+    const imagesByBatch: Record<string, any[]> = {};
+    for (const img of (allImages || [])) {
+      const bid = img.delivery_batch_id;
+      if (!imagesByBatch[bid]) imagesByBatch[bid] = [];
+      imagesByBatch[bid].push(img);
+    }
+
+    const deliveries = await Promise.all(batches.map(async (batch: any) => {
+      const batchImages = imagesByBatch[batch.id] || [];
+      // Only generate SAS for first 3 thumbnails to keep response fast
+      const thumbnails = await Promise.all(
+        batchImages.slice(0, 3).map(async (img: any) => ({
+          id: img.id,
+          filename: img.image_filename,
+          url: await generateSasUrlFromHttps(img.image_url, '', accountKey, 120),
+        }))
+      );
+      return {
+        id: batch.id,
+        batch_id: batch.batch_id,
+        category: batch.category,
+        token: batch.token,
+        created_at: batch.created_at,
+        delivery_status: batch.delivery_status,
+        image_count: batchImages.length,
+        thumbnails,
+      };
+    }));
+
+    return json({ deliveries });
+  }
+
   // ── Admin actions below: require dual auth ──
   const userToken = req.headers.get('X-User-Token');
   if (!userToken) return json({ error: 'Unauthorized' }, 401);
