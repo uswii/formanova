@@ -842,6 +842,135 @@ Deno.serve(async (req) => {
       return json({ results, summary: { sent, failed, total: results.length } });
     }
 
+    // ── send_bulk: send delivery emails to N users, deduped via notification_log ──
+    if (action === 'send_bulk' && req.method === 'POST') {
+      if (!RESEND_API_KEY) return json({ error: 'Resend API key not configured' }, 500);
+
+      const body = await req.json();
+      const campaign = body.campaign as string || 'results_delivery_v1';
+      const limit = Math.min(body.limit as number || 50, 100);
+      const dryRun = body.dry_run === true;
+      const BRANDED_BASE = 'https://formanova.ai';
+
+      // Get all unique user_emails from delivery_batches
+      const { data: allDeliveries, error: dErr } = await db
+        .from('delivery_batches')
+        .select('id, user_email, override_email, category, token')
+        .eq('delivery_status', 'delivered')
+        .order('created_at', { ascending: true });
+
+      if (dErr || !allDeliveries) return json({ error: 'Failed to fetch deliveries' }, 500);
+
+      // Deduplicate by effective email (override_email || user_email)
+      const seen = new Set<string>();
+      const uniqueDeliveries: typeof allDeliveries = [];
+      for (const d of allDeliveries) {
+        const effectiveEmail = ((d as any).override_email || (d as any).user_email).toLowerCase();
+        if (!seen.has(effectiveEmail)) {
+          seen.add(effectiveEmail);
+          uniqueDeliveries.push(d);
+        }
+      }
+
+      // Check notification_log for already-sent entries
+      const { data: alreadySent } = await db
+        .from('notification_log')
+        .select('user_email')
+        .eq('campaign', campaign);
+
+      const sentEmails = new Set((alreadySent || []).map((r: any) => r.user_email.toLowerCase()));
+
+      // Filter to unsent only
+      const unsent = uniqueDeliveries.filter(d => {
+        const effectiveEmail = ((d as any).override_email || (d as any).user_email).toLowerCase();
+        return !sentEmails.has(effectiveEmail);
+      });
+
+      const toSend = unsent.slice(0, limit);
+
+      if (dryRun) {
+        return json({
+          campaign,
+          total_unique_users: uniqueDeliveries.length,
+          already_sent: sentEmails.size,
+          remaining: unsent.length,
+          will_send: toSend.length,
+          emails: toSend.map(d => (d as any).override_email || (d as any).user_email),
+        });
+      }
+
+      if (toSend.length === 0) {
+        return json({ campaign, message: 'No unsent users remaining', already_sent: sentEmails.size });
+      }
+
+      const results: { email: string; status: string; error?: string }[] = [];
+
+      for (const delivery of toSend) {
+        const recipientEmail = (delivery as any).override_email || (delivery as any).user_email;
+        const effectiveEmail = recipientEmail.toLowerCase();
+
+        try {
+          // Get image count
+          const { data: images } = await db.from('delivery_images').select('id').eq('delivery_batch_id', (delivery as any).id);
+          const imageCount = images?.length || 0;
+
+          const token = (delivery as any).token;
+          if (!token) {
+            results.push({ email: effectiveEmail, status: 'skipped', error: 'No token' });
+            continue;
+          }
+
+          const resultsUrl = `${BRANDED_BASE}/yourresults/${token}`;
+          const category = (delivery as any).category || 'jewelry';
+          const html = buildDeliveryEmailHtml({ recipientName: 'user', category, resultsUrl, imageCount });
+
+          const uniqueId = crypto.randomUUID();
+          const resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'FormaNova <noreply@formanova.ai>',
+              reply_to: 'studio@formanova.ai',
+              to: [recipientEmail],
+              subject: 'Your results are ready — FormaNova',
+              html,
+              headers: {
+                'X-Entity-Ref-ID': uniqueId,
+                'References': `<${uniqueId}@formanova.ai>`,
+                'Message-ID': `<${uniqueId}@formanova.ai>`,
+              },
+            }),
+          });
+
+          if (!resendResp.ok) {
+            const errText = await resendResp.text();
+            console.error(`[delivery-manager] Bulk send failed for ${effectiveEmail}:`, errText);
+            results.push({ email: effectiveEmail, status: 'failed', error: `Resend: ${resendResp.status}` });
+            continue;
+          }
+          await resendResp.json();
+
+          // Log in notification_log
+          await db.from('notification_log').insert({
+            user_email: effectiveEmail,
+            campaign,
+          });
+
+          results.push({ email: effectiveEmail, status: 'sent' });
+          console.log(`[delivery-manager] Bulk sent to ${effectiveEmail} (campaign: ${campaign})`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Unknown';
+          results.push({ email: effectiveEmail, status: 'failed', error: msg });
+        }
+      }
+
+      const sent = results.filter(r => r.status === 'sent').length;
+      const failed = results.filter(r => r.status === 'failed').length;
+      const skipped = results.filter(r => r.status === 'skipped').length;
+      console.log(`[delivery-manager] Bulk campaign "${campaign}": sent=${sent}, failed=${failed}, skipped=${skipped}`);
+      return json({ campaign, results, summary: { sent, failed, skipped, total: results.length, remaining: unsent.length - toSend.length } });
+    }
+
     return json({ error: `Unknown action: ${action}` }, 400);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
