@@ -113,7 +113,7 @@ function buildEmailHtml(params: {
     <!-- Body -->
     <div style="background-color: #111; border: 1px solid #222; border-radius: 8px; padding: 32px;">
       <p style="color: #e0e0e0; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">
-        Hi ${recipientName},
+        Hi there,
       </p>
       <p style="color: #999; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
         Your <strong style="color: #c8a97e; text-transform: capitalize;">${category}</strong> batch results are ready! 

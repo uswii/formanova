@@ -65,7 +65,7 @@ async def send_batch_completion_email(input: SendBatchEmailInput) -> SendBatchEm
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #C9A55C;">Your Batch Processing is Complete!</h1>
             
-            <p>Hi {input.user_name},</p>
+            <p>Hi there,</p>
             
             <p>Great news! Your <strong>{input.jewelry_category}</strong> batch has {status_text}.</p>
             
@@ -159,7 +159,7 @@ async def send_batch_started_email(input: SendBatchEmailInput) -> SendBatchEmail
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #C9A55C;">Your Batch is Being Processed!</h1>
             
-            <p>Hi {input.user_name},</p>
+            <p>Hi there,</p>
             
             <p>We've started processing your <strong>{input.jewelry_category}</strong> batch with 
                <strong>{input.total_images}</strong> images.</p>

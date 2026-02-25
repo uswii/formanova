@@ -174,7 +174,7 @@ function buildDeliveryEmailHtml(params: {
     <!-- Body -->
     <div style="background-color: #111; border: 1px solid #222; border-radius: 8px; padding: 32px;">
       <p style="color: #e0e0e0; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
-        Dear ${recipientName},
+        Dear user,
       </p>
       <p style="color: #bbb; font-size: 14px; line-height: 1.7; margin: 0 0 20px;">
         Thank you for using Forma Nova to create your jewelry photos. Your requested images are attached.
@@ -765,7 +765,7 @@ Deno.serve(async (req) => {
       <p style="color:#c8a97e; font-size:22px; font-weight:300; letter-spacing:3px; margin:0;">FORMA NOVA</p>
     </div>
     <div style="background:#111; border:1px solid #1a1a1a; border-radius:8px; padding:32px 28px;">
-      <p style="color:#e0e0e0; font-size:15px; margin:0 0 16px;">Dear ${recipientName},</p>
+      <p style="color:#e0e0e0; font-size:15px; margin:0 0 16px;">Dear user,</p>
       <p style="color:#ccc; font-size:14px; line-height:1.7; margin:0 0 16px;">
         We sincerely apologize — due to a brief technical issue on our end, you may have received 
         <strong style="color:#c8a97e;">${count} duplicate email(s)</strong> regarding your jewelry photography results.
