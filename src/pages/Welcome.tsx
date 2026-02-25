@@ -208,14 +208,6 @@ export default function Welcome() {
           </div>
         </div>
       </footer>
-
-      {/* Temporary Sentry test button */}
-      <button
-        onClick={() => { throw new Error("Sentry test error"); }}
-        className="fixed bottom-4 right-4 z-[9999] bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:opacity-90"
-      >
-        🐛 Test Sentry
-      </button>
     </div>
   );
 }
