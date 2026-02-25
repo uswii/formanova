@@ -14,25 +14,39 @@ function jsonResp(data: unknown, status = 200) {
 
 // ==================== FETCH PENDING BATCHES ====================
 
-async function fetchPending(supabase: any, statuses: string[]) {
+async function fetchPending(supabase: any, statuses: string[], limit = 10) {
+  // Fetch only a limited number of batches to avoid timeout
   const { data: batches, error } = await supabase
     .from('batch_jobs')
     .select('*')
     .in('status', statuses)
     .order('created_at', { ascending: true })
+    .limit(limit)
 
   if (error) return jsonResp({ error: error.message }, 500)
+  if (!batches?.length) return jsonResp({ batches: [], count: 0 })
 
-  const results = []
-  for (const batch of batches || []) {
-    const { data: images } = await supabase
-      .from('batch_images')
-      .select('*')
-      .eq('batch_id', batch.id)
-      .order('sequence_number', { ascending: true })
+  // Fetch ALL images for these batches in ONE query (not N+1)
+  const batchIds = batches.map((b: any) => b.id)
+  const { data: allImages, error: imgErr } = await supabase
+    .from('batch_images')
+    .select('*')
+    .in('batch_id', batchIds)
+    .order('sequence_number', { ascending: true })
 
-    results.push({ ...batch, images: images || [] })
+  if (imgErr) return jsonResp({ error: imgErr.message }, 500)
+
+  // Group images by batch_id
+  const imagesByBatch: Record<string, any[]> = {}
+  for (const img of allImages || []) {
+    if (!imagesByBatch[img.batch_id]) imagesByBatch[img.batch_id] = []
+    imagesByBatch[img.batch_id].push(img)
   }
+
+  const results = batches.map((b: any) => ({
+    ...b,
+    images: imagesByBatch[b.id] || [],
+  }))
 
   return jsonResp({ batches: results, count: results.length })
 }
@@ -344,7 +358,8 @@ Deno.serve(async (req) => {
       switch (action) {
         case 'fetch_pending': {
           const statuses = url.searchParams.get('statuses')?.split(',') || ['pending']
-          return await fetchPending(supabase, statuses)
+          const limit = parseInt(url.searchParams.get('limit') || '10', 10)
+          return await fetchPending(supabase, statuses, Math.min(limit, 50))
         }
         default:
           return jsonResp({ error: `Unknown GET action: ${action}` }, 400)
