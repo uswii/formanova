@@ -123,6 +123,15 @@ function copyToClipboard(text: string) {
   toast({ title: 'Copied to clipboard' });
 }
 
+/** Route Azure blob URLs through the admin proxy to avoid CORS / expired SAS issues */
+function proxyUrl(rawUrl: string): string {
+  if (!rawUrl) return rawUrl;
+  if (rawUrl.includes('blob.core.windows.net')) {
+    return `${ADMIN_API_URL}?action=proxy_image&url=${encodeURIComponent(rawUrl)}`;
+  }
+  return rawUrl;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
@@ -985,7 +994,7 @@ export default function AdminBatches() {
                                                 >
                                                   {(img.thumbnail_url || img.original_url) ? (
                                                     <img
-                                                      src={img.thumbnail_url || img.original_url}
+                                                      src={proxyUrl(img.thumbnail_url || img.original_url)}
                                                       alt={`#${img.sequence_number}`}
                                                       className="w-full h-full object-cover"
                                                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -1096,7 +1105,7 @@ export default function AdminBatches() {
               {imagePreview?.url && (
                 <div className="flex gap-3">
                   <a
-                    href={imagePreview.url}
+                    href={proxyUrl(imagePreview.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
@@ -1106,7 +1115,7 @@ export default function AdminBatches() {
                   <button
                     onClick={async () => {
                       try {
-                        const res = await fetch(imagePreview!.url);
+                        const res = await fetch(proxyUrl(imagePreview!.url));
                         if (!res.ok) throw new Error('Download failed');
                         const blob = await res.blob();
                         const contentType = blob.type || 'image/jpeg';
@@ -1134,7 +1143,7 @@ export default function AdminBatches() {
           <div className="p-4 pt-2 flex items-center justify-center">
             {imagePreview?.url && (
               <img
-                src={imagePreview.url}
+                src={proxyUrl(imagePreview.url)}
                 alt={imagePreview.title}
                 className="max-w-full max-h-[75vh] object-contain rounded"
                 onError={(e) => {

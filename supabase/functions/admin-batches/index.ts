@@ -569,7 +569,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── PROXY IMAGE (binary passthrough for ZIP downloads) ──
+    // ── PROXY IMAGE (binary passthrough, re-signs Azure SAS) ──
     if (action === 'proxy_image') {
       const imageUrl = url.searchParams.get('url');
       if (!imageUrl) {
@@ -587,8 +587,13 @@ Deno.serve(async (req) => {
         );
       }
 
-      const imgResponse = await fetch(imageUrl);
+      // Strip any existing SAS query params and regenerate a fresh SAS
+      const baseUrl = imageUrl.split('?')[0];
+      const freshUrl = await generateSasUrl(baseUrl, azureAccountName, azureAccountKey);
+
+      const imgResponse = await fetch(freshUrl);
       if (!imgResponse.ok) {
+        console.error(`[proxy_image] Azure fetch failed: ${imgResponse.status} for ${baseUrl}`);
         return new Response(
           JSON.stringify({ error: `Azure fetch failed: ${imgResponse.status}` }),
           { status: imgResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -603,6 +608,7 @@ Deno.serve(async (req) => {
           ...corsHeaders,
           'Content-Type': contentType,
           'Content-Length': blob.byteLength.toString(),
+          'Cache-Control': 'private, max-age=3600',
         },
       });
     }
