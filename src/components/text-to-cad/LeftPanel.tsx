@@ -181,6 +181,20 @@ export default function LeftPanel({
           </button>
 
 
+          {/* Upload GLB */}
+          <input type="file" ref={glbInputRef} accept=".glb,.gltf" className="hidden" onChange={handleGlbUpload} />
+          <button
+            onClick={() => glbInputRef.current?.click()}
+            disabled={isGenerating}
+            className="w-full py-3.5 mt-2 rounded-xl text-[13px] font-bold uppercase tracking-[2px] cursor-pointer transition-all duration-200 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[0_4px_20px_rgba(255,255,255,0.08)] flex items-center justify-center gap-2"
+            style={{
+              ...glassBtn,
+              background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%)",
+            }}
+          >
+            <Upload className="w-4 h-4" /> Upload GLB
+          </button>
+
           {/* Magic Texturing */}
           {hasModel && (
             <button
