@@ -12,7 +12,6 @@ import {
   ProgressOverlay,
   StatsBar,
   ActionButtons,
-  LightSlider,
 } from "@/components/text-to-cad/ViewportOverlays";
 import { PROGRESS_STEPS } from "@/components/text-to-cad/types";
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
@@ -421,6 +420,8 @@ export default function TextToCAD() {
         onQuickEdit={handleQuickEdit}
         onMagicTexture={() => toast.info("Magic Texturing coming soon")}
         onGlbUpload={handleGlbUpload}
+        lightIntensity={lightIntensity}
+        setLightIntensity={setLightIntensity}
       />
 
       <div className="flex-1 relative" style={{ background: "#111" }}>
@@ -451,11 +452,6 @@ export default function TextToCAD() {
           onUndo={handleUndo}
           undoCount={undoStack.length}
           onDownload={handleDownloadGlb}
-        />
-        <LightSlider
-          visible={hasModel && !isGenerating}
-          value={lightIntensity}
-          onChange={setLightIntensity}
         />
       </div>
 

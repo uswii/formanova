@@ -23,6 +23,8 @@ interface LeftPanelProps {
   onQuickEdit: (preset: string) => void;
   onMagicTexture: () => void;
   onGlbUpload: (file: File) => void;
+  lightIntensity: number;
+  setLightIntensity: (v: number) => void;
 }
 
 const glassBtn = {
@@ -51,6 +53,7 @@ export default function LeftPanel({
   refImage, setRefImage, selectedModules, toggleModule,
   isGenerating, isEditing, hasModel, modules,
   onGenerate, onEdit, onQuickEdit, onMagicTexture, onGlbUpload,
+  lightIntensity, setLightIntensity,
 }: LeftPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const glbInputRef = useRef<HTMLInputElement>(null);
@@ -306,6 +309,27 @@ export default function LeftPanel({
             </motion.section>
           )}
         </AnimatePresence>
+
+        {/* Light Intensity Slider — always visible at bottom of panel */}
+        <section className="mt-2 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <h3 className="text-[10px] uppercase tracking-[2px] text-[#777] font-semibold mb-3">Light Intensity</h3>
+          <div className="flex items-center gap-3">
+            <span className="text-[14px]">☀</span>
+            <input
+              type="range"
+              min={0}
+              max={200}
+              value={Math.round(lightIntensity * 100)}
+              onChange={(e) => setLightIntensity(Number(e.target.value) / 100)}
+              className="flex-1 h-[3px] rounded-full cursor-pointer appearance-none"
+              style={{
+                background: `linear-gradient(to right, rgba(255,255,255,0.6) ${lightIntensity * 50}%, rgba(255,255,255,0.1) ${lightIntensity * 50}%)`,
+                WebkitAppearance: "none",
+              }}
+            />
+            <span className="text-[11px] text-[#999] font-mono w-10 text-right">{Math.round(lightIntensity * 100)}%</span>
+          </div>
+        </section>
       </div>
 
       {/* Status bar */}
