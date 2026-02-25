@@ -656,7 +656,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             antialias: Q.antialias,
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.2,
+            toneMappingExposure: 0.7,
             powerPreference: "high-performance",
           }}
           dpr={Q.dpr}
@@ -670,17 +670,17 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
         >
           <Suspense fallback={null}>
             {/* Lighting — reduced on low tier */}
-            <ambientLight intensity={0.1} />
-            <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" />
+            <ambientLight intensity={0.15} />
+            <directionalLight position={[3, 5, 3]} intensity={1.0} color="#f5f0e8" />
             {Q.maxLights >= 4 && (
-              <directionalLight position={[-3, 2, -3]} intensity={1.0} color="#ffffff" />
+              <directionalLight position={[-3, 2, -3]} intensity={0.5} color="#e8e4dc" />
             )}
-            <hemisphereLight args={["#ffffff", "#e6e6e6", 0.55]} />
+            <hemisphereLight args={["#d4cfc8", "#8a8580", 0.3]} />
             {Q.maxLights >= 5 && (
-              <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
+              <spotLight position={[0, 8, 0]} intensity={0.4} angle={0.5} penumbra={1} color="#fff5e6" />
             )}
 
-            <Environment files="/hdri/jewelry-studio-v2.hdr" />
+            <Environment files="/hdri/jewelry-studio-v2.hdr" environmentIntensity={0.5} />
 
             <GemEnvLoader onLoaded={handleGemEnvLoaded} />
 
