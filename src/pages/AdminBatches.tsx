@@ -273,6 +273,34 @@ export default function AdminBatches() {
     }
   }, [getAdminHeaders]);
 
+  const [sendingBulk, setSendingBulk] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ sent: number; failed: number; remaining: number } | null>(null);
+  const handleSendBulk = useCallback(async (dryRun = false, limit = 50) => {
+    setSendingBulk(true);
+    setBulkResult(null);
+    try {
+      const DELIVERY_API = `${SUPABASE_URL}/functions/v1/delivery-manager`;
+      const response = await fetch(`${DELIVERY_API}?action=send_bulk`, {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign: 'results_delivery_v1', limit, dry_run: dryRun }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed');
+      if (dryRun) {
+        toast({ title: `Dry run: ${data.will_send} to send, ${data.already_sent} already sent, ${data.remaining} remaining`, description: data.emails?.slice(0, 10).join(', ') + (data.emails?.length > 10 ? '...' : '') });
+      } else {
+        const s = data.summary;
+        setBulkResult({ sent: s.sent, failed: s.failed, remaining: s.remaining });
+        toast({ title: `Bulk send: ${s.sent} sent, ${s.failed} failed, ${s.remaining} remaining` });
+      }
+    } catch (err: any) {
+      toast({ title: err.message || 'Bulk send failed', variant: 'destructive' });
+    } finally {
+      setSendingBulk(false);
+    }
+  }, [getAdminHeaders]);
+
   const handleSaveDriveLink = useCallback(async (batchId: string) => {
     setSavingDriveLink(true);
     try {
@@ -566,6 +594,33 @@ export default function AdminBatches() {
                   </Button>
                   <AlertDialogAction onClick={() => handleSendApology(false)} disabled={sendingApology}>
                     Send Apology Emails
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-emerald-400 hover:text-emerald-300" disabled={sendingBulk}>
+                  <Mail className="h-3.5 w-3.5" /> {sendingBulk ? 'Sending…' : 'Bulk Send'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Send Bulk Results Emails</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Send delivery notification emails to the next 50 users who haven't been emailed yet (tracked via notification_log).
+                    {bulkResult && (
+                      <span className="block mt-2 text-emerald-400">Last run: {bulkResult.sent} sent, {bulkResult.failed} failed, {bulkResult.remaining} remaining</span>
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <Button variant="outline" onClick={() => handleSendBulk(true)} disabled={sendingBulk}>
+                    {sendingBulk ? 'Checking…' : 'Dry Run'}
+                  </Button>
+                  <AlertDialogAction onClick={() => handleSendBulk(false, 50)} disabled={sendingBulk}>
+                    {sendingBulk ? 'Sending…' : 'Send 50 Emails'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
