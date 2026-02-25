@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Download, Loader2, Images } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -23,25 +24,43 @@ interface GalleryData {
 
 export default function DeliveryResults() {
   const { token } = useParams<{ token: string }>();
+  const { getAuthHeader } = useAuth();
   const [data, setData] = useState<GalleryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [thumbnailBlobs, setThumbnailBlobs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${DELIVERY_API}?action=gallery&token=${token}`)
+    const authHeaders = getAuthHeader();
+    fetch(`${DELIVERY_API}?action=gallery&token=${token}`, {
+      headers: { ...authHeaders },
+    })
       .then(r => r.json())
-      .then(d => {
-        if (d.error) setError(d.error);
-        else {
-          // Build proxy URLs for display (avoids CORS with Azure)
-          const images = (d.images || []).map((img: GalleryImage) => ({
-            ...img,
-            thumbnail_url: `${DELIVERY_API}?action=thumbnail&token=${token}&image_id=${img.id}`,
-          }));
-          setData({ ...d, images });
-        }
+      .then(async (d) => {
+        if (d.error) { setError(d.error); return; }
+        const images = (d.images || []).map((img: GalleryImage) => ({
+          ...img,
+          thumbnail_url: '', // Will be loaded via authenticated fetch
+        }));
+        setData({ ...d, images });
+
+        // Fetch thumbnails with auth headers (img src can't send headers)
+        const blobs: Record<string, string> = {};
+        await Promise.all(images.map(async (img: GalleryImage) => {
+          try {
+            const resp = await fetch(
+              `${DELIVERY_API}?action=thumbnail&token=${token}&image_id=${img.id}`,
+              { headers: { ...authHeaders } }
+            );
+            if (resp.ok) {
+              const blob = await resp.blob();
+              blobs[img.id] = URL.createObjectURL(blob);
+            }
+          } catch { /* skip failed thumbnails */ }
+        }));
+        setThumbnailBlobs(blobs);
       })
       .catch(() => setError('Failed to load results'))
       .finally(() => setLoading(false));
@@ -50,7 +69,10 @@ export default function DeliveryResults() {
   const handleDownload = async (image: GalleryImage) => {
     setDownloading(image.id);
     try {
-      const resp = await fetch(`${DELIVERY_API}?action=download&token=${token}&image_id=${image.id}`);
+      const authHeaders = getAuthHeader();
+      const resp = await fetch(`${DELIVERY_API}?action=download&token=${token}&image_id=${image.id}`, {
+        headers: { ...authHeaders },
+      });
       if (!resp.ok) throw new Error('Download failed');
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
@@ -121,7 +143,7 @@ export default function DeliveryResults() {
               {/* Image - natural aspect ratio */}
               <div className="bg-muted">
                 <img
-                  src={img.thumbnail_url}
+                  src={thumbnailBlobs[img.id] || ''}
                   alt={img.image_filename}
                   className="w-full h-auto block transition-transform duration-500 group-hover:scale-[1.02]"
                   loading="lazy"

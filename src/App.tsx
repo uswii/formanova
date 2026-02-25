@@ -70,8 +70,8 @@ const App = () => (
                   {/* Admin route - login protected */}
                   <Route path="/admin" element={<ProtectedRoute><AdminBatches /></ProtectedRoute>} />
                   
-                  {/* Public delivery results page */}
-                  <Route path="/yourresults/:token" element={<DeliveryResults />} />
+                  {/* Protected delivery results page - requires login + ownership */}
+                  <Route path="/yourresults/:token" element={<ProtectedRoute><DeliveryResults /></ProtectedRoute>} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

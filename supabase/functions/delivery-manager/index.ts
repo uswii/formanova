@@ -237,15 +237,32 @@ Deno.serve(async (req) => {
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-  // ── Public actions (token-validated, no admin auth) ──
+  // ── Authenticated actions (token + JWT ownership check) ──
   if (action === 'gallery' || action === 'download' || action === 'thumbnail' || action === 'download_zip') {
     const token = url.searchParams.get('token');
     if (!token) return json({ error: 'Missing token' }, 400);
+
+    // Require authenticated user
+    const userToken = req.headers.get('x-user-token') || req.headers.get('authorization')?.replace('Bearer ', '') || '';
+    if (!userToken) return json({ error: 'Authentication required. Please log in to view your results.' }, 401);
+
+    const authedUser = await authenticateUser(userToken);
+    if (!authedUser) return json({ error: 'Invalid or expired session. Please log in again.' }, 401);
 
     const db = getSupabaseAdmin();
     const { data: delivery, error: dErr } = await db
       .from('delivery_batches').select('*').eq('token', token).single();
     if (dErr || !delivery) return json({ error: 'Invalid or expired token' }, 404);
+
+    // Ownership check: authenticated user's email must match delivery recipient
+    const deliveryEmail = (delivery.user_email || '').toLowerCase();
+    const overrideEmail = (delivery.override_email || '').toLowerCase();
+    const userEmail = authedUser.email.toLowerCase();
+    // Also allow admin access
+    const isAdmin = getAdminEmails().includes(userEmail);
+    if (userEmail !== deliveryEmail && userEmail !== overrideEmail && !isAdmin) {
+      return json({ error: 'Access denied. You do not have permission to view these results.' }, 403);
+    }
 
     if (action === 'gallery') {
       const { data: images } = await db
