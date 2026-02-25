@@ -195,7 +195,7 @@ export default function LeftPanel({
             <Upload className="w-4 h-4" /> Upload Ring Part
           </button>
 
-          {/* Magic Texturing */}
+          {/* Remove Magic Textures */}
           {hasModel && (
             <button
               onClick={onMagicTexture}
@@ -203,10 +203,10 @@ export default function LeftPanel({
               className="w-full py-3.5 mt-3 rounded-xl text-[13px] font-bold uppercase tracking-[2px] cursor-pointer transition-all duration-200 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[0_4px_20px_rgba(255,255,255,0.08)]"
               style={{
                 ...glassBtn,
-                background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%)",
+                background: "linear-gradient(135deg, rgba(255,80,80,0.12) 0%, rgba(255,255,255,0.04) 100%)",
               }}
             >
-              ✨ Magic Texturing
+              ✕ Remove Magic Textures
             </button>
           )}
         </section>

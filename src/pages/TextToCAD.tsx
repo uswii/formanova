@@ -428,7 +428,10 @@ export default function TextToCAD() {
         onGenerate={simulateGeneration}
         onEdit={simulateEdit}
         onQuickEdit={handleQuickEdit}
-        onMagicTexture={() => toast.info("Magic Texturing coming soon")}
+        onMagicTexture={() => {
+          canvasRef.current?.removeAllTextures();
+          toast.success("All magic textures removed — showing original materials");
+        }}
         onGlbUpload={handleGlbUpload}
         lightIntensity={lightIntensity}
         setLightIntensity={setLightIntensity}

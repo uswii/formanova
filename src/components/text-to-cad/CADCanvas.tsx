@@ -175,6 +175,7 @@ const LoadedModel = forwardRef<
     getSnapshot: () => CanvasSnapshot;
     restoreSnapshot: (snap: CanvasSnapshot) => void;
     applyTransform: (meshNames: string[]) => void;
+    removeAllTextures: () => void;
   },
   {
     url: string;
@@ -304,8 +305,8 @@ const LoadedModel = forwardRef<
 
     // ── Magic Texturing: auto-assign materials based on mesh name + material heuristics ──
     const autoMaterials: Record<string, MaterialDef> = {};
-    const gemKeywords = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave"];
-    const platinumKeywords = ["prong", "claw", "bead", "milgrain"];
+    const gemKeywords = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave", "brilliant", "round_cut", "cushion", "oval", "marquise", "princess", "facet"];
+    const platinumKeywords = ["prong", "claw", "bead", "milgrain", "setting", "basket", "collet"];
     const diamondMatDef = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
     const platinumMatDef = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
     const goldMatDef = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
@@ -324,6 +325,11 @@ const LoadedModel = forwardRef<
       if (phys.transparent && phys.opacity < 0.8) return true;
       // Non-metallic with very low roughness = likely polished gem
       if (phys.metalness < 0.3 && phys.roughness < 0.15) return true;
+      // White/light gray non-metallic material = likely uncolored gem placeholder
+      if (phys.metalness < 0.3) {
+        const c = phys.color;
+        if (c && c.r > 0.7 && c.g > 0.7 && c.b > 0.7 && phys.roughness < 0.4) return true;
+      }
       return false;
     };
 
@@ -638,6 +644,16 @@ const LoadedModel = forwardRef<
       });
       inv();
     },
+    // Remove all auto-assigned textures, revert to original GLB materials
+    removeAllTextures: () => {
+      setAssignedMaterials({});
+      flatGeoCache.current.forEach((g) => g.dispose());
+      flatGeoCache.current.clear();
+      materialCache.current.forEach((m) => m.dispose());
+      materialCache.current.clear();
+      inv();
+      console.log("[CADCanvas] All magic textures removed");
+    },
     // Apply Transform: bake current transform into geometry, reset transform to identity
     applyTransform: (meshNames: string[]) => {
       const names = new Set(meshNames);
@@ -815,6 +831,7 @@ export interface CADCanvasHandle {
   setWireframe: (on: boolean) => void;
   smoothMesh: (meshNames: string[], iterations: number) => void;
   applyTransform: (meshNames: string[]) => void;
+  removeAllTextures: () => void;
   getSnapshot: () => CanvasSnapshot;
   restoreSnapshot: (snap: CanvasSnapshot) => void;
 }
@@ -854,6 +871,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       setWireframe: (on) => modelRef.current?.setWireframe(on),
       smoothMesh: (meshNames, iters) => modelRef.current?.smoothMesh(meshNames, iters),
       applyTransform: (meshNames) => modelRef.current?.applyTransform(meshNames),
+      removeAllTextures: () => modelRef.current?.removeAllTextures(),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
     }));
