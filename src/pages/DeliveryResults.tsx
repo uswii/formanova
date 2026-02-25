@@ -94,7 +94,7 @@ export default function DeliveryResults() {
         </h1>
         
         <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-          Your <span className="text-formanova-hero-accent capitalize">{data.category}</span> photoshoot is ready
+          Your photos are ready to download
         </p>
         
         <div className="inline-flex items-center gap-2 marta-frame px-4 py-2">
@@ -107,7 +107,7 @@ export default function DeliveryResults() {
 
       {/* Gallery grid */}
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.images.map(img => (
             <div key={img.id} className="group relative marta-frame overflow-hidden bg-card">
               {/* Image */}
