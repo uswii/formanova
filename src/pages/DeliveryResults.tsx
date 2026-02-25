@@ -119,11 +119,11 @@ export default function DeliveryResults() {
           {data.images.map(img => (
             <div key={img.id} className="group relative marta-frame overflow-hidden bg-card">
               {/* Image */}
-              <div className="aspect-square bg-muted">
+              <div className="aspect-square bg-muted flex items-center justify-center">
                 <img
                   src={img.thumbnail_url}
                   alt={img.image_filename}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
                   loading="lazy"
                 />
               </div>
