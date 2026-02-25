@@ -352,7 +352,8 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'POST') {
-      const body = await req.json()
+      let body = {}
+      try { body = await req.json() } catch { /* empty body is ok for admin actions */ }
       switch (action) {
         case 'update_image':
           return await updateImage(supabase, body)
@@ -360,6 +361,23 @@ Deno.serve(async (req) => {
           return await bulkUpdateImages(supabase, body)
         case 'deliver':
           return await deliver(supabase, body)
+        case 'kill_locks': {
+          // Terminate all idle-in-transaction connections that are blocking queries
+          const { data, error } = await supabase.rpc('terminate_blocked_connections')
+          if (error) {
+            // Fallback: try direct query via pg_stat_activity
+            const { data: locks, error: lockErr } = await supabase
+              .from('pg_stat_activity' as any)
+              .select('pid, state, query, wait_event_type')
+              .in('state', ['idle in transaction', 'idle in transaction (aborted)'])
+            return jsonResp({ 
+              message: 'Cannot terminate directly from edge function. Use Supabase SQL Editor to run: SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = \'idle in transaction\';',
+              visible_locks: locks || [],
+              error: lockErr?.message 
+            })
+          }
+          return jsonResp({ success: true, terminated: data })
+        }
         default:
           return jsonResp({ error: `Unknown POST action: ${action}` }, 400)
       }
