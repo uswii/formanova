@@ -204,11 +204,11 @@ function buildDeliveryEmailHtml(params: {
       <!-- CTA -->
       <div style="text-align: center; margin: 28px 0 16px;">
         <a href="${resultsUrl}" style="display: inline-block; background: linear-gradient(135deg, #c8a97e, #a88b5e); color: #0a0a0a; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-weight: 600; font-size: 14px; letter-spacing: 1px;">
-          Download Your Photos
+          View Your Photos
         </a>
       </div>
       <p style="color: #666; font-size: 11px; text-align: center; margin: 0;">
-        Click the link to download your generated photoshoot with Forma Nova.
+        Click the button above to view and download your photos on our secure gallery.
       </p>
     </div>
 
@@ -584,9 +584,8 @@ Deno.serve(async (req) => {
       const deliveryIds = body.delivery_ids as string[];
       if (!deliveryIds || deliveryIds.length === 0) return json({ error: 'delivery_ids required' }, 400);
 
-      // Build ZIP download URL directly to the edge function
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-      const edgeFunctionBase = `${supabaseUrl}/functions/v1/delivery-manager`;
+      // Build branded gallery URL (avoids "dangerous link" warnings from email clients)
+      const BRANDED_BASE = 'https://formanova.lovable.app';
 
       const results: { id: string; email: string; status: string; error?: string }[] = [];
 
@@ -605,7 +604,7 @@ Deno.serve(async (req) => {
 
           const recipientEmail = delivery.override_email || delivery.user_email;
           const recipientName = recipientEmail.split('@')[0];
-          const resultsUrl = `${edgeFunctionBase}?action=download_zip&token=${token}`;
+          const resultsUrl = `${BRANDED_BASE}/results/${token}`;
           const category = delivery.category || 'jewelry';
 
           const html = buildDeliveryEmailHtml({ recipientName, category, resultsUrl, imageCount });
