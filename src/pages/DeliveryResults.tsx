@@ -173,14 +173,28 @@ export default function DeliveryResults() {
     );
   }
 
-  // ── State 5: Other errors ──
+  // ── State 5: Other errors (show sign-in option) ──
   if (error || !data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
-        <div className="text-center space-y-6">
+        <div className="text-center space-y-8 max-w-sm">
           <img src={formanovaLogo} alt="FormaNova" className="h-8 mx-auto opacity-80" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
-          <p className="text-muted-foreground text-sm">{error || 'Results not found'}</p>
+          <div className="space-y-3">
+            <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
+              VIEW YOUR RESULTS
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Please sign in with the account that was used to submit this batch to view your photos.
+            </p>
+          </div>
+          <Button
+            onClick={signInWithGoogle}
+            className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign in with Google
+          </Button>
         </div>
       </div>
     );
