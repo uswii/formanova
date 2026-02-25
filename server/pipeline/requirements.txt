@@ -1,0 +1,5 @@
+requests>=2.31
+Pillow>=10.0
+python-dotenv>=1.0
+google-genai>=1.0
+azure-storage-blob>=12.19

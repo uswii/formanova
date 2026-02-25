@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.blob-proxy]
 verify_jwt = false
+
+[functions.pipeline-api]
+verify_jwt = false
