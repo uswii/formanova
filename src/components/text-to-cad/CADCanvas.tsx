@@ -179,29 +179,37 @@ const LoadedModel = forwardRef<
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
-  // Load GLB using GLTFLoader directly (handles remote URLs without extension)
+  // Load GLB by fetching as ArrayBuffer first (handles extensionless Azure blob URLs)
   useEffect(() => {
     if (!url || loadedUrlRef.current === url) return;
     loadedUrlRef.current = url;
-    const loader = new GLTFLoader();
-    loader.load(
-      url,
-      (gltf) => {
-        console.log("[CADCanvas] GLB loaded successfully from:", url.substring(0, 80));
-        setScene(gltf.scene);
-      },
-      (progress) => {
-        if (progress.total > 0) {
-          console.log(`[CADCanvas] GLB loading: ${Math.round((progress.loaded / progress.total) * 100)}%`);
-        }
-      },
-      (error) => {
-        console.error("[CADCanvas] Failed to load GLB:", error);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        console.log("[CADCanvas] Fetching GLB as ArrayBuffer from:", url.substring(0, 80));
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
+        if (cancelled) return;
+
+        const loader = new GLTFLoader();
+        loader.parse(arrayBuffer, "", (gltf) => {
+          if (cancelled) return;
+          console.log("[CADCanvas] GLB parsed successfully, size:", arrayBuffer.byteLength);
+          setScene(gltf.scene);
+        }, (error) => {
+          console.error("[CADCanvas] Failed to parse GLB:", error);
+          loadedUrlRef.current = "";
+        });
+      } catch (error) {
+        console.error("[CADCanvas] Failed to fetch GLB:", error);
         console.error("[CADCanvas] URL was:", url.substring(0, 120));
-        // Reset loaded ref so user can retry
-        loadedUrlRef.current = "";
+        if (!cancelled) loadedUrlRef.current = "";
       }
-    );
+    })();
+
+    return () => { cancelled = true; };
   }, [url]);
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
