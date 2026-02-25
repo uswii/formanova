@@ -12,6 +12,7 @@ import {
   ProgressOverlay,
   StatsBar,
   ActionButtons,
+  LightSlider,
 } from "@/components/text-to-cad/ViewportOverlays";
 import { PROGRESS_STEPS } from "@/components/text-to-cad/types";
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
@@ -53,6 +54,7 @@ export default function TextToCAD() {
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [lightIntensity, setLightIntensity] = useState(1);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
   const meshesRef = useRef<MeshItemData[]>(meshes);
@@ -431,6 +433,7 @@ export default function TextToCAD() {
           transformMode={transformMode}
           onMeshesDetected={handleMeshesDetected}
           onTransformEnd={handleTransformEnd}
+          lightIntensity={lightIntensity}
         />
 
         <EditToolbar
@@ -448,6 +451,11 @@ export default function TextToCAD() {
           onUndo={handleUndo}
           undoCount={undoStack.length}
           onDownload={handleDownloadGlb}
+        />
+        <LightSlider
+          visible={hasModel && !isGenerating}
+          value={lightIntensity}
+          onChange={setLightIntensity}
         />
       </div>
 

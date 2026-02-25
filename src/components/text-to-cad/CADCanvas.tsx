@@ -620,10 +620,11 @@ interface CADCanvasProps {
   transformMode: string;
   onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
   onTransformEnd?: () => void;
+  lightIntensity?: number;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
+  ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
     const [gemEnvMap, setGemEnvMap] = useState<THREE.Texture | null>(null);
@@ -656,7 +657,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             antialias: Q.antialias,
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 0.7,
+            toneMappingExposure: 0.7 * lightIntensity,
             powerPreference: "high-performance",
           }}
           dpr={Q.dpr}
@@ -669,18 +670,18 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           }}
         >
           <Suspense fallback={null}>
-            {/* Lighting — reduced on low tier */}
-            <ambientLight intensity={0.15} />
-            <directionalLight position={[3, 5, 3]} intensity={1.0} color="#f5f0e8" />
+            {/* Lighting — scaled by lightIntensity */}
+            <ambientLight intensity={0.15 * lightIntensity} />
+            <directionalLight position={[3, 5, 3]} intensity={1.0 * lightIntensity} color="#f5f0e8" />
             {Q.maxLights >= 4 && (
-              <directionalLight position={[-3, 2, -3]} intensity={0.5} color="#e8e4dc" />
+              <directionalLight position={[-3, 2, -3]} intensity={0.5 * lightIntensity} color="#e8e4dc" />
             )}
-            <hemisphereLight args={["#d4cfc8", "#8a8580", 0.3]} />
+            <hemisphereLight args={["#d4cfc8", "#8a8580", 0.3 * lightIntensity]} />
             {Q.maxLights >= 5 && (
-              <spotLight position={[0, 8, 0]} intensity={0.4} angle={0.5} penumbra={1} color="#fff5e6" />
+              <spotLight position={[0, 8, 0]} intensity={0.4 * lightIntensity} angle={0.5} penumbra={1} color="#fff5e6" />
             )}
 
-            <Environment files="/hdri/jewelry-studio-v2.hdr" environmentIntensity={0.5} />
+            <Environment files="/hdri/jewelry-studio-v2.hdr" environmentIntensity={0.5 * lightIntensity} />
 
             <GemEnvLoader onLoaded={handleGemEnvLoaded} />
 
