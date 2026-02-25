@@ -922,7 +922,44 @@ Deno.serve(async (req) => {
 
           const resultsUrl = `${BRANDED_BASE}/yourresults/${token}`;
           const category = (delivery as any).category || 'jewelry';
-          const html = buildDeliveryEmailHtml({ recipientName: 'user', category, resultsUrl, imageCount });
+
+          // Old-user template: simple, direct message for users who received emails before
+          const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0; padding:0; background-color:#0a0a0a; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:560px; margin:0 auto; padding:40px 24px;">
+    <div style="text-align:center; margin-bottom:32px;">
+      <h1 style="color:#c8a97e; font-size:24px; letter-spacing:5px; font-weight:300; margin:0;">FORMA NOVA</h1>
+      <div style="width:50px; height:1px; background:linear-gradient(90deg,transparent,#c8a97e,transparent); margin:14px auto;"></div>
+    </div>
+    <div style="background-color:#111; border:1px solid #222; border-radius:8px; padding:32px 28px;">
+      <p style="color:#e0e0e0; font-size:15px; line-height:1.6; margin:0 0 16px;">Dear user,</p>
+      <p style="color:#bbb; font-size:14px; line-height:1.7; margin:0 0 20px;">
+        You can now view your Forma Nova results at the link below:
+      </p>
+      <div style="text-align:center; margin:24px 0;">
+        <a href="${resultsUrl}" style="display:inline-block; background:linear-gradient(135deg,#c8a97e,#a88b5e); color:#0a0a0a; text-decoration:none; padding:14px 40px; border-radius:6px; font-weight:600; font-size:14px; letter-spacing:1px;">
+          View Your Photos
+        </a>
+      </div>
+      <p style="color:#999; font-size:13px; line-height:1.6; margin:0 0 20px; text-align:center;">
+        Please make sure you are logged in to access them.
+      </p>
+      <div style="text-align:center; margin-bottom:16px;">
+        <p style="color:#666; font-size:12px; margin:0 0 4px;">Total Photos</p>
+        <p style="color:#c8a97e; font-size:24px; font-weight:300; margin:0;">${imageCount}</p>
+      </div>
+    </div>
+    <div style="padding:20px 0 0; text-align:center;">
+      <p style="color:#999; font-size:13px; margin:0 0 4px;">Warmest Regards,</p>
+      <p style="color:#c8a97e; font-size:14px; font-weight:500; letter-spacing:1px; margin:0;">The Forma Nova Team</p>
+    </div>
+    <div style="text-align:center; margin-top:24px; padding-top:12px; border-top:1px solid #1a1a1a;">
+      <p style="color:#555; font-size:11px; margin:0;">Questions? Email us at <a href="mailto:studio@formanova.ai" style="color:#c8a97e; text-decoration:none;">studio@formanova.ai</a></p>
+      <p style="color:#444; font-size:10px; margin:6px 0 0;">© ${new Date().getFullYear()} Forma Nova · AI-Powered Jewelry Photography</p>
+    </div>
+  </div>
+</body></html>`;
 
           const uniqueId = crypto.randomUUID();
           const resendResp = await fetch('https://api.resend.com/emails', {
@@ -932,7 +969,7 @@ Deno.serve(async (req) => {
               from: 'FormaNova <noreply@formanova.ai>',
               reply_to: 'studio@formanova.ai',
               to: [recipientEmail],
-              subject: 'Your results are ready — FormaNova',
+              subject: 'Your Forma Nova results are ready to view',
               html,
               headers: {
                 'X-Entity-Ref-ID': uniqueId,
