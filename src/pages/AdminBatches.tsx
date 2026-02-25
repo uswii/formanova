@@ -176,6 +176,9 @@ export default function AdminBatches() {
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
+          const errData = await response.json().catch(() => ({}));
+          console.error('[AdminBatches] Auth failed:', response.status, errData);
+          toast({ title: 'Session expired — please sign out and sign in again', description: errData.error || `Status ${response.status}`, variant: 'destructive' });
           return;
         }
         throw new Error('Failed to fetch batches');
