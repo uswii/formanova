@@ -225,6 +225,27 @@ export type Database = {
           },
         ]
       }
+      notification_log: {
+        Row: {
+          campaign: string
+          id: string
+          sent_at: string
+          user_email: string
+        }
+        Insert: {
+          campaign: string
+          id?: string
+          sent_at?: string
+          user_email: string
+        }
+        Update: {
+          campaign?: string
+          id?: string
+          sent_at?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
