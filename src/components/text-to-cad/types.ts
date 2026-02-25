@@ -6,7 +6,7 @@ export type { MaterialDef } from "@/components/cad-studio/materials";
 export const AI_MODELS = [
   { id: "gemini", name: "FORMANOVA1", desc: "Advanced", comingSoon: false },
   { id: "claude-sonnet", name: "FORMANOVA2", desc: "Balanced", comingSoon: false },
-  { id: "claude-opus", name: "FORMANOVA3", desc: "Premium", comingSoon: false },
+  { id: "claude-opus", name: "FORMANOVA3", desc: "Premium", comingSoon: true },
 ] as const;
 
 export const QUICK_EDITS = [

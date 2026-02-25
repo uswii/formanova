@@ -241,25 +241,21 @@ export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload 
   if (!visible) return null;
 
   return (
-    <>
-      {/* Download */}
+    <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+      {/* Start Over */}
       <button
-        onClick={onDownload}
-        className="absolute top-4 right-4 z-50 px-6 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-black hover:shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:scale-[1.02] active:scale-[0.98]"
-        style={{
-          background: "linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)",
-          border: "1px solid rgba(255,255,255,0.3)",
-          boxShadow: "0 2px 16px rgba(0,0,0,0.3)",
-        }}
+        onClick={onReset}
+        className="px-5 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white hover:scale-[1.02] active:scale-[0.98]"
+        style={{ ...glassStyle }}
       >
-        Download
+        Start Over
       </button>
 
       {/* Undo */}
       <button
         onClick={onUndo}
         disabled={undoCount === 0}
-        className="absolute top-4 right-[136px] z-50 px-5 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+        className="px-5 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
         style={{ ...glassStyle }}
       >
         <span className="text-[16px]">↶</span>
@@ -269,14 +265,18 @@ export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload 
         )}
       </button>
 
-      {/* Start Over */}
+      {/* Download */}
       <button
-        onClick={onReset}
-        className="absolute top-4 right-[260px] z-50 px-6 py-3 rounded-xl text-[12px] font-bold uppercase tracking-[1px] cursor-pointer transition-all duration-200 text-[#bbb] hover:text-white hover:scale-[1.02] active:scale-[0.98]"
-        style={{ ...glassStyle }}
+        onClick={onDownload}
+        className="px-6 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-black hover:shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:scale-[1.02] active:scale-[0.98]"
+        style={{
+          background: "linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)",
+          border: "1px solid rgba(255,255,255,0.3)",
+          boxShadow: "0 2px 16px rgba(0,0,0,0.3)",
+        }}
       >
-        Start Over
+        Download
       </button>
-    </>
+    </div>
   );
 }
