@@ -79,46 +79,43 @@ async function generateSasToken(
   blobName: string,
   expiryMinutes = 120
 ): Promise<string> {
-  const now = new Date();
-  const expiry = new Date(now.getTime() + expiryMinutes * 60 * 1000);
-  const formatDate = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
-  const startTime = formatDate(now);
-  const expiryTime = formatDate(expiry);
+  const startTime = new Date(Date.now() - 5 * 60 * 1000);
+  const expiryTime = new Date(Date.now() + expiryMinutes * 60 * 1000);
+  const startStr = startTime.toISOString().split('.')[0] + 'Z';
+  const expiryStr = expiryTime.toISOString().split('.')[0] + 'Z';
 
-  const signedPermissions = 'r';
-  const signedResourceType = 'b';
-  const signedProtocol = 'https';
-  const signedVersion = '2020-10-02';
+  const permissions = 'r';
+  const resource = 'b';
+  const version = '2021-06-08';
+  const canonicalResource = `/blob/${accountName}/${containerName}/${blobName}`;
 
+  // Azure Service SAS string-to-sign: exactly 16 fields (15 newlines)
   const stringToSign = [
-    signedPermissions,
-    startTime,
-    expiryTime,
-    `/blob/${accountName}/${containerName}/${blobName}`,
-    '', // signed identifier
-    '', // signed IP
-    signedProtocol,
-    signedVersion,
-    signedResourceType,
-    '', // snapshot time
-    '', // encryption scope
-    '', // cache control
-    '', // content disposition
-    '', // content encoding
-    '', // content language
-    '', // content type
+    permissions,       // sp
+    startStr,          // st
+    expiryStr,         // se
+    canonicalResource, // canonical resource
+    '',                // si
+    '',                // sip
+    '',                // spr
+    version,           // sv
+    resource,          // sr
+    '',                // snapshot
+    '',                // encryption scope
+    '',                // rscc
+    '',                // rscd
+    '',                // rsce
+    '',                // rscl
+    '',                // rsct
   ].join('\n');
 
+  const keyBytes = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const encoder = new TextEncoder();
-  const keyData = Uint8Array.from(atob(accountKey), c => c.charCodeAt(0));
-  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(stringToSign));
-  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  const sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  const sasParams = new URLSearchParams({
-    sv: signedVersion, st: startTime, se: expiryTime,
-    sr: signedResourceType, sp: signedPermissions, spr: signedProtocol, sig: signatureBase64,
-  });
+  const sasParams = new URLSearchParams({ sv: version, st: startStr, se: expiryStr, sr: resource, sp: permissions, sig });
   return sasParams.toString();
 }
 
