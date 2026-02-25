@@ -284,32 +284,76 @@ async function sendDeliveryEmail(
   if (!key) return false
 
   const viewUrl = `https://formanova.ai/yourresults/${token}`
+  const messageId = `<${crypto.randomUUID()}@formanova.ai>`
   const html = `<!DOCTYPE html>
-<html><body style="margin:0;padding:0;background:#111;">
-<div style="max-width:600px;margin:0 auto;padding:48px 24px;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <div style="text-align:center;margin-bottom:32px;">
-    <h1 style="color:#c9a94e;font-size:28px;font-weight:300;letter-spacing:4px;margin:0;">FORMANOVA</h1>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:40px;">
+      <h1 style="color:#c8a97e;font-size:28px;letter-spacing:6px;font-weight:300;margin:0;">FORMANOVA</h1>
+      <div style="width:60px;height:1px;background:linear-gradient(90deg,transparent,#c8a97e,transparent);margin:16px auto;"></div>
+    </div>
+
+    <!-- Body -->
+    <div style="background-color:#111;border:1px solid #222;border-radius:8px;padding:32px;">
+      <p style="color:#e0e0e0;font-size:15px;line-height:1.6;margin:0 0 16px;">
+        Dear user,
+      </p>
+      <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 24px;">
+        Thank you for using Forma Nova to create your jewelry photos. Your requested images are attached.
+      </p>
+      <p style="color:#999;font-size:14px;line-height:1.6;margin:0 0 24px;">
+        If you have any questions or feedback, please email us at
+        <a href="mailto:studio@formanova.ai" style="color:#c8a97e;text-decoration:none;">studio@formanova.ai</a>
+        and a member of our team will get back to you.
+      </p>
+
+      <!-- Pro Tip -->
+      <div style="background-color:#1a1a1a;border-radius:6px;padding:16px;margin-bottom:24px;">
+        <p style="color:#c8a97e;font-size:13px;font-weight:600;margin:0 0 8px;">💡 Pro Tip</p>
+        <p style="color:#999;font-size:13px;line-height:1.5;margin:0;">
+          For the best results, please upload worn images (jewelry on a person) rather than product-only images.
+          If you need a specific model, look, background, or vibe, use the &ldquo;Inspirational Photos&rdquo; option
+          to upload reference images that match your desired final result.
+        </p>
+      </div>
+
+      <!-- Total Photos -->
+      <div style="text-align:center;margin-bottom:24px;">
+        <p style="color:#777;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">Total Photos Attached</p>
+        <p style="color:#c8a97e;font-size:28px;font-weight:600;margin:0;">${count}</p>
+      </div>
+
+      <!-- CTA Button -->
+      <div style="text-align:center;margin-bottom:24px;">
+        <a href="${viewUrl}"
+           style="display:inline-block;background:#c8a97e;color:#0a0a0a;padding:14px 44px;
+                  text-decoration:none;font-weight:600;font-size:15px;border-radius:4px;
+                  letter-spacing:1px;">
+          View Your Photos
+        </a>
+      </div>
+      <p style="color:#666;font-size:12px;text-align:center;margin:0 0 24px;">
+        Click the button above to view and download your photos on our secure gallery.
+      </p>
+
+      <p style="color:#999;font-size:14px;line-height:1.6;margin:0;">
+        Warmest Regards,<br>
+        <strong style="color:#c8a97e;">Forma Nova AI Agent</strong>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;margin-top:32px;">
+      <p style="color:#555;font-size:11px;margin:0;">
+        &copy; ${new Date().getFullYear()} Forma Nova &middot; AI-Powered Jewelry Photography
+      </p>
+    </div>
   </div>
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:40px 32px;text-align:center;">
-    <h2 style="color:#fff;font-size:22px;font-weight:400;margin:0 0 12px;">Your results are ready</h2>
-    <p style="color:#999;font-size:15px;margin:0 0 32px;">
-      ${count} photo${count > 1 ? 's' : ''} ready to view and download.
-    </p>
-    <a href="${viewUrl}"
-       style="display:inline-block;background:#c9a94e;color:#111;padding:14px 44px;
-              text-decoration:none;font-weight:600;font-size:15px;border-radius:4px;
-              letter-spacing:1px;">
-      View Your Photos
-    </a>
-    <p style="color:#666;font-size:12px;margin:32px 0 0;">
-      Pro Tip: These photos are perfect for e-commerce, social media, and lookbooks.
-    </p>
-  </div>
-  <p style="color:#444;font-size:11px;text-align:center;margin-top:24px;">
-    &copy; FormaNova &middot; Questions? Reply to this email.
-  </p>
-</div>
-</body></html>`
+</body>
+</html>`
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -322,8 +366,13 @@ async function sendDeliveryEmail(
         from: 'FormaNova <studio@formanova.ai>',
         to: [to],
         reply_to: 'studio@formanova.ai',
-        subject: 'Your results are ready — FormaNova',
+        subject: 'Your photos are ready — Forma Nova',
         html,
+        headers: {
+          'Message-ID': messageId,
+          'References': messageId,
+          'X-Entity-Ref-ID': messageId,
+        },
       }),
     })
     return res.ok
