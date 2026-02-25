@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Download, Loader2, Images } from 'lucide-react';
+import { Download, Loader2, Images, LogIn, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import formanovaLogo from '@/assets/formanova-logo.png';
@@ -24,29 +24,40 @@ interface GalleryData {
 
 export default function DeliveryResults() {
   const { token } = useParams<{ token: string }>();
-  const { getAuthHeader } = useAuth();
+  const { user, initializing, signInWithGoogle, getAuthHeader } = useAuth();
   const [data, setData] = useState<GalleryData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState<number | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [thumbnailBlobs, setThumbnailBlobs] = useState<Record<string, string>>({});
 
+  // Fetch results only when auth is initialized AND user is logged in
   useEffect(() => {
-    if (!token) return;
+    if (initializing || !user || !token) return;
+
+    setLoading(true);
+    setError('');
+    setErrorCode(null);
+
     const authHeaders = getAuthHeader();
     fetch(`${DELIVERY_API}?action=gallery&token=${token}`, {
       headers: { ...authHeaders },
     })
-      .then(r => r.json())
-      .then(async (d) => {
-        if (d.error) { setError(d.error); return; }
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok || d.error) {
+          setError(d.error || 'Failed to load results');
+          setErrorCode(r.status);
+          return;
+        }
         const images = (d.images || []).map((img: GalleryImage) => ({
           ...img,
-          thumbnail_url: '', // Will be loaded via authenticated fetch
+          thumbnail_url: '',
         }));
         setData({ ...d, images });
 
-        // Fetch thumbnails with auth headers (img src can't send headers)
+        // Fetch thumbnails with auth headers
         const blobs: Record<string, string> = {};
         await Promise.all(images.map(async (img: GalleryImage) => {
           try {
@@ -58,13 +69,13 @@ export default function DeliveryResults() {
               const blob = await resp.blob();
               blobs[img.id] = URL.createObjectURL(blob);
             }
-          } catch { /* skip failed thumbnails */ }
+          } catch { /* skip */ }
         }));
         setThumbnailBlobs(blobs);
       })
       .catch(() => setError('Failed to load results'))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [initializing, user, token]);
 
   const handleDownload = async (image: GalleryImage) => {
     setDownloading(image.id);
@@ -90,6 +101,46 @@ export default function DeliveryResults() {
     }
   };
 
+  // ── State 1: Auth initializing ──
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-6 w-6 animate-spin text-formanova-hero-accent mx-auto" />
+          <p className="marta-label text-muted-foreground">Checking your session…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 2: Not logged in ──
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="text-center space-y-8 max-w-sm">
+          <img src={formanovaLogo} alt="FormaNova" className="h-8 mx-auto opacity-80" />
+          <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
+          <div className="space-y-3">
+            <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
+              SIGN IN TO VIEW
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Please sign in to access your results. Only the account owner can view these photos.
+            </p>
+          </div>
+          <Button
+            onClick={signInWithGoogle}
+            className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign in with Google
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 3: Loading results ──
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -101,6 +152,28 @@ export default function DeliveryResults() {
     );
   }
 
+  // ── State 4: Access denied (403) ──
+  if (errorCode === 403) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="text-center space-y-6 max-w-sm">
+          <img src={formanovaLogo} alt="FormaNova" className="h-8 mx-auto opacity-80" />
+          <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
+          <ShieldAlert className="h-10 w-10 text-destructive mx-auto" />
+          <div className="space-y-2">
+            <h2 className="text-lg tracking-[0.1em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
+              ACCESS DENIED
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              You do not have permission to view these results. Only the account owner can access this page.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 5: Other errors ──
   if (error || !data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
@@ -113,6 +186,7 @@ export default function DeliveryResults() {
     );
   }
 
+  // ── State 6: Results loaded successfully ──
   return (
     <div className="min-h-screen bg-background pt-24 pb-16">
       {/* Hero header */}
@@ -140,7 +214,6 @@ export default function DeliveryResults() {
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
           {data.images.map(img => (
             <div key={img.id} className="group relative marta-frame overflow-hidden bg-card break-inside-avoid">
-              {/* Image - natural aspect ratio */}
               <div className="bg-muted">
                 <img
                   src={thumbnailBlobs[img.id] || ''}
@@ -150,7 +223,6 @@ export default function DeliveryResults() {
                 />
               </div>
               
-              {/* Overlay on hover */}
               <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                 <Button
                   onClick={() => handleDownload(img)}
@@ -167,7 +239,6 @@ export default function DeliveryResults() {
                 </Button>
               </div>
               
-              {/* Bottom bar */}
               <div className="px-3 py-2.5 flex items-center justify-between border-t border-border/50">
                 <span className="marta-label text-muted-foreground truncate">
                   {img.image_filename}

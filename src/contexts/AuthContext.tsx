@@ -13,6 +13,7 @@ import {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
+  initializing: boolean;
   signInWithGoogle: () => void;
   signOut: () => Promise<void>;
   getAuthHeader: () => Record<string, string>;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize from localStorage synchronously (instant load)
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     // Listen for auth state changes from AuthCallback (fixes race condition)
@@ -67,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // No token AND no stored user — clean state
         setUser(null);
       }
+      setInitializing(false);
     };
 
     validateSession();
@@ -98,7 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{ 
       user, 
-      loading, 
+      loading,
+      initializing,
       signInWithGoogle, 
       signOut,
       getAuthHeader 
