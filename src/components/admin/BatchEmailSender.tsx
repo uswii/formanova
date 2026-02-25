@@ -54,9 +54,13 @@ export default function BatchEmailSender({ open, onClose, batches, getAdminHeade
   const [csvFileName, setCsvFileName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Completed batches with results ready
+  // Categories to exclude from bulk email sends
+  const EXCLUDED_CATEGORIES = ['bracelet'];
+
+  // Completed batches with results ready (excluding certain categories)
   const eligibleBatches = batches.filter(b =>
-    (b.status === 'completed' || b.status === 'partial') && b.completed_images > 0
+    (b.status === 'completed' || b.status === 'partial') && b.completed_images > 0 &&
+    !EXCLUDED_CATEGORIES.includes(b.jewelry_category.toLowerCase())
   );
 
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
