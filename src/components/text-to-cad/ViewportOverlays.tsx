@@ -280,3 +280,34 @@ export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload 
     </div>
   );
 }
+
+// ── Light Intensity Slider ──
+export function LightSlider({ visible, value, onChange }: {
+  visible: boolean; value: number; onChange: (v: number) => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <div
+      className="absolute bottom-20 right-5 z-50 flex flex-col items-center gap-2 px-3 py-4 rounded-xl"
+      style={{ ...glassStyle, width: 52 }}
+    >
+      <span className="text-[10px] text-[#999] uppercase tracking-[1px]">☀</span>
+      <input
+        type="range"
+        min={0}
+        max={200}
+        value={Math.round(value * 100)}
+        onChange={(e) => onChange(Number(e.target.value) / 100)}
+        className="appearance-none w-[100px] h-1 rounded-full cursor-pointer"
+        style={{
+          writingMode: "vertical-lr",
+          direction: "rtl",
+          background: `linear-gradient(to top, #ffffff ${value * 50}%, #333 ${value * 50}%)`,
+          WebkitAppearance: "none",
+        }}
+      />
+      <span className="text-[9px] text-[#666] font-mono">{Math.round(value * 100)}%</span>
+    </div>
+  );
+}

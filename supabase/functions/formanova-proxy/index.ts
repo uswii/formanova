@@ -9,8 +9,8 @@ const corsHeaders = {
 
 const MODEL_MAP: Record<string, string> = {
   gemini: "gemini",
-  "claude-sonnet": "claude-sonnet-4.6",
-  "claude-opus": "opus-4.6",
+  "claude-sonnet": "claude-sonnet",
+  "claude-opus": "claude-opus",
 };
 
 const FORMANOVA_BASE = "https://formanova.ai/api";
