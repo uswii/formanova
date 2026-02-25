@@ -157,7 +157,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-6 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-8 mx-auto opacity-80" />
+          <img src={formanovaLogo} alt="FormaNova" className="h-14 mx-auto opacity-80" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <ShieldAlert className="h-10 w-10 text-destructive mx-auto" />
           <div className="space-y-2">
@@ -165,7 +165,7 @@ export default function DeliveryResults() {
               ACCESS DENIED
             </h2>
             <p className="text-muted-foreground text-sm">
-              You do not have permission to view these results. Only the account owner can access this page.
+              You can only view your own results. Please sign in with the account that was used to submit this batch.
             </p>
           </div>
         </div>
