@@ -235,8 +235,8 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
 }
 
 // ── Action Buttons (top right) — now with Undo ──
-export function ActionButtons({ visible, onReset, onUndo, undoCount }: {
-  visible: boolean; onReset: () => void; onUndo: () => void; undoCount: number;
+export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload }: {
+  visible: boolean; onReset: () => void; onUndo: () => void; undoCount: number; onDownload?: () => void;
 }) {
   if (!visible) return null;
 
@@ -244,6 +244,7 @@ export function ActionButtons({ visible, onReset, onUndo, undoCount }: {
     <>
       {/* Download */}
       <button
+        onClick={onDownload}
         className="absolute top-4 right-4 z-50 px-6 py-3 rounded-xl text-[11px] font-bold uppercase tracking-[1.5px] cursor-pointer transition-all duration-200 text-black hover:shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:scale-[1.02] active:scale-[0.98]"
         style={{
           background: "linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)",
