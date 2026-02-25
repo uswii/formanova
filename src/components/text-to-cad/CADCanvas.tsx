@@ -60,7 +60,7 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
 function LightController({ intensity }: { intensity: number }) {
   const { gl, invalidate: inv } = useThree();
   useEffect(() => {
-    gl.toneMappingExposure = 0.7 * intensity;
+    gl.toneMappingExposure = 0.45 * intensity;
     inv();
   }, [intensity, gl, inv]);
   return null;
@@ -301,8 +301,24 @@ const LoadedModel = forwardRef<
     materialCache.current.forEach((m) => m.dispose());
     materialCache.current.clear();
 
+    // ── Magic Texturing: auto-assign materials based on mesh name keywords ──
+    const autoMaterials: Record<string, MaterialDef> = {};
+    const gemKeywords = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave"];
+    const platinumKeywords = ["prong", "claw", "bead", "milgrain"];
+    
+    list.forEach((md) => {
+      const lower = md.name.toLowerCase();
+      if (gemKeywords.some((kw) => lower.includes(kw))) {
+        autoMaterials[md.name] = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
+      } else if (platinumKeywords.some((kw) => lower.includes(kw))) {
+        autoMaterials[md.name] = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
+      } else {
+        autoMaterials[md.name] = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+      }
+    });
+
     setMeshDataList(list);
-    setAssignedMaterials({});
+    setAssignedMaterials(autoMaterials);
     inv();
 
     if (onMeshesDetected) {
@@ -679,7 +695,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             antialias: Q.antialias,
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 0.7 * lightIntensity,
+            toneMappingExposure: 0.45 * lightIntensity,
             powerPreference: "high-performance",
           }}
           dpr={Q.dpr}
@@ -695,17 +711,17 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             {/* Dynamic light intensity sync */}
             <LightController intensity={lightIntensity} />
             {/* Lighting — scaled by lightIntensity */}
-            <ambientLight intensity={0.15 * lightIntensity} />
-            <directionalLight position={[3, 5, 3]} intensity={1.0 * lightIntensity} color="#f5f0e8" />
+            <ambientLight intensity={0.08 * lightIntensity} />
+            <directionalLight position={[3, 5, 3]} intensity={0.6 * lightIntensity} color="#f5f0e8" />
             {Q.maxLights >= 4 && (
-              <directionalLight position={[-3, 2, -3]} intensity={0.5 * lightIntensity} color="#e8e4dc" />
+              <directionalLight position={[-3, 2, -3]} intensity={0.3 * lightIntensity} color="#e8e4dc" />
             )}
-            <hemisphereLight args={["#d4cfc8", "#8a8580", 0.3 * lightIntensity]} />
+            <hemisphereLight args={["#d4cfc8", "#8a8580", 0.15 * lightIntensity]} />
             {Q.maxLights >= 5 && (
-              <spotLight position={[0, 8, 0]} intensity={0.4 * lightIntensity} angle={0.5} penumbra={1} color="#fff5e6" />
+              <spotLight position={[0, 8, 0]} intensity={0.25 * lightIntensity} angle={0.5} penumbra={1} color="#fff5e6" />
             )}
 
-            <Environment files="/hdri/jewelry-studio-v2.hdr" environmentIntensity={0.5 * lightIntensity} />
+            <Environment files="/hdri/jewelry-studio-v2.hdr" environmentIntensity={0.35 * lightIntensity} />
 
             <GemEnvLoader onLoaded={handleGemEnvLoaded} />
 
