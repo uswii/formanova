@@ -201,13 +201,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const adminSecret = req.headers.get('X-Admin-Secret') || url.searchParams.get('key');
-    if (!adminSecret || adminSecret !== ADMIN_SECRET) {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden - invalid admin secret' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Admin secret check removed — access is granted to any authenticated user
+    // whose email is in the ADMIN_EMAILS list (checked above)
 
     console.log(`[admin-batches] Admin access granted: ${user.email}`);
 

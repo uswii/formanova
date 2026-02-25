@@ -67,8 +67,8 @@ const App = () => (
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADToCatalog /></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><TextToCAD /></ProtectedRoute>} />
                   
-                  {/* Admin route - secret key protected */}
-                  <Route path="/admin" element={<AdminBatches />} />
+                  {/* Admin route - login protected */}
+                  <Route path="/admin" element={<ProtectedRoute><AdminBatches /></ProtectedRoute>} />
                   
                   {/* Public delivery results page */}
                   <Route path="/results/:token" element={<DeliveryResults />} />

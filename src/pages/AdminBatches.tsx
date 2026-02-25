@@ -130,10 +130,8 @@ export default function AdminBatches() {
   const { user, signInWithGoogle, signOut } = useAuth();
   const [searchParams] = useSearchParams();
   const deepLinkBatchId = searchParams.get('batch');
-  const [adminSecret, setAdminSecret] = useState<string | null>(() => localStorage.getItem('admin_secret'));
-  const [secretInput, setSecretInput] = useState('');
-  const [verifying, setVerifying] = useState(false);
-  const [gateError, setGateError] = useState('');
+  
+  
   const [batches, setBatches] = useState<BatchJob[]>([]);
   const [serverStatusCounts, setServerStatusCounts] = useState<Record<string, number> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -156,7 +154,7 @@ export default function AdminBatches() {
   const [deliveryManagerOpen, setDeliveryManagerOpen] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isAuthenticated = !!user && !!adminSecret;
+  const isAuthenticated = !!user;
 
   const getAdminHeaders = useCallback((): Record<string, string> => {
     const userToken = getStoredToken();
@@ -164,9 +162,8 @@ export default function AdminBatches() {
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'apikey': SUPABASE_ANON_KEY,
       ...(userToken ? { 'X-User-Token': userToken } : {}),
-      ...(adminSecret ? { 'X-Admin-Secret': adminSecret } : {}),
     };
-  }, [adminSecret]);
+  }, []);
 
   const [loading, setLoading] = useState(false);
 
@@ -179,8 +176,6 @@ export default function AdminBatches() {
       const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('admin_secret');
-          setAdminSecret(null);
           return;
         }
         throw new Error('Failed to fetch batches');
@@ -372,38 +367,7 @@ export default function AdminBatches() {
     }
   };
 
-  const handleVerifySecret = async () => {
-    if (!secretInput.trim()) { setGateError('Enter password'); return; }
-    setVerifying(true);
-    setGateError('');
-    try {
-      const userToken = getStoredToken();
-      const response = await fetch(`${ADMIN_API_URL}?action=list_batches`, {
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-          ...(userToken ? { 'X-User-Token': userToken } : {}),
-          'X-Admin-Secret': secretInput.trim(),
-        },
-      });
-      if (response.ok) {
-        localStorage.setItem('admin_secret', secretInput.trim());
-        setAdminSecret(secretInput.trim());
-      } else {
-        const data = await response.json().catch(() => ({}));
-        setGateError(data.error || 'Access denied');
-      }
-    } catch {
-      setGateError('Connection failed');
-    } finally {
-      setVerifying(false);
-    }
-  };
-
   const handleLogout = () => {
-    localStorage.removeItem('admin_secret');
-    setAdminSecret(null);
-    setSecretInput('');
     signOut();
   };
 
@@ -483,71 +447,7 @@ export default function AdminBatches() {
     }
   }, [batches, getAdminHeaders]);
 
-  // ═══════════════════════════════════════════════════════════════
-  // AUTH GATE — Not logged in
-  // ═══════════════════════════════════════════════════════════════
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-6">
-        <div className="relative w-full max-w-sm">
-          <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-primary/30 via-primary/10 to-primary/30 blur-xl opacity-60" />
-          <Card className="relative bg-card/90 backdrop-blur border-border/40 shadow-2xl">
-            <CardContent className="pt-10 pb-8 px-8 text-center space-y-6">
-              <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.2)]">
-                <ShieldCheck className="h-7 w-7 text-primary" />
-              </div>
-              <Button onClick={signInWithGoogle} className="w-full gap-2 font-semibold">
-                Sign In
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // AUTH GATE — Need admin password
-  // ═══════════════════════════════════════════════════════════════
-  if (!adminSecret) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-6">
-        <div className="relative w-full max-w-sm">
-          <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-primary/30 via-primary/10 to-primary/30 blur-xl opacity-60" />
-          <Card className="relative bg-card/90 backdrop-blur border-border/40 shadow-2xl">
-            <CardContent className="pt-10 pb-8 px-8 space-y-6">
-              <div className="text-center">
-                <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.2)] mb-4">
-                  <ShieldCheck className="h-7 w-7 text-primary" />
-                </div>
-                <p className="text-xs text-muted-foreground font-mono">{user.email}</p>
-              </div>
-              <div className="space-y-3">
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={secretInput}
-                  onChange={(e) => { setSecretInput(e.target.value); setGateError(''); }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleVerifySecret()}
-                  className="font-mono text-center text-lg tracking-widest bg-background/50 border-border/50 h-12"
-                />
-                {gateError && (
-                  <p className="text-xs text-destructive text-center">{gateError}</p>
-                )}
-                <Button
-                  onClick={handleVerifySecret}
-                  disabled={!secretInput.trim() || verifying}
-                  className="w-full h-11 font-semibold shadow-[0_0_20px_hsl(var(--primary)/0.15)]"
-                >
-                  {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enter'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  // ProtectedRoute handles login gate, so we go straight to dashboard
 
   // ═══════════════════════════════════════════════════════════════
   // DASHBOARD
