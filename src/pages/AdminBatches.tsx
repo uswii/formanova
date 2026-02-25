@@ -175,6 +175,18 @@ export default function AdminBatches() {
     };
   }, []);
 
+  // Wrapper for all admin API calls — catches 401/403 and triggers re-auth
+  const adminFetch = useCallback(async (url: string, options?: RequestInit): Promise<Response> => {
+    const resp = await fetch(url, options);
+    if (resp.status === 401 || resp.status === 403) {
+      console.warn('[AdminBatches] Auth expired on request:', url.split('?')[1]?.split('&')[0]);
+      setAuthExpired(true);
+      throw new Error('Session expired — please sign in again.');
+    }
+    return resp;
+  }, []);
+
+
   const [loading, setLoading] = useState(false);
 
   const fetchBatches = useCallback(async (search?: string, page?: number) => {
@@ -183,16 +195,7 @@ export default function AdminBatches() {
       const searchParam = search !== undefined ? search : activeSearch;
       const p = page || currentPage;
       const queryStr = `&page=${p}&page_size=${PAGE_SIZE}${searchParam ? `&search=${encodeURIComponent(searchParam)}` : ''}`;
-      const response = await fetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          const errData = await response.json().catch(() => ({}));
-          console.error('[AdminBatches] Auth failed:', response.status, errData);
-          setAuthExpired(true);
-          return;
-        }
-        throw new Error('Failed to fetch batches');
-      }
+      const response = await adminFetch(`${ADMIN_API_URL}?action=list_batches${queryStr}`, { headers: getAdminHeaders() });
       const data = await response.json();
       setBatches(data.batches || []);
       if (data.status_counts) {
@@ -231,11 +234,10 @@ export default function AdminBatches() {
   const handleSyncDelivered = useCallback(async () => {
     setSyncing(true);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=sync_delivered`, {
+      const response = await adminFetch(`${ADMIN_API_URL}?action=sync_delivered`, {
         method: 'POST',
         headers: getAdminHeaders(),
       });
-      if (!response.ok) throw new Error('Sync failed');
       const data = await response.json();
       const parts = [`${data.updated_count} statuses synced`];
       if (data.outputs_synced > 0) parts.push(`${data.outputs_synced} output images populated`);
@@ -253,13 +255,12 @@ export default function AdminBatches() {
     setSendingApology(true);
     try {
       const DELIVERY_API = `${SUPABASE_URL}/functions/v1/delivery-manager`;
-      const response = await fetch(`${DELIVERY_API}?action=send_apology`, {
+      const response = await adminFetch(`${DELIVERY_API}?action=send_apology`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ dry_run: dryRun }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed');
       if (dryRun) {
         const users = data.duplicate_users?.map((u: any) => `${u.email} (${u.count}x)`).join('\n') || 'None';
         toast({ title: `${data.total} users received duplicates`, description: users });
@@ -280,13 +281,12 @@ export default function AdminBatches() {
     setBulkResult(null);
     try {
       const DELIVERY_API = `${SUPABASE_URL}/functions/v1/delivery-manager`;
-      const response = await fetch(`${DELIVERY_API}?action=send_bulk`, {
+      const response = await adminFetch(`${DELIVERY_API}?action=send_bulk`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ campaign: 'results_delivery_v1', limit, dry_run: dryRun }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed');
       if (dryRun) {
         toast({ title: `Dry run: ${data.will_send} to send, ${data.already_sent} already sent, ${data.remaining} remaining`, description: data.emails?.slice(0, 10).join(', ') + (data.emails?.length > 10 ? '...' : '') });
       } else {
@@ -304,15 +304,11 @@ export default function AdminBatches() {
   const handleSaveDriveLink = useCallback(async (batchId: string) => {
     setSavingDriveLink(true);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=update_drive_link`, {
+      const response = await adminFetch(`${ADMIN_API_URL}?action=update_drive_link`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_id: batchId, drive_link: driveLinkInput.trim() || null }),
       });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to save drive link');
-      }
       const data = await response.json();
       setBatches(prev => prev.map(b => b.id === batchId ? { ...b, ...data.batch } : b));
       setEditingDriveLink(null);
@@ -328,8 +324,7 @@ export default function AdminBatches() {
     if (batchImages[batchId]) return; // already loaded
     setLoadingImages(batchId);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=get_images&batch_id=${batchId}`, { headers: getAdminHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch images');
+      const response = await adminFetch(`${ADMIN_API_URL}?action=get_images&batch_id=${batchId}`, { headers: getAdminHeaders() });
       const data = await response.json();
       setBatchImages(prev => ({ ...prev, [batchId]: data.images || [] }));
     } catch (err) {
@@ -343,15 +338,11 @@ export default function AdminBatches() {
   const handleUpdateStatus = useCallback(async (batchId: string, newStatus: string) => {
     setUpdatingStatus(batchId);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=update_status`, {
+      const response = await adminFetch(`${ADMIN_API_URL}?action=update_status`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_id: batchId, status: newStatus }),
       });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to update status');
-      }
       const data = await response.json();
       setBatches(prev => prev.map(b => b.id === batchId ? { ...b, ...data.batch } : b));
       toast({ title: `Status updated to "${newStatus}"` });
@@ -365,15 +356,12 @@ export default function AdminBatches() {
   const handleDeleteBatch = useCallback(async (batchId: string) => {
     setDeletingBatch(batchId);
     try {
-      const response = await fetch(`${ADMIN_API_URL}?action=delete_batch`, {
+      const response = await adminFetch(`${ADMIN_API_URL}?action=delete_batch`, {
         method: 'POST',
         headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ batch_id: batchId }),
       });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to delete batch');
-      }
+      await response.json();
       setBatches(prev => prev.filter(b => b.id !== batchId));
       if (expandedBatchId === batchId) setExpandedBatchId(null);
       toast({ title: 'Batch deleted' });
