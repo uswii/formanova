@@ -12,6 +12,7 @@ interface GalleryImage {
   image_filename: string;
   sequence: number;
   download_url: string;
+  thumbnail_url: string;
 }
 
 interface GalleryData {
@@ -33,7 +34,14 @@ export default function DeliveryResults() {
       .then(r => r.json())
       .then(d => {
         if (d.error) setError(d.error);
-        else setData(d);
+        else {
+          // Build proxy URLs for display (avoids CORS with Azure)
+          const images = (d.images || []).map((img: GalleryImage) => ({
+            ...img,
+            thumbnail_url: `${DELIVERY_API}?action=thumbnail&token=${token}&image_id=${img.id}`,
+          }));
+          setData({ ...d, images });
+        }
       })
       .catch(() => setError('Failed to load results'))
       .finally(() => setLoading(false));
@@ -113,7 +121,7 @@ export default function DeliveryResults() {
               {/* Image */}
               <div className="aspect-square bg-muted">
                 <img
-                  src={img.download_url}
+                  src={img.thumbnail_url}
                   alt={img.image_filename}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   loading="lazy"
