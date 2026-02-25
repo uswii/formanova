@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as Sentry from '@sentry/react';
 import { 
   authApi, 
   getStoredToken, 
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authApi.initiateGoogleLogin();
     } catch (error) {
       console.error('[AuthContext] Google sign-in failed:', error);
+      Sentry.captureException(error, { tags: { feature: 'google-login' } });
     }
   };
 
