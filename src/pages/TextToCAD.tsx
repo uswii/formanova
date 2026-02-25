@@ -251,6 +251,31 @@ export default function TextToCAD() {
     setGlbUrl(undefined);
   };
 
+  const handleDownloadGlb = useCallback(async () => {
+    if (!glbUrl) return;
+    try {
+      const isBlobUrl = glbUrl.startsWith("blob:");
+      const response = await fetch(
+        isBlobUrl ? glbUrl : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`,
+        isBlobUrl ? {} : {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: glbUrl }),
+        },
+      );
+      const blob = await response.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ring.glb";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      toast.error("Failed to download model");
+    }
+  }, [glbUrl]);
+
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
       setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
@@ -422,6 +447,7 @@ export default function TextToCAD() {
           onReset={handleReset}
           onUndo={handleUndo}
           undoCount={undoStack.length}
+          onDownload={handleDownloadGlb}
         />
       </div>
 
