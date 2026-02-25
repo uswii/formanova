@@ -12,7 +12,7 @@ Usage:
 Keyboard shortcuts:
     Enter       = Pass
     Backspace   = Fail
-    R           = Regenerate with prompt
+    D           = Deliver all passed images now
     Right/Left  = Navigate
     1-5         = Set rating
     F5          = Refresh (scan for new outputs)
@@ -33,8 +33,13 @@ from google.genai import types
 
 from config import (
     GEMINI_API_KEY, GEMINI_MODEL, WORKSPACE,
-    SUPPORTED_EXTENSIONS, CATEGORY_PROMPTS
+    SUPPORTED_EXTENSIONS, CATEGORY_PROMPTS,
+    AZURE_CONNECTION_STRING, AZURE_CONTAINER
 )
+
+from azure.storage.blob import BlobServiceClient
+
+from api_client import deliver as api_deliver
 
 COST_PER_GENERATION = 0.04
 
@@ -237,6 +242,16 @@ class ReviewApp:
         Button(btn_frame, text="🔄 Refresh (F5)", command=self.do_refresh
                ).pack(side=LEFT, padx=5)
 
+        self.deliver_btn = Button(btn_frame, text="📤 Deliver Passed (D)", bg="#1a5a7a",
+                                   fg="white", font=("Helvetica", 10, "bold"),
+                                   command=self.deliver_passed)
+        self.deliver_btn.pack(side=LEFT, padx=5)
+
+        # Passed counter for delivery readiness
+        self.passed_label = Label(bottom, fg="#2d7a2d", bg="#1a1a1a",
+                                   font=("Helvetica", 10, "bold"))
+        self.passed_label.pack()
+
         # Prompt + regenerate
         prompt_frame = Frame(bottom, bg="#1a1a1a")
         prompt_frame.pack(fill=X, pady=3)
@@ -326,6 +341,19 @@ class ReviewApp:
 
     # ==================== ACTIONS ====================
 
+    def get_passed_count(self):
+        return sum(1 for r in self.reviews.values() if r.get("status") == "passed")
+
+    def update_passed_label(self):
+        passed = self.get_passed_count()
+        total_reviewed = sum(1 for r in self.reviews.values() if r.get("status") in ["passed", "failed"])
+        if passed > 0:
+            self.passed_label.config(
+                text=f"✅ {passed} passed — ready to deliver  |  {total_reviewed} reviewed total"
+            )
+        else:
+            self.passed_label.config(text="")
+
     def mark_pass(self):
         if self.current_index is None:
             return
@@ -334,6 +362,23 @@ class ReviewApp:
         self.reviews[image_id]["status"] = "passed"
         self.reviews[image_id]["reviewed_at"] = datetime.datetime.now().isoformat()
         self.save_reviews()
+        self.update_passed_label()
+
+        # Check if all available images are reviewed
+        unreviewed = sum(
+            1 for iid in self.available
+            if self.reviews.get(iid, {}).get("status") not in ["passed", "failed"]
+        )
+        if unreviewed == 0 and self.get_passed_count() > 0:
+            if messagebox.askyesno(
+                "All Reviewed",
+                f"All {len(self.available)} images reviewed.\n"
+                f"{self.get_passed_count()} passed.\n\n"
+                f"Deliver passed images now?"
+            ):
+                self.deliver_passed()
+                return
+
         self.next_image()
 
     def mark_fail(self):
@@ -344,6 +389,7 @@ class ReviewApp:
         self.reviews[image_id]["status"] = "failed"
         self.reviews[image_id]["reviewed_at"] = datetime.datetime.now().isoformat()
         self.save_reviews()
+        self.update_passed_label()
         self.next_image()
 
     def set_rating(self, val):
@@ -388,9 +434,124 @@ class ReviewApp:
         if self.current_index is not None:
             self.load_images()
 
+        self.update_passed_label()
         self.status_label.config(
             text=f"Refreshed: {new_count} outputs available (+{diff} new)"
         )
+
+    # ==================== DELIVERY (inline) ====================
+
+    def deliver_passed(self):
+        """Upload all passed images to Azure and trigger delivery via API."""
+        passed_ids = [
+            iid for iid, r in self.reviews.items()
+            if r.get("status") == "passed" and iid in self.image_map
+        ]
+
+        if not passed_ids:
+            messagebox.showinfo("Nothing to deliver", "No passed images to deliver.")
+            return
+
+        if not messagebox.askyesno(
+            "Confirm Delivery",
+            f"Deliver {len(passed_ids)} passed images?\n\n"
+            f"This will upload to Azure, create delivery records,\n"
+            f"and send the email to: {self.metadata.get('notification_email') or self.email}"
+        ):
+            return
+
+        threading.Thread(target=self._run_delivery, args=(passed_ids,), daemon=True).start()
+
+    def _run_delivery(self, passed_ids):
+        self.disable_buttons()
+        self.deliver_btn.config(state=DISABLED)
+
+        try:
+            # Init Azure
+            blob_service = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+            container = blob_service.get_container_client(AZURE_CONTAINER)
+            account_name = blob_service.account_name
+
+            delivery_images = []
+
+            for i, image_id in enumerate(passed_ids, 1):
+                self.status_label.config(text=f"Uploading {i}/{len(passed_ids)}...")
+                self.root.update_idletasks()
+
+                img_meta = self.image_map[image_id]
+                seq = img_meta.get("sequence_number", 0)
+
+                # Find output file
+                output_path = self.outputs_dir / f"{image_id}.jpg"
+                if not output_path.exists():
+                    for ext in [".png", ".jpeg", ".webp"]:
+                        alt = self.outputs_dir / f"{image_id}{ext}"
+                        if alt.exists():
+                            output_path = alt
+                            break
+
+                if not output_path.exists():
+                    self.status_label.config(text=f"Missing output for {image_id[:8]}...")
+                    continue
+
+                # Upload to Azure
+                blob_name = f"deliveries/{self.batch_id}/{image_id}{output_path.suffix}"
+                blob_client = container.get_blob_client(blob_name)
+
+                with open(output_path, "rb") as data:
+                    blob_client.upload_blob(data, overwrite=True)
+
+                azure_url = f"https://{account_name}.blob.core.windows.net/{AZURE_CONTAINER}/{blob_name}"
+
+                delivery_images.append({
+                    "image_id": image_id,
+                    "result_url": azure_url,
+                    "filename": f"{self.category}_{seq}_{image_id[:8]}.jpg",
+                })
+
+            if not delivery_images:
+                self.status_label.config(text="No images uploaded. Delivery cancelled.")
+                self.enable_buttons()
+                self.deliver_btn.config(state=NORMAL)
+                return
+
+            # Call deliver API
+            self.status_label.config(text=f"Triggering delivery for {len(delivery_images)} images...")
+            self.root.update_idletasks()
+
+            result = api_deliver(self.batch_id, delivery_images)
+
+            # Save delivered.json locally
+            delivered_path = self.batch_dir / "delivered.json"
+            with open(delivered_path, "w") as f:
+                json.dump({
+                    "delivered_at": datetime.datetime.now().isoformat(),
+                    "token": result.get("token"),
+                    "delivery_url": result.get("delivery_url"),
+                    "images_delivered": len(delivery_images),
+                    "email_sent": result.get("email_sent"),
+                }, f, indent=2)
+
+            email_status = "✓ Email sent" if result.get("email_sent") else "⚠ Email failed"
+            url = result.get("delivery_url", "")
+
+            messagebox.showinfo(
+                "Delivery Complete",
+                f"✅ {len(delivery_images)} images delivered!\n\n"
+                f"{email_status}\n"
+                f"URL: {url}"
+            )
+
+            self.status_label.config(
+                text=f"✅ Delivered {len(delivery_images)} images | {email_status}"
+            )
+
+        except Exception as e:
+            messagebox.showerror("Delivery Failed", str(e))
+            self.status_label.config(text=f"✗ Delivery error: {str(e)[:80]}")
+
+        self.enable_buttons()
+        self.deliver_btn.config(state=NORMAL)
 
     # ==================== NAVIGATION ====================
 
@@ -547,6 +708,8 @@ Fix according to:
             self.prev_image()
         elif key.lower() == "r":
             self.regenerate()
+        elif key.lower() == "d":
+            self.deliver_passed()
         elif key == "F5":
             self.do_refresh()
         elif key in ["1", "2", "3", "4", "5"]:
