@@ -237,12 +237,19 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
           </p>
 
           {isInstagram && (
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4 text-center">
-              <p className="text-destructive text-sm font-medium leading-relaxed">
-                Google login does not work inside in-app browsers (Instagram, Gmail, Facebook, etc.).
-                <br />
-                Please open this page in Chrome, Safari, Brave, Edge, Firefox, or another standard browser to continue.
-              </p>
+            <div className="flex flex-col items-center gap-4 mb-4">
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
+                <p className="text-destructive text-sm font-medium leading-relaxed">
+                  Google login requires a full browser.
+                </p>
+              </div>
+              <Button
+                onClick={() => { window.location.href = window.location.href; }}
+                className="w-full max-w-xs h-12 text-base"
+                variant="default"
+              >
+                Open in Browser
+              </Button>
             </div>
           )}
 
