@@ -115,15 +115,15 @@ export default function DeliveryResults() {
 
       {/* Gallery grid */}
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
           {data.images.map(img => (
-            <div key={img.id} className="group relative marta-frame overflow-hidden bg-card">
-              {/* Image */}
-              <div className="aspect-square bg-muted flex items-center justify-center">
+            <div key={img.id} className="group relative marta-frame overflow-hidden bg-card break-inside-avoid">
+              {/* Image - natural aspect ratio */}
+              <div className="bg-muted">
                 <img
                   src={img.thumbnail_url}
                   alt={img.image_filename}
-                  className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
+                  className="w-full h-auto block transition-transform duration-500 group-hover:scale-[1.02]"
                   loading="lazy"
                 />
               </div>
