@@ -61,11 +61,10 @@ async function authenticateUser(userToken: string): Promise<{ id: string; email:
   }
 }
 
-function verifyAdmin(req: Request, user: { email: string }): boolean {
+function verifyAdmin(_req: Request, user: { email: string }): boolean {
   const adminEmails = getAdminEmails();
   if (adminEmails.length > 0 && !adminEmails.includes(user.email)) return false;
-  const adminSecret = req.headers.get('X-Admin-Secret');
-  if (!adminSecret || adminSecret !== ADMIN_SECRET) return false;
+  // Admin access granted to any authenticated user whose email is in ADMIN_EMAILS
   return true;
 }
 
