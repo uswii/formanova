@@ -22,9 +22,10 @@ const AUTH_SUCCESS_REDIRECT = '/studio';
 // CRITICAL: Capture hash fragment IMMEDIATELY on module load (before React clears it)
 const INITIAL_HASH = typeof window !== 'undefined' ? window.location.hash : '';
 
-const isInstagramBrowser = () => {
+const isInAppBrowser = () => {
   const ua = navigator.userAgent || navigator.vendor || '';
-  return /Instagram/i.test(ua);
+  // Detect Instagram, Facebook, Gmail (GSA), Line, Twitter/X, LinkedIn, TikTok, Snapchat in-app webviews
+  return /Instagram|FBAN|FBAV|GSA\/|Line\/|Twitter|LinkedInApp|BytedanceWebview|Snapchat/i.test(ua);
 };
 
 const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
@@ -37,7 +38,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
   const [error, setError] = useState<string | null>(null);
   const preloadedUrlRef = useRef<string | null>(null);
   const processedRef = useRef(false);
-  const isInstagram = isInstagramBrowser();
+  const isInstagram = isInAppBrowser();
 
   const from = (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
 
@@ -238,7 +239,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
           {isInstagram && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4 text-center">
               <p className="text-destructive text-sm font-medium leading-relaxed">
-                Google login does not work inside the Instagram browser.
+                Google login does not work inside in-app browsers (Instagram, Gmail, Facebook, etc.).
                 <br />
                 Please open this page in Chrome, Safari, Brave, Edge, Firefox, or another standard browser to continue.
               </p>
