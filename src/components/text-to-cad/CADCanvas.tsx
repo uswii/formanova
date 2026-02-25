@@ -197,35 +197,41 @@ const LoadedModel = forwardRef<
 
     (async () => {
       try {
-        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-        console.log("[CADCanvas] Fetching GLB via blob-proxy for:", url.substring(0, 80));
+        const isBlobUrl = url.startsWith("blob:");
+        let arrayBuffer: ArrayBuffer;
 
-        const response = await fetch(proxyUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
-        });
-
-        if (!response.ok) {
-          const errBody = await response.text();
-          throw new Error(`Proxy returned ${response.status}: ${errBody.substring(0, 200)}`);
+        if (isBlobUrl) {
+          console.log("[CADCanvas] Loading local blob GLB directly");
+          const response = await fetch(url);
+          arrayBuffer = await response.arrayBuffer();
+        } else {
+          const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
+          console.log("[CADCanvas] Fetching GLB via blob-proxy for:", url.substring(0, 80));
+          const response = await fetch(proxyUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+          if (!response.ok) {
+            const errBody = await response.text();
+            throw new Error(`Proxy returned ${response.status}: ${errBody.substring(0, 200)}`);
+          }
+          arrayBuffer = await response.arrayBuffer();
         }
 
-        const arrayBuffer = await response.arrayBuffer();
         if (cancelled) return;
 
         const loader = new GLTFLoader();
         loader.parse(arrayBuffer, "", (gltf) => {
           if (cancelled) return;
-          console.log("[CADCanvas] GLB parsed successfully via proxy, size:", arrayBuffer.byteLength);
+          console.log("[CADCanvas] GLB parsed successfully, size:", arrayBuffer.byteLength);
           setScene(gltf.scene);
         }, (error) => {
           console.error("[CADCanvas] Failed to parse GLB:", error);
           loadedUrlRef.current = "";
         });
       } catch (error) {
-        console.error("[CADCanvas] Failed to fetch GLB via proxy:", error);
-        console.error("[CADCanvas] Original URL was:", url.substring(0, 120));
+        console.error("[CADCanvas] Failed to fetch GLB:", error);
         if (!cancelled) loadedUrlRef.current = "";
       }
     })();
