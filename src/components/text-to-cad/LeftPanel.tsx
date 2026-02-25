@@ -192,7 +192,7 @@ export default function LeftPanel({
               background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%)",
             }}
           >
-            <Upload className="w-4 h-4" /> Upload GLB
+            <Upload className="w-4 h-4" /> Upload Ring Part
           </button>
 
           {/* Magic Texturing */}

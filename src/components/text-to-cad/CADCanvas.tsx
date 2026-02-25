@@ -178,6 +178,7 @@ const LoadedModel = forwardRef<
   },
   {
     url: string;
+    additionalGlbUrls?: string[];
     selectedMeshNames: Set<string>;
     onMeshClick: (name: string, multi: boolean) => void;
     transformMode: string;
@@ -185,7 +186,7 @@ const LoadedModel = forwardRef<
     gemEnvMap: THREE.Texture | null;
     onTransformEnd?: () => void;
   }
->(({ url, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, gemEnvMap, onTransformEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, gemEnvMap, onTransformEnd }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -370,6 +371,133 @@ const LoadedModel = forwardRef<
       })));
     }
   }, [scene, onMeshesDetected, inv]);
+
+  // ── Merge additional GLB parts into the existing scene ──
+  const mergedUrlsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!additionalGlbUrls.length) return;
+    const newUrls = additionalGlbUrls.filter((u) => !mergedUrlsRef.current.has(u));
+    if (!newUrls.length) return;
+
+    newUrls.forEach((partUrl) => {
+      mergedUrlsRef.current.add(partUrl);
+      (async () => {
+        try {
+          const isBlobUrl = partUrl.startsWith("blob:");
+          let arrayBuffer: ArrayBuffer;
+          if (isBlobUrl) {
+            arrayBuffer = await (await fetch(partUrl)).arrayBuffer();
+          } else {
+            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
+            const resp = await fetch(proxyUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: partUrl }),
+            });
+            arrayBuffer = await resp.arrayBuffer();
+          }
+
+          const loader = new GLTFLoader();
+          loader.parse(arrayBuffer, "", (gltf) => {
+            const clone = gltf.scene.clone(true);
+            const box = new THREE.Box3().setFromObject(clone);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const s = maxDim === 0 ? 1 : 3 / maxDim;
+
+            const newParts: MeshData[] = [];
+            let idx = 0;
+            clone.traverse((child) => {
+              if ((child as THREE.Mesh).isMesh) {
+                const mesh = child as THREE.Mesh;
+                const baseName = mesh.name || `Part_${idx}`;
+                // Deduplicate names
+                let name = baseName;
+                let suffix = 1;
+                const existingNames = new Set(meshDataList.map((m) => m.name));
+                while (existingNames.has(name)) {
+                  name = `${baseName}_${suffix++}`;
+                }
+
+                mesh.updateWorldMatrix(true, false);
+                const wp = new THREE.Vector3();
+                const wq = new THREE.Quaternion();
+                const ws = new THREE.Vector3();
+                mesh.matrixWorld.decompose(wp, wq, ws);
+
+                const pos = new THREE.Vector3(
+                  (wp.x - center.x) * s,
+                  (wp.y - center.y) * s,
+                  (wp.z - center.z) * s
+                );
+                const rot = new THREE.Euler().setFromQuaternion(wq);
+                const scl = ws.multiplyScalar(s);
+                const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
+                if ((origMat as any).side !== undefined) (origMat as any).side = THREE.DoubleSide;
+
+                newParts.push({
+                  name,
+                  geometry: mesh.geometry,
+                  originalMaterial: origMat,
+                  position: pos.clone(),
+                  rotation: rot.clone(),
+                  scale: scl.clone(),
+                  origPos: pos.clone(),
+                  origRot: rot.clone(),
+                  origScale: scl.clone(),
+                });
+                idx++;
+              }
+            });
+
+            if (newParts.length === 0) return;
+
+            // Auto-assign materials to new parts
+            const gemKeywordsLocal = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave"];
+            const platKeywordsLocal = ["prong", "claw", "bead", "milgrain"];
+            const dMat = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
+            const pMat = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
+            const gMat = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+
+            const newMaterials: Record<string, MaterialDef> = {};
+            newParts.forEach((md) => {
+              const lower = md.name.toLowerCase();
+              if (gemKeywordsLocal.some((kw) => lower.includes(kw))) {
+                newMaterials[md.name] = dMat;
+              } else if (platKeywordsLocal.some((kw) => lower.includes(kw))) {
+                newMaterials[md.name] = pMat;
+              } else {
+                newMaterials[md.name] = gMat;
+              }
+            });
+
+            setMeshDataList((prev) => [...prev, ...newParts]);
+            setAssignedMaterials((prev) => ({ ...prev, ...newMaterials }));
+            inv();
+
+            if (onMeshesDetected) {
+              // Re-report all meshes
+              setMeshDataList((current) => {
+                onMeshesDetected(current.map((m) => ({
+                  name: m.name,
+                  verts: m.geometry?.attributes?.position?.count || 0,
+                  faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
+                })));
+                return current;
+              });
+            }
+
+            console.log(`[CADCanvas] Merged ${newParts.length} part(s) from additional GLB`);
+          }, (err) => {
+            console.error("[CADCanvas] Failed to parse additional GLB:", err);
+          });
+        } catch (err) {
+          console.error("[CADCanvas] Failed to fetch additional GLB:", err);
+        }
+      })();
+    });
+  }, [additionalGlbUrls, meshDataList, inv, onMeshesDetected]);
 
   // ── Sync transform from Three.js object back to React state ──
   // This is the CRITICAL fix: after TransformControls modifies the object,
@@ -694,6 +822,7 @@ export interface CADCanvasHandle {
 interface CADCanvasProps {
   hasModel: boolean;
   glbUrl?: string;
+  additionalGlbUrls?: string[];
   selectedMeshNames: Set<string>;
   onMeshClick: (name: string, multi: boolean) => void;
   transformMode: string;
@@ -703,7 +832,7 @@ interface CADCanvasProps {
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
     const [gemEnvMap, setGemEnvMap] = useState<THREE.Texture | null>(null);
@@ -770,6 +899,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               <LoadedModel
                 ref={modelRef}
                 url={modelUrl}
+                additionalGlbUrls={additionalGlbUrls}
                 selectedMeshNames={selectedMeshNames}
                 onMeshClick={onMeshClick}
                 transformMode={transformMode}

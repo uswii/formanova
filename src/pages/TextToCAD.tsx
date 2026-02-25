@@ -218,18 +218,26 @@ export default function TextToCAD() {
     setEditPrompt(preset);
   }, []);
 
+  // Track additional part URLs to merge into the scene
+  const [additionalParts, setAdditionalParts] = useState<string[]>([]);
+
   const handleGlbUpload = useCallback((file: File) => {
-    if (glbUrl) URL.revokeObjectURL(glbUrl);
     const url = URL.createObjectURL(file);
-    setGlbUrl(url);
-    setHasModel(true);
-    setShowPartRegen(true);
-    setMeshes([]);
-    setModules([]);
-    setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
-    setUndoStack([]);
-    toast.success(`Loaded ${file.name}`);
-  }, [glbUrl]);
+    if (!hasModel) {
+      // No model yet — set as the primary model
+      setGlbUrl(url);
+      setHasModel(true);
+      setShowPartRegen(true);
+      setMeshes([]);
+      setModules([]);
+      setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
+      setUndoStack([]);
+    } else {
+      // Model already exists — add as an additional part
+      setAdditionalParts((prev) => [...prev, url]);
+    }
+    toast.success(`Added ${file.name}`);
+  }, [hasModel]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
@@ -249,6 +257,8 @@ export default function TextToCAD() {
     setModules([]);
     setUndoStack([]);
     if (glbUrl) URL.revokeObjectURL(glbUrl);
+    additionalParts.forEach((u) => URL.revokeObjectURL(u));
+    setAdditionalParts([]);
     setGlbUrl(undefined);
   };
 
@@ -429,6 +439,7 @@ export default function TextToCAD() {
           ref={canvasRef}
           hasModel={hasModel}
           glbUrl={glbUrl}
+          additionalGlbUrls={additionalParts}
           selectedMeshNames={selectedMeshNames}
           onMeshClick={handleSelectMesh}
           transformMode={transformMode}
