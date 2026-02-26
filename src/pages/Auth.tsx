@@ -240,15 +240,37 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
             <div className="flex flex-col items-center gap-4 mb-4">
               <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
                 <p className="text-destructive text-sm font-medium leading-relaxed">
-                  Google login requires a full browser.
+                  Google login requires a full browser.<br />
+                  <span className="text-muted-foreground text-xs mt-1 block">
+                    Tap the ⋮ or share icon above, then choose "Open in Chrome" / "Open in Safari"
+                  </span>
                 </p>
               </div>
               <Button
-                onClick={() => { window.location.href = window.location.href; }}
+                asChild
                 className="w-full max-w-xs h-12 text-base"
                 variant="default"
               >
-                Open in Browser
+                <a
+                  href={`intent://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}#Intent;scheme=https;package=com.android.chrome;end`}
+                  onClick={(e) => {
+                    try {
+                      // iOS: try to open in Safari via window.open
+                      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                      if (isIOS) {
+                        e.preventDefault();
+                        // Copy link so user can paste in Safari
+                        navigator.clipboard?.writeText(window.location.href).catch(() => {});
+                        window.open(window.location.href, '_blank');
+                      }
+                      // Android: let the intent:// href handle it
+                    } catch (err) {
+                      console.error('[Auth] Open in browser failed:', err);
+                    }
+                  }}
+                >
+                  Open in Browser
+                </a>
               </Button>
             </div>
           )}
