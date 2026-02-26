@@ -255,11 +255,12 @@ Deno.serve(async (req) => {
     if (dErr || !delivery) return json({ error: 'Invalid or expired token' }, 404);
 
     // Ownership check: authenticated user's email must match delivery recipient
-    // NO admin bypass — results are strictly owner-only
+    // Admin emails can bypass ownership to view any delivery
     const deliveryEmail = (delivery.user_email || '').toLowerCase();
     const overrideEmail = (delivery.override_email || '').toLowerCase();
     const userEmail = authedUser.email.toLowerCase();
-    if (userEmail !== deliveryEmail && userEmail !== overrideEmail) {
+    const isAdmin = getAdminEmails().includes(userEmail);
+    if (userEmail !== deliveryEmail && userEmail !== overrideEmail && !isAdmin) {
       return json({ error: 'Access denied. You do not have permission to view these results.' }, 403);
     }
 
