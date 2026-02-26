@@ -125,7 +125,7 @@ export default function DeliveryResults() {
               SIGN IN TO VIEW
             </h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Please sign in to access your results. Only the account owner can view these photos.
+              Please sign in to access these results.
             </p>
           </div>
           <Button
@@ -165,7 +165,7 @@ export default function DeliveryResults() {
               ACCESS DENIED
             </h2>
             <p className="text-muted-foreground text-sm">
-              You can only view your own results. Please sign in with the account that was used to submit this batch.
+              You don't have permission to view these results. Please sign in with the account that was used to submit this batch.
             </p>
           </div>
         </div>
@@ -182,10 +182,10 @@ export default function DeliveryResults() {
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <div className="space-y-3">
             <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
-              VIEW YOUR RESULTS
+              VIEW RESULTS
             </h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Please sign in with the account that was used to submit this batch to view your photos.
+              Please sign in to view these photos.
             </p>
           </div>
           <Button
