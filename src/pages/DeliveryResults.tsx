@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Loader2, Images, LogIn, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { removeStoredToken, removeStoredUser } from '@/lib/auth-api';
 import formanovaLogo from '@/assets/formanova-logo.png';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -130,7 +131,7 @@ export default function DeliveryResults() {
             </p>
           </div>
           <Button
-            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
+            onClick={() => { removeStoredToken(); removeStoredUser(); navigate('/login', { state: { from: `/yourresults/${token}` } }); }}
             className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
           >
             <LogIn className="h-4 w-4" />
@@ -169,7 +170,7 @@ export default function DeliveryResults() {
             </p>
           </div>
           <Button
-            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
+            onClick={() => { removeStoredToken(); removeStoredUser(); navigate('/login', { state: { from: `/yourresults/${token}` } }); }}
             className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
           >
             <LogIn className="h-4 w-4" />
@@ -197,7 +198,7 @@ export default function DeliveryResults() {
             </p>
           </div>
           <Button
-            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
+            onClick={() => { removeStoredToken(); removeStoredUser(); navigate('/login', { state: { from: `/yourresults/${token}` } }); }}
             className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
           >
             <LogIn className="h-4 w-4" />
@@ -224,7 +225,7 @@ export default function DeliveryResults() {
             </p>
           </div>
           <Button
-            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
+            onClick={() => { removeStoredToken(); removeStoredUser(); navigate('/login', { state: { from: `/yourresults/${token}` } }); }}
             className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
           >
             <LogIn className="h-4 w-4" />
