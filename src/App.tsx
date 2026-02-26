@@ -1,3 +1,4 @@
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,25 +12,33 @@ import { ThemeDecorations } from "@/components/ThemeDecorations";
 import { ScrollProgressIndicator } from '@/components/ScrollProgressIndicator';
 import { FloatingElements } from '@/components/FloatingElements';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Loader2 } from "lucide-react";
 
-// Pages
+// Critical pages loaded eagerly (landing + auth)
 import Welcome from "./pages/Welcome";
-import Dashboard from "./pages/Dashboard";
-import Tutorial from "./pages/Tutorial";
-import PhotographyStudioCategories from "./pages/PhotographyStudioCategories";
-import { CategoryUploadStudio } from "@/components/bulk";
-import CADStudio from "./pages/CADStudio";
-import CADToCatalog from "./pages/CADToCatalog";
-import TextToCAD from "./pages/TextToCAD";
 import Auth from "./pages/Auth";
 
-import Generations from "./pages/Generations";
-import Credits from "./pages/Credits";
-import Pricing from "./pages/Pricing";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import AdminBatches from "./pages/AdminBatches";
-import NotFound from "./pages/NotFound";
-import DeliveryResults from "./pages/DeliveryResults";
+// Lazy-loaded pages (split into separate chunks)
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Tutorial = lazy(() => import("./pages/Tutorial"));
+const PhotographyStudioCategories = lazy(() => import("./pages/PhotographyStudioCategories"));
+const CategoryUploadStudio = lazy(() => import("@/components/bulk").then(m => ({ default: m.CategoryUploadStudio })));
+const CADStudio = lazy(() => import("./pages/CADStudio"));
+const CADToCatalog = lazy(() => import("./pages/CADToCatalog"));
+const TextToCAD = lazy(() => import("./pages/TextToCAD"));
+const Generations = lazy(() => import("./pages/Generations"));
+const Credits = lazy(() => import("./pages/Credits"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const AdminBatches = lazy(() => import("./pages/AdminBatches"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -48,6 +57,7 @@ const App = () => (
             <div className="min-h-screen flex flex-col relative z-10">
               <Header />
               <main className="flex-1">
+                <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
@@ -76,6 +86,7 @@ const App = () => (
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </Suspense>
               </main>
             </div>
           </BrowserRouter>
