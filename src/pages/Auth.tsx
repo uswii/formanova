@@ -42,6 +42,16 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
 
   const from = (location.state as { from?: string })?.from || AUTH_SUCCESS_REDIRECT;
 
+  // Persist return URL across OAuth redirect (location.state is lost during OAuth flow)
+  useEffect(() => {
+    if (from && from !== AUTH_SUCCESS_REDIRECT) {
+      sessionStorage.setItem('auth_return_to', from);
+    }
+  }, [from]);
+
+  const getReturnUrl = () => sessionStorage.getItem('auth_return_to') || AUTH_SUCCESS_REDIRECT;
+  const clearReturnUrl = () => sessionStorage.removeItem('auth_return_to');
+
   // Detect if we're on the callback route with OAuth params
   const isCallback = location.pathname === '/oauth-callback';
 
@@ -51,7 +61,8 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
     const token = getStoredToken();
     const user = getStoredUser();
     if (token && user) {
-      navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
+      const returnUrl = getReturnUrl(); clearReturnUrl();
+      navigate(returnUrl, { replace: true });
       return;
     }
 
@@ -129,7 +140,8 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
       const userData = await authApi.getCurrentUser();
       if (userData) dispatchAuthChange(userData);
       await new Promise(resolve => setTimeout(resolve, 50));
-      navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
+      const returnUrl = getReturnUrl(); clearReturnUrl();
+      navigate(returnUrl, { replace: true });
     } catch (err) {
       console.error('[Auth] Direct token error:', err);
       handleAuthError();
@@ -163,7 +175,8 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
         }
         if (userData) dispatchAuthChange(userData);
         await new Promise(resolve => setTimeout(resolve, 50));
-        navigate(AUTH_SUCCESS_REDIRECT, { replace: true });
+        const returnUrl = getReturnUrl(); clearReturnUrl();
+        navigate(returnUrl, { replace: true });
       } else {
         throw new Error('No access token in response');
       }

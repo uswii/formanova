@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Loader2, Images, LogIn, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +24,8 @@ interface GalleryData {
 
 export default function DeliveryResults() {
   const { token } = useParams<{ token: string }>();
-  const { user, initializing, signInWithGoogle, getAuthHeader } = useAuth();
+  const navigate = useNavigate();
+  const { user, initializing, getAuthHeader } = useAuth();
   const [data, setData] = useState<GalleryData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -129,7 +130,7 @@ export default function DeliveryResults() {
             </p>
           </div>
           <Button
-            onClick={signInWithGoogle}
+            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
             className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
           >
             <LogIn className="h-4 w-4" />
@@ -189,7 +190,7 @@ export default function DeliveryResults() {
             </p>
           </div>
           <Button
-            onClick={signInWithGoogle}
+            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
             className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
           >
             <LogIn className="h-4 w-4" />
