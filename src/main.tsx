@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
+import { PostHogProvider } from '@posthog/react';
 import App from "./App.tsx";
 import "./index.css";
 
@@ -39,5 +40,19 @@ if (
   // Preserve the path and query string during redirect
   window.location.replace(`https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
 } else {
-  createRoot(document.getElementById("root")!).render(<App />);
+  const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
+  const posthogOptions = {
+    api_host: 'https://us.i.posthog.com',
+    defaults: '2026-01-30',
+  } as const;
+
+  createRoot(document.getElementById("root")!).render(
+    posthogKey ? (
+      <PostHogProvider apiKey={posthogKey} options={posthogOptions}>
+        <App />
+      </PostHogProvider>
+    ) : (
+      <App />
+    )
+  );
 }
