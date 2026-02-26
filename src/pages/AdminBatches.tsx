@@ -301,6 +301,37 @@ export default function AdminBatches() {
     }
   }, [getAdminHeaders]);
 
+  const [sendingResubmit, setSendingResubmit] = useState(false);
+  const [resubmitResult, setResubmitResult] = useState<{ sent: number; failed: number; will_send?: number; recipients?: any[] } | null>(null);
+  const handleSendResubmit = useCallback(async (dryRun = false) => {
+    setSendingResubmit(true);
+    setResubmitResult(null);
+    try {
+      const RESUBMIT_API = `${SUPABASE_URL}/functions/v1/send-resubmit-email`;
+      const response = await adminFetch(RESUBMIT_API, {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: dryRun }),
+      });
+      const data = await response.json();
+      if (dryRun) {
+        setResubmitResult({ sent: 0, failed: 0, will_send: data.will_send, recipients: data.recipients });
+        toast({ 
+          title: `Dry run: ${data.will_send} resubmit emails to send (${data.already_sent} already sent)`,
+          description: data.recipients?.slice(0, 5).map((r: any) => `${r.email} (${r.flagged_count} flagged)`).join(', ')
+        });
+      } else {
+        const s = data.summary;
+        setResubmitResult({ sent: s.sent, failed: s.failed });
+        toast({ title: `Resubmit emails: ${s.sent} sent, ${s.failed} failed` });
+      }
+    } catch (err: any) {
+      toast({ title: err.message || 'Resubmit send failed', variant: 'destructive' });
+    } finally {
+      setSendingResubmit(false);
+    }
+  }, [getAdminHeaders]);
+
   const handleSaveDriveLink = useCallback(async (batchId: string) => {
     setSavingDriveLink(true);
     try {
@@ -609,6 +640,44 @@ export default function AdminBatches() {
                   </Button>
                   <AlertDialogAction onClick={() => handleSendBulk(false, 50)} disabled={sendingBulk}>
                     {sendingBulk ? 'Sending…' : 'Send 50 Emails'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-orange-400 hover:text-orange-300" disabled={sendingResubmit}>
+                  <ImageIcon className="h-3.5 w-3.5" /> {sendingResubmit ? 'Sending…' : 'Resubmit'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Send Resubmit Email to Flagged Users</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Send a resubmit request email (with upload guide image) to all users from completed batches who have flagged inputs (product shots, flatlays, 3D renders).
+                    {resubmitResult && resubmitResult.will_send !== undefined && (
+                      <span className="block mt-2 text-orange-400">
+                        Dry run: {resubmitResult.will_send} emails to send
+                        {resubmitResult.recipients && (
+                          <span className="block text-xs mt-1 text-muted-foreground">
+                            {resubmitResult.recipients.slice(0, 8).map((r: any) => `${r.email} (${r.flagged_count} flagged)`).join(' · ')}
+                            {resubmitResult.recipients.length > 8 && ` … +${resubmitResult.recipients.length - 8} more`}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {resubmitResult && resubmitResult.sent > 0 && (
+                      <span className="block mt-2 text-emerald-400">Sent: {resubmitResult.sent}, Failed: {resubmitResult.failed}</span>
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <Button variant="outline" onClick={() => handleSendResubmit(true)} disabled={sendingResubmit}>
+                    {sendingResubmit ? 'Checking…' : 'Dry Run'}
+                  </Button>
+                  <AlertDialogAction onClick={() => handleSendResubmit(false)} disabled={sendingResubmit}>
+                    {sendingResubmit ? 'Sending…' : 'Send Resubmit Emails'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
