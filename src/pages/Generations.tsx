@@ -192,7 +192,7 @@ export default function Generations() {
                   {/* View Results button */}
                   {batch.token && (
                     <Button asChild variant="outline" className="w-full gap-2">
-                      <Link to={`/results/${batch.token}`}>
+                      <Link to={`/yourresults/${batch.token}`}>
                         <ExternalLink className="h-3.5 w-3.5" />
                         View All Results
                       </Link>
