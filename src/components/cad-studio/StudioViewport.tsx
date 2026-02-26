@@ -4,14 +4,7 @@ import {
   Environment,
   OrbitControls,
   useGLTF,
-  useEnvironment,
-  MeshRefractionMaterial,
 } from "@react-three/drei";
-import {
-  EffectComposer,
-  Bloom,
-  BrightnessContrast,
-} from "@react-three/postprocessing";
 import * as THREE from "three";
 import type { MaterialDef } from "./materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
@@ -19,77 +12,8 @@ import { getQualitySettings } from "@/lib/gpu-detect";
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
 
-// ── Gem Environment Loader ──
-function GemEnvProvider({ children }: { children: (envMap: THREE.Texture) => React.ReactNode }) {
-  const gemEnv = useEnvironment({ files: "/hdri/diamond-gemstone-studio.hdr" });
-  useEffect(() => {
-    if (!Q.envMapMipmaps && gemEnv) {
-      gemEnv.minFilter = THREE.LinearFilter;
-      gemEnv.generateMipmaps = false;
-      gemEnv.needsUpdate = true;
-    }
-  }, [gemEnv]);
-  return <>{children(gemEnv)}</>;
-}
-
-// ── Flat geometry cache (module-level for session reuse) ──
-const flatGeoCache = new Map<string, THREE.BufferGeometry>();
 // ── Material cache ──
 const matCache = new Map<string, THREE.Material>();
-
-function getFlatGeo(key: string, geometry: THREE.BufferGeometry): THREE.BufferGeometry {
-  let cached = flatGeoCache.get(key);
-  if (!cached) {
-    cached = geometry.clone().toNonIndexed();
-    cached.computeVertexNormals();
-    flatGeoCache.set(key, cached);
-  }
-  return cached;
-}
-
-// ── Refraction Gem Mesh ──
-function RefractionGemMesh({
-  geometry,
-  position,
-  rotation,
-  scale,
-  envMap,
-  gemConfig,
-  meshName,
-  onClick,
-}: {
-  geometry: THREE.BufferGeometry;
-  position: THREE.Vector3;
-  rotation: THREE.Euler;
-  scale: THREE.Vector3;
-  envMap: THREE.Texture;
-  gemConfig: NonNullable<MaterialDef["gemConfig"]>;
-  meshName: string;
-  onClick: (name: string, e?: ThreeEvent<MouseEvent>) => void;
-}) {
-  const flatGeometry = useMemo(() => getFlatGeo(`studio_${meshName}`, geometry), [geometry, meshName]);
-
-  return (
-    <mesh
-      geometry={flatGeometry}
-      position={position}
-      rotation={rotation}
-      scale={scale}
-      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onClick(meshName, e); }}
-    >
-      <MeshRefractionMaterial
-        envMap={envMap}
-        color={new THREE.Color(gemConfig.color)}
-        ior={gemConfig.ior}
-        aberrationStrength={gemConfig.aberrationStrength * Q.aberrationScale}
-        bounces={Math.min(gemConfig.bounces, Q.gemBounces)}
-        fresnel={gemConfig.fresnel}
-        fastChroma
-        toneMapped={false}
-      />
-    </mesh>
-  );
-}
 
 // ── Loaded GLB Model ──
 function LoadedModel({
@@ -97,14 +21,12 @@ function LoadedModel({
   meshMaterials,
   onMeshesDetected,
   selectedMeshes,
-  gemEnvMap,
   onMeshClick,
 }: {
   url: string;
   meshMaterials: Record<string, MaterialDef>;
   onMeshesDetected: (meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => void;
   selectedMeshes: Set<string>;
-  gemEnvMap: THREE.Texture | null;
   onMeshClick: (name: string, e?: ThreeEvent<MouseEvent>) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -159,24 +81,9 @@ function LoadedModel({
     onMeshesDetected(meshDataList.map(m => ({ name: m.name, original: m.original })));
   }, [meshDataList, onMeshesDetected]);
 
-  // Separate refraction vs standard meshes
-  const { standardMeshes, refractionMeshes } = useMemo(() => {
-    const std: typeof meshDataList = [];
-    const refr: (typeof meshDataList[0] & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
-    meshDataList.forEach((md) => {
-      const assigned = meshMaterials[md.name];
-      if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
-        refr.push({ ...md, gemConfig: assigned.gemConfig });
-      } else {
-        std.push(md);
-      }
-    });
-    return { standardMeshes: std, refractionMeshes: refr };
-  }, [meshDataList, meshMaterials, gemEnvMap]);
-
   // Build materials with caching
-  const standardMeshElements = useMemo(() => {
-    return standardMeshes.map((md) => {
+  const meshElements = useMemo(() => {
+    return meshDataList.map((md) => {
       const assigned = meshMaterials[md.name];
       const cacheKey = assigned ? `studio_${md.name}_${assigned.id}` : `studio_orig_${md.name}`;
       let material: THREE.Material;
@@ -205,11 +112,11 @@ function LoadedModel({
 
       return { ...md, material };
     });
-  }, [standardMeshes, meshMaterials, selectedMeshes]);
+  }, [meshDataList, meshMaterials, selectedMeshes]);
 
   return (
     <group ref={groupRef}>
-      {standardMeshElements.map((md) => (
+      {meshElements.map((md) => (
         <mesh
           key={md.name}
           geometry={md.geometry}
@@ -220,38 +127,7 @@ function LoadedModel({
           onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(md.name, e); }}
         />
       ))}
-      {refractionMeshes.map((md) => (
-        <RefractionGemMesh
-          key={md.name}
-          geometry={md.geometry}
-          position={md.position}
-          rotation={md.rotation}
-          scale={md.scale}
-          envMap={gemEnvMap!}
-          gemConfig={md.gemConfig}
-          meshName={md.name}
-          onClick={onMeshClick}
-        />
-      ))}
     </group>
-  );
-}
-
-// ── Lightweight Post-Processing ──
-function JewelryPostProcessing() {
-  return (
-    <EffectComposer multisampling={0}>
-      <Bloom
-        intensity={0.28}
-        luminanceThreshold={0.92}
-        luminanceSmoothing={0.2}
-        mipmapBlur
-      />
-      <BrightnessContrast
-        brightness={0}
-        contrast={0.08}
-      />
-    </EffectComposer>
   );
 }
 
@@ -278,8 +154,6 @@ export default function StudioViewport({
   progressStep,
   autoRotate = false,
 }: StudioViewportProps) {
-  const hasRefractionMaterials = Object.values(meshMaterials).some(m => m.useRefraction);
-
   const handleMeshClick = useCallback((name: string, e?: ThreeEvent<MouseEvent>) => {
     onMeshClick?.(name, e?.shiftKey || e?.ctrlKey || e?.metaKey);
   }, [onMeshClick]);
@@ -304,7 +178,6 @@ export default function StudioViewport({
         }}
       >
         <Suspense fallback={null}>
-          {/* Lighting — reduced on low tier */}
           <ambientLight intensity={0.1} />
           <directionalLight position={[3, 5, 3]} intensity={2.0} color="#ffffff" />
           {Q.maxLights >= 4 && (
@@ -315,35 +188,16 @@ export default function StudioViewport({
             <spotLight position={[0, 8, 0]} intensity={0.8} angle={0.5} penumbra={1} color="#fff5e6" />
           )}
 
-          {/* Metal HDRI environment */}
           <Environment files="/hdri/jewelry-studio-v2.hdr" />
 
           {modelUrl && (
-            <>
-              {hasRefractionMaterials ? (
-                <GemEnvProvider>
-                  {(gemEnv) => (
-                    <LoadedModel
-                      url={modelUrl}
-                      meshMaterials={meshMaterials}
-                      onMeshesDetected={onMeshesDetected}
-                      selectedMeshes={selectedMeshes}
-                      gemEnvMap={gemEnv}
-                      onMeshClick={handleMeshClick}
-                    />
-                  )}
-                </GemEnvProvider>
-              ) : (
-                <LoadedModel
-                  url={modelUrl}
-                  meshMaterials={meshMaterials}
-                  onMeshesDetected={onMeshesDetected}
-                  selectedMeshes={selectedMeshes}
-                  gemEnvMap={null}
-                  onMeshClick={handleMeshClick}
-                />
-              )}
-            </>
+            <LoadedModel
+              url={modelUrl}
+              meshMaterials={meshMaterials}
+              onMeshesDetected={onMeshesDetected}
+              selectedMeshes={selectedMeshes}
+              onMeshClick={handleMeshClick}
+            />
           )}
 
           <OrbitControls
@@ -356,13 +210,9 @@ export default function StudioViewport({
             autoRotate={autoRotate}
             autoRotateSpeed={0.5}
           />
-
-          {/* Post-processing only on medium/high tier */}
-          {Q.postProcessing && <JewelryPostProcessing />}
         </Suspense>
       </Canvas>
 
-      {/* Processing overlay */}
       {isProcessing && (
         <div className="absolute inset-0 bg-background/90 backdrop-blur-xl flex items-center justify-center z-20">
           <div className="w-[360px] text-center">
@@ -378,7 +228,6 @@ export default function StudioViewport({
         </div>
       )}
 
-      {/* Empty state */}
       {!modelUrl && !isProcessing && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">

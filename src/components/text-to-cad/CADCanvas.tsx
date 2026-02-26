@@ -6,14 +6,7 @@ import {
   TransformControls,
   GizmoHelper,
   GizmoViewport,
-  useEnvironment,
-  MeshRefractionMaterial,
 } from "@react-three/drei";
-import {
-  EffectComposer,
-  Bloom,
-  BrightnessContrast,
-} from "@react-three/postprocessing";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
@@ -21,27 +14,7 @@ import type { MaterialDef } from "@/components/cad-studio/materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
 // ── Quality settings (cached, runs once) ──
-
-// ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
-
-// ── Gem HDRI path ──
-const GEM_HDRI_PATH = "/hdri/diamond-gemstone-studio.hdr";
-
-// ── Gem env loaded once inside Canvas, never unmounts ──
-function GemEnvLoader({ onLoaded }: { onLoaded: (tex: THREE.Texture) => void }) {
-  const gemEnv = useEnvironment({ files: GEM_HDRI_PATH });
-  useEffect(() => {
-    // On low/medium tier, disable mipmaps on gem env to save VRAM
-    if (!Q.envMapMipmaps && gemEnv) {
-      gemEnv.minFilter = THREE.LinearFilter;
-      gemEnv.generateMipmaps = false;
-      gemEnv.needsUpdate = true;
-    }
-    onLoaded(gemEnv);
-  }, [gemEnv, onLoaded]);
-  return null;
-}
 
 // ── Shared selection material (reused, never re-created) ──
 const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
@@ -66,15 +39,7 @@ function LightController({ intensity }: { intensity: number }) {
   return null;
 }
 
-// ── Post-Processing (lightweight, skipped on low tier) ──
-const JewelryPostProcessing = React.memo(function JewelryPostProcessing() {
-  return (
-    <EffectComposer multisampling={0}>
-      <Bloom intensity={0.28} luminanceThreshold={0.92} luminanceSmoothing={0.2} mipmapBlur />
-      <BrightnessContrast brightness={0} contrast={0.08} />
-    </EffectComposer>
-  );
-});
+// Post-processing removed for performance
 
 // ── Invalidate helper for demand mode ──
 function useInvalidate() {
@@ -184,10 +149,9 @@ const LoadedModel = forwardRef<
     onMeshClick: (name: string, multi: boolean) => void;
     transformMode: string;
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
-    gemEnvMap: THREE.Texture | null;
     onTransformEnd?: () => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, gemEnvMap, onTransformEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -712,24 +676,11 @@ const LoadedModel = forwardRef<
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd]);
 
-  // ── Separate standard vs refraction meshes (memoized) ──
-  const { standardMeshes, refractionMeshes } = useMemo(() => {
-    const std: MeshData[] = [];
-    const refr: (MeshData & { gemConfig: NonNullable<MaterialDef["gemConfig"]> })[] = [];
-    meshDataList.forEach((md) => {
-      const assigned = assignedMaterials[md.name];
-      if (assigned?.useRefraction && assigned.gemConfig && gemEnvMap) {
-        refr.push({ ...md, gemConfig: assigned.gemConfig });
-      } else {
-        std.push(md);
-      }
-    });
-    return { standardMeshes: std, refractionMeshes: refr };
-  }, [meshDataList, assignedMaterials, gemEnvMap]);
+  // ── All meshes use standard MeshPhysicalMaterial now (no refraction) ──
 
   // Build materials for standard meshes (memoized)
   const standardElements = useMemo(() => {
-    return standardMeshes.map((md) => {
+    return meshDataList.map((md) => {
       const isSelected = selectedMeshNames.has(md.name);
       if (isSelected) {
         return { ...md, material: SELECTION_MATERIAL, isSelected };
@@ -745,18 +696,9 @@ const LoadedModel = forwardRef<
       }
       return { ...md, material, isSelected };
     });
-  }, [standardMeshes, assignedMaterials, selectedMeshNames]);
+  }, [meshDataList, assignedMaterials, selectedMeshNames]);
 
-  // Get or create cached flat geometry for refraction meshes
-  const getFlatGeo = useCallback((name: string, geometry: THREE.BufferGeometry) => {
-    let cached = flatGeoCache.current.get(name);
-    if (!cached) {
-      cached = geometry.clone().toNonIndexed();
-      cached.computeVertexNormals();
-      flatGeoCache.current.set(name, cached);
-    }
-    return cached;
-  }, []);
+  // Flat geometry cache removed — no longer needed without refraction
 
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
@@ -780,31 +722,6 @@ const LoadedModel = forwardRef<
         />
       ))}
 
-      {refractionMeshes.map((md) => (
-        <mesh
-          key={md.name}
-          ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
-          geometry={getFlatGeo(md.name, md.geometry)}
-          position={md.position}
-          rotation={md.rotation}
-          scale={md.scale}
-          onClick={(e: ThreeEvent<MouseEvent>) => {
-            e.stopPropagation();
-            onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
-          }}
-        >
-          <MeshRefractionMaterial
-            envMap={gemEnvMap!}
-            color={new THREE.Color(md.gemConfig.color)}
-            ior={md.gemConfig.ior}
-            aberrationStrength={md.gemConfig.aberrationStrength * Q.aberrationScale}
-            bounces={Math.min(md.gemConfig.bounces, Q.gemBounces)}
-            fresnel={md.gemConfig.fresnel}
-            fastChroma
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
 
   {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
@@ -852,13 +769,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
   ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
-    const [gemEnvMap, setGemEnvMap] = useState<THREE.Texture | null>(null);
 
-    // Only load gem env when a refraction material is actually needed
-    // For now we keep it mounted since toggling causes remount lag
-    const handleGemEnvLoaded = useCallback((tex: THREE.Texture) => {
-      setGemEnvMap(tex);
-    }, []);
+
 
     useImperativeHandle(ref, () => ({
       applyMaterial: (matId, meshNames) => modelRef.current?.applyMaterial(matId, meshNames),
@@ -911,7 +823,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
 
             <Environment files="/hdri/jewelry-studio-v2.hdr" environmentIntensity={0.35 * lightIntensity} />
 
-            <GemEnvLoader onLoaded={handleGemEnvLoaded} />
+            
 
             {hasModel && (
               <LoadedModel
@@ -922,7 +834,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onMeshClick={onMeshClick}
                 transformMode={transformMode}
                 onMeshesDetected={onMeshesDetected}
-                gemEnvMap={gemEnvMap}
+                
                 onTransformEnd={onTransformEnd}
               />
             )}
@@ -940,8 +852,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
               <GizmoViewport labelColor="white" axisHeadScale={0.8} />
             </GizmoHelper>
 
-            {/* Post-processing only on medium/high tier */}
-            {Q.postProcessing && <JewelryPostProcessing />}
           </Suspense>
         </Canvas>
 

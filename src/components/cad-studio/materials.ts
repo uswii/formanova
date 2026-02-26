@@ -5,14 +5,6 @@ export interface MaterialDef {
   name: string;
   category: "metal" | "gemstone";
   preview: string;
-  useRefraction?: boolean;
-  gemConfig?: {
-    color: string;
-    ior: number;
-    aberrationStrength: number;
-    bounces: number;
-    fresnel: number;
-  };
   create: () => THREE.MeshPhysicalMaterial;
 }
 
@@ -211,22 +203,26 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
       }),
   },
 
-  // ── Gemstones (refraction-based) ──
+  // ── Gemstones (transmission-based, lightweight) ──
   {
     id: "diamond",
     name: "Diamond",
     category: "gemstone",
     preview: "linear-gradient(135deg, #e8f4ff, #ffffff)",
-    useRefraction: true,
-    gemConfig: { color: "#ffffff", ior: 2.42, aberrationStrength: 0.05, bounces: 8, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(0xffffff),
         metalness: 0.0,
         roughness: 0.0,
-        transmission: 0.95,
+        transmission: 1.0,
         ior: 2.42,
-        thickness: 1.5,
+        thickness: 2.5,
+        envMapIntensity: 3.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 4.5,
+        attenuationColor: new THREE.Color(0xffffff),
+        side: THREE.DoubleSide,
       }),
   },
   {
@@ -234,16 +230,20 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     name: "Ruby",
     category: "gemstone",
     preview: "linear-gradient(135deg, #9b111e, #e0115f)",
-    useRefraction: true,
-    gemConfig: { color: "#e0115f", ior: 1.77, aberrationStrength: 0.03, bounces: 6, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x9b111e),
+        color: new THREE.Color(0xe0115f),
         metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.6,
+        roughness: 0.0,
+        transmission: 1.0,
         ior: 1.77,
-        thickness: 1.0,
+        thickness: 2.0,
+        envMapIntensity: 2.5,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 3.0,
+        attenuationColor: new THREE.Color(0x9b111e),
+        side: THREE.DoubleSide,
       }),
   },
   {
@@ -251,16 +251,20 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     name: "Emerald",
     category: "gemstone",
     preview: "linear-gradient(135deg, #046307, #50c878)",
-    useRefraction: true,
-    gemConfig: { color: "#50c878", ior: 1.58, aberrationStrength: 0.02, bounces: 6, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x046307),
+        color: new THREE.Color(0x50c878),
         metalness: 0.0,
-        roughness: 0.03,
-        transmission: 0.5,
+        roughness: 0.0,
+        transmission: 1.0,
         ior: 1.58,
-        thickness: 1.0,
+        thickness: 2.0,
+        envMapIntensity: 2.5,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 3.0,
+        attenuationColor: new THREE.Color(0x046307),
+        side: THREE.DoubleSide,
       }),
   },
   {
@@ -268,16 +272,20 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     name: "Sapphire",
     category: "gemstone",
     preview: "linear-gradient(135deg, #0f52ba, #6593f5)",
-    useRefraction: true,
-    gemConfig: { color: "#0f52ba", ior: 1.77, aberrationStrength: 0.03, bounces: 6, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x0f52ba),
+        color: new THREE.Color(0x6593f5),
         metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.55,
+        roughness: 0.0,
+        transmission: 1.0,
         ior: 1.77,
-        thickness: 1.0,
+        thickness: 2.0,
+        envMapIntensity: 2.5,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 3.0,
+        attenuationColor: new THREE.Color(0x0f52ba),
+        side: THREE.DoubleSide,
       }),
   },
   {
@@ -285,16 +293,20 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     name: "Black Diamond",
     category: "gemstone",
     preview: "linear-gradient(135deg, #0a0a0a, #333344)",
-    useRefraction: true,
-    gemConfig: { color: "#1a1a2e", ior: 2.42, aberrationStrength: 0.04, bounces: 8, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x0a0a0a),
+        color: new THREE.Color(0x1a1a2e),
         metalness: 0.3,
         roughness: 0.05,
-        transmission: 0.15,
+        transmission: 0.4,
         ior: 2.42,
-        thickness: 0.5,
+        thickness: 1.5,
+        envMapIntensity: 2.0,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 2.0,
+        attenuationColor: new THREE.Color(0x0a0a0a),
+        side: THREE.DoubleSide,
       }),
   },
   {
@@ -302,16 +314,20 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     name: "Amethyst",
     category: "gemstone",
     preview: "linear-gradient(135deg, #6b3fa0, #9966cc)",
-    useRefraction: true,
-    gemConfig: { color: "#9966cc", ior: 1.54, aberrationStrength: 0.02, bounces: 6, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x6b3fa0),
+        color: new THREE.Color(0x9966cc),
         metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.6,
+        roughness: 0.0,
+        transmission: 1.0,
         ior: 1.54,
-        thickness: 1.0,
+        thickness: 2.0,
+        envMapIntensity: 2.5,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 3.5,
+        attenuationColor: new THREE.Color(0x6b3fa0),
+        side: THREE.DoubleSide,
       }),
   },
   {
@@ -319,16 +335,20 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     name: "Topaz",
     category: "gemstone",
     preview: "linear-gradient(135deg, #ffc87c, #ffe4b5)",
-    useRefraction: true,
-    gemConfig: { color: "#ffc87c", ior: 1.64, aberrationStrength: 0.025, bounces: 6, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(0xffc87c),
         metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.6,
+        roughness: 0.0,
+        transmission: 1.0,
         ior: 1.64,
-        thickness: 1.0,
+        thickness: 2.0,
+        envMapIntensity: 2.5,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 3.5,
+        attenuationColor: new THREE.Color(0xffc87c),
+        side: THREE.DoubleSide,
       }),
   },
   {
@@ -336,137 +356,20 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     name: "Aquamarine",
     category: "gemstone",
     preview: "linear-gradient(135deg, #7fffd4, #b2fff0)",
-    useRefraction: true,
-    gemConfig: { color: "#7fffd4", ior: 1.57, aberrationStrength: 0.02, bounces: 6, fresnel: 1.0 },
     create: () =>
       new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(0x7fffd4),
         metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.6,
+        roughness: 0.0,
+        transmission: 1.0,
         ior: 1.57,
-        thickness: 1.0,
-      }),
-  },
-  {
-    id: "tanzanite",
-    name: "Tanzanite",
-    category: "gemstone",
-    preview: "linear-gradient(135deg, #4000a0, #7b68ee)",
-    useRefraction: true,
-    gemConfig: { color: "#4000a0", ior: 1.69, aberrationStrength: 0.03, bounces: 6, fresnel: 1.0 },
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x4000a0),
-        metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.55,
-        ior: 1.69,
-        thickness: 1.0,
-      }),
-  },
-  {
-    id: "morganite",
-    name: "Morganite",
-    category: "gemstone",
-    preview: "linear-gradient(135deg, #f4a6c0, #fcd5e5)",
-    useRefraction: true,
-    gemConfig: { color: "#f4a6c0", ior: 1.59, aberrationStrength: 0.02, bounces: 6, fresnel: 1.0 },
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xf4a6c0),
-        metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.6,
-        ior: 1.59,
-        thickness: 1.0,
-      }),
-  },
-  {
-    id: "citrine",
-    name: "Citrine",
-    category: "gemstone",
-    preview: "linear-gradient(135deg, #e4a010, #f5d060)",
-    useRefraction: true,
-    gemConfig: { color: "#e4a010", ior: 1.55, aberrationStrength: 0.02, bounces: 6, fresnel: 1.0 },
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xe4a010),
-        metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.6,
-        ior: 1.55,
-        thickness: 1.0,
-      }),
-  },
-  {
-    id: "peridot",
-    name: "Peridot",
-    category: "gemstone",
-    preview: "linear-gradient(135deg, #7ab800, #b2e060)",
-    useRefraction: true,
-    gemConfig: { color: "#7ab800", ior: 1.67, aberrationStrength: 0.02, bounces: 6, fresnel: 1.0 },
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x7ab800),
-        metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.55,
-        ior: 1.67,
-        thickness: 1.0,
-      }),
-  },
-  {
-    id: "garnet",
-    name: "Garnet",
-    category: "gemstone",
-    preview: "linear-gradient(135deg, #7b1818, #c0392b)",
-    useRefraction: true,
-    gemConfig: { color: "#7b1818", ior: 1.74, aberrationStrength: 0.03, bounces: 6, fresnel: 1.0 },
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x7b1818),
-        metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.5,
-        ior: 1.74,
-        thickness: 1.0,
-      }),
-  },
-  {
-    id: "opal",
-    name: "Opal",
-    category: "gemstone",
-    preview: "linear-gradient(135deg, #d4eaf7, #f0e6ff, #ffefd5)",
-    useRefraction: true,
-    gemConfig: { color: "#d4eaf7", ior: 1.45, aberrationStrength: 0.06, bounces: 4, fresnel: 0.8 },
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xd4eaf7),
-        metalness: 0.0,
-        roughness: 0.1,
-        transmission: 0.3,
-        ior: 1.45,
-        thickness: 0.8,
-        iridescence: 1.0,
-        iridescenceIOR: 1.3,
-      }),
-  },
-  {
-    id: "pink-sapphire",
-    name: "Pink Sapphire",
-    category: "gemstone",
-    preview: "linear-gradient(135deg, #e91e90, #ff69b4)",
-    useRefraction: true,
-    gemConfig: { color: "#e91e90", ior: 1.77, aberrationStrength: 0.03, bounces: 6, fresnel: 1.0 },
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xe91e90),
-        metalness: 0.0,
-        roughness: 0.02,
-        transmission: 0.55,
-        ior: 1.77,
-        thickness: 1.0,
+        thickness: 2.0,
+        envMapIntensity: 2.5,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.0,
+        attenuationDistance: 4.0,
+        attenuationColor: new THREE.Color(0x7fffd4),
+        side: THREE.DoubleSide,
       }),
   },
 ];
