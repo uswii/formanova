@@ -153,7 +153,34 @@ export default function DeliveryResults() {
     );
   }
 
-  // ── State 4: Access denied (403) ──
+  // ── State 4: Session expired (401) — force re-login ──
+  if (errorCode === 401) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="text-center space-y-8 max-w-sm">
+          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
+          <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
+          <div className="space-y-3">
+            <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
+              SESSION EXPIRED
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Your session has expired. Please sign in again to view your photos.
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate('/login', { state: { from: `/yourresults/${token}` } })}
+            className="gap-2 bg-formanova-hero-accent text-background hover:bg-formanova-hero-accent/90 px-8 py-3 text-sm uppercase tracking-[2px]"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign in again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 5: Access denied (403) ──
   if (errorCode === 403) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
