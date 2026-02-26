@@ -247,12 +247,20 @@ Deno.serve(async (req) => {
     if (!userToken) return json({ error: 'Authentication required. Please log in to view your results.' }, 401);
 
     const authedUser = await authenticateUser(userToken);
-    if (!authedUser) return json({ error: 'Invalid or expired session. Please log in again.' }, 401);
+    if (!authedUser) {
+      console.error(`[delivery-manager] Auth failed for token starting: ${userToken.substring(0, 20)}...`);
+      return json({ error: 'Invalid or expired session. Please log in again.' }, 401);
+    }
+
+    console.log(`[delivery-manager] Authenticated user: ${authedUser.email}, action=${action}`);
 
     const db = getSupabaseAdmin();
     const { data: delivery, error: dErr } = await db
       .from('delivery_batches').select('*').eq('token', token).single();
-    if (dErr || !delivery) return json({ error: 'Invalid or expired token' }, 404);
+    if (dErr || !delivery) {
+      console.error(`[delivery-manager] Token not found: ${token}`);
+      return json({ error: 'Invalid or expired token' }, 404);
+    }
 
     // Ownership check: authenticated user's email must match delivery recipient
     // Admin emails can bypass ownership to view any delivery
@@ -260,7 +268,9 @@ Deno.serve(async (req) => {
     const overrideEmail = (delivery.override_email || '').toLowerCase();
     const userEmail = authedUser.email.toLowerCase();
     const isAdmin = getAdminEmails().includes(userEmail);
+    console.log(`[delivery-manager] Check: user=${userEmail} delivery=${deliveryEmail} override=${overrideEmail} admin=${isAdmin}`);
     if (userEmail !== deliveryEmail && userEmail !== overrideEmail && !isAdmin) {
+      console.warn(`[delivery-manager] ACCESS DENIED: ${userEmail} != ${deliveryEmail}`);
       return json({ error: 'Access denied. You do not have permission to view these results.' }, 403);
     }
 
