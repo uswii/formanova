@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.pipeline-api]
 verify_jwt = false
+
+[functions.send-resubmit-email]
+verify_jwt = false
