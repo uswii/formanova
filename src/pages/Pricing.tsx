@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,26 +41,28 @@ const PLANS = [
 export default function Pricing() {
   const { user } = useAuth();
   const { credits } = useCredits();
+  const [searchParams] = useSearchParams();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [errorTier, setErrorTier] = useState<string | null>(null);
+
+  // Preserve return_to from query params (passed from insufficient credits modal)
+  const returnTo = searchParams.get('return_to') || '/studio';
 
   const handleCheckout = async (tierId: string) => {
     if (!user?.id) {
       toast({ title: 'Please sign in first', variant: 'destructive' });
       return;
     }
-    if (loadingTier) return; // prevent duplicate
+    if (loadingTier) return;
 
     setLoadingTier(tierId);
     setErrorTier(null);
 
     try {
-      const returnTo = window.location.pathname + window.location.search;
-
       const response = await authenticatedFetch(CHECKOUT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier_id: tierId, return_to: returnTo }),
+        body: JSON.stringify({ tier_id: tierId, return_to: returnTo.startsWith('/') ? returnTo : '/studio' }),
       });
 
       if (!response.ok) {
