@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { startRingPipeline, pollStatus, fetchResult, calcProgress } from "@/lib/formanova-cad-api";
 import { performCreditPreflight, type PreflightResult } from "@/lib/credit-preflight";
+import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
@@ -122,7 +123,7 @@ export default function TextToCAD() {
       if (err instanceof AuthExpiredError) return;
       console.error('Credit preflight failed:', err);
       // Show generic inline block on error
-      setCreditBlock({ approved: false, estimatedCredits: 0, currentBalance: 0 });
+      setCreditBlock({ approved: false, estimatedCredits: TOOL_COSTS.cad_generation ?? 5, currentBalance: 0 });
       return;
     }
 
