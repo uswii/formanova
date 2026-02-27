@@ -1,7 +1,7 @@
 // Custom Auth Service API Client
 // Routes through edge function proxy to avoid mixed content (HTTPS -> HTTP)
 
-const AUTH_URL = 'https://formanova.ai/auth';
+const AUTH_URL = '/auth';
 
 export interface AuthUser {
   id: string;

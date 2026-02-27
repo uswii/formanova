@@ -23,7 +23,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const data = await fetchBalance();
-      setCredits(data.available ?? data.balance);
+      setCredits(data.balance);
     } catch (error: any) {
       if (error instanceof AuthExpiredError) {
         // authenticatedFetch already handles redirect — just clear local state

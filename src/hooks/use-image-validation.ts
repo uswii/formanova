@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
 import { compressImageBlob } from '@/lib/image-compression';
 
-const TEMPORAL_API = 'https://formanova.ai/api';
+const TEMPORAL_API = '/api';
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 
 // Response from the classification service

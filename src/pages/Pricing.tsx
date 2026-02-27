@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { toast } from '@/hooks/use-toast';
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
-const CHECKOUT_URL = 'https://formanova.ai/billing/checkout';
+const CHECKOUT_URL = '/billing/checkout';
 
 const PLANS = [
   {
@@ -54,17 +54,11 @@ export default function Pricing() {
     setErrorTier(null);
 
     try {
-      const token = getStoredToken();
-      if (!token) throw new Error('Not authenticated');
-
       const returnTo = window.location.pathname + window.location.search;
 
-      const response = await fetch(CHECKOUT_URL, {
+      const response = await authenticatedFetch(CHECKOUT_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tier_id: tierId, return_to: returnTo }),
       });
 

@@ -6,7 +6,7 @@
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
-const FORMANOVA_API = 'https://formanova.ai/api';
+const FORMANOVA_API = '/api';
 const AZURE_BLOB_HOST = 'https://snapwear.blob.core.windows.net';
 
 const MODEL_MAP: Record<string, string> = {

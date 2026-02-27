@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { getStoredToken } from '@/lib/auth-api';
+import { authenticatedFetch, AuthExpiredError } from '@/lib/authenticated-fetch';
 import { useCredits } from '@/contexts/CreditsContext';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
-const BILLING_URL = 'https://formanova.ai/billing';
+const BILLING_URL = '/billing';
 
 type VerifyState =
   | { type: 'loading' }
@@ -18,7 +18,6 @@ type VerifyState =
   | { type: 'timeout' };
 
 export default function PaymentSuccess() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { refreshCredits } = useCredits();
   const sessionId = searchParams.get('session_id');
@@ -42,25 +41,11 @@ export default function PaymentSuccess() {
 
   const verify = useCallback(async (isPolling = false): Promise<'pending' | 'done'> => {
     if (!sessionId) return 'done';
-    const token = getStoredToken();
-    if (!token) {
-      const currentPath = window.location.pathname + window.location.search;
-      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
-      stopPolling();
-      return 'done';
-    }
     if (!isPolling) setState({ type: 'loading' });
     try {
-      const res = await fetch(
-        `${BILLING_URL}/checkout/verify/${sessionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await authenticatedFetch(
+        `${BILLING_URL}/checkout/verify/${sessionId}`
       );
-      if (res.status === 401) {
-        const currentPath = window.location.pathname + window.location.search;
-        navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
-        stopPolling();
-        return 'done';
-      }
       if (res.status === 404) {
         setState({ type: 'not_found' });
         stopPolling();
@@ -79,12 +64,17 @@ export default function PaymentSuccess() {
         return 'done';
       }
       return 'pending';
-    } catch {
+    } catch (error) {
+      // AuthExpiredError means authenticatedFetch already redirected
+      if (error instanceof AuthExpiredError) {
+        stopPolling();
+        return 'done';
+      }
       setState({ type: 'error' });
       stopPolling();
       return 'done';
     }
-  }, [sessionId, stopPolling, navigate, refreshCredits]);
+  }, [sessionId, stopPolling, refreshCredits]);
 
   const startPolling = useCallback(() => {
     if (intervalRef.current) return;

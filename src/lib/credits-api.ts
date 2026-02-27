@@ -1,9 +1,6 @@
-// Credits API client - calls API gateway directly
-
-const API_GATEWAY_URL = 'https://formanova.ai/api';
+// Credits API client — relative paths only
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import { getStoredToken } from '@/lib/auth-api';
 
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
@@ -12,18 +9,17 @@ export const TOOL_COSTS: Record<string, number> = {
 
 export interface CreditBalance {
   balance: number;
-  reserved_balance: number;
-  available: number;
+  reserved_balance?: number;
+  available?: number;
 }
 
 /**
  * Single source of truth for credit balance.
- * Calls GET /credits/balance with JWT auth.
+ * Calls GET /credits/balance/me with JWT auth.
  * Throws AuthExpiredError on 401 (handled by authenticatedFetch).
- * Throws on network / 5xx errors.
  */
 export async function fetchBalance(): Promise<CreditBalance> {
-  const response = await authenticatedFetch(`${API_GATEWAY_URL}/credits/balance`);
+  const response = await authenticatedFetch('/credits/balance/me');
 
   if (!response.ok) {
     throw new Error('Failed to fetch credits');
@@ -36,7 +32,7 @@ export async function fetchBalance(): Promise<CreditBalance> {
 export const getUserCredits = fetchBalance;
 
 export async function startCheckout(tierName: string): Promise<string> {
-  const response = await authenticatedFetch(`${API_GATEWAY_URL}/create-checkout-session`, {
+  const response = await authenticatedFetch('/billing/create-checkout-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tier: tierName }),
