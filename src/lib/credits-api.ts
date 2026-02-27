@@ -19,7 +19,7 @@ export interface CreditBalance {
  * Throws AuthExpiredError on 401 (handled by authenticatedFetch).
  */
 export async function fetchBalance(): Promise<CreditBalance> {
-  const response = await authenticatedFetch('/credits/balance/me');
+  const response = await authenticatedFetch('/api/credits/balance/me');
 
   if (!response.ok) {
     throw new Error('Failed to fetch credits');

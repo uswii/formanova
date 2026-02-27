@@ -38,7 +38,7 @@ export async function performCreditPreflight(
   const { estimated_credits } = await estimateRes.json();
 
   // 2️⃣ Fetch current balance
-  const balanceRes = await authenticatedFetch('/credits/balance/me');
+  const balanceRes = await authenticatedFetch('/api/credits/balance/me');
 
   if (!balanceRes.ok) {
     throw new Error(`Balance fetch failed (${balanceRes.status})`);
