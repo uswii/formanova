@@ -70,10 +70,16 @@ export default function Pricing() {
         body: JSON.stringify({ tier_id: tierId, return_to: returnTo }),
       });
 
-      if (!response.ok) throw new Error('Checkout failed');
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error('[Checkout] Response error:', response.status, errorBody);
+        throw new Error('Checkout failed');
+      }
 
-      const { url } = await response.json();
-      if (!url) throw new Error('No checkout URL');
+      const data = await response.json();
+      console.log('[Checkout] Response:', data);
+      const url = data.url;
+      if (!url) throw new Error('No checkout URL in response');
       window.location.href = url;
     } catch (error) {
       console.error('Checkout failed:', error);
