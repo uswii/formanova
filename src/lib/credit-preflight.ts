@@ -22,7 +22,7 @@ export async function performCreditPreflight(
   numVariations: number = 1
 ): Promise<PreflightResult> {
   // 1️⃣ Estimate required credits
-  const estimateRes = await authenticatedFetch('/credits/estimate', {
+  const estimateRes = await authenticatedFetch('/api/credits/estimate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

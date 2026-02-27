@@ -118,7 +118,11 @@ export default function TextToCAD() {
       }
     } catch (err) {
       if (err instanceof AuthExpiredError) return;
+      // If preflight fails, still redirect to pricing as a safe fallback
       console.error('Credit preflight failed:', err);
+      const currentPath = window.location.pathname + window.location.search;
+      navigate(`/pricing?redirect=${encodeURIComponent(currentPath)}`);
+      return;
     }
 
     setIsGenerating(true);
