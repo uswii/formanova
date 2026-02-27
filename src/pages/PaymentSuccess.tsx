@@ -21,7 +21,7 @@ export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const { refreshCredits } = useCredits();
   const sessionId = searchParams.get('session_id');
-  const returnTo = searchParams.get('return_to');
+  const returnTo = searchParams.get('redirect');
   const fallback = useMemo(() => returnTo || '/studio', [returnTo]);
 
   const [state, setState] = useState<VerifyState>(

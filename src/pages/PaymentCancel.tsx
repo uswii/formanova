@@ -6,7 +6,7 @@ import { XCircle } from 'lucide-react';
 
 export default function PaymentCancel() {
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('return_to');
+  const returnTo = searchParams.get('redirect');
   const fallback = useMemo(() => {
     if (returnTo && returnTo.startsWith('/')) return returnTo;
     return '/studio';

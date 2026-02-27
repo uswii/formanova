@@ -48,7 +48,7 @@ export function CreditPreflightModal({
             onClick={() => {
               onOpenChange(false);
               const currentPath = window.location.pathname + window.location.search;
-              navigate(`/pricing?return_to=${encodeURIComponent(currentPath)}`);
+              navigate(`/pricing?redirect=${encodeURIComponent(currentPath)}`);
             }}
             className="gap-2"
           >

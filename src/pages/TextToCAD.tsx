@@ -113,7 +113,7 @@ export default function TextToCAD() {
       const result = await performCreditPreflight('text_to_cad', 1);
       if (!result.approved) {
         const currentPath = window.location.pathname + window.location.search;
-        navigate(`/pricing?return_to=${encodeURIComponent(currentPath)}`);
+        navigate(`/pricing?redirect=${encodeURIComponent(currentPath)}`);
         return;
       }
     } catch (err) {

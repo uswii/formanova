@@ -45,8 +45,8 @@ export default function Pricing() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [errorTier, setErrorTier] = useState<string | null>(null);
 
-  // Preserve return_to from query params (passed from insufficient credits modal)
-  const returnTo = searchParams.get('return_to') || '/studio';
+  // Preserve redirect from query params (passed from insufficient credits flow)
+  const returnTo = searchParams.get('redirect') || '/studio';
 
   const handleCheckout = async (tierId: string) => {
     if (!user?.id) {
@@ -62,7 +62,7 @@ export default function Pricing() {
       const response = await authenticatedFetch(CHECKOUT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier_id: tierId, return_to: returnTo.startsWith('/') ? returnTo : '/studio' }),
+        body: JSON.stringify({ tier_id: tierId, redirect: returnTo.startsWith('/') ? returnTo : '/studio' }),
       });
 
       if (!response.ok) {
