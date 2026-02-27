@@ -7,9 +7,9 @@ export default function PaymentCancel() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="max-w-md w-full border-border/50 bg-card/50">
-        <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
-          <XCircle className="h-12 w-12 text-muted-foreground" />
-          <h1 className="text-3xl font-display">Payment Cancelled</h1>
+        <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
+          <XCircle className="h-10 w-10 text-muted-foreground" />
+          <h1 className="text-2xl font-display tracking-wide">Payment Cancelled</h1>
           <p className="text-muted-foreground">
             Your payment was not completed. No charges were made.
           </p>

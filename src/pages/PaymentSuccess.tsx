@@ -70,7 +70,7 @@ export default function PaymentSuccess() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="max-w-md w-full border-border/50 bg-card/50">
-          <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
+          <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
             <AlertCircle className="h-10 w-10 text-destructive" />
             <h1 className="text-2xl font-display tracking-wide">
               We couldn't confirm this payment
@@ -92,8 +92,8 @@ export default function PaymentSuccess() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="max-w-md w-full border-border/50 bg-card/50">
-          <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
-            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+          <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <h1 className="text-2xl font-display tracking-wide">
               Finalizing your credits…
             </h1>
@@ -111,8 +111,8 @@ export default function PaymentSuccess() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="max-w-md w-full border-border/50 bg-card/50">
-          <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
-            <CheckCircle2 className="h-10 w-10 text-primary" />
+          <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
+            <CheckCircle2 className="h-9 w-9 text-primary" />
             <h1 className="text-2xl font-display tracking-wide">
               Credits added successfully
             </h1>
@@ -144,8 +144,8 @@ export default function PaymentSuccess() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="max-w-md w-full border-border/50 bg-card/50">
-          <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
-            <AlertCircle className="h-10 w-10 text-destructive" />
+          <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
+            <AlertCircle className="h-9 w-9 text-destructive" />
             <h1 className="text-2xl font-display tracking-wide">
               We couldn't confirm this payment
             </h1>
@@ -165,8 +165,8 @@ export default function PaymentSuccess() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="max-w-md w-full border-border/50 bg-card/50">
-        <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
-          <AlertCircle className="h-10 w-10 text-muted-foreground" />
+        <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
+          <AlertCircle className="h-9 w-9 text-muted-foreground" />
           <h1 className="text-2xl font-display tracking-wide">
             We're having trouble confirming your payment
           </h1>
