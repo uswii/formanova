@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -16,13 +16,10 @@ type VerifyState =
   | { type: 'missing_session' }
   | { type: 'timeout' };
 
-function getCtaLabel(destination: string): string {
-  if (destination.startsWith('/studio-cad')) return 'Back to CAD';
-  if (destination.startsWith('/studio')) return 'Back to Studio';
-  return 'Back to Studio';
-}
+
 
 export default function PaymentSuccess() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const returnTo = searchParams.get('return_to');
@@ -47,7 +44,9 @@ export default function PaymentSuccess() {
     if (!sessionId) return 'done';
     const token = getStoredToken();
     if (!token) {
-      setState({ type: 'error' });
+      // No token — redirect to login preserving current URL
+      const currentPath = window.location.pathname + window.location.search;
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
       stopPolling();
       return 'done';
     }
@@ -57,6 +56,13 @@ export default function PaymentSuccess() {
         `${BILLING_URL}/checkout/verify/${sessionId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      if (res.status === 401) {
+        // Auth expired — redirect to login, don't show error
+        const currentPath = window.location.pathname + window.location.search;
+        navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
+        stopPolling();
+        return 'done';
+      }
       if (res.status === 404) {
         setState({ type: 'not_found' });
         stopPolling();
@@ -80,7 +86,7 @@ export default function PaymentSuccess() {
       stopPolling();
       return 'done';
     }
-  }, [sessionId, stopPolling]);
+  }, [sessionId, stopPolling, navigate]);
 
   const startPolling = useCallback(() => {
     if (intervalRef.current) return; // prevent duplicates
@@ -124,7 +130,7 @@ export default function PaymentSuccess() {
               Missing checkout session. Please return to Studio and try again.
             </p>
             <Button asChild size="lg">
-              <Link to={fallback}>{getCtaLabel(fallback)}</Link>
+              <Link to={fallback}>Back to Studio</Link>
             </Button>
           </CardContent>
         </Card>
@@ -172,7 +178,7 @@ export default function PaymentSuccess() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button asChild size="lg" className="flex-1">
-                <Link to={fallback}>{getCtaLabel(fallback)}</Link>
+                <Link to={fallback}>Back to Studio</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="flex-1">
                 <Link to="/pricing">Buy more credits</Link>
@@ -198,7 +204,7 @@ export default function PaymentSuccess() {
               This checkout session could not be found for your account.
             </p>
             <Button asChild size="lg">
-              <Link to={fallback}>{getCtaLabel(fallback)}</Link>
+              <Link to={fallback}>Back to Studio</Link>
             </Button>
           </CardContent>
         </Card>
@@ -221,7 +227,7 @@ export default function PaymentSuccess() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button asChild size="lg" className="flex-1">
-                <Link to={fallback}>{getCtaLabel(fallback)}</Link>
+                <Link to={fallback}>Back to Studio</Link>
               </Button>
               <Button
                 variant="outline"
@@ -265,7 +271,7 @@ export default function PaymentSuccess() {
               Retry
             </Button>
             <Button asChild variant="outline" size="lg" className="flex-1">
-              <Link to={fallback}>{getCtaLabel(fallback)}</Link>
+              <Link to={fallback}>Back to Studio</Link>
             </Button>
           </div>
         </CardContent>

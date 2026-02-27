@@ -4,12 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { XCircle } from 'lucide-react';
 
-function getCtaLabel(destination: string): string {
-  if (destination.startsWith('/studio-cad')) return 'Back to CAD';
-  if (destination.startsWith('/studio')) return 'Back to Studio';
-  return 'Back to Studio';
-}
-
 export default function PaymentCancel() {
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('return_to');
@@ -31,10 +25,10 @@ export default function PaymentCancel() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 w-full">
             <Button asChild size="lg" className="flex-1">
-              <Link to={fallback}>{getCtaLabel(fallback)}</Link>
+              <Link to="/pricing">Back to pricing</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="flex-1">
-              <Link to="/pricing">Buy credits</Link>
+              <Link to={fallback}>Back to Studio</Link>
             </Button>
           </div>
         </CardContent>
