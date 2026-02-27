@@ -48,7 +48,8 @@ export function InsufficientCreditsModal({
             size="lg"
             onClick={() => {
               onOpenChange(false);
-              navigate('/pricing');
+              const currentPath = window.location.pathname + window.location.search;
+              navigate(`/pricing?return_to=${encodeURIComponent(currentPath)}`);
             }}
             className="gap-2"
           >
