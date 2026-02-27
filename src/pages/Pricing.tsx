@@ -11,7 +11,7 @@ import creditCoinIcon from '@/assets/icons/credit-coin.png';
 const isProduction = window.location.hostname === 'formanova.ai' || window.location.hostname === 'www.formanova.ai';
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const CHECKOUT_URL = isProduction
-  ? '/api/checkout'
+  ? '/billing/checkout'
   : `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/checkout-proxy`;
 
 const PLANS = [
