@@ -27,6 +27,8 @@ import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
 import { a100Api } from '@/lib/a100-api';
 import { compressDataUrl } from '@/lib/image-compression';
+import { useCreditPreflight } from '@/hooks/use-credit-preflight';
+import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 
 interface Props {
   state: StudioState;
@@ -54,6 +56,7 @@ const SKIN_TONES: { value: SkinTone; label: string }[] = [
 
 export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType = 'necklace' }: Props) {
   const { toast } = useToast();
+  const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   
   // View state
   const [currentView, setCurrentView] = useState<ViewState>(
@@ -311,6 +314,20 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
         variant: 'destructive',
         title: 'Missing data',
         description: 'Please complete Step 1 first to generate the mask.',
+      });
+      return;
+    }
+
+    // 🔒 Mandatory credit preflight
+    try {
+      const approved = await checkCredits('qa_with_gpu', 1);
+      if (!approved) return;
+    } catch (error) {
+      console.error('[Credits] Preflight error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Credit check failed',
+        description: 'Unable to verify credits. Please try again.',
       });
       return;
     }
@@ -817,6 +834,13 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
   // ========== REFINE VIEW (Default) ==========
   return (
     <div className="space-y-8">
+      {/* Credit Preflight Modal */}
+      <CreditPreflightModal
+        open={showInsufficientModal}
+        onOpenChange={dismissModal}
+        estimatedCredits={preflightResult?.estimatedCredits ?? 0}
+        currentBalance={preflightResult?.currentBalance ?? 0}
+      />
       {/* Fullscreen Image Dialog */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20">

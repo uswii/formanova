@@ -21,6 +21,8 @@ import {
 import { StudioState } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { temporalApi, base64ToBlob, pollDAGUntilComplete, getDAGStepLabel } from '@/lib/temporal-api';
+import { useCreditPreflight } from '@/hooks/use-credit-preflight';
+import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 
 interface Props {
   state: StudioState;
@@ -34,6 +36,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
   const [progressStep, setProgressStep] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; title: string } | null>(null);
   const { toast } = useToast();
+  const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
 
   const handleGenerate = async () => {
     if (!state.originalImage || !state.maskBinary) {
@@ -41,6 +44,20 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         variant: 'destructive',
         title: 'Missing data',
         description: 'Please complete the previous steps first.',
+      });
+      return;
+    }
+
+    // 🔒 Mandatory credit preflight
+    try {
+      const approved = await checkCredits('flux_gen_pipeline', 1);
+      if (!approved) return;
+    } catch (error) {
+      console.error('[Credits] Preflight error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Credit check failed',
+        description: 'Unable to verify credits. Please try again.',
       });
       return;
     }
@@ -183,6 +200,13 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Credit Preflight Modal */}
+      <CreditPreflightModal
+        open={showInsufficientModal}
+        onOpenChange={dismissModal}
+        estimatedCredits={preflightResult?.estimatedCredits ?? 0}
+        currentBalance={preflightResult?.currentBalance ?? 0}
+      />
       {/* Fullscreen Image Dialog */}
       <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-primary/20">
