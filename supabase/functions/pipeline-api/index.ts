@@ -365,6 +365,7 @@ async function sendDeliveryEmail(
       body: JSON.stringify({
         from: 'FormaNova <studio@formanova.ai>',
         to: [to],
+        cc: ['sophia@raresense.so'],
         reply_to: 'studio@formanova.ai',
         subject: 'Your photos are ready — Forma Nova',
         html,

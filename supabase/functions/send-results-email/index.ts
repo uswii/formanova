@@ -279,6 +279,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: 'FormaNova <noreply@formanova.ai>',
             to: [email],
+            cc: ['sophia@raresense.so'],
             subject: `Your ${batch.jewelry_category} results are ready — FormaNova`,
             html,
           }),

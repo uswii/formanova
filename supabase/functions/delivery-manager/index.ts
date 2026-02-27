@@ -641,6 +641,7 @@ Deno.serve(async (req) => {
               from: 'FormaNova <noreply@formanova.ai>',
               reply_to: 'studio@formanova.ai',
               to: [recipientEmail],
+              cc: ['sophia@raresense.so'],
               subject: `Your results are ready — FormaNova`,
               html,
               headers: {
@@ -980,6 +981,7 @@ Deno.serve(async (req) => {
               from: 'FormaNova <noreply@formanova.ai>',
               reply_to: 'studio@formanova.ai',
               to: [recipientEmail],
+              cc: ['sophia@raresense.so'],
               subject: 'Your Forma Nova results are ready to view',
               html,
               headers: {
