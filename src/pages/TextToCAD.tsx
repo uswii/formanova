@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { startRingPipeline, pollStatus, fetchResult, calcProgress } from "@/lib/formanova-cad-api";
+import { useCreditPreflight } from "@/hooks/use-credit-preflight";
+import { CreditPreflightModal } from "@/components/CreditPreflightModal";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
@@ -36,6 +38,7 @@ interface UndoEntry {
 }
 
 export default function TextToCAD() {
+  const { checkCredits, showInsufficientModal, dismissModal, preflightResult } = useCreditPreflight();
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
@@ -103,6 +106,11 @@ export default function TextToCAD() {
 
   const simulateGeneration = useCallback(async () => {
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
+
+    // Credit preflight — block generation if insufficient
+    const approved = await checkCredits('text_to_cad', 1);
+    if (!approved) return;
+
     setIsGenerating(true);
     setProgress(0);
     setHasModel(false);
@@ -184,7 +192,7 @@ export default function TextToCAD() {
       setProgress(0);
       setProgressStep("");
     }
-  }, [prompt, model]);
+  }, [prompt, model, checkCredits]);
 
   // Map progress percentage to a user-friendly label
   function getProgressLabel(pct: number): string {
@@ -474,6 +482,14 @@ export default function TextToCAD() {
         onSelectMesh={handleSelectMesh}
         onAction={handleMeshAction}
       />
+      {preflightResult && (
+        <CreditPreflightModal
+          open={showInsufficientModal}
+          onOpenChange={dismissModal}
+          estimatedCredits={preflightResult.estimatedCredits}
+          currentBalance={preflightResult.currentBalance}
+        />
+      )}
     </div>
   );
 }
