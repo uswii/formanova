@@ -56,13 +56,15 @@ export default function Pricing() {
       const token = getStoredToken();
       if (!token) throw new Error('Not authenticated');
 
+      const returnTo = window.location.pathname + window.location.search;
+
       const response = await fetch(CHECKOUT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ tier_id: tierId }),
+        body: JSON.stringify({ tier_id: tierId, return_to: returnTo }),
       });
 
       if (!response.ok) throw new Error('Checkout failed');

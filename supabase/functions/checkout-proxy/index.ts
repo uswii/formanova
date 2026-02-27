@@ -66,13 +66,17 @@ serve(async (req) => {
 
     // 4. Parse frontend body
     const body = await req.json();
-    const { tier_id } = body;
+    const { tier_id, return_to } = body;
     if (!tier_id) {
       return new Response(JSON.stringify({ error: "tier_id is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Build forwarded body
+    const forwardBody: Record<string, string> = { tier_id };
+    if (return_to) forwardBody.return_to = return_to;
 
     // 5. Forward to Billing Gateway
     console.log(`[checkout-proxy] Creating checkout for ${username}, tier=${tier_id}`);
@@ -83,7 +87,7 @@ serve(async (req) => {
         "X-API-Key": billingApiKey,
         "X-On-Behalf-Of": username,
       },
-      body: JSON.stringify({ tier_id }),
+      body: JSON.stringify(forwardBody),
     });
 
     const billingBody = await billingRes.text();
