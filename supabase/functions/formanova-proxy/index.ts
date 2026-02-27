@@ -14,38 +14,6 @@ const MODEL_MAP: Record<string, string> = {
 };
 
 const FORMANOVA_BASE = "https://formanova.ai/api";
-const AUTH_URL = Deno.env.get("AUTH_SERVICE_URL") || "https://formanova.ai/auth";
-
-// ── JWT verification via auth service ──
-async function verifyJwt(req: Request): Promise<{ username: string } | Response> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized – Bearer token required" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  const token = authHeader.replace("Bearer ", "");
-  const meRes = await fetch(`${AUTH_URL}/users/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!meRes.ok) {
-    return new Response(
-      JSON.stringify({ error: "Invalid or expired token" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  const user = await meRes.json();
-  const username = user.email || user.username;
-  if (!username) {
-    return new Response(
-      JSON.stringify({ error: "Could not resolve user" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  console.log(`[formanova-proxy] Authenticated user: ${username}`);
-  return { username };
-}
 
 // ── Public Artifact URL ──
 // Artifacts in agentic-artifacts are public — no SAS needed
