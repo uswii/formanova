@@ -223,7 +223,7 @@ export default function PaymentSuccess() {
               Still processing
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Still processing. Please refresh in a moment or return to your workspace.
+              Your payment is still being finalized. Please refresh in a moment or return to Studio.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button asChild size="lg" className="flex-1">
