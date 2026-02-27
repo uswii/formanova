@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { startRingPipeline, pollStatus, fetchResult, calcProgress } from "@/lib/formanova-cad-api";
-import { useCreditPreflight } from "@/hooks/use-credit-preflight";
-import { CreditPreflightModal } from "@/components/CreditPreflightModal";
+import { performCreditPreflight } from "@/lib/credit-preflight";
+import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
@@ -38,7 +39,7 @@ interface UndoEntry {
 }
 
 export default function TextToCAD() {
-  const { checkCredits, showInsufficientModal, dismissModal, preflightResult } = useCreditPreflight();
+  const navigate = useNavigate();
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
@@ -107,9 +108,18 @@ export default function TextToCAD() {
   const simulateGeneration = useCallback(async () => {
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
 
-    // Credit preflight — block generation if insufficient
-    const approved = await checkCredits('text_to_cad', 1);
-    if (!approved) return;
+    // Credit preflight — redirect to pricing if insufficient
+    try {
+      const result = await performCreditPreflight('text_to_cad', 1);
+      if (!result.approved) {
+        const currentPath = window.location.pathname + window.location.search;
+        navigate(`/pricing?return_to=${encodeURIComponent(currentPath)}`);
+        return;
+      }
+    } catch (err) {
+      if (err instanceof AuthExpiredError) return;
+      console.error('Credit preflight failed:', err);
+    }
 
     setIsGenerating(true);
     setProgress(0);
@@ -192,7 +202,7 @@ export default function TextToCAD() {
       setProgress(0);
       setProgressStep("");
     }
-  }, [prompt, model, checkCredits]);
+  }, [prompt, model, navigate]);
 
   // Map progress percentage to a user-friendly label
   function getProgressLabel(pct: number): string {
@@ -482,14 +492,6 @@ export default function TextToCAD() {
         onSelectMesh={handleSelectMesh}
         onAction={handleMeshAction}
       />
-      {preflightResult && (
-        <CreditPreflightModal
-          open={showInsufficientModal}
-          onOpenChange={dismissModal}
-          estimatedCredits={preflightResult.estimatedCredits}
-          currentBalance={preflightResult.currentBalance}
-        />
-      )}
     </div>
   );
 }
