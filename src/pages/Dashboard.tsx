@@ -1,119 +1,120 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Camera, Box } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
+import { OptimizedImage } from '@/components/ui/optimized-image';
+
+// Reuse the same hero imagery
+import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
+import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 },
+  },
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const userName = user?.email ? user.email.split('@')[0] : '';
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="marta-container py-16 md:py-24">
-        {/* Header */}
-        <motion.div 
-          className="mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <p className="marta-label mb-2">Welcome{userName ? `, ${userName}` : ''}</p>
-          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl tracking-tight">
-            Create Your Photoshoot
-          </h1>
-        </motion.div>
-
-        {/* Main Pathways */}
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
-          {/* From Jewelry Photos */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="group cursor-pointer"
-            onClick={() => navigate('/studio')}
-          >
-            <div className="relative overflow-hidden rounded-sm border border-border/50 bg-card/30 backdrop-blur-sm p-8 md:p-10 h-full transition-all duration-500 hover:border-primary/50 hover:bg-card/50">
-              <div className="flex items-start justify-between mb-8">
-                <div className="p-4 rounded-sm bg-primary/10">
-                  <Camera className="h-8 w-8 text-primary" />
-                </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
-              </div>
-              
-              <h2 className="font-display text-2xl md:text-3xl mb-3">From Jewelry Photos</h2>
-              <p className="text-muted-foreground mb-6">
-                Upload photos of real jewelry (model or mannequin).
-                <br />
-                Generate professional on-model e-commerce images.
-              </p>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-3 text-foreground/80">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <span>Mannequin to model conversion</span>
-                </div>
-                <div className="flex items-center gap-3 text-foreground/80">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <span>Professional product photography</span>
-                </div>
-                <div className="flex items-center gap-3 text-foreground/80">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <span>E-commerce ready output</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* From Jewelry CAD */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="group cursor-pointer opacity-60"
-            onClick={() => {}}
-          >
-            <div className="relative overflow-hidden rounded-sm border border-border/50 bg-card/30 backdrop-blur-sm p-8 md:p-10 h-full transition-all duration-500">
-              <div className="absolute top-4 right-4">
-                <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
-                  Coming Soon
-                </span>
-              </div>
-              
-              <div className="flex items-start justify-between mb-8">
-                <div className="p-4 rounded-sm bg-muted/30">
-                  <Box className="h-8 w-8 text-muted-foreground" />
-                </div>
-              </div>
-              
-              <h2 className="font-display text-2xl md:text-3xl mb-3 text-muted-foreground">From Jewelry CAD</h2>
-              <p className="text-muted-foreground/70 mb-6">
-                Upload CAD or digital jewelry designs.
-                <br />
-                Create realistic on-model e-commerce photoshoots.
-              </p>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-3 text-muted-foreground/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                  <span>3D CAD rendering</span>
-                </div>
-                <div className="flex items-center gap-3 text-muted-foreground/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                  <span>Photorealistic output</span>
-                </div>
-                <div className="flex items-center gap-3 text-muted-foreground/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                  <span>Multiple angle generation</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+    <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
+      {/* Header — matches Studio page */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-7xl mx-auto mb-6 flex items-end justify-between"
+      >
+        <div>
+          <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">
+            {userName ? `Welcome, ${userName}` : 'Welcome'}
+          </span>
         </div>
+        <p className="hidden md:block font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
+          Create your photoshoot
+        </p>
+      </motion.div>
 
-      </div>
+      {/* Pathway Tiles */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-7xl mx-auto grid md:grid-cols-2 gap-4"
+      >
+        {/* From Jewelry Photos */}
+        <motion.button
+          variants={itemVariants}
+          whileHover={{ scale: 1.02, y: -4 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/studio')}
+          className="group relative aspect-[4/3] marta-frame overflow-hidden cursor-pointer transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)] text-left"
+        >
+          <OptimizedImage
+            src={heroNecklace}
+            alt="From jewelry photos"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+          />
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
+
+          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+            <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground transition-transform duration-300 group-hover:translate-x-1">
+              From Photos
+            </h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2 max-w-xs">
+              Upload jewelry photos · Generate on-model imagery
+            </p>
+          </div>
+
+          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0 translate-x-2">
+            <div className="w-9 h-9 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
+              <ArrowRight className="w-4 h-4 text-primary-foreground" />
+            </div>
+          </div>
+        </motion.button>
+
+        {/* From Jewelry CAD — Coming Soon */}
+        <motion.div
+          variants={itemVariants}
+          className="group relative aspect-[4/3] marta-frame overflow-hidden text-left opacity-50 pointer-events-none"
+        >
+          <OptimizedImage
+            src={heroModelRings}
+            alt="From CAD designs"
+            className="absolute inset-0 w-full h-full object-cover grayscale"
+          />
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
+
+          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+            <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground">
+              From CAD
+            </h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
+              3D CAD to photorealistic catalog
+            </p>
+          </div>
+
+          <div className="absolute top-4 right-4">
+            <span className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase bg-muted/80 backdrop-blur-sm px-3 py-1.5">
+              Coming Soon
+            </span>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
