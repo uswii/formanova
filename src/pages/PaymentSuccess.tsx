@@ -1,36 +1,51 @@
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useCredits } from '@/contexts/CreditsContext';
-import { PartyPopper } from 'lucide-react';
-import creditCoinIcon from '@/assets/icons/credit-coin.png';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function PaymentSuccess() {
-  const { credits, refreshCredits } = useCredits();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get('session_id');
+  const returnTo = searchParams.get('return_to');
 
-  useEffect(() => {
-    refreshCredits();
-  }, [refreshCredits]);
+  const fallbackDestination = useMemo(
+    () => returnTo || '/studio',
+    [returnTo]
+  );
+
+  if (!sessionId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="max-w-md w-full border-border/50 bg-card/50">
+          <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
+            <AlertCircle className="h-10 w-10 text-destructive" />
+            <h1 className="text-2xl font-display tracking-wide">
+              We couldn't confirm this payment
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Missing checkout session. Please return to Studio and try again.
+            </p>
+            <Button asChild size="lg">
+              <Link to={fallbackDestination}>Back to Studio</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="max-w-md w-full border-border/50 bg-card/50">
         <CardContent className="flex flex-col items-center text-center py-12 px-8 space-y-6">
-          <PartyPopper className="h-12 w-12 text-primary" />
-          <h1 className="text-3xl font-display">Payment Successful!</h1>
-          <div className="flex items-center gap-2">
-            <img src={creditCoinIcon} alt="Credits" className="h-14 w-14 object-contain" />
-            <span className="text-2xl font-bold text-foreground">
-              {credits !== null ? credits : '...'} credits
-            </span>
-          </div>
-          <p className="text-muted-foreground">
-            Your credits have been added to your account.
+          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+          <h1 className="text-2xl font-display tracking-wide">
+            Finalizing your credits…
+          </h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            We're preparing to verify your payment.
           </p>
-          <Button asChild size="lg">
-            <Link to="/dashboard">Go to Dashboard</Link>
-          </Button>
         </CardContent>
       </Card>
     </div>
