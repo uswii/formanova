@@ -13,7 +13,14 @@ type VerifyState =
   | { type: 'fulfilled'; creditsAdded: number }
   | { type: 'not_found' }
   | { type: 'error' }
-  | { type: 'missing_session' };
+  | { type: 'missing_session' }
+  | { type: 'timeout' };
+
+function getCtaLabel(destination: string): string {
+  if (destination.startsWith('/studio-cad')) return 'Back to CAD';
+  if (destination.startsWith('/studio')) return 'Back to Studio';
+  return 'Back to Studio';
+}
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -26,14 +33,25 @@ export default function PaymentSuccess() {
   );
   const calledRef = useRef(false);
 
-  const verify = useCallback(async () => {
-    if (!sessionId) return;
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const verify = useCallback(async (isPolling = false): Promise<'pending' | 'done'> => {
+    if (!sessionId) return 'done';
     const token = getStoredToken();
     if (!token) {
       setState({ type: 'error' });
-      return;
+      stopPolling();
+      return 'done';
     }
-    setState({ type: 'loading' });
+    if (!isPolling) setState({ type: 'loading' });
     try {
       const res = await fetch(
         `${API_GATEWAY_URL}/billing/checkout/verify/${sessionId}`,
@@ -41,29 +59,56 @@ export default function PaymentSuccess() {
       );
       if (res.status === 404) {
         setState({ type: 'not_found' });
-        return;
+        stopPolling();
+        return 'done';
       }
       if (!res.ok) {
         setState({ type: 'error' });
-        return;
+        stopPolling();
+        return 'done';
       }
       const data = await res.json();
       if (data.status === 'fulfilled') {
         setState({ type: 'fulfilled', creditsAdded: data.credits_added });
-      } else {
-        // pending or other — stay loading (polling will handle later)
-        setState({ type: 'loading' });
+        stopPolling();
+        return 'done';
       }
+      // pending — start polling if not already
+      return 'pending';
     } catch {
       setState({ type: 'error' });
+      stopPolling();
+      return 'done';
     }
-  }, [sessionId]);
+  }, [sessionId, stopPolling]);
+
+  const startPolling = useCallback(() => {
+    if (intervalRef.current) return; // prevent duplicates
+    startTimeRef.current = Date.now();
+    intervalRef.current = setInterval(async () => {
+      const elapsed = Date.now() - (startTimeRef.current ?? Date.now());
+      if (elapsed >= 30_000) {
+        stopPolling();
+        setState({ type: 'timeout' });
+        return;
+      }
+      await verify(true);
+    }, 2000);
+  }, [verify, stopPolling]);
 
   useEffect(() => {
     if (!sessionId || calledRef.current) return;
     calledRef.current = true;
-    verify();
-  }, [sessionId, verify]);
+    (async () => {
+      const result = await verify();
+      if (result === 'pending') startPolling();
+    })();
+  }, [sessionId, verify, startPolling]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
 
   // Missing session_id
   if (state.type === 'missing_session') {
@@ -79,7 +124,7 @@ export default function PaymentSuccess() {
               Missing checkout session. Please return to Studio and try again.
             </p>
             <Button asChild size="lg">
-              <Link to={fallback}>Back to Studio</Link>
+              <Link to={fallback}>{getCtaLabel(fallback)}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -127,7 +172,7 @@ export default function PaymentSuccess() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button asChild size="lg" className="flex-1">
-                <Link to={fallback}>Back to Studio</Link>
+                <Link to={fallback}>{getCtaLabel(fallback)}</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="flex-1">
                 <Link to="/pricing">Buy more credits</Link>
@@ -153,8 +198,43 @@ export default function PaymentSuccess() {
               This checkout session could not be found for your account.
             </p>
             <Button asChild size="lg">
-              <Link to={fallback}>Back to Studio</Link>
+              <Link to={fallback}>{getCtaLabel(fallback)}</Link>
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Timeout — still pending after 30s
+  if (state.type === 'timeout') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="max-w-md w-full border-border/50 bg-card/50">
+          <CardContent className="flex flex-col items-center text-center py-8 px-6 space-y-5">
+            <Loader2 className="h-9 w-9 text-muted-foreground" />
+            <h1 className="text-2xl font-display tracking-wide">
+              Still processing
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Still processing. Please refresh in a moment or return to your workspace.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <Button asChild size="lg" className="flex-1">
+                <Link to={fallback}>{getCtaLabel(fallback)}</Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1"
+                onClick={() => {
+                  calledRef.current = false;
+                  verify();
+                }}
+              >
+                Refresh
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -185,7 +265,7 @@ export default function PaymentSuccess() {
               Retry
             </Button>
             <Button asChild variant="outline" size="lg" className="flex-1">
-              <Link to={fallback}>Back to Studio</Link>
+              <Link to={fallback}>{getCtaLabel(fallback)}</Link>
             </Button>
           </div>
         </CardContent>
