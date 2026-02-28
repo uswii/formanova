@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Gem, CircleDot } from "lucide-react";
 import { MATERIAL_LIBRARY, type MaterialDef } from "./materials";
+import MaterialSphere from "./MaterialSphere";
 
 interface MaterialLibraryProps {
   selectedMesh: string | null;
@@ -63,10 +64,7 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
               disabled={!selectedMesh}
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/30 bg-card/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group"
             >
-              <div
-                className="w-10 h-10 rounded-full border border-border/40 group-hover:border-primary/40 transition-colors"
-                style={{ background: mat.preview }}
-              />
+              <MaterialSphere category={mat.category} preview={mat.preview} size={40} />
               <span className="text-[9px] font-semibold uppercase tracking-wider text-foreground/80 group-hover:text-foreground">
                 {mat.name}
               </span>
