@@ -111,21 +111,21 @@ export default function TextToCAD() {
   const simulateGeneration = useCallback(async () => {
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
 
-    // Credit preflight — show inline block if insufficient
+    // Credit preflight — use known cost + real balance
+    const requiredCredits = TOOL_COSTS.cad_generation ?? 5;
     try {
       const result = await performCreditPreflight('text_to_cad', 1);
-      // Use known cost if backend returned 0
-      const estimatedCredits = result.estimatedCredits > 0 ? result.estimatedCredits : (TOOL_COSTS.cad_generation ?? 5);
-      const adjusted = { ...result, estimatedCredits };
-      if (adjusted.currentBalance < estimatedCredits) {
-        setCreditBlock(adjusted);
+      const balance = result.currentBalance;
+      const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
+      if (balance < cost) {
+        setCreditBlock({ approved: false, estimatedCredits: cost, currentBalance: balance });
         return;
       }
       setCreditBlock(null);
     } catch (err) {
       if (err instanceof AuthExpiredError) return;
-      console.error('Credit preflight failed:', err);
-      // On error, skip preflight and let the backend enforce credits during generation
+      console.error('Credit preflight failed, skipping block:', err);
+      // Don't block — backend will enforce credits during generation
       setCreditBlock(null);
     }
 
