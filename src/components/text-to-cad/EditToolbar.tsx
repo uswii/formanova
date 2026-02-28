@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { EDIT_TOOLS, MATERIAL_LIBRARY } from "./types";
+import MaterialSphere from "@/components/cad-studio/MaterialSphere";
 
 interface EditToolbarProps {
   onApplyMaterial: (matId: string) => void;
@@ -230,10 +231,8 @@ function MaterialsFlyout({ metals, gems, onApply }: {
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <span
-              className="inline-block w-4 h-4 rounded-full mr-1.5 align-middle"
-              style={{ background: m.preview, border: "1px solid rgba(255,255,255,0.2)" }}
-            />
+            <MaterialSphere category="metal" preview={m.preview} size={16} />
+            {m.name}
             {m.name}
           </button>
         ))}
@@ -251,10 +250,8 @@ function MaterialsFlyout({ metals, gems, onApply }: {
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <span
-              className="inline-block w-4 h-4 rounded-full mr-1.5 align-middle"
-              style={{ background: g.preview, border: "1px solid rgba(255,255,255,0.2)" }}
-            />
+            <MaterialSphere category="gemstone" preview={g.preview} size={16} />
+            {g.name}
             {g.name}
           </button>
         ))}
