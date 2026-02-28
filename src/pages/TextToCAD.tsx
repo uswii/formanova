@@ -163,7 +163,8 @@ export default function TextToCAD() {
             }
             done = true;
           } else if (s === "failed" || s === "error") {
-            throw new Error("Pipeline failed");
+            const reason = statusRes.error || statusRes.message || statusRes.detail || "Pipeline failed";
+            throw new Error(typeof reason === 'string' ? reason : JSON.stringify(reason));
           }
           pollErrors = 0;
         } catch (err) {
