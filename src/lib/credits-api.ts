@@ -5,6 +5,8 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
   cad_generation: 5,
+  text_to_cad: 5,       // alias used by TextToCAD preflight
+  qa_with_gpu: 3,       // alias used by JewelryStudio preflight
 };
 
 export interface CreditBalance {
