@@ -114,7 +114,7 @@ export default function TextToCAD() {
     // Credit preflight — use known cost + real balance
     const requiredCredits = TOOL_COSTS.cad_generation ?? 5;
     try {
-      const result = await performCreditPreflight('text_to_cad', 1);
+      const result = await performCreditPreflight('ring_full_pipeline', 1);
       const balance = result.currentBalance;
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {
