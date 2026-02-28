@@ -274,15 +274,17 @@ Deno.serve(async (req) => {
         if (c && c > 0) statusCounts[s] = c;
       }
 
-      // If searching, use server-side SQL filtering with ilike across multiple fields
+      // If searching, use server-side SQL filtering with ilike on text columns
+      // uuid/enum columns don't support ilike in PostgREST, so only search text fields
       if (searchQuery) {
         const likePattern = `%${searchQuery}%`;
+        const orFilter = `user_email.ilike.${likePattern},notification_email.ilike.${likePattern},user_display_name.ilike.${likePattern},workflow_id.ilike.${likePattern},drive_link.ilike.${likePattern},error_message.ilike.${likePattern}`;
         
         // First get total count matching search
         const { count: searchCount } = await supabaseAdmin
           .from('batch_jobs')
           .select('*', { count: 'exact', head: true })
-          .or(`id.ilike.${likePattern},user_email.ilike.${likePattern},notification_email.ilike.${likePattern},user_display_name.ilike.${likePattern},jewelry_category.ilike.${likePattern},status.ilike.${likePattern},workflow_id.ilike.${likePattern},drive_link.ilike.${likePattern}`);
+          .or(orFilter);
 
         const totalFiltered = searchCount || 0;
         const totalPages = Math.ceil(totalFiltered / pageSize);
@@ -291,7 +293,7 @@ Deno.serve(async (req) => {
         const { data: batchData, error: batchError } = await supabaseAdmin
           .from('batch_jobs')
           .select('*')
-          .or(`id.ilike.${likePattern},user_email.ilike.${likePattern},notification_email.ilike.${likePattern},user_display_name.ilike.${likePattern},jewelry_category.ilike.${likePattern},status.ilike.${likePattern},workflow_id.ilike.${likePattern},drive_link.ilike.${likePattern}`)
+          .or(orFilter)
           .order('created_at', { ascending: false })
           .range(offset, offset + pageSize - 1);
         if (batchError) throw batchError;
