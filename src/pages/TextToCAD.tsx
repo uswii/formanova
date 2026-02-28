@@ -115,6 +115,7 @@ export default function TextToCAD() {
     const requiredCredits = TOOL_COSTS.cad_generation ?? 5;
     try {
       const result = await performCreditPreflight('ring_full_pipeline', 1);
+      console.log('[CAD Preflight]', JSON.stringify(result));
       const balance = result.currentBalance;
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {
@@ -124,7 +125,7 @@ export default function TextToCAD() {
       setCreditBlock(null);
     } catch (err) {
       if (err instanceof AuthExpiredError) return;
-      console.error('Credit preflight failed, skipping block:', err);
+      console.error('[CAD Preflight] failed, skipping block:', err);
       // Don't block — backend will enforce credits during generation
       setCreditBlock(null);
     }
