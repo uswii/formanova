@@ -274,26 +274,29 @@ Deno.serve(async (req) => {
         if (c && c > 0) statusCounts[s] = c;
       }
 
-      // If searching, fetch all and filter (search is across multiple fields)
+      // If searching, use server-side SQL filtering with ilike across multiple fields
       if (searchQuery) {
+        const likePattern = `%${searchQuery}%`;
+        
+        // First get total count matching search
+        const { count: searchCount } = await supabaseAdmin
+          .from('batch_jobs')
+          .select('*', { count: 'exact', head: true })
+          .or(`id.ilike.${likePattern},user_email.ilike.${likePattern},notification_email.ilike.${likePattern},user_display_name.ilike.${likePattern},jewelry_category.ilike.${likePattern},status.ilike.${likePattern},workflow_id.ilike.${likePattern},drive_link.ilike.${likePattern}`);
+
+        const totalFiltered = searchCount || 0;
+        const totalPages = Math.ceil(totalFiltered / pageSize);
+        const offset = (page - 1) * pageSize;
+
         const { data: batchData, error: batchError } = await supabaseAdmin
           .from('batch_jobs')
           .select('*')
+          .or(`id.ilike.${likePattern},user_email.ilike.${likePattern},notification_email.ilike.${likePattern},user_display_name.ilike.${likePattern},jewelry_category.ilike.${likePattern},status.ilike.${likePattern},workflow_id.ilike.${likePattern},drive_link.ilike.${likePattern}`)
           .order('created_at', { ascending: false })
-          .limit(5000);
+          .range(offset, offset + pageSize - 1);
         if (batchError) throw batchError;
 
-        let filteredBatches = (batchData || []).filter((b: any) => {
-          const fields = [
-            b.id, b.user_email, b.notification_email, b.user_display_name,
-            b.jewelry_category, b.status, b.workflow_id, b.drive_link,
-          ].filter(Boolean).map((f: string) => f.toLowerCase());
-          return fields.some((f: string) => f.includes(searchQuery));
-        });
-
-        const totalFiltered = filteredBatches.length;
-        const totalPages = Math.ceil(totalFiltered / pageSize);
-        const paginatedBatches = filteredBatches.slice((page - 1) * pageSize, page * pageSize);
+        const paginatedBatches = batchData || [];
 
         const batchIds = paginatedBatches.map((b: any) => b.id);
         let skinToneMap: Record<string, string[]> = {};
