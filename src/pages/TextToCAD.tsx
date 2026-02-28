@@ -114,17 +114,19 @@ export default function TextToCAD() {
     // Credit preflight — show inline block if insufficient
     try {
       const result = await performCreditPreflight('text_to_cad', 1);
-      if (!result.approved) {
-        setCreditBlock(result);
+      // Use known cost if backend returned 0
+      const estimatedCredits = result.estimatedCredits > 0 ? result.estimatedCredits : (TOOL_COSTS.cad_generation ?? 5);
+      const adjusted = { ...result, estimatedCredits };
+      if (adjusted.currentBalance < estimatedCredits) {
+        setCreditBlock(adjusted);
         return;
       }
       setCreditBlock(null);
     } catch (err) {
       if (err instanceof AuthExpiredError) return;
       console.error('Credit preflight failed:', err);
-      // Show generic inline block on error
-      setCreditBlock({ approved: false, estimatedCredits: TOOL_COSTS.cad_generation ?? 5, currentBalance: 0 });
-      return;
+      // On error, skip preflight and let the backend enforce credits during generation
+      setCreditBlock(null);
     }
 
     setIsGenerating(true);
