@@ -127,6 +127,15 @@ fi
 
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
+# Ensure sharp & svgo are installed (needed by vite-plugin-image-optimizer)
+echo "  Checking image optimizer deps (sharp, svgo)..."
+if command -v bun &> /dev/null; then
+    bun add -D sharp svgo 2>/dev/null || true
+elif command -v npm &> /dev/null; then
+    npm install -D sharp svgo --legacy-peer-deps 2>/dev/null || true
+fi
+echo -e "${GREEN}✓ Image optimizer deps ready${NC}"
+
 # =============================================================================
 # Step 7: Build the project
 # =============================================================================
