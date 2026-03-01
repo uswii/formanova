@@ -12,6 +12,7 @@ import { ThemeDecorations } from "@/components/ThemeDecorations";
 import { ScrollProgressIndicator } from '@/components/ScrollProgressIndicator';
 import { FloatingElements } from '@/components/FloatingElements';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import HangingNotificationBar from '@/components/HangingNotificationBar';
 import { Loader2 } from "lucide-react";
 
 // Critical pages loaded eagerly (landing + auth)
@@ -56,6 +57,7 @@ const App = () => (
             <ScrollProgressIndicator />
             <ThemeDecorations />
             <div className="min-h-screen flex flex-col relative z-10">
+              <HangingNotificationBar />
               <Header />
               <main className="flex-1">
                 <Suspense fallback={<PageLoader />}>
