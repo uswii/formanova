@@ -74,7 +74,7 @@ const BulkUploadZone = ({
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!files || disabled) return;
     const remainingSlots = maxImages - images.length;
-    const rawFiles = Array.from(files).slice(0, remainingSlots).filter(f => f.type.startsWith('image/'));
+    const rawFiles = Array.from(files).slice(0, remainingSlots).filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
     const normalizedFiles = await normalizeImageFiles(rawFiles);
 
     const newImages: UploadedImage[] = normalizedFiles.map(file => ({
@@ -238,7 +238,7 @@ const BulkUploadZone = ({
       >
         <input
           type="file"
-          accept="image/*"
+          accept="image/*,.heic,.heif"
           multiple
           onChange={handleFileInput}
           disabled={disabled}
