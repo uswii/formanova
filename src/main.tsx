@@ -5,6 +5,32 @@ import { PostHogProvider } from 'posthog-js/react';
 import App from "./App.tsx";
 import "./index.css";
 
+// Global chunk load error handler — reloads on stale deployments
+function isChunkLoadError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
+      error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('ChunkLoadError') ||
+      error.name === 'ChunkLoadError'
+    );
+  }
+  return false;
+}
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (isChunkLoadError(event.reason)) {
+    console.warn('Chunk load failed. Reloading to fetch latest version...');
+    window.location.reload();
+  }
+});
+
+window.addEventListener('error', (event) => {
+  if (isChunkLoadError(event.error)) {
+    console.warn('Chunk load failed. Reloading to fetch latest version...');
+    window.location.reload();
+  }
+});
+
 Sentry.init({
   dsn: "https://fb062ed4887fdb94c55272c7cfc9c7d0@o4510947153870848.ingest.us.sentry.io/4510947154722816",
   integrations: [
