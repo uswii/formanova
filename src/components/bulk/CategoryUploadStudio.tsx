@@ -7,6 +7,7 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob } from '@/lib/image-compression';
 import { SkinTone } from './ImageUploadCard';
 import BatchSubmittedConfirmation from './BatchSubmittedConfirmation';
+import HangingNotificationBanner from '@/components/HangingNotificationBanner';
 import ExampleGuidePanel from './ExampleGuidePanel';
 import type { InspirationRef } from './InspirationModal';
 import { useImageValidation } from '@/hooks/use-image-validation';
@@ -373,8 +374,9 @@ const CategoryUploadStudio = () => {
   // ── Submitted confirmation ─────────────────────────────────────
   if (isSubmitted) {
     return (
-      <div className="min-h-[calc(100vh-5rem)] bg-background py-8 px-4 md:px-8">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-[calc(100vh-5rem)] bg-background">
+        <HangingNotificationBanner />
+        <div className="max-w-2xl mx-auto py-8 px-4 md:px-8">
           <BatchSubmittedConfirmation
             categoryName={categoryName}
             imageCount={images.length}
