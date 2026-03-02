@@ -79,12 +79,21 @@ if (
           autocapture: true,
           capture_pageview: true,
           capture_pageleave: true,
+          capture_exceptions: true,
         });
       });
     }
   });
 
   // Render app without waiting for analytics SDKs
-  root.render(<App />);
+  import('./components/PostHogErrorBoundary').then(({ default: PostHogErrorBoundary }) => {
+    root.render(
+      <PostHogErrorBoundary>
+        <App />
+      </PostHogErrorBoundary>
+    );
+  }).catch(() => {
+    root.render(<App />);
+  });
 }
 
