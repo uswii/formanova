@@ -9,6 +9,7 @@ import {
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
+import { CadWorkflowModal } from '@/components/generations/CadWorkflowModal';
 
 const PER_PAGE = 10;
 
@@ -31,6 +32,8 @@ const defaultSection = (): SectionState => ({
 export default function Generations() {
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [selectedWorkflowStatus, setSelectedWorkflowStatus] = useState<string>('unknown');
 
   // All workflows fetched from API (we paginate client-side per section)
   const [allWorkflows, setAllWorkflows] = useState<WorkflowSummary[]>([]);
@@ -84,8 +87,15 @@ export default function Generations() {
   const cadTextSection = getSection('cad_text', cadTextPage);
 
   const handleWorkflowClick = (id: string) => {
-    // For now, log — can navigate to detail view later
-    console.log('[Generations] workflow clicked:', id);
+    // Find the workflow to check source_type and status
+    const wf = allWorkflows.find((w) => w.workflow_id === id);
+    if (!wf) return;
+
+    // Only open modal for cad_text workflows
+    if (wf.source_type === 'cad_text') {
+      setSelectedWorkflowId(id);
+      setSelectedWorkflowStatus(wf.status);
+    }
   };
 
   return (
@@ -179,6 +189,13 @@ export default function Generations() {
           </>
         )}
       </div>
+
+      {/* CAD detail modal */}
+      <CadWorkflowModal
+        workflowId={selectedWorkflowId}
+        workflowStatus={selectedWorkflowStatus}
+        onClose={() => setSelectedWorkflowId(null)}
+      />
     </div>
   );
 }
