@@ -49,8 +49,8 @@ export default function Generations() {
       try {
         setGlobalLoading(true);
         // Fetch a large batch — the backend returns paginated, so we fetch up to 200
-        const res = await listMyWorkflows(1, 200);
-        setAllWorkflows(res.workflows);
+        const workflows = await listMyWorkflows(200, 0);
+        setAllWorkflows(workflows);
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
         if (err.name !== 'AuthExpiredError') {

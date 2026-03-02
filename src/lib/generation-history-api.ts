@@ -1,6 +1,7 @@
 /**
  * Generation History API
  * Fetches workflow history from formanova.ai backend (NOT Supabase).
+ * Uses authenticatedFetch for JWT Bearer auth.
  */
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
@@ -9,14 +10,15 @@ const BASE_URL = 'https://formanova.ai';
 
 // ─── Types ──────────────────────────────────────────────────────────
 
+export type SourceType = 'photo' | 'cad_render' | 'cad_text' | 'unknown';
+
 export interface WorkflowSummary {
   workflow_id: string;
   name: string;
   status: string;
   created_at: string;
   finished_at: string | null;
-  /** Category derived from workflow name or metadata */
-  source_type: 'photo' | 'cad_render' | 'cad_text' | 'unknown';
+  source_type: SourceType;
 }
 
 export interface WorkflowStep {
@@ -40,25 +42,18 @@ export interface WorkflowDetail {
   steps: WorkflowStep[];
 }
 
-export interface WorkflowListResponse {
-  workflows: WorkflowSummary[];
-  total: number;
-  page: number;
-  per_page: number;
-}
-
 // ─── API Functions ──────────────────────────────────────────────────
 
 /**
- * List the authenticated user's workflows with pagination.
+ * List the authenticated user's workflows.
+ * Backend: GET /history/workflows/me?limit=N&offset=M
  */
 export async function listMyWorkflows(
-  page = 1,
-  perPage = 10,
-): Promise<WorkflowListResponse> {
-  const offset = (page - 1) * perPage;
+  limit = 200,
+  offset = 0,
+): Promise<WorkflowSummary[]> {
   const res = await authenticatedFetch(
-    `${BASE_URL}/history/workflows/me?limit=${perPage}&offset=${offset}`,
+    `${BASE_URL}/history/workflows/me?limit=${limit}&offset=${offset}`,
   );
 
   if (!res.ok) {
@@ -67,28 +62,22 @@ export async function listMyWorkflows(
 
   const data = await res.json();
 
-  // Normalize the response — backend may return a flat array or wrapped object
-  const workflows: WorkflowSummary[] = (data.workflows ?? data ?? []).map(
-    (w: any) => ({
-      workflow_id: w.workflow_id ?? w.id,
-      name: w.name ?? '',
-      status: w.status ?? 'unknown',
-      created_at: w.created_at ?? '',
-      finished_at: w.finished_at ?? null,
-      source_type: inferSourceType(w.name ?? ''),
-    }),
-  );
+  // Normalize — backend may return array or { workflows: [...] }
+  const raw: any[] = Array.isArray(data) ? data : (data.workflows ?? []);
 
-  return {
-    workflows,
-    total: data.total ?? workflows.length,
-    page,
-    per_page: perPage,
-  };
+  return raw.map((w: any) => ({
+    workflow_id: w.workflow_id ?? w.id,
+    name: w.name ?? '',
+    status: w.status ?? 'unknown',
+    created_at: w.created_at ?? '',
+    finished_at: w.finished_at ?? null,
+    source_type: inferSourceType(w.name ?? ''),
+  }));
 }
 
 /**
  * Get full details for a single workflow.
+ * Backend: GET /history/workflow/{id}/details
  */
 export async function getWorkflowDetails(
   workflowId: string,
@@ -106,20 +95,35 @@ export async function getWorkflowDetails(
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-function inferSourceType(name: string): WorkflowSummary['source_type'] {
+/** Infer the source type from the workflow name */
+export function inferSourceType(name: string): SourceType {
   const lower = name.toLowerCase();
-  if (lower.includes('cad') && lower.includes('text')) return 'cad_text';
+
+  // Text-to-CAD workflows (ring_full_pipeline, text_to_cad, etc.)
+  if (
+    lower.includes('ring_full_pipeline') ||
+    lower.includes('text_to_cad') ||
+    lower.includes('text-to-cad') ||
+    (lower.includes('ring') && lower.includes('pipeline'))
+  )
+    return 'cad_text';
+
+  // CAD render workflows
   if (lower.includes('cad') || lower.includes('render')) return 'cad_render';
+
+  // Photo workflows (jewelry photoshoot, masking, flux gen, etc.)
   if (
     lower.includes('photo') ||
+    lower.includes('masking') ||
+    lower.includes('flux') ||
     lower.includes('necklace') ||
     lower.includes('earring') ||
-    lower.includes('ring') ||
     lower.includes('bracelet') ||
     lower.includes('watch') ||
     lower.includes('jewelry') ||
-    lower.includes('jewel')
+    lower.includes('agentic')
   )
     return 'photo';
+
   return 'unknown';
 }
