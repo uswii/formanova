@@ -57,7 +57,16 @@ export async function listMyWorkflows(
   );
 
   if (!res.ok) {
+    const text = await res.text();
+    console.error('[HistoryAPI] list failed:', res.status, text.substring(0, 200));
     throw new Error(`Failed to list workflows: ${res.status}`);
+  }
+
+  const contentType = res.headers.get('content-type');
+  if (!contentType?.includes('application/json')) {
+    const text = await res.text();
+    console.error('[HistoryAPI] Expected JSON, got:', contentType, text.substring(0, 200));
+    throw new Error(`API returned non-JSON response (${contentType}). The endpoint may not exist yet.`);
   }
 
   const data = await res.json();
@@ -87,7 +96,16 @@ export async function getWorkflowDetails(
   );
 
   if (!res.ok) {
+    const text = await res.text();
+    console.error('[HistoryAPI] detail failed:', res.status, text.substring(0, 200));
     throw new Error(`Failed to fetch workflow: ${res.status}`);
+  }
+
+  const contentType = res.headers.get('content-type');
+  if (!contentType?.includes('application/json')) {
+    const text = await res.text();
+    console.error('[HistoryAPI] Expected JSON, got:', contentType, text.substring(0, 200));
+    throw new Error(`API returned non-JSON response`);
   }
 
   return res.json();
