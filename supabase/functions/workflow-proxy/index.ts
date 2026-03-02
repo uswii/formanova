@@ -433,6 +433,43 @@ serve(async (req) => {
       }
     }
 
+    // ═══════════════════════════════════════════════════════
+    // History API — list workflows & get workflow details
+    // ═══════════════════════════════════════════════════════
+
+    // GET /history/workflows/me?limit=N&offset=M
+    if (endpoint.startsWith('/history/workflows/me')) {
+      const params = new URL(`http://x${endpoint.replace('/history/workflows/me', '')}`);
+      // Forward query params from original request too
+      const qs = url.searchParams;
+      const limit = qs.get('limit') || params.searchParams.get('limit') || '20';
+      const offset = qs.get('offset') || params.searchParams.get('offset') || '0';
+
+      const response = await fetch(
+        `${TEMPORAL_URL}/history/workflows/me?limit=${limit}&offset=${offset}`,
+        { method: 'GET', headers: getTemporalHeaders(auth.userId) }
+      );
+      const data = await response.text();
+      return new Response(data, {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // GET /history/workflow/{id}/details
+    if (endpoint.startsWith('/history/workflow/') && endpoint.endsWith('/details')) {
+      const workflowId = endpoint.replace('/history/workflow/', '').replace('/details', '');
+      const response = await fetch(
+        `${TEMPORAL_URL}/history/workflow/${workflowId}/details`,
+        { method: 'GET', headers: getTemporalHeaders(auth.userId) }
+      );
+      const data = await response.text();
+      return new Response(data, {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(
       JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
