@@ -57,15 +57,6 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden scroll-smooth">
-      {/* TEMPORARY: PostHog error tracking test button — remove after confirming */}
-      <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }}>
-        <button
-          style={{ padding: '10px 16px', background: 'red', color: 'white', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer' }}
-          onClick={() => { throw new Error('PostHog test error button'); }}
-        >
-          Trigger Test Error
-        </button>
-      </div>
       {/* Hero Section with Cinematic 3D Parallax */}
       <section className="min-h-screen relative overflow-hidden bg-background">
         <CinematicHero images={heroImages} className="absolute inset-0" />
