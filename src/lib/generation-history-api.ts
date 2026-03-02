@@ -21,6 +21,8 @@ export interface WorkflowSummary {
   source_type: SourceType;
   /** Optional thumbnail extracted from workflow details (populated client-side) */
   thumbnail_url?: string;
+  /** All angle screenshots for cad_text workflows (populated client-side) */
+  screenshots?: { angle: string; url: string }[];
 }
 
 export interface WorkflowStep {

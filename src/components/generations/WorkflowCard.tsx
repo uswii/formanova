@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, XCircle, Loader2, Camera, Box, Image as ImageIcon } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Loader2, Camera, Box } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { format } from 'date-fns';
@@ -45,7 +45,77 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
+// ─── Text-to-CAD card (cad_text) ───────────────────────────────────────────
+
+function CadTextCard({ workflow, onClick }: WorkflowCardProps) {
+  const dateStr = workflow.created_at
+    ? format(new Date(workflow.created_at), 'MMM d, yyyy · HH:mm')
+    : '—';
+
+  const shots = workflow.screenshots ?? [];
+  const hasShots = shots.length > 0;
+
+  return (
+    <motion.button
+      variants={itemVariants}
+      onClick={() => onClick(workflow.workflow_id)}
+      className="group w-full text-left marta-frame p-0 overflow-hidden transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_20px_-5px_hsl(var(--formanova-hero-accent)/0.3)] cursor-pointer"
+    >
+      {/* Thumbnail strip */}
+      {hasShots ? (
+        <div className="flex gap-1 p-3 pb-0 bg-muted/20 overflow-x-auto">
+          {shots.map((shot) => (
+            <div
+              key={shot.angle}
+              className="flex-shrink-0 w-14 h-14 bg-muted overflow-hidden rounded-sm border border-border/30 transition-all duration-200 group-hover:border-border/60"
+            >
+              <OptimizedImage
+                src={shot.url}
+                alt={shot.angle}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Placeholder skeleton row while enrichment is loading */
+        <div className="flex gap-1 p-3 pb-0 bg-muted/20">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 w-14 h-14 bg-muted/60 rounded-sm animate-pulse"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Card body */}
+      <div className="p-5">
+        {/* Title */}
+        <h3 className="font-display text-lg md:text-xl uppercase tracking-wide text-foreground mb-2 transition-transform duration-300 group-hover:translate-x-1">
+          Text to CAD
+        </h3>
+
+        {/* Bottom row: icon label + date */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Box className="h-3.5 w-3.5" />
+            <span className="font-mono text-[9px] tracking-[0.2em] uppercase">3D Ring Generation</span>
+          </div>
+          <span className="font-mono text-[10px] tracking-wider text-muted-foreground">{dateStr}</span>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+// ─── Generic card (photo, cad_render, etc.) ────────────────────────────────
+
 export function WorkflowCard({ workflow, onClick }: WorkflowCardProps) {
+  if (workflow.source_type === 'cad_text') {
+    return <CadTextCard workflow={workflow} onClick={onClick} />;
+  }
+
   const status = statusConfig[workflow.status] ?? statusConfig.pending;
   const dateStr = workflow.created_at
     ? format(new Date(workflow.created_at), 'MMM d, yyyy · HH:mm')
@@ -98,7 +168,6 @@ export function WorkflowCard({ workflow, onClick }: WorkflowCardProps) {
             <span className="font-mono text-[9px] tracking-[0.2em] uppercase">
               {workflow.source_type === 'photo' && 'From Photos'}
               {workflow.source_type === 'cad_render' && 'CAD Render'}
-              {workflow.source_type === 'cad_text' && 'Text to CAD'}
               {workflow.source_type === 'unknown' && 'Generation'}
             </span>
           </div>

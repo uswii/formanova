@@ -55,38 +55,40 @@ export default function Generations() {
         const workflows = await listMyWorkflows(100, 0);
         setAllWorkflows(workflows);
 
-        // Fetch thumbnails for completed cad_text workflows in background
+        // Fetch all screenshots for completed cad_text workflows in background
         const cadTextCompleted = workflows.filter(
           (w) => w.source_type === 'cad_text' && w.status === 'completed'
         );
         if (cadTextCompleted.length > 0) {
-          // Fire-and-forget thumbnail enrichment
           Promise.allSettled(
             cadTextCompleted.map(async (wf) => {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
                 const screenshotStep = details.steps?.find((s) => s.tool === 'ring-screenshot');
-                const shots = screenshotStep?.output?.screenshots as { angle?: string; url?: string }[] | undefined;
-                const front = shots?.find((s) => s.angle === 'front') || shots?.[0];
-                if (front?.url) {
-                  return { id: wf.workflow_id, url: azureUriToUrl(front.url) };
-                }
+                const raw = screenshotStep?.output?.screenshots as { angle?: string; url?: string; uri?: string }[] | undefined;
+                if (!raw?.length) return null;
+                const screenshots = raw
+                  .filter(s => s?.url || s?.uri)
+                  .map(s => ({ angle: s.angle || 'unknown', url: azureUriToUrl(s.url ?? s.uri) }))
+                  .filter(s => s.url);
+                const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
+                return { id: wf.workflow_id, thumbnail_url: front?.url ?? '', screenshots };
               } catch { /* ignore individual failures */ }
               return null;
             })
           ).then((results) => {
-            const thumbMap = new Map<string, string>();
+            const enrichMap = new Map<string, { thumbnail_url: string; screenshots: { angle: string; url: string }[] }>();
             for (const r of results) {
               if (r.status === 'fulfilled' && r.value) {
-                thumbMap.set(r.value.id, r.value.url);
+                enrichMap.set(r.value.id, { thumbnail_url: r.value.thumbnail_url, screenshots: r.value.screenshots });
               }
             }
-            if (thumbMap.size > 0) {
+            if (enrichMap.size > 0) {
               setAllWorkflows((prev) =>
-                prev.map((w) => thumbMap.has(w.workflow_id)
-                  ? { ...w, thumbnail_url: thumbMap.get(w.workflow_id) }
-                  : w
-                )
+                prev.map((w) => {
+                  const enrich = enrichMap.get(w.workflow_id);
+                  return enrich ? { ...w, thumbnail_url: enrich.thumbnail_url, screenshots: enrich.screenshots } : w;
+                })
               );
             }
           });
