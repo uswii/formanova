@@ -49,7 +49,7 @@ export interface WorkflowDetail {
  * Backend: GET /history/workflows/me?limit=N&offset=M
  */
 export async function listMyWorkflows(
-  limit = 200,
+  limit = 100,
   offset = 0,
 ): Promise<WorkflowSummary[]> {
   const res = await authenticatedFetch(
