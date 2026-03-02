@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { PostHogPageView } from '@/components/PostHogPageView';
 import { Loader2 } from "lucide-react";
 
 // Decorative / non-critical components — lazy-loaded to reduce initial JS payload
@@ -86,6 +87,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <PostHogPageView />
             <FloatingElements />
             <ScrollProgressIndicator />
             <ThemeDecorations />

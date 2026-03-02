@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as Sentry from '@sentry/react';
+import { trackLogin, trackLogout, identifyUser } from '@/lib/posthog-events';
 import { 
   authApi, 
   getStoredToken, 
@@ -31,7 +32,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth state changes from AuthCallback (fixes race condition)
     const handleAuthChange = (event: CustomEvent<{ user: AuthUser | null }>) => {
       console.log('[AuthContext] Auth state change event received:', event.detail.user?.email);
-      setUser(event.detail.user);
+      const u = event.detail.user;
+      setUser(u);
+      if (u) {
+        identifyUser(u.id, { email: u.email, name: u.full_name });
+        trackLogin('google', u.email);
+      }
     };
 
     window.addEventListener(AUTH_STATE_CHANGE_EVENT, handleAuthChange as EventListener);
@@ -92,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    trackLogout();
     await authApi.logout();
     setUser(null);
   };

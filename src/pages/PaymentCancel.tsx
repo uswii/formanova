@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { XCircle } from 'lucide-react';
+import { trackPaymentCancel } from '@/lib/posthog-events';
 
 export default function PaymentCancel() {
   const [searchParams] = useSearchParams();
@@ -11,6 +12,8 @@ export default function PaymentCancel() {
     if (returnTo && returnTo.startsWith('/')) return returnTo;
     return '/studio';
   }, [returnTo]);
+
+  useEffect(() => { trackPaymentCancel(); }, []);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">

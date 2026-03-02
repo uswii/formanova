@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { authenticatedFetch, AuthExpiredError } from '@/lib/authenticated-fetch';
 import { useCredits } from '@/contexts/CreditsContext';
+import { trackPaymentSuccess } from '@/lib/posthog-events';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const BILLING_URL = '/billing';
@@ -59,6 +60,7 @@ export default function PaymentSuccess() {
       const data = await res.json();
       if (data.status === 'fulfilled') {
         await refreshCredits();
+        trackPaymentSuccess();
         setState({ type: 'fulfilled', creditsAdded: data.credits_added });
         stopPolling();
         return 'done';

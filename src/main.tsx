@@ -76,7 +76,21 @@ if (
         const posthog = posthogModule.default;
         posthog.init(posthogKey, {
           api_host: 'https://us.i.posthog.com',
-          defaults: '2026-01-30',
+          autocapture: true,
+          capture_pageview: true,
+          capture_pageleave: true,
+        });
+
+        // Global error tracking → PostHog
+        window.addEventListener('error', (event) => {
+          if (event.error) {
+            posthog.captureException(event.error);
+          }
+        });
+        window.addEventListener('unhandledrejection', (event) => {
+          if (event.reason) {
+            posthog.captureException(event.reason);
+          }
         });
       });
     }
