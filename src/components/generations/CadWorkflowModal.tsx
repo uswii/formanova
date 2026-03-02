@@ -71,10 +71,10 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
         // Find ring-screenshot step
         const screenshotStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-screenshot');
         if (screenshotStep?.output?.screenshots) {
-          const raw = screenshotStep.output.screenshots as { angle?: string; url?: string }[];
+          const raw = screenshotStep.output.screenshots as { angle?: string; url?: string; uri?: string }[];
           const mapped = raw
-            .filter(s => s?.url)
-            .map(s => ({ angle: s.angle || 'unknown', url: azureUriToUrl(s.url) }))
+            .filter(s => s?.url || s?.uri)
+            .map(s => ({ angle: s.angle || 'unknown', url: azureUriToUrl(s.url ?? s.uri) }))
             .filter(s => s.url);
           setScreenshots(sortScreenshots(mapped));
         }
@@ -85,7 +85,12 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
         const glbStep = validateStep || generateStep;
 
         if (glbStep?.output?.glb_path) {
-          setGlbUrl(azureUriToUrl(glbStep.output.glb_path as string));
+          // glb_path may be a plain azure:// string or an object { uri: "azure://..." }
+          const glbRaw = glbStep.output.glb_path;
+          const glbUri = typeof glbRaw === 'string'
+            ? glbRaw
+            : (glbRaw as Record<string, unknown>)?.uri as string | undefined;
+          if (glbUri) setGlbUrl(azureUriToUrl(glbUri));
         }
 
         if (validateStep?.output?.message) {

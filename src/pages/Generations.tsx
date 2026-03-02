@@ -107,7 +107,7 @@ export default function Generations() {
   // Filter & paginate per section
   const getSection = useCallback(
     (source: SourceType, page: number): SectionState => {
-      const filtered = allWorkflows.filter((w) => w.source_type === source);
+      const filtered = allWorkflows.filter((w) => w.source_type === source && w.status === 'completed');
       const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
       const start = (page - 1) * PER_PAGE;
       return {

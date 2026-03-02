@@ -80,7 +80,7 @@ export async function listMyWorkflows(
     workflow_id: w.workflow_id ?? w.id,
     name: w.name ?? '',
     status: w.status ?? 'unknown',
-    created_at: w.created_at ?? '',
+    created_at: w.created_at ?? w.started_at ?? '',
     finished_at: w.finished_at ?? null,
     source_type: inferSourceType(w.name ?? ''),
   }));
