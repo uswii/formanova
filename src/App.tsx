@@ -62,7 +62,12 @@ class ChunkErrorBoundary extends React.Component<
     throw error;
   }
 
-  componentDidCatch() {
+  componentDidCatch(error: Error) {
+    // Send non-chunk errors to PostHog error tracking
+    import('posthog-js').then(({ default: posthog }) => {
+      posthog.captureException(error);
+    }).catch(() => {});
+
     const key = '_chunk_reload';
     if (!sessionStorage.getItem(key)) {
       sessionStorage.setItem(key, '1');

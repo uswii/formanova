@@ -80,18 +80,6 @@ if (
           capture_pageview: true,
           capture_pageleave: true,
         });
-
-        // Global error tracking → PostHog
-        window.addEventListener('error', (event) => {
-          if (event.error) {
-            posthog.captureException(event.error);
-          }
-        });
-        window.addEventListener('unhandledrejection', (event) => {
-          if (event.reason) {
-            posthog.captureException(event.reason);
-          }
-        });
       });
     }
   });
