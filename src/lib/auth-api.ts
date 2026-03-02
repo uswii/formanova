@@ -119,42 +119,6 @@ class AuthApi {
     return data;
   }
 
-  // Register with email/password - uses proxy
-  async register(email: string, password: string): Promise<AuthUser> {
-    const response = await fetch(`${AUTH_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Registration failed' }));
-      throw new Error(error.detail || 'Failed to register');
-    }
-
-    return await response.json();
-  }
-
-  // Login with email/password - uses proxy
-  async login(email: string, password: string): Promise<AuthTokenResponse> {
-    const formData = new URLSearchParams();
-    formData.append('username', email);
-    formData.append('password', password);
-
-    const response = await fetch(`${AUTH_URL}/auth/jwt/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Login failed' }));
-      throw new Error(error.detail || 'Invalid email or password');
-    }
-
-    return await response.json();
-  }
-
   // Logout - uses proxy
   async logout(): Promise<void> {
     const token = getStoredToken();
