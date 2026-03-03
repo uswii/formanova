@@ -84,7 +84,7 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 lg:space-y-10 p-2"
+      className="space-y-6 lg:space-y-8"
     >
       {/* Allowed examples */}
       <div className="space-y-3 lg:space-y-4">
@@ -94,19 +94,19 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">{goodLabel}</span>
         </div>
-      <div className="grid grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-3 gap-3">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-0.5 lg:p-1 min-w-0 min-h-[140px] lg:min-h-[200px]"
+              className="relative aspect-[3/4] overflow-hidden border-2 border-green-500/40 bg-muted/20 min-w-0 min-h-[140px] lg:min-h-[180px]"
             >
               <img
                 src={img}
                 alt={`Good example ${index + 1}`}
-                className="w-full h-full object-cover rounded"
+                className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-5 h-5 lg:w-7 lg:h-7 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                <Check className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+              <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-green-500 flex items-center justify-center shadow-lg">
+                <Check className="w-3 h-3 text-white" />
               </div>
             </div>
           ))}
@@ -121,19 +121,19 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">{badLabel}</span>
         </div>
-      <div className="grid grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-3 gap-3">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-0.5 lg:p-1 min-w-0 min-h-[140px] lg:min-h-[200px]"
+              className="relative aspect-[3/4] overflow-hidden border-2 border-destructive/40 bg-muted/20 min-w-0 min-h-[140px] lg:min-h-[180px]"
             >
               <img
                 src={img}
                 alt={`Not accepted ${index + 1}`}
-                className="w-full h-full object-cover rounded"
+                className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-5 h-5 lg:w-7 lg:h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
-                <X className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+              <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-destructive flex items-center justify-center shadow-lg">
+                <X className="w-3 h-3 text-white" />
               </div>
             </div>
           ))}

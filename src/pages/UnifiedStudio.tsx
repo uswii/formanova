@@ -44,19 +44,19 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { azureUriToUrl } from '@/components/generations/CadWorkflowModal';
 import ExampleGuidePanel from '@/components/bulk/ExampleGuidePanel';
 
-// Acceptable example images per category
-import necklaceAllowed from '@/assets/examples/necklace-allowed-1.jpg';
-import earringAllowed from '@/assets/examples/earring-allowed-1.jpg';
-import braceletAllowed from '@/assets/examples/bracelet-allowed-1.jpg';
-import ringAllowed from '@/assets/examples/ring-allowed-1.png';
-import watchAllowed from '@/assets/examples/watch-allowed-1.jpg';
+// Acceptable example images per category — 3rd good example from each
+import necklaceAllowed from '@/assets/examples/necklace-allowed-3.jpg';
+import earringAllowed from '@/assets/examples/earring-allowed-3.jpg';
+import braceletAllowed from '@/assets/examples/bracelet-allowed-3.jpg';
+import ringAllowed from '@/assets/examples/ring-allowed-3.jpg';
+import watchAllowed from '@/assets/examples/watch-allowed-3.png';
 
 const ACCEPTABLE_EXAMPLES: Record<string, string> = {
-  necklace: necklaceAllowed,
-  earring: earringAllowed,
-  bracelet: braceletAllowed,
-  ring: ringAllowed,
-  watch: watchAllowed,
+  necklace: necklaceAllowed, necklaces: necklaceAllowed,
+  earring: earringAllowed,  earrings: earringAllowed,
+  bracelet: braceletAllowed, bracelets: braceletAllowed,
+  ring: ringAllowed,        rings: ringAllowed,
+  watch: watchAllowed,      watches: watchAllowed,
 };
 
 const CATEGORY_TYPE_MAP: Record<string, string> = {
@@ -65,6 +65,15 @@ const CATEGORY_TYPE_MAP: Record<string, string> = {
   ring: 'rings', rings: 'rings',
   bracelet: 'bracelets', bracelets: 'bracelets',
   watch: 'watches', watches: 'watches',
+};
+
+// Normalise URL param (plural or singular) → singular for the API payload
+const TO_SINGULAR: Record<string, string> = {
+  necklace: 'necklace', necklaces: 'necklace',
+  earring: 'earring',  earrings: 'earring',
+  ring: 'ring',        rings: 'ring',
+  bracelet: 'bracelet', bracelets: 'bracelet',
+  watch: 'watch',      watches: 'watch',
 };
 
 const LABEL_NAMES: Record<string, string> = {
@@ -263,7 +272,7 @@ export default function UnifiedStudio() {
       const startResponse = await startPhotoshoot({
         jewelry_image_url: jewelryUrl,
         model_image_url: modelUrl,
-        category: jewelryType,
+        category: TO_SINGULAR[jewelryType] ?? jewelryType,
         idempotency_key: idempotencyKey,
       });
 
@@ -273,43 +282,57 @@ export default function UnifiedStudio() {
       const pollStart = Date.now();
       const TIMEOUT = 300000;
 
-      while (Date.now() - pollStart < TIMEOUT) {
-        await new Promise(r => setTimeout(r, 3000));
+      // Decelerating ticker — starts fast (~2%/tick at 35%), slows near 90%.
+      // Keeps bar visibly moving even when API returns no progress data yet.
+      const ticker = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev >= 90) return prev;
+          return Math.min(prev + Math.max((90 - prev) * 0.04, 0.1), 90);
+        });
+      }, 300);
 
-        const status = await getPhotoshootStatus(startResponse.workflow_id);
-        const state = resolveWorkflowState(status);
+      try {
+        while (Date.now() - pollStart < TIMEOUT) {
+          await new Promise(r => setTimeout(r, 3000));
 
-        if (status.progress) {
-          const total = status.progress.total_nodes || 1;
-          const completed = status.progress.completed_nodes || 0;
-          const pct = Math.min(35 + Math.round((completed / total) * 60), 95);
-          setGenerationProgress(pct);
+          const status = await getPhotoshootStatus(startResponse.workflow_id);
+          const state = resolveWorkflowState(status);
 
-          const visited = status.progress.visited || [];
-          if (visited.length > 0) {
-            setGenerationStep(visited[visited.length - 1].replace(/_/g, ' '));
+          if (status.progress) {
+            const total = status.progress.total_nodes || 1;
+            const completed = status.progress.completed_nodes || 0;
+            const realPct = Math.min(35 + Math.round((completed / total) * 60), 95);
+            setGenerationProgress(prev => Math.max(prev, realPct));
+
+            const visited = status.progress.visited || [];
+            if (visited.length > 0) {
+              setGenerationStep(visited[visited.length - 1].replace(/_/g, ' '));
+            }
+          }
+
+          if (state === 'completed') {
+            clearInterval(ticker);
+            setGenerationProgress(100);
+            setGenerationStep('Complete!');
+
+            const result = await getPhotoshootResult(startResponse.workflow_id);
+            const images = extractResultImages(result);
+            setResultImages(images);
+            setCurrentStep('results');
+            setIsGenerating(false);
+            refreshCredits();
+            return;
+          }
+
+          if (state === 'failed') {
+            throw new Error(status.error || 'Photoshoot generation failed');
           }
         }
 
-        if (state === 'completed') {
-          setGenerationProgress(100);
-          setGenerationStep('Complete!');
-
-          const result = await getPhotoshootResult(startResponse.workflow_id);
-          const images = extractResultImages(result);
-          setResultImages(images);
-          setCurrentStep('results');
-          setIsGenerating(false);
-          refreshCredits();
-          return;
-        }
-
-        if (state === 'failed') {
-          throw new Error(status.error || 'Photoshoot generation failed');
-        }
+        throw new Error('Generation timed out after 5 minutes');
+      } finally {
+        clearInterval(ticker);
       }
-
-      throw new Error('Generation timed out after 5 minutes');
     } catch (error) {
       console.error('[UnifiedStudio] Generation error:', error);
       setGenerationError(error instanceof Error ? error.message : 'Unknown error');
@@ -745,15 +768,15 @@ export default function UnifiedStudio() {
               {generationStep || 'Starting…'}
             </p>
 
-            <div className="w-64 h-2 bg-muted rounded-full overflow-hidden mb-2">
+            <div className="w-64 h-1.5 bg-muted overflow-hidden mb-2">
               <motion.div
-                className="h-full bg-primary rounded-full"
+                className="h-full bg-primary"
                 initial={{ width: 0 }}
                 animate={{ width: `${generationProgress}%` }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
               />
             </div>
-            <p className="font-mono text-[10px] text-muted-foreground">{generationProgress}%</p>
+            <p className="font-mono text-[10px] text-muted-foreground">{Math.round(generationProgress)}%</p>
 
             <div className="flex gap-4 mt-10">
               {jewelryImage && (
@@ -796,9 +819,9 @@ export default function UnifiedStudio() {
             </div>
 
             {resultImages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto justify-items-center">
+              <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
                 {resultImages.map((url, i) => (
-                  <div key={i} className="relative group border border-border/30 overflow-hidden">
+                  <div key={i} className="relative group border border-border/30 overflow-hidden w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] max-w-xs">
                     <img
                       src={url}
                       alt={`Result ${i + 1}`}

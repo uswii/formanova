@@ -177,7 +177,7 @@ export default function Generations() {
               Dashboard
             </Link>
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none">
-              Generations
+              From Photo
             </h1>
           </div>
           <p className="hidden md:block font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
@@ -210,7 +210,7 @@ export default function Generations() {
           <>
             {/* Section: From Photos */}
             <WorkflowSection
-              title="From Photos"
+              title="From Photo"
               subtitle="Jewelry photo to on-model imagery"
               icon={SectionIcons.photo}
               workflows={photoSection.workflows}
