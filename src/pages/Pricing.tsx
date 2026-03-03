@@ -14,14 +14,14 @@ const CHECKOUT_URL = '/billing/checkout';
 const PLANS = [
   {
     tier: 'basic',
-    tierId: 'tier_3519ba8c',
+    tierId: 'price_1T1wGOHUJ0ghrlGbTeTsUxn0',
     name: 'Basic',
     price: 9,
     credits: 10,
   },
   {
     tier: 'standard',
-    tierId: 'standard',
+    tierId: 'price_1T1wGOHUJ0ghrlGba6fPj2Q6',
     name: 'Pro',
     price: 39,
     credits: 50,
@@ -29,7 +29,7 @@ const PLANS = [
   },
   {
     tier: 'pro',
-    tierId: 'pro',
+    tierId: 'price_1T1wGOHUJ0ghrlGbDUlCIWKA',
     name: 'Power',
     price: 99,
     credits: 150,
