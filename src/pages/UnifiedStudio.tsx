@@ -799,6 +799,14 @@ export default function UnifiedStudio() {
             )}
 
             <div className="flex justify-center gap-4">
+              <Button
+                size="lg"
+                onClick={() => { setResultImages([]); setCurrentStep('generating'); handleGenerate(); }}
+                className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+              >
+                <Diamond className="h-4 w-4" />
+                Regenerate
+              </Button>
               <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
                 <RefreshCw className="h-4 w-4" />
                 New Photoshoot
