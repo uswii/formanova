@@ -2,40 +2,42 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Upload,
   Diamond,
   Image as ImageIcon,
   X,
   Users,
-  Camera,
-  ChevronRight,
+  Upload,
   Check,
   Lightbulb,
-  Loader2,
-  Sparkles,
-  Circle,
-  Undo2,
-  Redo2,
-  Expand,
-  HelpCircle,
+  ChevronRight,
   Gem,
   XOctagon,
+  Sparkles,
   Download,
+  AlertTriangle,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeImageFile } from '@/lib/image-normalize';
-import { ECOM_MODELS, EDITORIAL_MODELS, type ModelImage } from '@/lib/model-library';
-import { MaskCanvas } from '@/components/studio/MaskCanvas';
-import { MarkingTutorial } from '@/components/studio/MarkingTutorial';
-import { StepRefineAndGenerate } from '@/components/studio/StepRefineAndGenerate';
-import { a100Api } from '@/lib/a100-api';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
+import { ECOM_MODELS, EDITORIAL_MODELS, type ModelImage } from '@/lib/model-library';
+import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
+import {
+  startPhotoshoot,
+  getPhotoshootStatus,
+  getPhotoshootResult,
+  uploadImageForUrl,
+  type PhotoshootResultResponse,
+} from '@/lib/photoshoot-api';
+import { useCreditPreflight } from '@/hooks/use-credit-preflight';
+import { CreditPreflightModal } from '@/components/CreditPreflightModal';
+import { useCredits } from '@/contexts/CreditsContext';
+import { azureUriToUrl } from '@/components/generations/CadWorkflowModal';
 
-// Import worn-example images (reuse from batch system)
+// Import worn-example images
 import exampleNecklace1 from '@/assets/examples/necklace-allowed-1.jpg';
 import exampleNecklace2 from '@/assets/examples/necklace-allowed-2.jpg';
 import exampleNecklace3 from '@/assets/examples/necklace-allowed-3.jpg';
@@ -51,8 +53,6 @@ import exampleBracelet3 from '@/assets/examples/bracelet-allowed-3.jpg';
 import exampleWatch1 from '@/assets/examples/watch-allowed-1.jpg';
 import exampleWatch2 from '@/assets/examples/watch-allowed-2.jpg';
 import exampleWatch3 from '@/assets/examples/watch-allowed-3.png';
-
-// Not-allowed examples
 import exampleNecklaceNot1 from '@/assets/examples/necklace-notallowed-1.png';
 import exampleNecklaceNot2 from '@/assets/examples/necklace-notallowed-2.png';
 import exampleNecklaceNot3 from '@/assets/examples/necklace-notallowed-3.png';
@@ -69,59 +69,6 @@ import exampleWatchNot1 from '@/assets/examples/watch-notallowed-1.png';
 import exampleWatchNot2 from '@/assets/examples/watch-notallowed-2.png';
 import exampleWatchNot3 from '@/assets/examples/watch-notallowed-3.png';
 
-// ─── Types ──────────────────────────────────────────────────────────
-
-export type SkinTone = 'light' | 'fair' | 'medium' | 'olive' | 'brown' | 'dark';
-
-export interface ProcessingState {
-  resizedUri?: string;
-  bgRemovedUri?: string;
-  maskUri?: string;
-  overlayUri?: string;
-  padding?: { top: number; bottom: number; left: number; right: number };
-  originalMaskBase64?: string;
-  scaledPoints?: number[][];
-  sessionId?: string;
-  imageWidth?: number;
-  imageHeight?: number;
-}
-
-export interface MaskingOutputs {
-  resizedImage?: string;
-  jewelrySegment?: string;
-  jewelryGreen?: string;
-  resizeMetadata?: Record<string, unknown>;
-}
-
-export interface StudioState {
-  originalImage: string | null;
-  markedImage: string | null;
-  maskOverlay: string | null;
-  maskBinary: string | null;
-  originalMask: string | null;
-  editedMask: string | null;
-  gender: 'female' | 'male';
-  skinTone: SkinTone;
-  fluxResult: string | null;
-  geminiResult: string | null;
-  fidelityViz: string | null;
-  fidelityVizGemini: string | null;
-  metrics: { precision: number; recall: number; iou: number; growthRatio: number } | null;
-  metricsGemini: { precision: number; recall: number; iou: number; growthRatio: number } | null;
-  status: 'good' | 'bad' | null;
-  isGenerating: boolean;
-  sessionId: string | null;
-  scaledPoints: number[][] | null;
-  processingState: ProcessingState;
-  redDots: { x: number; y: number }[];
-  hasTwoModes: boolean;
-  workflowResults: Record<string, unknown> | null;
-  workflowType: 'flux_gen' | 'all_jewelry' | 'masking' | 'all_jewelry_masking' | null;
-  maskingOutputs: MaskingOutputs | null;
-}
-
-type StudioStep = 'upload' | 'mark' | 'generate';
-
 // ─── Example Images Map ─────────────────────────────────────────────
 
 const WORN_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
@@ -137,79 +84,9 @@ const WORN_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }>
   watches: { allowed: [exampleWatch1, exampleWatch2, exampleWatch3], notAllowed: [exampleWatchNot1, exampleWatchNot2, exampleWatchNot3] },
 };
 
-// ─── Mask helpers (same as old StepUploadMark) ──────────────────────
+// ─── Types ──────────────────────────────────────────────────────────
 
-async function invertMask(maskDataUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        imageData.data[i] = 255 - imageData.data[i];
-        imageData.data[i + 1] = 255 - imageData.data[i + 1];
-        imageData.data[i + 2] = 255 - imageData.data[i + 2];
-      }
-      ctx.putImageData(imageData, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('Failed to load mask'));
-    img.src = maskDataUrl;
-  });
-}
-
-async function createMaskOverlay(
-  originalImage: string,
-  maskBinary: string,
-  overlayColor = { r: 0, g: 255, b: 0 },
-  isNecklaceType = false,
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
-    const originalImg = new Image();
-    const maskImg = new Image();
-    originalImg.crossOrigin = 'anonymous';
-    maskImg.crossOrigin = 'anonymous';
-    let loaded = 0;
-    const onLoad = () => {
-      if (++loaded < 2) return;
-      canvas.width = originalImg.width;
-      canvas.height = originalImg.height;
-      ctx.drawImage(originalImg, 0, 0);
-      const mc = document.createElement('canvas');
-      const mctx = mc.getContext('2d')!;
-      mc.width = originalImg.width;
-      mc.height = originalImg.height;
-      mctx.drawImage(maskImg, 0, 0, originalImg.width, originalImg.height);
-      const md = mctx.getImageData(0, 0, mc.width, mc.height);
-      const od = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const alpha = 0.35;
-      for (let i = 0; i < md.data.length; i += 4) {
-        const b = (md.data[i] + md.data[i + 1] + md.data[i + 2]) / 3;
-        const apply = isNecklaceType ? b >= 128 : b < 128;
-        if (apply) {
-          od.data[i] = Math.round(od.data[i] * (1 - alpha) + overlayColor.r * alpha);
-          od.data[i + 1] = Math.round(od.data[i + 1] * (1 - alpha) + overlayColor.g * alpha);
-          od.data[i + 2] = Math.round(od.data[i + 2] * (1 - alpha) + overlayColor.b * alpha);
-        }
-      }
-      ctx.putImageData(od, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    originalImg.onload = onLoad;
-    maskImg.onload = onLoad;
-    originalImg.onerror = () => reject(new Error('Failed to load image'));
-    maskImg.onerror = () => reject(new Error('Failed to load mask'));
-    originalImg.src = originalImage;
-    maskImg.src = maskBinary;
-  });
-}
+type StudioStep = 'upload' | 'generating' | 'results';
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -217,68 +94,37 @@ export default function UnifiedStudio() {
   const { type } = useParams<{ type: string }>();
   const jewelryType = type || 'necklace';
   const { toast } = useToast();
+  const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
+  const { refreshCredits } = useCredits();
 
-  // Steps
+  // Step
   const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
 
   // Jewelry image
   const jewelryInputRef = useRef<HTMLInputElement>(null);
   const [jewelryImage, setJewelryImage] = useState<string | null>(null);
+  const [jewelryFile, setJewelryFile] = useState<File | null>(null);
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState<ModelImage | null>(null);
   const [customModelImage, setCustomModelImage] = useState<string | null>(null);
+  const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
   const [modelTab, setModelTab] = useState<'ecom' | 'editorial'>('ecom');
 
-  // The model image to display (either selected from library or custom upload)
   const activeModelUrl = customModelImage || selectedModel?.url || null;
 
-  // Studio state for masking/generation (compatible with StepRefineAndGenerate)
-  const [studioState, setStudioState] = useState<StudioState>({
-    originalImage: null,
-    markedImage: null,
-    maskOverlay: null,
-    maskBinary: null,
-    originalMask: null,
-    editedMask: null,
-    gender: 'female',
-    skinTone: 'medium',
-    fluxResult: null,
-    geminiResult: null,
-    fidelityViz: null,
-    fidelityVizGemini: null,
-    metrics: null,
-    metricsGemini: null,
-    status: null,
-    isGenerating: false,
-    sessionId: null,
-    scaledPoints: null,
-    processingState: {},
-    redDots: [],
-    hasTwoModes: false,
-    workflowResults: null,
-    workflowType: null,
-    maskingOutputs: null,
-  });
+  // Validation
+  const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
+  const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
 
-  const updateStudioState = (updates: Partial<StudioState>) => {
-    setStudioState(prev => ({ ...prev, ...updates }));
-  };
-
-  // Marking state
-  const [redDots, setRedDots] = useState<{ x: number; y: number }[]>([]);
-  const [undoStack, setUndoStack] = useState<{ x: number; y: number }[][]>([]);
-  const [redoStack, setRedoStack] = useState<{ x: number; y: number }[][]>([]);
-  const [markerSize, setMarkerSize] = useState(10);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [processingStep, setProcessingStep] = useState('');
-
-  const MAX_DOTS = 6;
-  const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
+  // Generation
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStep, setGenerationStep] = useState('');
+  const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const [resultImages, setResultImages] = useState<string[]>([]);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // ─── Upload Handlers ──────────────────────────────────────────────
 
@@ -288,10 +134,20 @@ export default function UnifiedStudio() {
       return;
     }
     const normalized = await normalizeImageFile(file);
+    setJewelryFile(normalized);
     const reader = new FileReader();
-    reader.onload = (e) => setJewelryImage(e.target?.result as string);
+    reader.onload = (e) => {
+      setJewelryImage(e.target?.result as string);
+      setValidationResult(null);
+    };
     reader.readAsDataURL(normalized);
-  }, [toast]);
+
+    // Run validation in background
+    const result = await validateImages([normalized], jewelryType);
+    if (result && result.results.length > 0) {
+      setValidationResult(result.results[0]);
+    }
+  }, [toast, jewelryType, validateImages]);
 
   const handleModelUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -299,20 +155,22 @@ export default function UnifiedStudio() {
       return;
     }
     const normalized = await normalizeImageFile(file);
+    setCustomModelFile(normalized);
     const reader = new FileReader();
     reader.onload = (e) => {
       setCustomModelImage(e.target?.result as string);
-      setSelectedModel(null); // Clear library selection
+      setSelectedModel(null);
     };
     reader.readAsDataURL(normalized);
   }, [toast]);
 
   const handleSelectLibraryModel = (model: ModelImage) => {
     setSelectedModel(model);
-    setCustomModelImage(null); // Clear custom upload
+    setCustomModelImage(null);
+    setCustomModelFile(null);
   };
 
-  // Paste handler for jewelry
+  // Paste handler
   useEffect(() => {
     if (jewelryImage) return;
     const handler = (e: ClipboardEvent) => {
@@ -331,175 +189,197 @@ export default function UnifiedStudio() {
     return () => document.removeEventListener('paste', handler);
   }, [jewelryImage, handleJewelryUpload]);
 
-  // ─── Proceed to Marking ───────────────────────────────────────────
+  // ─── Generate ─────────────────────────────────────────────────────
 
-  const handleProceedToMark = () => {
-    if (!jewelryImage) {
-      toast({ variant: 'destructive', title: 'Missing jewelry', description: 'Upload a jewelry image first.' });
+  const handleGenerate = async () => {
+    if (!jewelryImage || !activeModelUrl) {
+      toast({ variant: 'destructive', title: 'Missing inputs', description: 'Upload a jewelry image and select a model.' });
       return;
     }
-    // Set the jewelry image as the working image for masking
-    updateStudioState({ originalImage: jewelryImage });
-    setRedDots([]);
-    setUndoStack([]);
-    setRedoStack([]);
-    setCurrentStep('mark');
-  };
 
-  // ─── Canvas Click (Marking) ───────────────────────────────────────
+    // Credit preflight
+    const hasCredits = await checkCredits('jewelry_photoshoot');
+    if (!hasCredits) return;
 
-  const handleCanvasClick = (x: number, y: number) => {
-    if (isNecklace && redDots.length >= MAX_DOTS) return;
-    setUndoStack(prev => [...prev, redDots]);
-    setRedoStack([]);
-    setRedDots(prev => [...prev, { x, y }]);
-  };
-
-  const handleUndo = () => {
-    if (!undoStack.length) return;
-    setRedoStack(prev => [...prev, redDots]);
-    setRedDots(undoStack[undoStack.length - 1]);
-    setUndoStack(prev => prev.slice(0, -1));
-  };
-
-  const handleRedo = () => {
-    if (!redoStack.length) return;
-    setUndoStack(prev => [...prev, redDots]);
-    setRedDots(redoStack[redoStack.length - 1]);
-    setRedoStack(prev => prev.slice(0, -1));
-  };
-
-  // ─── Generate Mask (same logic as old StepUploadMark) ─────────────
-
-  const handleGenerateMask = async () => {
-    if (redDots.length === 0 || !studioState.originalImage) return;
-
-    setIsProcessing(true);
-    setProcessingProgress(0);
-    setProcessingStep('AI is identifying jewelry...');
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setGenerationStep('Uploading jewelry image...');
+    setGenerationError(null);
+    setCurrentStep('generating');
 
     try {
-      const isOnline = await a100Api.ensureOnline();
-      if (!isOnline) throw new Error('AI server is offline.');
+      // 1. Upload jewelry image to get URL
+      setGenerationProgress(5);
+      const jewelryBlob = await imageSourceToBlob(jewelryImage);
+      const { blob: compressedJewelry } = await compressImageBlob(jewelryBlob);
+      const jewelryUrl = await uploadImageForUrl(compressedJewelry, 'jewelry.jpg');
+      console.log('[UnifiedStudio] Jewelry uploaded:', jewelryUrl);
 
-      setProcessingProgress(10);
-      setProcessingStep('Preparing image...');
+      // 2. Get model URL
+      setGenerationProgress(20);
+      setGenerationStep('Preparing model image...');
+      let modelUrl: string;
 
-      const rawBlob = await imageSourceToBlob(studioState.originalImage);
-      const { blob: imageBlob } = await compressImageBlob(rawBlob);
-      const imageBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(imageBlob);
-      });
-
-      const points = redDots.map(d => [d.x, d.y]);
-      setProcessingProgress(30);
-      setProcessingStep('AI is identifying jewelry...');
-
-      let singularType = jewelryType;
-      if (singularType === 'necklaces') singularType = 'necklace';
-      else if (singularType === 'rings') singularType = 'ring';
-      else if (singularType === 'bracelets') singularType = 'bracelet';
-      else if (singularType === 'earrings') singularType = 'earring';
-      else if (singularType === 'watches') singularType = 'watch';
-
-      const segmentResult = await a100Api.segment({ image_base64: imageBase64, points, jewelry_type: singularType });
-      if (!segmentResult) throw new Error('Segmentation failed.');
-
-      setProcessingProgress(80);
-      setProcessingStep('Processing mask...');
-
-      let maskBinary = segmentResult.mask_base64.startsWith('data:') ? segmentResult.mask_base64 : `data:image/png;base64,${segmentResult.mask_base64}`;
-      let originalMask = segmentResult.original_mask_base64.startsWith('data:') ? segmentResult.original_mask_base64 : `data:image/png;base64,${segmentResult.original_mask_base64}`;
-      const processedImage = segmentResult.processed_image_base64.startsWith('data:') ? segmentResult.processed_image_base64 : `data:image/jpeg;base64,${segmentResult.processed_image_base64}`;
-
-      const isNeck = singularType === 'necklace';
-      if (!isNeck) {
-        maskBinary = await invertMask(maskBinary);
-        originalMask = await invertMask(originalMask);
+      if (selectedModel) {
+        // Library model — URL is already public
+        modelUrl = selectedModel.url;
+      } else if (customModelImage && customModelFile) {
+        // Custom upload — need to upload
+        setGenerationStep('Uploading model image...');
+        const modelBlob = await imageSourceToBlob(customModelImage);
+        const { blob: compressedModel } = await compressImageBlob(modelBlob);
+        modelUrl = await uploadImageForUrl(compressedModel, 'model.jpg');
+      } else {
+        throw new Error('No model selected');
       }
 
-      const customOverlay = await createMaskOverlay(processedImage, maskBinary, { r: 0, g: 255, b: 0 }, isNeck);
+      console.log('[UnifiedStudio] Model URL:', modelUrl);
 
-      setProcessingProgress(100);
+      // 3. Start photoshoot
+      setGenerationProgress(35);
+      setGenerationStep('Starting AI photoshoot...');
 
-      updateStudioState({
-        maskOverlay: customOverlay,
-        maskBinary,
-        originalMask,
-        originalImage: processedImage,
-        scaledPoints: segmentResult.scaled_points,
-        redDots,
-        processingState: {
-          sessionId: segmentResult.session_id,
-          imageWidth: segmentResult.image_width,
-          imageHeight: segmentResult.image_height,
-        },
+      const idempotencyKey = `${Date.now()}-${jewelryType}-${selectedModel?.id || 'custom'}`;
+      const startResponse = await startPhotoshoot({
+        jewelry_image_url: jewelryUrl,
+        model_image_url: modelUrl,
+        category: jewelryType,
+        idempotency_key: idempotencyKey,
       });
 
-      setIsProcessing(false);
-      setCurrentStep('generate');
+      setWorkflowId(startResponse.workflow_id);
+      console.log('[UnifiedStudio] Workflow started:', startResponse.workflow_id);
+
+      // 4. Poll until done
+      setGenerationStep('Generating photoshoot...');
+      const pollStart = Date.now();
+      const TIMEOUT = 300000; // 5 min
+
+      while (Date.now() - pollStart < TIMEOUT) {
+        await new Promise(r => setTimeout(r, 3000));
+
+        const status = await getPhotoshootStatus(startResponse.workflow_id);
+        const state = status.progress?.state || (status as any).state;
+
+        if (status.progress) {
+          const visited = status.progress.visited || [];
+          const total = status.progress.total_nodes || 1;
+          const completed = status.progress.completed_nodes || 0;
+          const pct = Math.min(35 + Math.round((completed / total) * 60), 95);
+          setGenerationProgress(pct);
+
+          if (visited.length > 0) {
+            const lastStep = visited[visited.length - 1];
+            setGenerationStep(lastStep.replace(/_/g, ' '));
+          }
+        }
+
+        if (state === 'completed') {
+          setGenerationProgress(100);
+          setGenerationStep('Complete!');
+
+          const result = await getPhotoshootResult(startResponse.workflow_id);
+          console.log('[UnifiedStudio] Result:', result);
+
+          // Extract output images from result
+          const images = extractResultImages(result);
+          setResultImages(images);
+          setCurrentStep('results');
+          setIsGenerating(false);
+          refreshCredits();
+          return;
+        }
+
+        if (state === 'failed') {
+          throw new Error(status.error || 'Photoshoot generation failed');
+        }
+      }
+
+      throw new Error('Generation timed out after 5 minutes');
     } catch (error) {
-      console.error('[UnifiedStudio] Masking error:', error);
-      toast({ variant: 'destructive', title: 'Masking failed', description: error instanceof Error ? error.message : 'Failed to generate mask.' });
-      setIsProcessing(false);
+      console.error('[UnifiedStudio] Generation error:', error);
+      setGenerationError(error instanceof Error ? error.message : 'Unknown error');
+      setIsGenerating(false);
+      toast({ variant: 'destructive', title: 'Generation failed', description: error instanceof Error ? error.message : 'Unknown error' });
     }
+  };
+
+  /** Extract image URLs from the workflow result response */
+  function extractResultImages(result: PhotoshootResultResponse): string[] {
+    const images: string[] = [];
+
+    for (const key of Object.keys(result)) {
+      const items = result[key];
+      if (!Array.isArray(items)) continue;
+      for (const item of items) {
+        if (!item || typeof item !== 'object') continue;
+        const obj = item as Record<string, unknown>;
+
+        // Check common output keys
+        for (const k of ['output_url', 'image_url', 'result_url', 'url', 'image_b64', 'output_image']) {
+          const val = obj[k];
+          if (typeof val === 'string' && val.length > 0) {
+            if (val.startsWith('azure://')) {
+              images.push(azureUriToUrl(val));
+            } else if (val.startsWith('http') || val.startsWith('data:')) {
+              images.push(val);
+            }
+          }
+        }
+      }
+    }
+
+    return images;
+  }
+
+  const handleStartOver = () => {
+    setJewelryImage(null);
+    setJewelryFile(null);
+    setSelectedModel(null);
+    setCustomModelImage(null);
+    setCustomModelFile(null);
+    setValidationResult(null);
+    setResultImages([]);
+    setWorkflowId(null);
+    setGenerationError(null);
+    setCurrentStep('upload');
+    clearValidation();
   };
 
   // ─── Examples ─────────────────────────────────────────────────────
 
   const examples = WORN_EXAMPLES[jewelryType] || WORN_EXAMPLES.necklace;
 
-  // ─── Step Indicator ───────────────────────────────────────────────
-
-  const steps = [
-    { id: 'upload' as const, label: 'Upload', num: 1 },
-    { id: 'mark' as const, label: 'Mark Jewelry', num: 2 },
-    { id: 'generate' as const, label: 'Generate', num: 3 },
-  ];
-
   // ─── Render ───────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
+      {showInsufficientModal && preflightResult && (
+        <CreditPreflightModal
+          open={showInsufficientModal}
+          onOpenChange={(open) => !open && dismissModal()}
+          estimatedCredits={preflightResult.estimatedCredits}
+          currentBalance={preflightResult.currentBalance}
+        />
+      )}
+
       <div className="px-6 md:px-12 py-8 relative z-10 max-w-7xl mx-auto">
-        {/* Step Progress */}
-        <div className="flex items-center justify-center mb-8">
-          {steps.map((step, index) => {
-            const stepIndex = steps.findIndex(s => s.id === currentStep);
-            const thisIndex = steps.findIndex(s => s.id === step.id);
-            const isActive = step.id === currentStep;
-            const isPast = thisIndex < stepIndex;
-            const canClick = isPast || (step.id === 'generate' && studioState.maskBinary);
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-8"
+        >
+          <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">
+            {jewelryType} Studio
+          </span>
+          <h1 className="font-display text-4xl md:text-5xl uppercase tracking-tight">
+            AI Photoshoot
+          </h1>
+        </motion.div>
 
-            return (
-              <React.Fragment key={step.id}>
-                <button
-                  onClick={() => canClick && setCurrentStep(step.id)}
-                  className={`flex items-center gap-2 px-4 py-2 transition-all ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : isPast
-                      ? 'bg-primary/20 text-primary cursor-pointer hover:bg-primary/30'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  <div className="h-6 w-6 rounded-full bg-current/20 flex items-center justify-center text-sm font-bold">
-                    {isPast ? <Check className="h-3.5 w-3.5" /> : step.num}
-                  </div>
-                  <span className="hidden sm:inline font-medium text-sm">{step.label}</span>
-                </button>
-                {index < steps.length - 1 && (
-                  <div className={`w-12 h-0.5 mx-2 ${thisIndex < stepIndex ? 'bg-primary' : 'bg-muted'}`} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        {/* ─── STEP 1: Upload ───────────────────────────────────────── */}
+        {/* ─── UPLOAD STEP ──────────────────────────────────────────── */}
         {currentStep === 'upload' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -545,24 +425,64 @@ export default function UnifiedStudio() {
                     />
                   </div>
                 ) : (
-                  <div className="relative group">
-                    <div className="border border-border/30 overflow-hidden flex items-center justify-center bg-muted/30 max-h-[400px]">
-                      <img
-                        src={jewelryImage}
-                        alt="Jewelry"
-                        className="max-w-full max-h-[400px] object-contain"
-                      />
+                  <div className="space-y-3">
+                    <div className="relative group">
+                      <div className="border border-border/30 overflow-hidden flex items-center justify-center bg-muted/30 max-h-[400px]">
+                        <img
+                          src={jewelryImage}
+                          alt="Jewelry"
+                          className="max-w-full max-h-[400px] object-contain"
+                        />
+                      </div>
+                      <button
+                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); clearValidation(); }}
+                        className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+
+                      {/* Validation badge */}
+                      {isValidating && (
+                        <div className="absolute top-2 left-2 bg-muted/90 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5">
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                          <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
+                        </div>
+                      )}
+                      {!isValidating && validationResult && (
+                        <div className={`absolute top-2 left-2 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5 ${
+                          validationResult.is_acceptable
+                            ? 'bg-green-500/10 border border-green-500/20'
+                            : 'bg-destructive/10 border border-destructive/20'
+                        }`}>
+                          {validationResult.is_acceptable
+                            ? <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                            : <AlertTriangle className="h-3 w-3 text-destructive" />
+                          }
+                          <span className={`font-mono text-[9px] tracking-wider uppercase ${
+                            validationResult.is_acceptable ? 'text-green-600 dark:text-green-400' : 'text-destructive'
+                          }`}>
+                            {validationResult.is_acceptable ? 'Accepted' : 'Flagged — not worn'}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => setJewelryImage(null)}
-                      className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+
+                    {/* Flagged warning */}
+                    {validationResult && !validationResult.is_acceptable && (
+                      <div className="border border-destructive/20 bg-destructive/5 p-3 flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-destructive">Image may not produce optimal results</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            This image appears to be a product shot. For best results, use a photo with jewelry <strong>worn on a person</strong>. You can still proceed if you'd like.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Worn examples guide */}
+                {/* Guidelines */}
                 <div className="border border-border/20 p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
@@ -587,12 +507,12 @@ export default function UnifiedStudio() {
                       </div>
                     </div>
                     <div>
-                      <p className="font-mono text-[9px] tracking-[0.2em] text-red-500 uppercase mb-2 flex items-center gap-1">
+                      <p className="font-mono text-[9px] tracking-[0.2em] text-destructive uppercase mb-2 flex items-center gap-1">
                         <X className="h-3 w-3" /> Not Accepted
                       </p>
                       <div className="grid grid-cols-3 gap-1">
                         {examples.notAllowed.map((src, i) => (
-                          <div key={i} className="aspect-[3/4] overflow-hidden border border-red-500/20 opacity-60">
+                          <div key={i} className="aspect-[3/4] overflow-hidden border border-destructive/20 opacity-60">
                             <img src={src} alt="Not accepted" className="w-full h-full object-cover" loading="lazy" />
                           </div>
                         ))}
@@ -630,7 +550,7 @@ export default function UnifiedStudio() {
                       {selectedModel ? selectedModel.label : 'Custom Upload'}
                     </div>
                     <button
-                      onClick={() => { setSelectedModel(null); setCustomModelImage(null); }}
+                      onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); }}
                       className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                     >
                       <X className="h-4 w-4" />
@@ -728,189 +648,136 @@ export default function UnifiedStudio() {
                   </div>
                 </div>
 
-                {/* Proceed Button */}
+                {/* Generate Button */}
                 <Button
                   size="lg"
-                  onClick={handleProceedToMark}
-                  disabled={!jewelryImage}
+                  onClick={handleGenerate}
+                  disabled={!jewelryImage || !activeModelUrl || preflightChecking}
                   className="w-full font-display text-lg uppercase tracking-wide gap-2"
                 >
-                  Continue to Marking
-                  <ChevronRight className="h-5 w-5" />
+                  {preflightChecking ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-5 w-5" />
+                  )}
+                  Generate Photoshoot
                 </Button>
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* ─── STEP 2: Mark ─────────────────────────────────────────── */}
-        {currentStep === 'mark' && studioState.originalImage && (
+        {/* ─── GENERATING STEP ──────────────────────────────────────── */}
+        {currentStep === 'generating' && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-20"
           >
-            {showTutorial && <MarkingTutorial onDismiss={() => setShowTutorial(false)} />}
-
-            {/* Fullscreen Dialog */}
-            <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-              <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] p-0 bg-background/95 backdrop-blur-xl border-border/20 [&>button]:hidden overflow-hidden flex flex-col">
-                <DialogTitle className="sr-only">Enlarged Image View</DialogTitle>
-                <div className="relative w-full h-full flex flex-col min-h-0 flex-1">
-                  <div className="flex items-center justify-between p-4 border-b border-border/20">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1.5">
-                        <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-sm font-medium">{redDots.length}{isNecklace ? `/${MAX_DOTS}` : ''} marks</span>
-                      </div>
-                      <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5">
-                        <Circle className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-xs text-muted-foreground">Size</span>
-                        <Slider value={[markerSize]} onValueChange={([v]) => setMarkerSize(v)} min={4} max={24} step={1} className="w-24" />
-                        <span className="text-xs font-medium w-6">{markerSize}px</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" onClick={handleUndo} disabled={!undoStack.length}><Undo2 className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="outline" onClick={handleRedo} disabled={!redoStack.length}><Redo2 className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="outline" onClick={() => { setUndoStack(p => [...p, redDots]); setRedoStack([]); setRedDots([]); }} disabled={!redDots.length}><X className="h-4 w-4 mr-1" />Clear</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setFullscreenImage(null)}><X className="h-4 w-4" /></Button>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-h-0 overflow-auto p-4 flex items-center justify-center">
-                    {fullscreenImage && studioState.originalImage && (
-                      <MaskCanvas
-                        image={studioState.originalImage}
-                        dots={redDots}
-                        brushSize={markerSize}
-                        mode="dot"
-                        canvasSize={Math.min(window.innerHeight * 0.7, 700)}
-                        jewelryType={jewelryType}
-                        onCanvasClick={handleCanvasClick}
-                      />
-                    )}
-                  </div>
-                  <div className="p-4 border-t border-border/20 flex justify-center">
-                    <p className="text-sm text-muted-foreground">Click on jewelry to mark it. Usually 3-5 dots are enough.</p>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
-              {/* Canvas */}
-              <div className="lg:col-span-2 space-y-6">
-                <div>
-                  <div className="flex items-center gap-4 mb-3">
-                    <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase">Step 2</span>
-                  </div>
-                  <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Mark Jewelry</h2>
-                  <p className="text-muted-foreground mt-2 text-sm">Click on the jewelry to mark it — usually 3-5 dots</p>
-                </div>
-
-                <div className="flex justify-center">
-                  <div className="relative inline-block group">
-                    <MaskCanvas
-                      image={studioState.originalImage}
-                      dots={redDots}
-                      onCanvasClick={isProcessing ? undefined : handleCanvasClick}
-                      brushSize={markerSize}
-                      mode="dot"
-                      canvasSize={400}
-                      jewelryType={jewelryType}
-                    />
-                    {isProcessing && (
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-                        <div className="relative mb-4">
-                          <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                          <Gem className="absolute inset-0 m-auto h-6 w-6 text-primary" />
-                        </div>
-                        <p className="text-white font-medium text-sm mb-1">{processingStep}</p>
-                        <div className="w-32 h-2 bg-white/20 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${processingProgress}%` }} />
-                        </div>
-                        <p className="text-white/80 text-xs mt-2">{processingProgress}%</p>
-                        <Button variant="ghost" size="sm" className="mt-3 text-white/80 hover:text-white hover:bg-white/10" onClick={() => setIsProcessing(false)}>
-                          <XOctagon className="h-3.5 w-3.5 mr-1.5" />Cancel
-                        </Button>
-                      </div>
-                    )}
-                    {!isProcessing && (
-                      <div className="absolute top-2 right-2 z-10 flex gap-1">
-                        <button className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white" onClick={() => setShowTutorial(true)}><HelpCircle className="h-3.5 w-3.5" /></button>
-                        <button className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white" onClick={() => setFullscreenImage(studioState.originalImage)}><Expand className="h-3.5 w-3.5" /></button>
-                        <button className="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-white" onClick={() => setCurrentStep('upload')}><X className="h-3.5 w-3.5" /></button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {!isProcessing && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-4 bg-muted/50 rounded-lg p-3">
-                      <Circle className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">Marker Size</span>
-                      <Slider value={[markerSize]} onValueChange={([v]) => setMarkerSize(v)} min={4} max={24} step={1} className="flex-1" />
-                      <span className="text-sm font-medium w-8 text-right">{markerSize}px</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-4 w-4 rounded-full bg-red-500 animate-pulse" />
-                        <p className="text-base">
-                          <span className="font-bold text-foreground">{redDots.length}</span>
-                          <span className="text-muted-foreground"> marks placed</span>
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Button variant="outline" size="default" onClick={handleUndo} disabled={!undoStack.length}><Undo2 className="h-5 w-5" /></Button>
-                        <Button variant="outline" size="default" onClick={handleRedo} disabled={!redoStack.length}><Redo2 className="h-5 w-5" /></Button>
-                        <Button variant="outline" size="default" onClick={() => { setUndoStack(p => [...p, redDots]); setRedoStack([]); setRedDots([]); }} disabled={!redDots.length}>Clear All</Button>
-                      </div>
-                    </div>
-                    <Button size="lg" onClick={handleGenerateMask} disabled={!redDots.length || isProcessing} className="w-full font-display text-lg uppercase tracking-wide gap-2">
-                      <Sparkles className="h-5 w-5" />
-                      Generate Mask
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Sidebar: Model preview + tip */}
-              <div className="space-y-6">
-                {activeModelUrl && (
-                  <div>
-                    <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-2">
-                      Selected Model
-                    </span>
-                    <div className="border border-border/30 overflow-hidden aspect-[3/4]">
-                      <img src={activeModelUrl} alt="Selected model" className="w-full h-full object-cover" />
-                    </div>
-                    <p className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground mt-1.5 text-center uppercase">
-                      {selectedModel ? selectedModel.label : 'Custom Upload'}
-                    </p>
-                  </div>
-                )}
-                <div className="border border-border/20 p-4">
-                  <div className="flex items-start gap-3">
-                    <Lightbulb className="h-5 w-5 text-primary mt-0.5" />
-                    <p className="text-sm text-muted-foreground">
-                      <strong className="text-foreground">Pro Tip:</strong> Sharp, well-lit images produce the most accurate masks. Place 3-5 dots directly on the jewelry.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="relative mb-8">
+              <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+              <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
             </div>
+
+            <h2 className="font-display text-3xl uppercase tracking-tight mb-2">
+              Generating
+            </h2>
+            <p className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-6">
+              {generationStep || 'Starting…'}
+            </p>
+
+            <div className="w-64 h-2 bg-muted rounded-full overflow-hidden mb-2">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${generationProgress}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+            <p className="font-mono text-[10px] text-muted-foreground">{generationProgress}%</p>
+
+            {/* Preview of inputs */}
+            <div className="flex gap-4 mt-10">
+              {jewelryImage && (
+                <div className="w-20 h-20 border border-border/30 overflow-hidden">
+                  <img src={jewelryImage} alt="Jewelry" className="w-full h-full object-cover opacity-60" />
+                </div>
+              )}
+              {activeModelUrl && (
+                <div className="w-20 h-20 border border-border/30 overflow-hidden">
+                  <img src={activeModelUrl} alt="Model" className="w-full h-full object-cover opacity-60" />
+                </div>
+              )}
+            </div>
+
+            {generationError && (
+              <div className="mt-6 border border-destructive/20 bg-destructive/5 p-4 max-w-md text-center">
+                <p className="text-sm text-destructive mb-3">{generationError}</p>
+                <Button variant="outline" size="sm" onClick={handleStartOver} className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Try Again
+                </Button>
+              </div>
+            )}
           </motion.div>
         )}
 
-        {/* ─── STEP 3: Generate ─────────────────────────────────────── */}
-        {currentStep === 'generate' && (
-          <StepRefineAndGenerate
-            state={studioState}
-            updateState={updateStudioState}
-            onBack={() => setCurrentStep('mark')}
-            jewelryType={jewelryType}
-          />
+        {/* ─── RESULTS STEP ─────────────────────────────────────────── */}
+        {currentStep === 'results' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-8"
+          >
+            <div className="text-center">
+              <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">
+                Complete
+              </span>
+              <h2 className="font-display text-4xl uppercase tracking-tight">
+                Your Results
+              </h2>
+            </div>
+
+            {resultImages.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+                {resultImages.map((url, i) => (
+                  <div key={i} className="relative group border border-border/30 overflow-hidden">
+                    <img
+                      src={url}
+                      alt={`Result ${i + 1}`}
+                      className="w-full aspect-[3/4] object-contain bg-muted/30"
+                    />
+                    <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <a
+                        href={url}
+                        download={`photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Button variant="outline" size="sm" className="gap-2 w-full font-mono text-[10px] uppercase tracking-wider">
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </Button>
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <p className="text-muted-foreground">No result images found. The workflow may still be processing.</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-center gap-4">
+              <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
+                <RefreshCw className="h-4 w-4" />
+                New Photoshoot
+              </Button>
+            </div>
+          </motion.div>
         )}
       </div>
     </div>
