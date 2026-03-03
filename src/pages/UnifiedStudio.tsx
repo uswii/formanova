@@ -394,263 +394,248 @@ export default function UnifiedStudio() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="space-y-10"
           >
-            {/* ── Row 1: Upload + Example Guide ────────────────────── */}
             <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
-              {/* Left 2/3: Upload Zone */}
-              <div className="lg:col-span-2 space-y-6">
-                <div>
-                  <div className="flex items-center gap-4 mb-3">
-                    <span className="marta-label">Step 1</span>
-                  </div>
-                  <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Upload Your Jewelry</h2>
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    Upload a photo of your jewelry <strong>worn on a person</strong>
-                  </p>
-                </div>
-
-                {!jewelryImage ? (
-                  <div
-                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all p-12 flex flex-col items-center justify-center"
-                  >
-                    {/* Striking diamond with ping */}
-                    <div className="relative mx-auto w-24 h-24 mb-6">
-                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
-                      <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
-                        <Diamond className="h-10 w-10 text-primary" />
-                      </div>
+              {/* Left 2/3: Both steps stacked */}
+              <div className="lg:col-span-2 space-y-10">
+                {/* ── Step 1: Upload Jewelry ──────────────────────── */}
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center gap-4 mb-3">
+                      <span className="marta-label">Step 1</span>
                     </div>
-                    <p className="text-xl font-display font-medium mb-2">Drop your jewelry image here</p>
-                    <p className="text-sm text-muted-foreground mb-6">or click to browse, or paste from clipboard (Ctrl+V)</p>
-                    <Button variant="outline" size="lg" className="gap-2">
-                      <ImageIcon className="h-4 w-4" />
-                      Browse Files
-                    </Button>
-                    <input
-                      ref={jewelryInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJewelryUpload(f); }}
-                    />
+                    <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Upload Your Jewelry</h2>
+                    <p className="text-muted-foreground mt-2">Upload a photo of your jewelry <strong>worn on a person</strong></p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Image with validation overlay */}
-                    <div className="relative group">
-                      <div className={`border overflow-hidden flex items-center justify-center bg-muted/30 max-h-[400px] ${
-                        isFlagged ? 'border-destructive/40' : 'border-border/30'
-                      }`}>
-                        <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[400px] object-contain" />
 
-                        {/* Red X overlay when flagged */}
-                        {isFlagged && (
-                          <div className="absolute inset-0 bg-destructive/10 flex items-center justify-center pointer-events-none">
-                            <div className="w-16 h-16 rounded-full bg-destructive/90 flex items-center justify-center">
-                              <X className="h-8 w-8 text-destructive-foreground" />
+                  {!jewelryImage ? (
+                    <div
+                      onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
+                      onDragOver={(e) => e.preventDefault()}
+                      onClick={() => jewelryInputRef.current?.click()}
+                      className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all p-12 flex flex-col items-center justify-center"
+                    >
+                      <div className="relative mx-auto w-24 h-24 mb-6">
+                        <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
+                        <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
+                          <Diamond className="h-10 w-10 text-primary" />
+                        </div>
+                      </div>
+                      <p className="text-xl font-display font-medium mb-2">Drop your jewelry image here</p>
+                      <p className="text-sm text-muted-foreground mb-6">or click to browse, or paste from clipboard (Ctrl+V)</p>
+                      <Button variant="outline" size="lg" className="gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        Browse Files
+                      </Button>
+                      <input
+                        ref={jewelryInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJewelryUpload(f); }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="relative group">
+                        <div className={`border overflow-hidden flex items-center justify-center bg-muted/30 max-h-[400px] ${
+                          isFlagged ? 'border-destructive/40' : 'border-border/30'
+                        }`}>
+                          <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[400px] object-contain" />
+                          {isFlagged && (
+                            <div className="absolute inset-0 bg-destructive/10 flex items-center justify-center pointer-events-none">
+                              <div className="w-16 h-16 rounded-full bg-destructive/90 flex items-center justify-center">
+                                <X className="h-8 w-8 text-destructive-foreground" />
+                              </div>
                             </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); }}
+                          className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        {isValidating && (
+                          <div className="absolute top-2 left-2 bg-muted/90 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5">
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
+                          </div>
+                        )}
+                        {!isValidating && validationResult && !isFlagged && (
+                          <div className="absolute top-2 left-2 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20">
+                            <Check className="h-3 w-3 text-primary" />
+                            <span className="font-mono text-[9px] tracking-wider uppercase text-primary">Accepted</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Remove button */}
-                      <button
-                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); }}
-                        className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-
-                      {/* Validation badge */}
-                      {isValidating && (
-                        <div className="absolute top-2 left-2 bg-muted/90 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5">
-                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                          <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
-                        </div>
-                      )}
-                      {!isValidating && validationResult && !isFlagged && (
-                        <div className="absolute top-2 left-2 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20">
-                          <Check className="h-3 w-3 text-primary" />
-                          <span className="font-mono text-[9px] tracking-wider uppercase text-primary">
-                            Accepted
-                          </span>
+                      {/* Flagged comparison panel */}
+                      {isFlagged && (
+                        <div className="border border-destructive/20 bg-destructive/5 p-4 space-y-4">
+                          <div>
+                            <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                              <X className="h-4 w-4" />
+                              Image not accepted — detected: {LABEL_NAMES[validationResult!.category] || validationResult!.category}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Please upload jewelry being worn on a model, mannequin, or body part.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
+                              <div className="relative border-2 border-destructive/40 overflow-hidden aspect-square bg-muted/30">
+                                <img src={jewelryImage} alt="Flagged" className="w-full h-full object-cover" />
+                                <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-destructive flex items-center justify-center">
+                                  <X className="h-3.5 w-3.5 text-destructive-foreground" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="font-mono text-[9px] tracking-wider text-primary uppercase">Acceptable example</p>
+                              <div className="relative border-2 border-primary/40 overflow-hidden aspect-square bg-muted/30">
+                                <img src={acceptableExample} alt="Acceptable" className="w-full h-full object-cover" />
+                                <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
-
-                    {/* Flagged: side-by-side comparison panel */}
-                    {isFlagged && (
-                      <div className="border border-destructive/20 bg-destructive/5 p-4 space-y-4">
-                        <div>
-                          <p className="text-sm font-semibold text-destructive flex items-center gap-2">
-                            <X className="h-4 w-4" />
-                            Image not accepted — detected: {LABEL_NAMES[validationResult!.category] || validationResult!.category}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Please upload jewelry being worn on a model, mannequin, or body part. You can still proceed, but results may be suboptimal.
-                          </p>
-                        </div>
-
-                        {/* Side-by-side: user's flagged vs acceptable */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
-                            <div className="relative border-2 border-destructive/40 overflow-hidden aspect-square bg-muted/30">
-                              <img src={jewelryImage} alt="Flagged" className="w-full h-full object-cover" />
-                              <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-destructive flex items-center justify-center">
-                                <X className="h-3.5 w-3.5 text-destructive-foreground" />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="font-mono text-[9px] tracking-wider text-primary uppercase">Acceptable example</p>
-                            <div className="relative border-2 border-primary/40 overflow-hidden aspect-square bg-muted/30">
-                              <img src={acceptableExample} alt="Acceptable" className="w-full h-full object-cover" />
-                              <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                                <Check className="h-3.5 w-3.5 text-primary-foreground" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Right 1/3: Example Guide */}
-              <div className="hidden lg:block">
-                <ExampleGuidePanel
-                  categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
-                  categoryType={exampleCategoryType}
-                />
-              </div>
-            </div>
-
-            {/* ── Row 2: Model Selection ───────────────────────────── */}
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center gap-4 mb-3">
-                  <span className="marta-label">Step 2</span>
+                  )}
                 </div>
-                <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Choose a Model</h2>
-                <p className="text-muted-foreground mt-2 text-sm">
-                  Select from our AI model library or upload your own reference photo
-                </p>
-              </div>
 
-              {/* Selected model preview */}
-              {activeModelUrl && (
-                <div className="relative inline-block group">
-                  <div className="border-2 border-primary/40 overflow-hidden flex items-center justify-center bg-muted/30 w-48 h-64">
-                    <img src={activeModelUrl} alt="Selected model" className="w-full h-full object-cover" />
+                {/* ── Step 2: Choose Model ────────────────────────── */}
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center gap-4 mb-3">
+                      <span className="marta-label">Step 2</span>
+                    </div>
+                    <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight">Choose a Model</h2>
+                    <p className="text-muted-foreground mt-2">Select from our library or upload your own reference photo</p>
                   </div>
-                  <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-0.5 text-[10px] font-mono tracking-wider uppercase">
-                    {selectedModel ? selectedModel.label : 'Custom Upload'}
-                  </div>
-                  <button
-                    onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); }}
-                    className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
 
-              {/* Upload own + Library tabs */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => modelInputRef.current?.click()}
-                  className="border border-dashed border-border/40 hover:border-foreground/40 hover:bg-foreground/5 transition-all px-4 py-2.5 flex items-center gap-2"
-                >
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Upload Your Own</span>
-                </button>
-                <input
-                  ref={modelInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelUpload(f); }}
-                />
-
-                <div className="w-px h-6 bg-border/40 mx-1" />
-
-                <button
-                  onClick={() => setModelTab('ecom')}
-                  className={`px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase transition-all ${
-                    modelTab === 'ecom' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  E-Commerce
-                </button>
-                <button
-                  onClick={() => setModelTab('editorial')}
-                  className={`px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase transition-all ${
-                    modelTab === 'editorial' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  Editorial
-                </button>
-              </div>
-
-              {/* Model grid */}
-              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                {(modelTab === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => {
-                  const isSelected = selectedModel?.id === model.id;
-                  return (
+                  {/* Upload own + Library tabs — compact row */}
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
-                      key={model.id}
-                      onClick={() => handleSelectLibraryModel(model)}
-                      className={`group relative aspect-[3/4] overflow-hidden border-2 transition-all ${
-                        isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border/30 hover:border-foreground/30'
+                      onClick={() => modelInputRef.current?.click()}
+                      className="border border-dashed border-border/40 hover:border-foreground/40 hover:bg-foreground/5 transition-all px-4 py-2 flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Upload Your Own</span>
+                    </button>
+                    <input
+                      ref={modelInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelUpload(f); }}
+                    />
+                    <div className="w-px h-6 bg-border/40 mx-1" />
+                    <button
+                      onClick={() => setModelTab('ecom')}
+                      className={`px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase transition-all ${
+                        modelTab === 'ecom' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                     >
-                      <img
-                        src={model.url}
-                        alt={model.label}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                          <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                            <Check className="h-3.5 w-3.5 text-primary-foreground" />
-                          </div>
-                        </div>
-                      )}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-background/80 to-transparent p-1">
-                        <span className="font-mono text-[7px] tracking-wider text-foreground/80 uppercase">
-                          {model.label}
-                        </span>
-                      </div>
+                      E-Commerce
                     </button>
-                  );
-                })}
+                    <button
+                      onClick={() => setModelTab('editorial')}
+                      className={`px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase transition-all ${
+                        modelTab === 'editorial' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      Editorial
+                    </button>
+                  </div>
+
+                  {/* Selected model preview — inline compact */}
+                  {activeModelUrl && (
+                    <div className="relative inline-block group">
+                      <div className="border-2 border-primary/40 overflow-hidden bg-muted/30 w-32 h-44">
+                        <img src={activeModelUrl} alt="Selected model" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="absolute top-1.5 left-1.5 bg-primary text-primary-foreground px-1.5 py-0.5 text-[8px] font-mono tracking-wider uppercase">
+                        {selectedModel ? selectedModel.label : 'Custom'}
+                      </div>
+                      <button
+                        onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); }}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Model grid — compact */}
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5">
+                    {(modelTab === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS).map((model) => {
+                      const isSelected = selectedModel?.id === model.id;
+                      return (
+                        <button
+                          key={model.id}
+                          onClick={() => handleSelectLibraryModel(model)}
+                          className={`group relative aspect-[3/4] overflow-hidden border transition-all ${
+                            isSelected ? 'border-primary ring-1 ring-primary/30' : 'border-border/20 hover:border-foreground/30'
+                          }`}
+                        >
+                          <img
+                            src={model.url}
+                            alt={model.label}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                                <Check className="h-3 w-3 text-primary-foreground" />
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Generate button */}
+                  <Button
+                    size="lg"
+                    onClick={handleGenerate}
+                    disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
+                    className="w-full sm:w-auto font-display text-lg uppercase tracking-wide gap-2 px-12"
+                  >
+                    {preflightChecking ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-5 w-5" />
+                    )}
+                    Generate Photoshoot
+                  </Button>
+                  {isValidating && (
+                    <p className="text-xs text-muted-foreground font-mono tracking-wider">
+                      Waiting for image validation to complete…
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Generate */}
-              <Button
-                size="lg"
-                onClick={handleGenerate}
-                disabled={!jewelryImage || !activeModelUrl || preflightChecking}
-                className="w-full sm:w-auto font-display text-lg uppercase tracking-wide gap-2 px-12"
-              >
-                {preflightChecking ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-5 w-5" />
-                )}
-                Generate Photoshoot
-              </Button>
+              {/* Right 1/3: Example Guide — sticky */}
+              <div className="hidden lg:block">
+                <div className="sticky top-8">
+                  <ExampleGuidePanel
+                    categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
+                    categoryType={exampleCategoryType}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Mobile example guide */}
-            <div className="lg:hidden">
+            <div className="lg:hidden mt-8">
               <ExampleGuidePanel
                 categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
                 categoryType={exampleCategoryType}
