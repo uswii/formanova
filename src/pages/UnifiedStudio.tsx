@@ -44,19 +44,52 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { azureUriToUrl } from '@/components/generations/CadWorkflowModal';
 import ExampleGuidePanel from '@/components/bulk/ExampleGuidePanel';
 
-// Acceptable example images per category — 3rd good example from each
-import necklaceAllowed from '@/assets/examples/necklace-allowed-3.jpg';
-import earringAllowed from '@/assets/examples/earring-allowed-3.jpg';
-import braceletAllowed from '@/assets/examples/bracelet-allowed-3.jpg';
-import ringAllowed from '@/assets/examples/ring-allowed-3.jpg';
-import watchAllowed from '@/assets/examples/watch-allowed-3.png';
+// Example images for inline Upload Guide
+import necklaceAllowed1 from '@/assets/examples/necklace-allowed-1.jpg';
+import necklaceAllowed2 from '@/assets/examples/necklace-allowed-2.jpg';
+import necklaceAllowed3 from '@/assets/examples/necklace-allowed-3.jpg';
+import necklaceNotAllowed1 from '@/assets/examples/necklace-notallowed-1.png';
+import necklaceNotAllowed2 from '@/assets/examples/necklace-notallowed-2.png';
+import necklaceNotAllowed3 from '@/assets/examples/necklace-notallowed-3.png';
+import earringAllowed1 from '@/assets/examples/earring-allowed-1.jpg';
+import earringAllowed2 from '@/assets/examples/earring-allowed-2.jpg';
+import earringAllowed3 from '@/assets/examples/earring-allowed-3.jpg';
+import earringNotAllowed1 from '@/assets/examples/earring-notallowed-1.png';
+import earringNotAllowed2 from '@/assets/examples/earring-notallowed-2.png';
+import earringNotAllowed3 from '@/assets/examples/earring-notallowed-3.png';
+import braceletAllowed1 from '@/assets/examples/bracelet-allowed-1.jpg';
+import braceletAllowed2 from '@/assets/examples/bracelet-allowed-2.jpg';
+import braceletAllowed3 from '@/assets/examples/bracelet-allowed-3.jpg';
+import braceletNotAllowed1 from '@/assets/examples/bracelet-notallowed-1.png';
+import braceletNotAllowed2 from '@/assets/examples/bracelet-notallowed-2.png';
+import braceletNotAllowed3 from '@/assets/examples/bracelet-notallowed-3.png';
+import ringAllowed1 from '@/assets/examples/ring-allowed-1.png';
+import ringAllowed2 from '@/assets/examples/ring-allowed-2.png';
+import ringAllowed3 from '@/assets/examples/ring-allowed-3.jpg';
+import ringNotAllowed1 from '@/assets/examples/ring-notallowed-1.png';
+import ringNotAllowed2 from '@/assets/examples/ring-notallowed-2.png';
+import ringNotAllowed3 from '@/assets/examples/ring-notallowed-3.png';
+import watchAllowed1 from '@/assets/examples/watch-allowed-1.jpg';
+import watchAllowed2 from '@/assets/examples/watch-allowed-2.jpg';
+import watchAllowed3 from '@/assets/examples/watch-allowed-3.png';
+import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.png';
+import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.png';
+import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.png';
+
+const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
+  necklace: { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3], notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
+  earrings: { allowed: [earringAllowed1, earringAllowed2, earringAllowed3], notAllowed: [earringNotAllowed1, earringNotAllowed2, earringNotAllowed3] },
+  bracelets: { allowed: [braceletAllowed1, braceletAllowed2, braceletAllowed3], notAllowed: [braceletNotAllowed1, braceletNotAllowed2, braceletNotAllowed3] },
+  rings: { allowed: [ringAllowed1, ringAllowed2, ringAllowed3], notAllowed: [ringNotAllowed1, ringNotAllowed2, ringNotAllowed3] },
+  watches: { allowed: [watchAllowed1, watchAllowed2, watchAllowed3], notAllowed: [watchNotAllowed1, watchNotAllowed2, watchNotAllowed3] },
+};
 
 const ACCEPTABLE_EXAMPLES: Record<string, string> = {
-  necklace: necklaceAllowed, necklaces: necklaceAllowed,
-  earring: earringAllowed,  earrings: earringAllowed,
-  bracelet: braceletAllowed, bracelets: braceletAllowed,
-  ring: ringAllowed,        rings: ringAllowed,
-  watch: watchAllowed,      watches: watchAllowed,
+  necklace: necklaceAllowed3, necklaces: necklaceAllowed3,
+  earring: earringAllowed3,  earrings: earringAllowed3,
+  bracelet: braceletAllowed3, bracelets: braceletAllowed3,
+  ring: ringAllowed3,        rings: ringAllowed3,
+  watch: watchAllowed3,      watches: watchAllowed3,
 };
 
 const CATEGORY_TYPE_MAP: Record<string, string> = {
@@ -383,7 +416,7 @@ export default function UnifiedStudio() {
 
   const exampleCategoryType = CATEGORY_TYPE_MAP[jewelryType] || 'necklace';
   const isFlagged = validationResult && !validationResult.is_acceptable;
-  const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed;
+  const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed3;
   const canProceed = jewelryImage && !isValidating;
 
   // ─── Model Grid Component ────────────────────────────────────────
@@ -491,17 +524,17 @@ export default function UnifiedStudio() {
               </p>
             </div>
 
-            {/* Layout — Upload LEFT, Example Gallery RIGHT — edge to edge */}
-            <div className="grid lg:grid-cols-12 gap-4 lg:gap-5">
-              {/* Left — Upload Zone */}
-              <div className="lg:col-span-5 order-1">
+            {/* Layout — Upload LEFT, Upload Guide RIGHT — no divider, spacing only */}
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+              {/* ── Left Column: Upload Zone ── */}
+              <div>
                 {!jewelryImage ? (
-                  /* Empty state — drop zone (tall rectangular) */
+                  /* Empty state — drop zone */
                   <div
                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[480px] md:min-h-[600px] aspect-[3/4] lg:sticky lg:top-8"
+                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[480px] md:min-h-[560px] rounded-lg"
                   >
                     <div className="relative mx-auto w-20 h-20 mb-6">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
@@ -526,12 +559,11 @@ export default function UnifiedStudio() {
                     />
                   </div>
                 ) : (
-                  /* Uploaded state — image preview (no flagged overlay on canvas) */
+                  /* Uploaded state — image preview */
                   <div className="space-y-4">
-                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[480px] md:min-h-[600px] aspect-[3/4] border-border/30">
+                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[480px] md:min-h-[560px] border-border/30 rounded-lg">
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
-                      {/* Small remove X inside top-right of image */}
                       <button
                         onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); if (currentStep === 'model') setCurrentStep('upload'); }}
                         className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
@@ -539,7 +571,6 @@ export default function UnifiedStudio() {
                         <X className="h-3.5 w-3.5" />
                       </button>
 
-                      {/* Validation badges */}
                       {isValidating && (
                         <div className="absolute top-3 left-3 bg-muted/90 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 rounded-sm">
                           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -554,7 +585,6 @@ export default function UnifiedStudio() {
                       )}
                     </div>
 
-                    {/* Next button — always available once image uploaded & validation done */}
                     {currentStep === 'upload' && (
                       <div className="flex justify-end pt-2">
                         <Button
@@ -578,21 +608,60 @@ export default function UnifiedStudio() {
                 )}
               </div>
 
-              {/* Right — Example Guide Panel (full width, no extra padding) */}
-              <div className="lg:col-span-7 order-2">
-                <ExampleGuidePanel
-                  categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
-                  categoryType={exampleCategoryType}
-                />
-              </div>
-            </div>
+              {/* ── Right Column: Upload Guide ── */}
+              <div className="space-y-6">
+                {/* Guide heading */}
+                <div>
+                  <h2 className="font-display text-xl md:text-2xl uppercase tracking-tight">Upload Guide</h2>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Follow these guidelines to ensure accurate, high-quality results.
+                  </p>
+                </div>
 
-            {/* Mobile example guide */}
-            <div className="lg:hidden mt-8">
-              <ExampleGuidePanel
-                categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
-                categoryType={exampleCategoryType}
-              />
+                {/* Accepted examples */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <Check className="w-3 h-3 text-green-500" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">
+                      Accepted — jewelry worn on a person or mannequin
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(CATEGORY_EXAMPLES[exampleCategoryType]?.allowed || []).map((img, i) => (
+                      <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden rounded-md border-2 border-green-500/30 bg-muted/20">
+                        <img src={img} alt={`Accepted ${i + 1}`} className="w-full h-full object-cover" />
+                        <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Not accepted examples */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center">
+                      <X className="w-3 h-3 text-destructive" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">
+                      Not Accepted — product shots, flat lays, renders
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(CATEGORY_EXAMPLES[exampleCategoryType]?.notAllowed || []).map((img, i) => (
+                      <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden rounded-md border-2 border-destructive/30 bg-muted/20">
+                        <img src={img} alt={`Not accepted ${i + 1}`} className="w-full h-full object-cover opacity-70" />
+                        <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center shadow-lg">
+                          <X className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
