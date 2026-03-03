@@ -525,16 +525,16 @@ export default function UnifiedStudio() {
             </div>
 
             {/* Layout — Upload LEFT, Upload Guide RIGHT — no divider, spacing only */}
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="grid lg:grid-cols-12 gap-6 lg:gap-10">
               {/* ── Left Column: Upload Zone ── */}
-              <div>
+              <div className="lg:col-span-5">
                 {!jewelryImage ? (
                   /* Empty state — drop zone */
                   <div
                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[480px] md:min-h-[560px] rounded-lg"
+                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[400px] md:min-h-[460px] rounded-lg"
                   >
                     <div className="relative mx-auto w-20 h-20 mb-6">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
@@ -561,7 +561,7 @@ export default function UnifiedStudio() {
                 ) : (
                   /* Uploaded state — image preview */
                   <div className="space-y-4">
-                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[480px] md:min-h-[560px] border-border/30 rounded-lg">
+                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[400px] md:min-h-[460px] border-border/30 rounded-lg">
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
@@ -609,7 +609,7 @@ export default function UnifiedStudio() {
               </div>
 
               {/* ── Right Column: Upload Guide ── */}
-              <div className="space-y-6">
+              <div className="lg:col-span-7 space-y-6">
                 {/* Guide heading */}
                 <div>
                   <h2 className="font-display text-xl md:text-2xl uppercase tracking-tight">Upload Guide</h2>
