@@ -501,7 +501,7 @@ export default function UnifiedStudio() {
         />
       )}
 
-      <div className="px-6 md:px-12 py-8 relative z-10 max-w-7xl mx-auto">
+      <div className="px-4 md:px-6 py-8 relative z-10 max-w-screen-2xl mx-auto">
 
         {/* ═══════════════════════════════════════════════════════════
             STEP 1 — UPLOAD YOUR JEWELRY
