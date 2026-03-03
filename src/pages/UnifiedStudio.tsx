@@ -370,9 +370,6 @@ export default function UnifiedStudio() {
                 </div>
               </div>
             )}
-            <span className="absolute bottom-1 left-1 text-[8px] font-mono text-white/80 bg-black/40 px-1 rounded-sm backdrop-blur-sm">
-              {model.label}
-            </span>
           </button>
         );
       })}
@@ -395,9 +392,6 @@ export default function UnifiedStudio() {
                 <Check className="h-3.5 w-3.5 text-primary-foreground" />
               </div>
             </div>
-            <span className="absolute bottom-1 left-1 text-[8px] font-mono text-white/80 bg-black/40 px-1 rounded-sm backdrop-blur-sm z-10">
-              Custom
-            </span>
           </>
         ) : (
           <>
@@ -639,23 +633,18 @@ export default function UnifiedStudio() {
               <div className="lg:col-span-7 space-y-5">
                 <div className="border border-border/30 bg-muted/10 min-h-[420px] md:min-h-[520px] flex items-center justify-center relative overflow-hidden">
                   {activeModelUrl ? (
-                    <>
-                      <img
-                        src={activeModelUrl}
-                        alt="Selected model"
-                        className="max-w-full max-h-[520px] object-contain"
-                      />
-                      <div className="absolute top-3 left-3 bg-primary text-primary-foreground px-2 py-0.5 text-[9px] font-mono tracking-wider uppercase rounded-sm">
-                        {selectedModel ? selectedModel.label : 'Custom Upload'}
-                      </div>
-                    </>
+                    <img
+                      src={activeModelUrl}
+                      alt="Selected model"
+                      className="max-w-full max-h-[520px] object-contain"
+                    />
                   ) : (
                     <div className="text-center px-8">
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center border border-border/20">
                         <ImageIcon className="h-7 w-7 text-muted-foreground/40" />
                       </div>
-                      <p className="text-foreground text-sm font-medium mb-1">Choose from library or upload your own</p>
-                      <p className="text-muted-foreground text-xs">Select a model from the panel to preview here</p>
+                      <p className="text-foreground text-sm font-medium mb-1">Choose from our AI model library</p>
+                      <p className="text-muted-foreground text-xs">or upload your own reference photo</p>
                     </div>
                   )}
                 </div>
