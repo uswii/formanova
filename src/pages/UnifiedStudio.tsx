@@ -834,50 +834,64 @@ export default function UnifiedStudio() {
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-20"
+            className="flex items-center justify-center min-h-[70vh]"
           >
-            <div className="relative mb-8">
-              <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-              <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
-            </div>
-
-            <h2 className="font-display text-3xl uppercase tracking-tight mb-2">Generating</h2>
-            <p className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-6">
-              {generationStep || 'Starting…'}
-            </p>
-
-            <div className="w-64 h-1.5 bg-muted overflow-hidden mb-2">
-              <motion.div
-                className="h-full bg-primary"
-                initial={{ width: 0 }}
-                animate={{ width: `${generationProgress}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-              />
-            </div>
-            <p className="font-mono text-[10px] text-muted-foreground">{Math.round(generationProgress)}%</p>
-
-            <div className="flex gap-4 mt-10">
-              {jewelryImage && (
-                <div className="w-20 h-20 border border-border/30 overflow-hidden">
-                  <img src={jewelryImage} alt="Jewelry" className="w-full h-full object-cover opacity-60" />
-                </div>
-              )}
-              {activeModelUrl && (
-                <div className="w-20 h-20 border border-border/30 overflow-hidden">
-                  <img src={activeModelUrl} alt="Model" className="w-full h-full object-cover opacity-60" />
-                </div>
-              )}
-            </div>
-
-            {generationError && (
-              <div className="mt-6 border border-destructive/20 bg-destructive/5 p-4 max-w-md text-center">
-                <p className="text-sm text-destructive mb-3">{generationError}</p>
-                <Button variant="outline" size="sm" onClick={handleStartOver} className="gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  Try Again
-                </Button>
+            {/* Dashed frame — centered on screen */}
+            <div className="border border-dashed border-border/40 px-16 py-14 flex flex-col items-center w-full max-w-md">
+              <div className="relative mb-8">
+                <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <Gem className="absolute inset-0 m-auto h-10 w-10 text-primary" />
               </div>
-            )}
+
+              <h2 className="font-display text-3xl uppercase tracking-tight mb-3">Generating</h2>
+
+              {/* Real status message — fades when it changes */}
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={generationStep}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.3 }}
+                  className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-6 text-center"
+                >
+                  {generationStep || 'Starting…'}
+                </motion.p>
+              </AnimatePresence>
+
+              <div className="w-full h-1.5 bg-muted overflow-hidden mb-2">
+                <motion.div
+                  className="h-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${generationProgress}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+              </div>
+              <p className="font-mono text-[10px] text-muted-foreground mb-8">{Math.round(generationProgress)}%</p>
+
+              <div className="flex gap-4">
+                {jewelryImage && (
+                  <div className="w-16 h-16 border border-border/30 overflow-hidden">
+                    <img src={jewelryImage} alt="Jewelry" className="w-full h-full object-cover opacity-50" />
+                  </div>
+                )}
+                {activeModelUrl && (
+                  <div className="w-16 h-16 border border-border/30 overflow-hidden">
+                    <img src={activeModelUrl} alt="Model" className="w-full h-full object-cover opacity-50" />
+                  </div>
+                )}
+              </div>
+
+              {generationError && (
+                <div className="mt-6 border border-destructive/20 bg-destructive/5 p-4 w-full text-center">
+                  <p className="text-sm text-destructive mb-3">{generationError}</p>
+                  <Button variant="outline" size="sm" onClick={handleStartOver} className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Try Again
+                  </Button>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -905,19 +919,17 @@ export default function UnifiedStudio() {
                       alt={`Result ${i + 1}`}
                       className="w-full aspect-[3/4] object-contain bg-muted/30"
                     />
-                    <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <a
-                        href={url}
-                        download={`photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Button variant="outline" size="sm" className="gap-2 w-full font-mono text-[10px] uppercase tracking-wider">
-                          <Download className="h-3.5 w-3.5" />
-                          Download
-                        </Button>
-                      </a>
-                    </div>
+                    <a
+                      href={url}
+                      download={`photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background">
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
                   </div>
                 ))}
               </div>
