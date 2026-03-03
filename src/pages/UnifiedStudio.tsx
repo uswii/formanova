@@ -5,13 +5,11 @@ import {
   Diamond,
   Image as ImageIcon,
   X,
-  Users,
   Upload,
   Check,
   Gem,
   Sparkles,
   Download,
-  AlertTriangle,
   Loader2,
   RefreshCw,
 } from 'lucide-react';
@@ -19,13 +17,14 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
+import { uploadToAzure } from '@/lib/microservices-api';
 import { ECOM_MODELS, EDITORIAL_MODELS, type ModelImage } from '@/lib/model-library';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import {
   startPhotoshoot,
   getPhotoshootStatus,
   getPhotoshootResult,
-  uploadImageForUrl,
+  resolveWorkflowState,
   type PhotoshootResultResponse,
 } from '@/lib/photoshoot-api';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
@@ -34,6 +33,21 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { azureUriToUrl } from '@/components/generations/CadWorkflowModal';
 import ExampleGuidePanel from '@/components/bulk/ExampleGuidePanel';
 
+// Acceptable example images per category
+import necklaceAllowed from '@/assets/examples/necklace-allowed-1.jpg';
+import earringAllowed from '@/assets/examples/earring-allowed-1.jpg';
+import braceletAllowed from '@/assets/examples/bracelet-allowed-1.jpg';
+import ringAllowed from '@/assets/examples/ring-allowed-1.png';
+import watchAllowed from '@/assets/examples/watch-allowed-1.jpg';
+
+const ACCEPTABLE_EXAMPLES: Record<string, string> = {
+  necklace: necklaceAllowed,
+  earring: earringAllowed,
+  bracelet: braceletAllowed,
+  ring: ringAllowed,
+  watch: watchAllowed,
+};
+
 // Category type mapping for ExampleGuidePanel
 const CATEGORY_TYPE_MAP: Record<string, string> = {
   necklace: 'necklace', necklaces: 'necklace',
@@ -41,6 +55,15 @@ const CATEGORY_TYPE_MAP: Record<string, string> = {
   ring: 'rings', rings: 'rings',
   bracelet: 'bracelets', bracelets: 'bracelets',
   watch: 'watches', watches: 'watches',
+};
+
+// Label → friendly name
+const LABEL_NAMES: Record<string, string> = {
+  flatlay: 'a flat lay',
+  product_surface: 'a product shot',
+  '3d_render': 'a 3D render',
+  packshot: 'a packshot',
+  floating: 'a floating product',
 };
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -103,7 +126,7 @@ export default function UnifiedStudio() {
     };
     reader.readAsDataURL(normalized);
 
-    // Run validation in background — this also uploads the image and returns its URL
+    // Run validation in background — uploads to Azure & classifies; caches URL
     const result = await validateImages([normalized], jewelryType);
     if (result && result.results.length > 0) {
       setValidationResult(result.results[0]);
@@ -168,12 +191,12 @@ export default function UnifiedStudio() {
 
     setIsGenerating(true);
     setGenerationProgress(0);
-    setGenerationStep('Uploading jewelry image...');
+    setGenerationStep('Preparing...');
     setGenerationError(null);
     setCurrentStep('generating');
 
     try {
-      // 1. Get jewelry URL — reuse from validation if available, otherwise upload
+      // 1. Get jewelry URL — reuse from validation (already uploaded)
       setGenerationProgress(5);
       let jewelryUrl: string;
       if (jewelryUploadedUrl) {
@@ -181,10 +204,18 @@ export default function UnifiedStudio() {
         console.log('[UnifiedStudio] Reusing jewelry URL from validation:', jewelryUrl);
         setGenerationProgress(20);
       } else {
+        // Fallback: upload via azure-upload
         setGenerationStep('Uploading jewelry image...');
         const jewelryBlob = await imageSourceToBlob(jewelryImage);
         const { blob: compressedJewelry } = await compressImageBlob(jewelryBlob);
-        jewelryUrl = await uploadImageForUrl(compressedJewelry, 'jewelry.jpg');
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(compressedJewelry);
+        });
+        const azResult = await uploadToAzure(base64);
+        jewelryUrl = azResult.https_url || azResult.sas_url;
         console.log('[UnifiedStudio] Jewelry uploaded (fallback):', jewelryUrl);
         setGenerationProgress(20);
       }
@@ -195,14 +226,19 @@ export default function UnifiedStudio() {
       let modelUrl: string;
 
       if (selectedModel) {
-        // Library model — URL is already public
         modelUrl = selectedModel.url;
       } else if (customModelImage && customModelFile) {
-        // Custom upload — need to upload
         setGenerationStep('Uploading model image...');
         const modelBlob = await imageSourceToBlob(customModelImage);
         const { blob: compressedModel } = await compressImageBlob(modelBlob);
-        modelUrl = await uploadImageForUrl(compressedModel, 'model.jpg');
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(compressedModel);
+        });
+        const azResult = await uploadToAzure(base64);
+        modelUrl = azResult.https_url || azResult.sas_url;
       } else {
         throw new Error('No model selected');
       }
@@ -227,13 +263,13 @@ export default function UnifiedStudio() {
       // 4. Poll until done
       setGenerationStep('Generating photoshoot...');
       const pollStart = Date.now();
-      const TIMEOUT = 300000; // 5 min
+      const TIMEOUT = 300000;
 
       while (Date.now() - pollStart < TIMEOUT) {
         await new Promise(r => setTimeout(r, 3000));
 
         const status = await getPhotoshootStatus(startResponse.workflow_id);
-        const state = status.progress?.state || (status as any).state;
+        const state = resolveWorkflowState(status);
 
         if (status.progress) {
           const visited = status.progress.visited || [];
@@ -255,7 +291,6 @@ export default function UnifiedStudio() {
           const result = await getPhotoshootResult(startResponse.workflow_id);
           console.log('[UnifiedStudio] Result:', result);
 
-          // Extract output images from result
           const images = extractResultImages(result);
           setResultImages(images);
           setCurrentStep('results');
@@ -289,7 +324,6 @@ export default function UnifiedStudio() {
         if (!item || typeof item !== 'object') continue;
         const obj = item as Record<string, unknown>;
 
-        // Check common output keys
         for (const k of ['output_url', 'image_url', 'result_url', 'url', 'image_b64', 'output_image']) {
           const val = obj[k];
           if (typeof val === 'string' && val.length > 0) {
@@ -322,6 +356,8 @@ export default function UnifiedStudio() {
   };
 
   const exampleCategoryType = CATEGORY_TYPE_MAP[jewelryType] || 'necklace';
+  const isFlagged = validationResult && !validationResult.is_acceptable;
+  const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed;
 
   // ─── Render ───────────────────────────────────────────────────────
 
@@ -403,14 +439,28 @@ export default function UnifiedStudio() {
                     />
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {/* Image with validation overlay */}
                     <div className="relative group">
-                      <div className="border border-border/30 overflow-hidden flex items-center justify-center bg-muted/30 max-h-[400px]">
+                      <div className={`border overflow-hidden flex items-center justify-center bg-muted/30 max-h-[400px] ${
+                        isFlagged ? 'border-destructive/40' : 'border-border/30'
+                      }`}>
                         <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[400px] object-contain" />
+
+                        {/* Red X overlay when flagged */}
+                        {isFlagged && (
+                          <div className="absolute inset-0 bg-destructive/10 flex items-center justify-center pointer-events-none">
+                            <div className="w-16 h-16 rounded-full bg-destructive/90 flex items-center justify-center">
+                              <X className="h-8 w-8 text-destructive-foreground" />
+                            </div>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Remove button */}
                       <button
                         onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); }}
-                        className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        className="absolute top-2 right-2 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -422,34 +472,49 @@ export default function UnifiedStudio() {
                           <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
                         </div>
                       )}
-                      {!isValidating && validationResult && (
-                        <div className={`absolute top-2 left-2 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5 ${
-                          validationResult.is_acceptable
-                            ? 'bg-primary/10 border border-primary/20'
-                            : 'bg-destructive/10 border border-destructive/20'
-                        }`}>
-                          {validationResult.is_acceptable
-                            ? <Check className="h-3 w-3 text-primary" />
-                            : <AlertTriangle className="h-3 w-3 text-destructive" />
-                          }
-                          <span className={`font-mono text-[9px] tracking-wider uppercase ${
-                            validationResult.is_acceptable ? 'text-primary' : 'text-destructive'
-                          }`}>
-                            {validationResult.is_acceptable ? 'Accepted' : 'Flagged — not worn'}
+                      {!isValidating && validationResult && !isFlagged && (
+                        <div className="absolute top-2 left-2 backdrop-blur-sm px-2 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20">
+                          <Check className="h-3 w-3 text-primary" />
+                          <span className="font-mono text-[9px] tracking-wider uppercase text-primary">
+                            Accepted
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Flagged warning */}
-                    {validationResult && !validationResult.is_acceptable && (
-                      <div className="border border-destructive/20 bg-destructive/5 p-3 flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                    {/* Flagged: side-by-side comparison panel */}
+                    {isFlagged && (
+                      <div className="border border-destructive/20 bg-destructive/5 p-4 space-y-4">
                         <div>
-                          <p className="text-sm font-medium text-destructive">Image may not produce optimal results</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            This appears to be a product shot. For best results, use a photo with jewelry <strong>worn on a person</strong>. You can still proceed.
+                          <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                            <X className="h-4 w-4" />
+                            Image not accepted — detected: {LABEL_NAMES[validationResult!.category] || validationResult!.category}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Please upload jewelry being worn on a model, mannequin, or body part. You can still proceed, but results may be suboptimal.
+                          </p>
+                        </div>
+
+                        {/* Side-by-side: user's flagged vs acceptable */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
+                            <div className="relative border-2 border-destructive/40 overflow-hidden aspect-square bg-muted/30">
+                              <img src={jewelryImage} alt="Flagged" className="w-full h-full object-cover" />
+                              <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-destructive flex items-center justify-center">
+                                <X className="h-3.5 w-3.5 text-destructive-foreground" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="font-mono text-[9px] tracking-wider text-primary uppercase">Acceptable example</p>
+                            <div className="relative border-2 border-primary/40 overflow-hidden aspect-square bg-muted/30">
+                              <img src={acceptableExample} alt="Acceptable" className="w-full h-full object-cover" />
+                              <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                                <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}

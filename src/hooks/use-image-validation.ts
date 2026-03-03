@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
 import { compressImageBlob } from '@/lib/image-compression';
+import { uploadToAzure } from '@/lib/microservices-api';
 
 const TEMPORAL_API = '/api';
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
@@ -12,7 +13,7 @@ export interface ClassificationResult {
   confidence: number;
   reason: string;
   flagged: boolean;
-  /** URL of the uploaded image extracted from classification results */
+  /** URL of the uploaded image — reuse to avoid double uploads */
   uploaded_url?: string;
 }
 
@@ -25,7 +26,7 @@ export interface ImageValidationResult {
   confidence: number;
   message: string;
   category: string;
-  /** URL of the uploaded image from the classification workflow — reuse to avoid double uploads */
+  /** URL of the uploaded image — reuse for photoshoot generation */
   uploaded_url?: string;
 }
 
@@ -45,7 +46,9 @@ export interface ValidationState {
 
 function getAuthHeaders(): Record<string, string> {
   const token = getStoredToken();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -75,23 +78,14 @@ function buildFlags(result: ClassificationResult): string[] {
 }
 
 /**
- * Convert a data URI to a Blob
- */
-function dataUriToBlob(dataUri: string): Blob {
-  const commaIdx = dataUri.indexOf(',');
-  const meta = dataUri.substring(0, commaIdx);
-  const mimeMatch = meta.match(/data:([^;]+)/);
-  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-  const b64 = dataUri.substring(commaIdx + 1);
-  const binaryStr = atob(b64);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-  return new Blob([bytes], { type: mimeType });
-}
-
-/**
  * Hook for validating uploaded jewelry images.
- * Calls the Temporal API directly with JWT auth — no edge function proxy.
+ *
+ * New flow:
+ * 1. Upload image via azure-upload edge function → get URL
+ * 2. POST /api/run/state/image_classification with { payload: { original_path: { uri } } }
+ * 3. Poll /api/status/{id} checking runtime.state
+ * 4. Fetch result from /api/result/{id}
+ * 5. Read result.image_captioning[0] with label, confidence, reason
  */
 export function useImageValidation() {
   const [state, setState] = useState<ValidationState>({
@@ -102,9 +96,9 @@ export function useImageValidation() {
   });
 
   /**
-   * Convert File to a compressed data URI string.
+   * Convert File to base64 string (for azure-upload)
    */
-  const fileToDataUri = useCallback(async (file: File): Promise<string> => {
+  const fileToBase64 = useCallback(async (file: File): Promise<string> => {
     const blob = new Blob([await file.arrayBuffer()], { type: file.type });
     const { blob: compressed } = await compressImageBlob(blob, 900);
 
@@ -118,52 +112,63 @@ export function useImageValidation() {
 
   /**
    * Classify a single image:
-   * 1. POST multipart to /process (image_classification workflow)
-   * 2. Poll /status/{id} until completed
-   * 3. Extract result from status.results.image_captioning[0]
+   * 1. Upload to Azure via edge function → get URL
+   * 2. POST JSON to /run/state/image_classification
+   * 3. Poll /status/{id} until runtime.state is completed
+   * 4. GET /result/{id} → read image_captioning[0]
    */
   const classifyImage = useCallback(async (
-    dataUri: string
+    base64DataUri: string
   ): Promise<ClassificationResult | null> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     try {
-      console.log('[ImageValidation] Starting classification via direct API...');
+      console.log('[ImageValidation] Uploading image to Azure...');
+
+      // 1. Upload to Azure to get a URL
+      const azureResult = await uploadToAzure(base64DataUri);
+      const uploadedUrl = azureResult.https_url || azureResult.sas_url;
+      // Use azure:// URI for the classification workflow (backend resolves it)
+      const classificationUri = azureResult.uri;
+      console.log('[ImageValidation] Uploaded:', classificationUri);
+
+      // 2. POST to /run/state/image_classification (JSON, Bearer JWT)
       const authHeaders = getAuthHeaders();
-
-      // 1. Convert data URI to multipart form
-      const imageBlob = dataUriToBlob(dataUri);
-      const ext = imageBlob.type.split('/')[1] || 'jpg';
-      const formData = new FormData();
-      formData.append('file', imageBlob, `image.${ext}`);
-      formData.append('workflow_name', 'image_classification');
-      formData.append('num_variations', '1');
-
-      // 2. POST to /process
-      const startRes = await fetch(`${TEMPORAL_API}/process`, {
+      const startRes = await fetch(`${TEMPORAL_API}/run/state/image_classification`, {
         method: 'POST',
-        headers: authHeaders, // no Content-Type — browser sets multipart boundary
-        body: formData,
+        headers: authHeaders,
+        body: JSON.stringify({
+          payload: {
+            original_path: { uri: classificationUri },
+          },
+        }),
         signal: controller.signal,
       });
 
       if (!startRes.ok) {
-        // 409 = duplicate/conflict — safe to skip validation
         if (startRes.status === 409) {
           console.warn('[ImageValidation] 409 Conflict — skipping (duplicate request)');
         } else {
-          console.warn('[ImageValidation] /process failed:', startRes.status);
+          console.warn('[ImageValidation] /run/state failed:', startRes.status);
         }
         clearTimeout(timeoutId);
-        return null;
+        // Even if classification fails, return the uploaded URL so it can be reused
+        return {
+          category: 'flatlay',
+          is_worn: true,
+          confidence: 0,
+          reason: 'skipped',
+          flagged: false,
+          uploaded_url: uploadedUrl,
+        };
       }
 
       const startData = await startRes.json();
       const workflowId = startData.workflow_id;
-      console.log('[ImageValidation] Workflow started:', workflowId);
+      console.log('[ImageValidation] Classification workflow started:', workflowId);
 
-      // 3. Poll /status/{id} (up to 80s, 2s intervals)
+      // 3. Poll /status/{id} until runtime.state is completed (~3-5s)
       const pollStart = Date.now();
       let pollCount = 0;
       while (Date.now() - pollStart < 80000) {
@@ -182,59 +187,61 @@ export function useImageValidation() {
         }
 
         const statusData = await statusRes.json();
-        const state = statusData.progress?.state || statusData.state || 'unknown';
-        console.log(`[ImageValidation] Poll ${pollCount}: state=${state}`);
+        const runtimeState = statusData.runtime?.state || statusData.progress?.state || statusData.state || 'unknown';
+        console.log(`[ImageValidation] Poll ${pollCount}: state=${runtimeState}`);
 
-        if (state === 'completed') {
-          const classificationResults = statusData.results?.image_captioning;
+        if (runtimeState === 'completed') {
+          // 4. Fetch result from /result/{id}
+          const resultRes = await fetch(`${TEMPORAL_API}/result/${workflowId}`, {
+            method: 'GET',
+            headers: authHeaders,
+            signal: controller.signal,
+          });
 
-          // Extract the uploaded image URL from results
-          let uploadedUrl: string | undefined;
-          const allResults = statusData.results || {};
-          for (const rKey of Object.keys(allResults)) {
-            const rItems = allResults[rKey];
-            if (Array.isArray(rItems)) {
-              for (const rItem of rItems) {
-                if (rItem?.image_url) { uploadedUrl = rItem.image_url; break; }
-                if (rItem?.original_url) { uploadedUrl = rItem.original_url; break; }
-                if (rItem?.url) { uploadedUrl = rItem.url; break; }
-              }
-              if (uploadedUrl) break;
-            }
+          if (!resultRes.ok) {
+            console.warn('[ImageValidation] Result fetch failed:', resultRes.status);
+            break;
           }
+
+          const resultData = await resultRes.json();
+          const classificationResults = resultData.image_captioning;
 
           if (classificationResults && classificationResults.length > 0) {
             const raw = classificationResults[0];
-            const category = raw.category || raw.label || 'unknown';
+            const label = raw.label || raw.category || 'unknown';
             const reason = raw.reason || '';
-            const is_worn = raw.is_worn !== undefined
-              ? raw.is_worn
-              : reason === 'worn' ? true
-              : reason === 'not_worn' ? false
-              : WORN_CATEGORIES.includes(category);
+            const is_worn = reason === 'worn';
 
             clearTimeout(timeoutId);
             return {
-              category,
+              category: label,
               is_worn,
               confidence: raw.confidence || 0,
               reason,
-              flagged: !is_worn,
+              flagged: reason === 'not_worn',
               uploaded_url: uploadedUrl,
             };
           }
-          console.warn('[ImageValidation] Completed but no results');
+          console.warn('[ImageValidation] Completed but no image_captioning results');
           break;
         }
 
-        if (state === 'failed') {
+        if (runtimeState === 'failed') {
           console.error('[ImageValidation] Workflow failed:', JSON.stringify(statusData));
           break;
         }
       }
 
       clearTimeout(timeoutId);
-      return null;
+      // Return with uploaded URL even on failure so image isn't re-uploaded
+      return {
+        category: 'flatlay',
+        is_worn: true,
+        confidence: 0,
+        reason: 'timeout',
+        flagged: false,
+        uploaded_url: uploadedUrl,
+      };
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
@@ -258,9 +265,9 @@ export function useImageValidation() {
     setState(prev => ({ ...prev, isValidating: true, error: null }));
 
     try {
-      const dataUris = await Promise.all(files.map(fileToDataUri));
+      const base64Uris = await Promise.all(files.map(fileToBase64));
       const classificationResults = await Promise.all(
-        dataUris.map(uri => classifyImage(uri))
+        base64Uris.map(uri => classifyImage(uri))
       );
 
       const results: ImageValidationResult[] = classificationResults.map((result, idx) => {
@@ -305,13 +312,13 @@ export function useImageValidation() {
         results,
         all_acceptable: allAcceptable,
         flagged_count: flaggedCount,
-        message: flaggedCount > 0 
+        message: flaggedCount > 0
           ? `${flaggedCount} image(s) flagged - review recommended before submission`
           : 'All images passed validation',
       };
     } catch (error) {
       console.error('Image validation error:', error);
-      
+
       const fallbackResults: ImageValidationResult[] = files.map((_, idx) => ({
         index: idx,
         detected_type: 'unknown' as const,
@@ -336,7 +343,7 @@ export function useImageValidation() {
         message: 'Validation error - proceeding anyway',
       };
     }
-  }, [fileToDataUri, classifyImage]);
+  }, [fileToBase64, classifyImage]);
 
   const clearValidation = useCallback(() => {
     setState({ isValidating: false, results: null, flaggedCount: 0, error: null });
