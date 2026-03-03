@@ -14,8 +14,10 @@ import {
   RefreshCw,
   ChevronUp,
   ArrowRight,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
@@ -341,6 +343,81 @@ export default function UnifiedStudio() {
   const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed;
   const canProceed = jewelryImage && !isFlagged && !isValidating;
 
+  // ─── Model Grid Component ────────────────────────────────────────
+
+  const ModelGrid = ({ models }: { models: ModelImage[] }) => (
+    <div className="grid grid-cols-3 gap-3">
+      {models.map((model) => {
+        const isSelected = selectedModel?.id === model.id && !customModelImage;
+        return (
+          <button
+            key={model.id}
+            onClick={() => handleSelectLibraryModel(model)}
+            className={`group relative aspect-[3/4] overflow-hidden border-2 transition-all rounded-sm ${
+              isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/20 hover:border-foreground/30'
+            }`}
+          >
+            <img
+              src={model.url}
+              alt={model.label}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+            {isSelected && (
+              <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
+                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                </div>
+              </div>
+            )}
+            <span className="absolute bottom-1 left-1 text-[8px] font-mono text-white/80 bg-black/40 px-1 rounded-sm backdrop-blur-sm">
+              {model.label}
+            </span>
+          </button>
+        );
+      })}
+      {/* + Upload Your Own card (shown in each tab) */}
+      <button
+        onClick={() => modelInputRef.current?.click()}
+        className={`group relative aspect-[3/4] overflow-hidden border-2 border-dashed transition-all rounded-sm flex flex-col items-center justify-center gap-2 ${
+          customModelImage ? 'border-primary ring-2 ring-primary/20' : 'border-border/30 hover:border-primary/40 hover:bg-primary/[0.02]'
+        }`}
+      >
+        {customModelImage ? (
+          <>
+            <img
+              src={customModelImage}
+              alt="Custom model"
+              className="w-full h-full object-cover absolute inset-0"
+            />
+            <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
+              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                <Check className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+            </div>
+            <span className="absolute bottom-1 left-1 text-[8px] font-mono text-white/80 bg-black/40 px-1 rounded-sm backdrop-blur-sm z-10">
+              Custom
+            </span>
+          </>
+        ) : (
+          <>
+            <Upload className="h-5 w-5 text-muted-foreground/50" />
+            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider text-center px-1">
+              + Upload Your Own
+            </span>
+          </>
+        )}
+      </button>
+      <input
+        ref={modelInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelUpload(f); }}
+      />
+    </div>
+  );
+
   // ─── Render ───────────────────────────────────────────────────────
 
   return (
@@ -357,7 +434,7 @@ export default function UnifiedStudio() {
       <div className="px-6 md:px-12 py-8 relative z-10 max-w-7xl mx-auto">
 
         {/* ═══════════════════════════════════════════════════════════
-            STEP 1 — UPLOAD YOUR JEWELRY (always visible except generating/results)
+            STEP 1 — UPLOAD YOUR JEWELRY
             ═══════════════════════════════════════════════════════════ */}
         {(currentStep === 'upload' || currentStep === 'model') && (
           <motion.div
@@ -377,12 +454,22 @@ export default function UnifiedStudio() {
               </p>
             </div>
 
-            {/* 75 / 25 Split */}
+            {/* 55 / 45 Split — Example gallery takes more space */}
             <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
-              {/* Left 75% — Upload Zone */}
-              <div className="lg:col-span-9">
+              {/* Left — Example Guide Panel (bigger, ~55%) */}
+              <div className="lg:col-span-7 order-2 lg:order-1">
+                <div className="border border-border/20 bg-muted/5 p-5 lg:p-8 lg:sticky lg:top-8">
+                  <ExampleGuidePanel
+                    categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
+                    categoryType={exampleCategoryType}
+                  />
+                </div>
+              </div>
+
+              {/* Right — Upload Zone (~45%) */}
+              <div className="lg:col-span-5 order-1 lg:order-2">
                 {!jewelryImage ? (
-                  /* Empty state — large drop zone */
+                  /* Empty state — drop zone */
                   <div
                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
                     onDragOver={(e) => e.preventDefault()}
@@ -396,7 +483,9 @@ export default function UnifiedStudio() {
                       </div>
                     </div>
                     <p className="text-lg font-display font-medium mb-1.5">Drop your jewelry image here</p>
-                    <p className="text-sm text-muted-foreground mb-6">or click to browse · paste from clipboard (Ctrl+V)</p>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Drag & drop · click to browse · paste (Ctrl+V)
+                    </p>
                     <Button variant="outline" size="lg" className="gap-2">
                       <ImageIcon className="h-4 w-4" />
                       Browse Files
@@ -416,7 +505,7 @@ export default function UnifiedStudio() {
                       isFlagged ? 'border-destructive/40' : 'border-border/30'
                     }`}>
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
-                      
+
                       {/* Small remove X inside top-right of image */}
                       <button
                         onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); if (currentStep === 'model') setCurrentStep('upload'); }}
@@ -425,11 +514,11 @@ export default function UnifiedStudio() {
                         <X className="h-3.5 w-3.5" />
                       </button>
 
-                      {/* Flagged overlay */}
+                      {/* Flagged overlay — red X on user's image */}
                       {isFlagged && (
                         <div className="absolute inset-0 bg-destructive/10 flex items-center justify-center pointer-events-none">
-                          <div className="w-16 h-16 rounded-full bg-destructive/90 flex items-center justify-center">
-                            <X className="h-8 w-8 text-destructive-foreground" />
+                          <div className="w-20 h-20 rounded-full bg-destructive/90 flex items-center justify-center shadow-xl">
+                            <X className="h-10 w-10 text-destructive-foreground" />
                           </div>
                         </div>
                       )}
@@ -449,25 +538,27 @@ export default function UnifiedStudio() {
                       )}
                     </div>
 
-                    {/* Flagged comparison panel */}
+                    {/* Flagged comparison panel — user's image vs acceptable example */}
                     {isFlagged && (
                       <div className="border border-destructive/20 bg-destructive/5 p-4 space-y-4">
-                        <div>
-                          <p className="text-sm font-semibold text-destructive flex items-center gap-2">
-                            <X className="h-4 w-4" />
-                            Image not accepted — detected: {LABEL_NAMES[validationResult!.category] || validationResult!.category}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Please upload jewelry being worn on a model, mannequin, or body part.
-                          </p>
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-semibold text-destructive">
+                              Image not accepted — detected: {LABEL_NAMES[validationResult!.category] || validationResult!.category}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Please upload jewelry being worn on a model, mannequin, or body part.
+                            </p>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <p className="font-mono text-[9px] tracking-wider text-destructive uppercase">Your image</p>
                             <div className="relative border-2 border-destructive/40 overflow-hidden aspect-square bg-muted/30">
                               <img src={jewelryImage} alt="Flagged" className="w-full h-full object-cover" />
-                              <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-destructive flex items-center justify-center">
-                                <X className="h-3.5 w-3.5 text-destructive-foreground" />
+                              <div className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg">
+                                <X className="h-4 w-4 text-destructive-foreground" />
                               </div>
                             </div>
                           </div>
@@ -475,8 +566,8 @@ export default function UnifiedStudio() {
                             <p className="font-mono text-[9px] tracking-wider text-primary uppercase">Acceptable example</p>
                             <div className="relative border-2 border-primary/40 overflow-hidden aspect-square bg-muted/30">
                               <img src={acceptableExample} alt="Acceptable" className="w-full h-full object-cover" />
-                              <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                                <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                              <div className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                                <Check className="h-4 w-4 text-primary-foreground" />
                               </div>
                             </div>
                           </div>
@@ -484,15 +575,16 @@ export default function UnifiedStudio() {
                       </div>
                     )}
 
-                    {/* Next button */}
+                    {/* Next button — diamond style */}
                     {currentStep === 'upload' && (
                       <div className="flex justify-end pt-2">
                         <Button
                           size="lg"
                           onClick={handleNextStep}
                           disabled={!canProceed}
-                          className="gap-2 font-display text-base uppercase tracking-wide px-10"
+                          className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
                         >
+                          <Diamond className="h-4 w-4" />
                           Next
                           <ArrowRight className="h-4 w-4" />
                         </Button>
@@ -505,16 +597,6 @@ export default function UnifiedStudio() {
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* Right 25% — Example Guide Panel */}
-              <div className="lg:col-span-3">
-                <div className="border border-border/20 bg-muted/5 p-4 lg:sticky lg:top-8 space-y-1">
-                  <ExampleGuidePanel
-                    categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
-                    categoryType={exampleCategoryType}
-                  />
-                </div>
               </div>
             </div>
 
@@ -572,140 +654,46 @@ export default function UnifiedStudio() {
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center border border-border/20">
                         <ImageIcon className="h-7 w-7 text-muted-foreground/40" />
                       </div>
-                      <p className="text-muted-foreground text-sm">Select a model from the library to preview</p>
+                      <p className="text-foreground text-sm font-medium mb-1">Choose from library or upload your own</p>
+                      <p className="text-muted-foreground text-xs">Select a model from the panel to preview here</p>
                     </div>
                   )}
                 </div>
 
-                {/* Generate Photoshoot button */}
+                {/* Generate Photoshoot button — diamond accent */}
                 <Button
                   size="lg"
                   onClick={handleGenerate}
                   disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
-                  className="w-full font-display text-lg uppercase tracking-wide gap-2"
+                  className="w-full font-display text-lg uppercase tracking-wide gap-2.5 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
                 >
                   {preflightChecking ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Sparkles className="h-5 w-5" />
+                    <Diamond className="h-5 w-5" />
                   )}
                   Generate Photoshoot
                 </Button>
               </div>
 
-              {/* Right 40% — Model Library (stacked, no tabs) */}
-              <div className="lg:col-span-5 space-y-6 max-h-[620px] overflow-y-auto pr-1">
-                {/* E-Commerce section */}
-                <div className="space-y-3">
-                  <h3 className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">E-Commerce</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {ECOM_MODELS.map((model) => {
-                      const isSelected = selectedModel?.id === model.id && !customModelImage;
-                      return (
-                        <button
-                          key={model.id}
-                          onClick={() => handleSelectLibraryModel(model)}
-                          className={`group relative aspect-[3/4] overflow-hidden border-2 transition-all rounded-sm ${
-                            isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/20 hover:border-foreground/30'
-                          }`}
-                        >
-                          <img
-                            src={model.url}
-                            alt={model.label}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                          {isSelected && (
-                            <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
-                              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                                <Check className="h-3.5 w-3.5 text-primary-foreground" />
-                              </div>
-                            </div>
-                          )}
-                          <span className="absolute bottom-1 left-1 text-[8px] font-mono text-white/80 bg-black/40 px-1 rounded-sm backdrop-blur-sm">
-                            {model.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Editorial section */}
-                <div className="space-y-3">
-                  <h3 className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Editorial</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {EDITORIAL_MODELS.map((model) => {
-                      const isSelected = selectedModel?.id === model.id && !customModelImage;
-                      return (
-                        <button
-                          key={model.id}
-                          onClick={() => handleSelectLibraryModel(model)}
-                          className={`group relative aspect-[3/4] overflow-hidden border-2 transition-all rounded-sm ${
-                            isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/20 hover:border-foreground/30'
-                          }`}
-                        >
-                          <img
-                            src={model.url}
-                            alt={model.label}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                          {isSelected && (
-                            <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
-                              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                                <Check className="h-3.5 w-3.5 text-primary-foreground" />
-                              </div>
-                            </div>
-                          )}
-                          <span className="absolute bottom-1 left-1 text-[8px] font-mono text-white/80 bg-black/40 px-1 rounded-sm backdrop-blur-sm">
-                            {model.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-
-                    {/* + Upload Your Own card */}
-                    <button
-                      onClick={() => modelInputRef.current?.click()}
-                      className={`group relative aspect-[3/4] overflow-hidden border-2 border-dashed transition-all rounded-sm flex flex-col items-center justify-center gap-2 ${
-                        customModelImage ? 'border-primary ring-2 ring-primary/20' : 'border-border/30 hover:border-primary/40 hover:bg-primary/[0.02]'
-                      }`}
-                    >
-                      {customModelImage ? (
-                        <>
-                          <img
-                            src={customModelImage}
-                            alt="Custom model"
-                            className="w-full h-full object-cover absolute inset-0"
-                          />
-                          <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
-                            <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                              <Check className="h-3.5 w-3.5 text-primary-foreground" />
-                            </div>
-                          </div>
-                          <span className="absolute bottom-1 left-1 text-[8px] font-mono text-white/80 bg-black/40 px-1 rounded-sm backdrop-blur-sm z-10">
-                            Custom
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-5 w-5 text-muted-foreground/50" />
-                          <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider text-center px-1">
-                            + Upload Your Own
-                          </span>
-                        </>
-                      )}
-                    </button>
-                    <input
-                      ref={modelInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelUpload(f); }}
-                    />
-                  </div>
-                </div>
+              {/* Right 40% — Model Library with Tabs */}
+              <div className="lg:col-span-5">
+                <Tabs defaultValue="ecom" className="w-full">
+                  <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
+                    <TabsTrigger value="ecom" className="font-mono text-xs uppercase tracking-[0.15em] data-[state=active]:bg-background">
+                      E-Commerce
+                    </TabsTrigger>
+                    <TabsTrigger value="editorial" className="font-mono text-xs uppercase tracking-[0.15em] data-[state=active]:bg-background">
+                      Editorial
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="ecom" className="max-h-[520px] overflow-y-auto pr-1">
+                    <ModelGrid models={ECOM_MODELS} />
+                  </TabsContent>
+                  <TabsContent value="editorial" className="max-h-[520px] overflow-y-auto pr-1">
+                    <ModelGrid models={EDITORIAL_MODELS} />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
 

@@ -94,11 +94,11 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">{goodLabel}</span>
         </div>
-        <div className="grid grid-cols-3 gap-3 lg:gap-6">
+      <div className="grid grid-cols-3 gap-4 lg:gap-6">
           {examples.allowed.map((img, index) => (
             <div
               key={`allowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-0.5 lg:p-1 min-w-0"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-green-500/40 bg-muted/20 p-0.5 lg:p-1 min-w-0 min-h-[140px] lg:min-h-[200px]"
             >
               <img
                 src={img}
@@ -121,11 +121,11 @@ const ExampleGuidePanel = ({ categoryName = 'Jewelry', categoryType = 'earrings'
           </div>
           <span className="text-sm font-medium text-foreground">{badLabel}</span>
         </div>
-        <div className="grid grid-cols-3 gap-3 lg:gap-6">
+      <div className="grid grid-cols-3 gap-4 lg:gap-6">
           {examples.notAllowed.map((img, index) => (
             <div
               key={`notallowed-${index}`}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-0.5 lg:p-1 min-w-0"
+              className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-destructive/40 bg-muted/20 p-0.5 lg:p-1 min-w-0 min-h-[140px] lg:min-h-[200px]"
             >
               <img
                 src={img}
