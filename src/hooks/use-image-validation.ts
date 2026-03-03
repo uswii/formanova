@@ -131,14 +131,14 @@ export function useImageValidation() {
       const uploadedUrl = azureResult.https_url || azureResult.sas_url;
       console.log('[ImageValidation] Uploaded:', uploadedUrl);
 
-      // 2. POST to /api/run/image_classification (plain URL string, Bearer JWT)
+      // 2. POST to /api/run/image_classification (ImageSource object, Bearer JWT)
       const authHeaders = getAuthHeaders();
       const runRes = await fetch(`${BASE_URL}/api/run/image_classification`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
           payload: {
-            original_path: uploadedUrl,
+            jewelry_image_url: { uri: uploadedUrl },
           },
         }),
         signal: controller.signal,
