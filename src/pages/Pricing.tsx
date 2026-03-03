@@ -20,21 +20,19 @@ const PLANS = [
     credits: 10,
   },
   {
-    tier: 'pro',
-    tierId: '',
+    tier: 'standard',
+    tierId: 'standard',
     name: 'Pro',
     price: 39,
     credits: 50,
     popular: true,
-    comingSoon: true,
   },
   {
-    tier: 'power',
-    tierId: '',
+    tier: 'pro',
+    tierId: 'pro',
     name: 'Power',
     price: 99,
     credits: 150,
-    comingSoon: true,
   },
 ];
 
@@ -139,12 +137,10 @@ export default function Pricing() {
                   className="w-full gap-2"
                   size="lg"
                   variant={plan.popular ? 'default' : 'outline'}
-                  disabled={loadingTier !== null || (plan as any).comingSoon}
+                  disabled={loadingTier !== null}
                   onClick={() => handleCheckout(plan.tierId)}
                 >
-                  {(plan as any).comingSoon ? (
-                    'Coming Soon'
-                  ) : loadingTier === plan.tierId ? (
+                  {loadingTier === plan.tierId ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>Buy {plan.credits} Credits</>
