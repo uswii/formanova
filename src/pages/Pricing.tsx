@@ -113,23 +113,25 @@ export default function Pricing() {
         </p>
 
         {/* Plans */}
-        <div className="grid md:grid-cols-3 gap-px bg-border/40">
+        <div className="grid md:grid-cols-3 gap-6">
           {PLANS.map((plan) => (
             <div
               key={plan.tier}
-              className={`bg-background p-8 flex flex-col gap-6 ${
-                plan.popular ? 'border-2 border-foreground' : 'border border-border/40'
+              className={`p-8 flex flex-col gap-8 ${
+                plan.popular ? 'border-2 border-foreground' : 'border border-border/30'
               }`}
             >
-              {/* Plan name + popular badge */}
-              <div className="flex items-center justify-between">
+              {/* Plan name */}
+              <div className="space-y-3">
                 <span className="font-mono text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
                   {plan.name}
                 </span>
                 {plan.popular && (
-                  <span className="font-mono text-[9px] tracking-[0.2em] text-foreground uppercase border border-foreground px-2 py-0.5">
-                    Most Popular
-                  </span>
+                  <div>
+                    <span className="font-mono text-[9px] tracking-[0.2em] text-foreground uppercase border border-foreground/50 px-2 py-1">
+                      Most Popular
+                    </span>
+                  </div>
                 )}
               </div>
 
