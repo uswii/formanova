@@ -66,20 +66,20 @@ serve(async (req) => {
 
     // 4. Parse frontend body
     const body = await req.json();
-    const { tier_id, return_to } = body;
-    if (!tier_id) {
-      return new Response(JSON.stringify({ error: "tier_id is required" }), {
+    const { price_id, return_to } = body;
+    if (!price_id) {
+      return new Response(JSON.stringify({ error: "price_id is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Build forwarded body
-    const forwardBody: Record<string, string> = { price_id: tier_id };
+    const forwardBody: Record<string, string> = { price_id };
     if (return_to) forwardBody.return_to = return_to;
 
     // 5. Forward to Billing Gateway
-    console.log(`[checkout-proxy] Creating checkout for ${username}, tier=${tier_id}`);
+    console.log(`[checkout-proxy] Creating checkout for ${username}, price=${price_id}`);
     const billingRes = await fetch(BILLING_URL, {
       method: "POST",
       headers: {

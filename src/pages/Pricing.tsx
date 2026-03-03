@@ -60,7 +60,7 @@ export default function Pricing() {
       const response = await authenticatedFetch(CHECKOUT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier_id: tierId, redirect: returnTo.startsWith('/') ? returnTo : '/studio' }),
+        body: JSON.stringify({ price_id: tierId, redirect: returnTo.startsWith('/') ? returnTo : '/studio' }),
       });
 
       if (!response.ok) {
