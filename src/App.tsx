@@ -25,7 +25,9 @@ import Auth from "./pages/Auth";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Tutorial = lazy(() => import("./pages/Tutorial"));
 const PhotographyStudioCategories = lazy(() => import("./pages/PhotographyStudioCategories"));
-const CategoryUploadStudio = lazy(() => import("@/components/bulk").then(m => ({ default: m.CategoryUploadStudio })));
+const JewelryStudio = lazy(() => import("./pages/JewelryStudio"));
+// PRESERVED: Batch upload studio - uncomment to restore batch workflow
+// const CategoryUploadStudio = lazy(() => import("@/components/bulk").then(m => ({ default: m.CategoryUploadStudio })));
 const CADStudio = lazy(() => import("./pages/CADStudio"));
 const CADToCatalog = lazy(() => import("./pages/CADToCatalog"));
 const TextToCAD = lazy(() => import("./pages/TextToCAD"));
@@ -117,7 +119,9 @@ const App = () => (
                   <Route path="/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
                   <Route path="/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
                   <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
-                  <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} />
+                  <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} />
+                  {/* PRESERVED: Batch upload route - uncomment to restore batch workflow */}
+                  {/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}
                   <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADToCatalog /></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><TextToCAD /></ProtectedRoute>} />
