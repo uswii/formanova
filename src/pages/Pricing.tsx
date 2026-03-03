@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { toast } from '@/hooks/use-toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const CHECKOUT_URL = '/billing/checkout';
 
@@ -17,7 +18,7 @@ const PLANS = [
     price: 9,
     credits: 100,
     photos: 10,       // 100 credits ÷ 10 = 10 photos
-    perPhoto: '$0.90',
+    perPhoto: '$0.99',
     popular: false,
   },
   {
@@ -99,9 +100,12 @@ export default function Pricing() {
               <ArrowLeft className="h-3 w-3" />
               Dashboard
             </Link>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none">
-              Get Credits
-            </h1>
+            <div className="flex items-center gap-4 mt-1">
+              <img src={creditCoinIcon} alt="" className="h-10 w-10 object-contain" />
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none">
+                Get Credits
+              </h1>
+            </div>
           </div>
           {credits !== null && (
             <p className="hidden md:block font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
@@ -149,15 +153,13 @@ export default function Pricing() {
               </div>
 
               {/* What you get */}
-              <div className="border-t border-border/30 pt-5 space-y-3">
-                <div>
-                  <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase mb-1">
-                    You get
-                  </p>
-                  <span className="font-display text-3xl uppercase tracking-tight text-foreground">
-                    {plan.credits.toLocaleString()} Credits
-                  </span>
-                </div>
+              <div className="border-t border-border/30 pt-5 space-y-2">
+                <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
+                  You get
+                </p>
+                <p className="font-mono text-xl text-foreground">
+                  {plan.credits.toLocaleString()} credits
+                </p>
                 <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
                   Generate up to {plan.photos} photos
                 </p>
