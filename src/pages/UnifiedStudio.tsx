@@ -501,7 +501,7 @@ export default function UnifiedStudio() {
         />
       )}
 
-      <div className="px-4 md:px-6 py-8 relative z-10 max-w-screen-2xl mx-auto">
+      <div className="px-2 md:px-4 py-8 relative z-10">
 
         {/* ═══════════════════════════════════════════════════════════
             STEP 1 — UPLOAD YOUR JEWELRY
@@ -525,7 +525,7 @@ export default function UnifiedStudio() {
             </div>
 
             {/* Layout — Upload LEFT (2/3), Guide Sidebar RIGHT (1/3) — mirrors old StepUploadMark */}
-            <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
               {/* ── Main Column: Upload Zone (2/3) ── */}
               <div className="lg:col-span-2">
                 {!jewelryImage ? (
@@ -534,7 +534,7 @@ export default function UnifiedStudio() {
                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all flex flex-col items-center justify-center min-h-[400px] md:min-h-[520px]"
+                    className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all flex flex-col items-center justify-center min-h-[500px] md:min-h-[640px]"
                   >
                     <div className="relative mx-auto w-20 h-20 mb-6">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
@@ -561,7 +561,7 @@ export default function UnifiedStudio() {
                 ) : (
                   /* Uploaded state — image preview */
                   <div className="space-y-4">
-                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[400px] md:min-h-[520px] border-border/30">
+                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[500px] md:min-h-[640px] border-border/30">
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
@@ -609,7 +609,7 @@ export default function UnifiedStudio() {
               </div>
 
               {/* ── Sidebar: Upload Guide (1/3) — mirrors old Examples sidebar ── */}
-              <div className="space-y-5">
+              <div className="space-y-7">
                 {/* Guide heading — matches old "Gallery" marta-label style */}
                 <div>
                   <span className="marta-label mb-2 block">Guide</span>
@@ -627,7 +627,7 @@ export default function UnifiedStudio() {
                     </div>
                     <span className="text-xs font-medium text-foreground">Accepted</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-2">
                     {(CATEGORY_EXAMPLES[exampleCategoryType]?.allowed || []).map((img, i) => (
                       <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
                         <img src={img} alt={`Accepted ${i + 1}`} className="w-full h-full object-cover" />
@@ -647,7 +647,7 @@ export default function UnifiedStudio() {
                     </div>
                     <span className="text-xs font-medium text-foreground">Not Accepted</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-2">
                     {(CATEGORY_EXAMPLES[exampleCategoryType]?.notAllowed || []).map((img, i) => (
                       <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-destructive/30 bg-muted/20">
                         <img src={img} alt={`Not accepted ${i + 1}`} className="w-full h-full object-cover opacity-70" />
@@ -743,7 +743,7 @@ export default function UnifiedStudio() {
             </div>
 
             {/* 2/3 + 1/3 split — mirrors old StepUploadMark layout */}
-            <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
               {/* Left 2/3 — Model Preview Canvas */}
               <div className="lg:col-span-2 space-y-5">
                 <div className="border border-border/30 bg-muted/10 min-h-[420px] md:min-h-[520px] flex items-center justify-center relative overflow-hidden">
