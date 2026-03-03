@@ -312,12 +312,14 @@ export default function UnifiedStudio() {
 
           if (state === 'completed') {
             clearInterval(ticker);
-            setGenerationProgress(100);
-            setGenerationStep('Complete!');
+            // Hold at 95% while we fetch the result — only jump to 100% once we have it
+            setGenerationProgress(95);
+            setGenerationStep('Fetching results...');
 
             const result = await getPhotoshootResult(startResponse.workflow_id);
             const images = extractResultImages(result);
             setResultImages(images);
+            setGenerationProgress(100);
             setCurrentStep('results');
             setIsGenerating(false);
             refreshCredits();
