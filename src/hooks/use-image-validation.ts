@@ -3,7 +3,7 @@ import { getStoredToken } from '@/lib/auth-api';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 
-const TEMPORAL_API = '/api';
+const BASE_URL = 'https://formanova.ai';
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 
 // Response from the classification service
@@ -113,15 +113,15 @@ export function useImageValidation() {
   /**
    * Classify a single image:
    * 1. Upload to Azure via edge function → get URL
-   * 2. POST JSON to /run/state/image_classification
-   * 3. Poll /status/{id} until runtime.state is completed
-   * 4. GET /result/{id} → read image_captioning[0]
+   * 2. POST /api/run/image_classification with { payload: { original_path: url } }
+   * 3. Response contains { result_url } — GET that (blocks until done)
+   * 4. Read result.image_captioning[0]
    */
   const classifyImage = useCallback(async (
     base64DataUri: string
   ): Promise<ClassificationResult | null> => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
 
     try {
       console.log('[ImageValidation] Uploading image to Azure...');
@@ -129,31 +129,24 @@ export function useImageValidation() {
       // 1. Upload to Azure to get a URL
       const azureResult = await uploadToAzure(base64DataUri);
       const uploadedUrl = azureResult.https_url || azureResult.sas_url;
-      // Use azure:// URI for the classification workflow (backend resolves it)
-      const classificationUri = azureResult.uri;
-      console.log('[ImageValidation] Uploaded:', classificationUri);
+      console.log('[ImageValidation] Uploaded:', uploadedUrl);
 
-      // 2. POST to /run/state/image_classification (JSON, Bearer JWT)
+      // 2. POST to /api/run/image_classification (plain URL string, Bearer JWT)
       const authHeaders = getAuthHeaders();
-      const startRes = await fetch(`${TEMPORAL_API}/run/state/image_classification`, {
+      const runRes = await fetch(`${BASE_URL}/api/run/image_classification`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
           payload: {
-            original_path: { uri: classificationUri },
+            original_path: uploadedUrl,
           },
         }),
         signal: controller.signal,
       });
 
-      if (!startRes.ok) {
-        if (startRes.status === 409) {
-          console.warn('[ImageValidation] 409 Conflict — skipping (duplicate request)');
-        } else {
-          console.warn('[ImageValidation] /run/state failed:', startRes.status);
-        }
+      if (!runRes.ok) {
+        console.warn('[ImageValidation] /run/image_classification failed:', runRes.status);
         clearTimeout(timeoutId);
-        // Even if classification fails, return the uploaded URL so it can be reused
         return {
           category: 'flatlay',
           is_worn: true,
@@ -164,81 +157,58 @@ export function useImageValidation() {
         };
       }
 
-      const startData = await startRes.json();
-      const workflowId = startData.workflow_id;
-      console.log('[ImageValidation] Classification workflow started:', workflowId);
+      const runData = await runRes.json();
+      const resultUrl = runData.result_url;
+      console.log('[ImageValidation] Got result_url:', resultUrl);
 
-      // 3. Poll /status/{id} until runtime.state is completed (~3-5s)
-      const pollStart = Date.now();
-      let pollCount = 0;
-      while (Date.now() - pollStart < 80000) {
-        await new Promise(r => setTimeout(r, 2000));
-        pollCount++;
+      // 3. GET the result (blocks until workflow completes)
+      const resultRes = await fetch(`${BASE_URL}/api${resultUrl}`, {
+        method: 'GET',
+        headers: authHeaders,
+        signal: controller.signal,
+      });
 
-        const statusRes = await fetch(`${TEMPORAL_API}/status/${workflowId}`, {
-          method: 'GET',
-          headers: authHeaders,
-          signal: controller.signal,
-        });
-
-        if (!statusRes.ok) {
-          console.warn(`[ImageValidation] Poll ${pollCount}: status failed (${statusRes.status})`);
-          continue;
-        }
-
-        const statusData = await statusRes.json();
-        const runtimeState = statusData.runtime?.state || statusData.progress?.state || statusData.state || 'unknown';
-        console.log(`[ImageValidation] Poll ${pollCount}: state=${runtimeState}`);
-
-        if (runtimeState === 'completed') {
-          // 4. Fetch result from /result/{id}
-          const resultRes = await fetch(`${TEMPORAL_API}/result/${workflowId}`, {
-            method: 'GET',
-            headers: authHeaders,
-            signal: controller.signal,
-          });
-
-          if (!resultRes.ok) {
-            console.warn('[ImageValidation] Result fetch failed:', resultRes.status);
-            break;
-          }
-
-          const resultData = await resultRes.json();
-          const classificationResults = resultData.image_captioning;
-
-          if (classificationResults && classificationResults.length > 0) {
-            const raw = classificationResults[0];
-            const label = raw.label || raw.category || 'unknown';
-            const reason = raw.reason || '';
-            const is_worn = reason === 'worn';
-
-            clearTimeout(timeoutId);
-            return {
-              category: label,
-              is_worn,
-              confidence: raw.confidence || 0,
-              reason,
-              flagged: reason === 'not_worn',
-              uploaded_url: uploadedUrl,
-            };
-          }
-          console.warn('[ImageValidation] Completed but no image_captioning results');
-          break;
-        }
-
-        if (runtimeState === 'failed') {
-          console.error('[ImageValidation] Workflow failed:', JSON.stringify(statusData));
-          break;
-        }
+      if (!resultRes.ok) {
+        console.warn('[ImageValidation] Result fetch failed:', resultRes.status);
+        clearTimeout(timeoutId);
+        return {
+          category: 'flatlay',
+          is_worn: true,
+          confidence: 0,
+          reason: 'error',
+          flagged: false,
+          uploaded_url: uploadedUrl,
+        };
       }
 
+      const resultData = await resultRes.json();
+      console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
+      const classificationResults = resultData.image_captioning;
+
+      if (classificationResults && classificationResults.length > 0) {
+        const raw = classificationResults[0];
+        const label = raw.label || raw.category || 'unknown';
+        const reason = raw.reason || '';
+        const is_worn = reason === 'worn';
+
+        clearTimeout(timeoutId);
+        return {
+          category: label,
+          is_worn,
+          confidence: raw.confidence || 0,
+          reason,
+          flagged: reason === 'not_worn',
+          uploaded_url: uploadedUrl,
+        };
+      }
+
+      console.warn('[ImageValidation] No image_captioning in result');
       clearTimeout(timeoutId);
-      // Return with uploaded URL even on failure so image isn't re-uploaded
       return {
-        category: 'flatlay',
+        category: 'flatlay' as const,
         is_worn: true,
         confidence: 0,
-        reason: 'timeout',
+        reason: 'no_result',
         flagged: false,
         uploaded_url: uploadedUrl,
       };
