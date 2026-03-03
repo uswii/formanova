@@ -12,6 +12,8 @@ export interface ClassificationResult {
   confidence: number;
   reason: string;
   flagged: boolean;
+  /** URL of the uploaded image extracted from classification results */
+  uploaded_url?: string;
 }
 
 // Mapped result for UI consumption
@@ -23,6 +25,8 @@ export interface ImageValidationResult {
   confidence: number;
   message: string;
   category: string;
+  /** URL of the uploaded image from the classification workflow — reuse to avoid double uploads */
+  uploaded_url?: string;
 }
 
 export interface ValidationResponse {
@@ -178,6 +182,22 @@ export function useImageValidation() {
 
         if (state === 'completed') {
           const classificationResults = statusData.results?.image_captioning;
+
+          // Extract the uploaded image URL from results
+          let uploadedUrl: string | undefined;
+          const allResults = statusData.results || {};
+          for (const rKey of Object.keys(allResults)) {
+            const rItems = allResults[rKey];
+            if (Array.isArray(rItems)) {
+              for (const rItem of rItems) {
+                if (rItem?.image_url) { uploadedUrl = rItem.image_url; break; }
+                if (rItem?.original_url) { uploadedUrl = rItem.original_url; break; }
+                if (rItem?.url) { uploadedUrl = rItem.url; break; }
+              }
+              if (uploadedUrl) break;
+            }
+          }
+
           if (classificationResults && classificationResults.length > 0) {
             const raw = classificationResults[0];
             const category = raw.category || raw.label || 'unknown';
@@ -195,6 +215,7 @@ export function useImageValidation() {
               confidence: raw.confidence || 0,
               reason,
               flagged: !is_worn,
+              uploaded_url: uploadedUrl,
             };
           }
           console.warn('[ImageValidation] Completed but no results');
@@ -261,6 +282,7 @@ export function useImageValidation() {
           confidence: result.confidence,
           message: result.reason,
           category: result.category,
+          uploaded_url: result.uploaded_url,
         };
       });
 

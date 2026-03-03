@@ -117,6 +117,7 @@ export default function UnifiedStudio() {
   // Validation
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
   const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
+  const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
 
   // Generation
   const [isGenerating, setIsGenerating] = useState(false);
@@ -135,6 +136,7 @@ export default function UnifiedStudio() {
     }
     const normalized = await normalizeImageFile(file);
     setJewelryFile(normalized);
+    setJewelryUploadedUrl(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       setJewelryImage(e.target?.result as string);
@@ -142,10 +144,14 @@ export default function UnifiedStudio() {
     };
     reader.readAsDataURL(normalized);
 
-    // Run validation in background
+    // Run validation in background — this also uploads the image and returns its URL
     const result = await validateImages([normalized], jewelryType);
     if (result && result.results.length > 0) {
       setValidationResult(result.results[0]);
+      if (result.results[0].uploaded_url) {
+        setJewelryUploadedUrl(result.results[0].uploaded_url);
+        console.log('[UnifiedStudio] Jewelry URL from validation:', result.results[0].uploaded_url);
+      }
     }
   }, [toast, jewelryType, validateImages]);
 
@@ -208,12 +214,21 @@ export default function UnifiedStudio() {
     setCurrentStep('generating');
 
     try {
-      // 1. Upload jewelry image to get URL
+      // 1. Get jewelry URL — reuse from validation if available, otherwise upload
       setGenerationProgress(5);
-      const jewelryBlob = await imageSourceToBlob(jewelryImage);
-      const { blob: compressedJewelry } = await compressImageBlob(jewelryBlob);
-      const jewelryUrl = await uploadImageForUrl(compressedJewelry, 'jewelry.jpg');
-      console.log('[UnifiedStudio] Jewelry uploaded:', jewelryUrl);
+      let jewelryUrl: string;
+      if (jewelryUploadedUrl) {
+        jewelryUrl = jewelryUploadedUrl;
+        console.log('[UnifiedStudio] Reusing jewelry URL from validation:', jewelryUrl);
+        setGenerationProgress(20);
+      } else {
+        setGenerationStep('Uploading jewelry image...');
+        const jewelryBlob = await imageSourceToBlob(jewelryImage);
+        const { blob: compressedJewelry } = await compressImageBlob(jewelryBlob);
+        jewelryUrl = await uploadImageForUrl(compressedJewelry, 'jewelry.jpg');
+        console.log('[UnifiedStudio] Jewelry uploaded (fallback):', jewelryUrl);
+        setGenerationProgress(20);
+      }
 
       // 2. Get model URL
       setGenerationProgress(20);
@@ -335,6 +350,7 @@ export default function UnifiedStudio() {
   const handleStartOver = () => {
     setJewelryImage(null);
     setJewelryFile(null);
+    setJewelryUploadedUrl(null);
     setSelectedModel(null);
     setCustomModelImage(null);
     setCustomModelFile(null);
