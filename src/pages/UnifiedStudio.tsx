@@ -491,7 +491,7 @@ export default function UnifiedStudio() {
   // ─── Render ───────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="h-screen bg-background relative overflow-hidden flex flex-col">
       {showInsufficientModal && preflightResult && (
         <CreditPreflightModal
           open={showInsufficientModal}
@@ -501,7 +501,58 @@ export default function UnifiedStudio() {
         />
       )}
 
-      <div className="px-2 md:px-4 py-8 relative z-10">
+      {/* ── Step Progress Bar ── */}
+      {currentStep !== 'generating' && (
+        <div className="flex-shrink-0 px-4 md:px-6 pt-6 pb-4 relative z-10">
+          <div className="flex items-center justify-center gap-0">
+            {[
+              { step: 1, label: 'Upload', id: 'upload' as const },
+              { step: 2, label: 'Choose Model', id: 'model' as const },
+              { step: 3, label: 'Results', id: 'results' as const },
+            ].map((s, index, arr) => {
+              const stepOrder = { upload: 0, model: 1, generating: 2, results: 2 };
+              const current = stepOrder[currentStep];
+              const isDone = s.step - 1 < current;
+              const isActive = (s.id === 'results' && (currentStep === 'generating' || currentStep === 'results')) || currentStep === s.id;
+              return (
+                <div key={s.id} className="flex items-center">
+                  <button
+                    onClick={() => {
+                      if (s.id === 'upload') setCurrentStep('upload');
+                      else if (s.id === 'model' && (currentStep === 'results' || currentStep === 'model')) setCurrentStep('model');
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 transition-all ${
+                      isActive
+                        ? 'text-foreground'
+                        : isDone
+                        ? 'text-muted-foreground hover:text-foreground cursor-pointer'
+                        : 'text-muted-foreground/40 cursor-default'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 flex items-center justify-center text-[11px] font-mono font-bold border transition-all ${
+                      isActive
+                        ? 'bg-foreground text-background border-foreground'
+                        : isDone
+                        ? 'border-foreground/40 text-foreground/60'
+                        : 'border-border/30 text-muted-foreground/40'
+                    }`}>
+                      {s.step}
+                    </div>
+                    <span className="font-mono text-[11px] tracking-[0.15em] uppercase hidden sm:inline">
+                      {s.label}
+                    </span>
+                  </button>
+                  {index < arr.length - 1 && (
+                    <div className={`w-12 h-px mx-1 transition-colors ${isDone || isActive ? 'bg-foreground/30' : 'bg-border/30'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-8 relative z-10">
 
         {/* ═══════════════════════════════════════════════════════════
             STEP 1 — UPLOAD YOUR JEWELRY
@@ -593,7 +644,6 @@ export default function UnifiedStudio() {
                           disabled={!canProceed}
                           className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
                         >
-                          <Diamond className="h-4 w-4" />
                           Next
                           <ArrowRight className="h-4 w-4" />
                         </Button>
@@ -774,11 +824,7 @@ export default function UnifiedStudio() {
                   disabled={!jewelryImage || !activeModelUrl || isValidating || preflightChecking}
                   className="w-full font-display text-lg uppercase tracking-wide gap-2.5 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-40 disabled:from-muted disabled:to-muted disabled:text-muted-foreground"
                 >
-                  {preflightChecking ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Diamond className="h-5 w-5" />
-                  )}
+                  {preflightChecking && <Loader2 className="h-5 w-5 animate-spin" />}
                   Generate Photoshoot
                 </Button>
               </div>
@@ -922,17 +968,17 @@ export default function UnifiedStudio() {
             )}
 
             <div className="flex justify-center gap-4">
+              <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
+                <Diamond className="h-4 w-4" />
+                New Photoshoot
+              </Button>
               <Button
                 size="lg"
                 onClick={() => { setResultImages([]); setCurrentStep('generating'); handleGenerate(); }}
                 className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
               >
-                <Diamond className="h-4 w-4" />
-                Regenerate
-              </Button>
-              <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
                 <RefreshCw className="h-4 w-4" />
-                New Photoshoot
+                Regenerate
               </Button>
             </div>
           </motion.div>
