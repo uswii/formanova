@@ -448,27 +448,17 @@ export default function UnifiedStudio() {
               </p>
             </div>
 
-            {/* 55 / 45 Split — Example gallery takes more space */}
+            {/* Layout — Upload LEFT (40%), Example Gallery RIGHT (60%) */}
             <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
-              {/* Left — Example Guide Panel (bigger, ~55%) */}
-              <div className="lg:col-span-7 order-2 lg:order-1">
-                <div className="border border-border/20 bg-muted/5 p-5 lg:p-8 lg:sticky lg:top-8">
-                  <ExampleGuidePanel
-                    categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
-                    categoryType={exampleCategoryType}
-                  />
-                </div>
-              </div>
-
-              {/* Right — Upload Zone (~45%) */}
-              <div className="lg:col-span-5 order-1 lg:order-2">
+              {/* Left — Upload Zone (~40%) */}
+              <div className="lg:col-span-5 order-1">
                 {!jewelryImage ? (
-                  /* Empty state — drop zone */
+                  /* Empty state — drop zone (tall rectangular) */
                   <div
                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[420px] md:min-h-[520px]"
+                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[520px] md:min-h-[640px] lg:sticky lg:top-8"
                   >
                     <div className="relative mx-auto w-20 h-20 mb-6">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
@@ -495,7 +485,7 @@ export default function UnifiedStudio() {
                 ) : (
                   /* Uploaded state — image preview */
                   <div className="space-y-4">
-                    <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[420px] md:min-h-[520px] ${
+                    <div className={`relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[520px] md:min-h-[640px] ${
                       isFlagged ? 'border-destructive/40' : 'border-border/30'
                     }`}>
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
@@ -592,16 +582,22 @@ export default function UnifiedStudio() {
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Mobile example guide */}
-            <div className="lg:hidden mt-8">
-              <div className="border border-border/20 bg-muted/5 p-4">
+              {/* Right — Example Guide Panel (full height, ~60%) */}
+              <div className="lg:col-span-7 order-2">
                 <ExampleGuidePanel
                   categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
                   categoryType={exampleCategoryType}
                 />
               </div>
+            </div>
+
+            {/* Mobile example guide */}
+            <div className="lg:hidden mt-8">
+              <ExampleGuidePanel
+                categoryName={jewelryType.charAt(0).toUpperCase() + jewelryType.slice(1)}
+                categoryType={exampleCategoryType}
+              />
             </div>
           </motion.div>
         )}
@@ -772,7 +768,7 @@ export default function UnifiedStudio() {
             </div>
 
             {resultImages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto justify-items-center">
                 {resultImages.map((url, i) => (
                   <div key={i} className="relative group border border-border/30 overflow-hidden">
                     <img
