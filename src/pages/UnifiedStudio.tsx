@@ -524,17 +524,17 @@ export default function UnifiedStudio() {
               </p>
             </div>
 
-            {/* Layout — Upload LEFT, Upload Guide RIGHT — no divider, spacing only */}
-            <div className="grid lg:grid-cols-12 gap-6 lg:gap-10">
-              {/* ── Left Column: Upload Zone ── */}
-              <div className="lg:col-span-5">
+            {/* Layout — Upload LEFT (2/3), Guide Sidebar RIGHT (1/3) — mirrors old StepUploadMark */}
+            <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+              {/* ── Main Column: Upload Zone (2/3) ── */}
+              <div className="lg:col-span-2">
                 {!jewelryImage ? (
                   /* Empty state — drop zone */
                   <div
                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
                     onDragOver={(e) => e.preventDefault()}
                     onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border-2 border-dashed border-border/40 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all flex flex-col items-center justify-center min-h-[400px] md:min-h-[460px] rounded-lg"
+                    className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all flex flex-col items-center justify-center min-h-[400px] md:min-h-[520px]"
                   >
                     <div className="relative mx-auto w-20 h-20 mb-6">
                       <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
@@ -561,7 +561,7 @@ export default function UnifiedStudio() {
                 ) : (
                   /* Uploaded state — image preview */
                   <div className="space-y-4">
-                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[400px] md:min-h-[460px] border-border/30 rounded-lg">
+                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[400px] md:min-h-[520px] border-border/30">
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
@@ -608,32 +608,31 @@ export default function UnifiedStudio() {
                 )}
               </div>
 
-              {/* ── Right Column: Upload Guide ── */}
-              <div className="lg:col-span-7 space-y-6">
-                {/* Guide heading */}
+              {/* ── Sidebar: Upload Guide (1/3) — mirrors old Examples sidebar ── */}
+              <div className="space-y-5">
+                {/* Guide heading — matches old "Gallery" marta-label style */}
                 <div>
-                  <h2 className="font-display text-xl md:text-2xl uppercase tracking-tight">Upload Guide</h2>
+                  <span className="marta-label mb-2 block">Guide</span>
+                  <h3 className="font-display text-2xl uppercase tracking-tight">Upload Guide</h3>
                   <p className="text-muted-foreground text-sm mt-1">
-                    Follow these guidelines to ensure accurate, high-quality results.
+                    Follow these guidelines for best results.
                   </p>
                 </div>
 
                 {/* Accepted examples */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <Check className="w-3 h-3 text-green-500" />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-2.5 h-2.5 text-green-500" />
                     </div>
-                    <span className="text-sm font-medium text-foreground">
-                      Accepted — jewelry worn on a person or mannequin
-                    </span>
+                    <span className="text-xs font-medium text-foreground">Accepted</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {(CATEGORY_EXAMPLES[exampleCategoryType]?.allowed || []).map((img, i) => (
-                      <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden rounded-md border-2 border-green-500/30 bg-muted/20">
+                      <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
                         <img src={img} alt={`Accepted ${i + 1}`} className="w-full h-full object-cover" />
-                        <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                          <Check className="w-3 h-3 text-white" />
+                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-white" />
                         </div>
                       </div>
                     ))}
@@ -641,21 +640,19 @@ export default function UnifiedStudio() {
                 </div>
 
                 {/* Not accepted examples */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center">
-                      <X className="w-3 h-3 text-destructive" />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                      <X className="w-2.5 h-2.5 text-destructive" />
                     </div>
-                    <span className="text-sm font-medium text-foreground">
-                      Not Accepted — product shots, flat lays, renders
-                    </span>
+                    <span className="text-xs font-medium text-foreground">Not Accepted</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {(CATEGORY_EXAMPLES[exampleCategoryType]?.notAllowed || []).map((img, i) => (
-                      <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden rounded-md border-2 border-destructive/30 bg-muted/20">
+                      <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-destructive/30 bg-muted/20">
                         <img src={img} alt={`Not accepted ${i + 1}`} className="w-full h-full object-cover opacity-70" />
-                        <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center shadow-lg">
-                          <X className="w-3 h-3 text-white" />
+                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center">
+                          <X className="w-2.5 h-2.5 text-white" />
                         </div>
                       </div>
                     ))}
@@ -745,10 +742,10 @@ export default function UnifiedStudio() {
               </p>
             </div>
 
-            {/* 60 / 40 Split */}
-            <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
-              {/* Left 60% — Model Preview Canvas */}
-              <div className="lg:col-span-7 space-y-5">
+            {/* 2/3 + 1/3 split — mirrors old StepUploadMark layout */}
+            <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+              {/* Left 2/3 — Model Preview Canvas */}
+              <div className="lg:col-span-2 space-y-5">
                 <div className="border border-border/30 bg-muted/10 min-h-[420px] md:min-h-[520px] flex items-center justify-center relative overflow-hidden">
                   {activeModelUrl ? (
                     <img
@@ -786,8 +783,12 @@ export default function UnifiedStudio() {
                 </Button>
               </div>
 
-              {/* Right 40% — Model Library with Tabs */}
-              <div className="lg:col-span-5">
+              {/* Right 1/3 — Model Library Sidebar */}
+              <div className="space-y-4">
+                <div>
+                  <span className="marta-label mb-2 block">Library</span>
+                  <h3 className="font-display text-2xl uppercase tracking-tight">Choose Model</h3>
+                </div>
                 <Tabs defaultValue="ecom" className="w-full">
                   <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
                     <TabsTrigger value="ecom" className="font-mono text-xs uppercase tracking-[0.15em] data-[state=active]:bg-background">
