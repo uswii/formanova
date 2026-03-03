@@ -240,8 +240,9 @@ serve(async (req) => {
       );
     }
 
-    // Azure Blob Storage REST API - URL encode the blob name for the request
-    const encodedBlobName = encodeURIComponent(blobName);
+    // Azure Blob Storage REST API - encode each path segment individually
+    // Do NOT encodeURIComponent the whole path as it turns '/' into '%2F' causing signature mismatch
+    const encodedBlobName = blobName.split('/').map(s => encodeURIComponent(s)).join('/');
     const url = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${AZURE_CONTAINER_NAME}/${encodedBlobName}`;
     const dateStr = new Date().toUTCString();
     const blobType = 'BlockBlob';
