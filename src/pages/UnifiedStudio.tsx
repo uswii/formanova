@@ -245,7 +245,7 @@ export default function UnifiedStudio() {
       return;
     }
 
-    const hasCredits = await checkCredits('jewelry_photoshoot');
+    const hasCredits = await checkCredits('jewelry_photoshoots_generator');
     if (!hasCredits) return;
 
     setIsGenerating(true);
