@@ -47,6 +47,19 @@ export default function Generations() {
   useEffect(() => {
     if (!user) return;
 
+    // Run at most CONCURRENCY detail-fetches at a time to avoid nginx rate-limit 503s
+    async function batchSettled<T>(
+      tasks: Array<() => Promise<T>>,
+      concurrency = 5,
+    ): Promise<PromiseSettledResult<T>[]> {
+      const results: PromiseSettledResult<T>[] = [];
+      for (let i = 0; i < tasks.length; i += concurrency) {
+        const batch = tasks.slice(i, i + concurrency).map((t) => t());
+        results.push(...(await Promise.allSettled(batch)));
+      }
+      return results;
+    }
+
     const fetchAll = async () => {
       try {
         setGlobalLoading(true);
@@ -95,8 +108,8 @@ export default function Generations() {
         );
         if (photoCompleted.length > 0) {
           const photoIds = new Set(photoCompleted.map((wf) => wf.workflow_id));
-          Promise.allSettled(
-            photoCompleted.map(async (wf) => {
+          batchSettled(
+            photoCompleted.map((wf) => async () => {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
                 const steps = details.steps ?? [];
@@ -157,8 +170,8 @@ export default function Generations() {
         );
         if (cadTextCompleted.length > 0) {
           const cadTextIds = new Set(cadTextCompleted.map((wf) => wf.workflow_id));
-          Promise.allSettled(
-            cadTextCompleted.map(async (wf) => {
+          batchSettled(
+            cadTextCompleted.map((wf) => async () => {
               try {
                 const details = await getWorkflowDetails(wf.workflow_id);
                 const steps = details.steps ?? [];
