@@ -44,25 +44,39 @@ Deno.serve(async (req) => {
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-      // Get all unique emails from batch_jobs
-      const { data: batches, error: bErr } = await supabase
-        .from('batch_jobs')
-        .select('user_email, notification_email');
-      
-      if (bErr) throw bErr;
-
+      // Paginate through all batch_jobs to get every email
       const allEmails = new Set<string>();
-      for (const b of batches || []) {
-        allEmails.add(b.notification_email || b.user_email);
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: batches, error: bErr } = await supabase
+          .from('batch_jobs')
+          .select('user_email, notification_email')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        if (bErr) throw bErr;
+        if (!batches || batches.length === 0) break;
+        for (const b of batches) {
+          allEmails.add(b.notification_email || b.user_email);
+        }
+        if (batches.length < pageSize) break;
+        page++;
       }
 
-      // Get already-sent emails for this campaign
-      const { data: sent } = await supabase
-        .from('notification_log')
-        .select('user_email')
-        .eq('campaign', campaign);
+      // Get already-sent emails for this campaign (also paginated)
+      const sentSet = new Set<string>();
+      page = 0;
+      while (true) {
+        const { data: sent } = await supabase
+          .from('notification_log')
+          .select('user_email')
+          .eq('campaign', campaign)
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        if (!sent || sent.length === 0) break;
+        for (const s of sent) sentSet.add(s.user_email);
+        if (sent.length < pageSize) break;
+        page++;
+      }
 
-      const sentSet = new Set((sent || []).map(s => s.user_email));
       const toSend = [...allEmails].filter(e => !sentSet.has(e));
 
       if (dry_run) {
