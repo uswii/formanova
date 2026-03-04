@@ -815,8 +815,6 @@ export default function UnifiedStudio() {
                   )}
                 </div>
 
-              </div>
-
                 {/* Actions row — Back left, Generate right */}
                 <div className="flex items-center justify-between pt-2">
                   <Button
