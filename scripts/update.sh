@@ -82,7 +82,7 @@ echo -e "${YELLOW}[4/7] Pulling latest code...${NC}"
 git fetch origin
 CURRENT_BRANCH=$(git branch --show-current)
 git checkout "$CURRENT_BRANCH"
-git pull origin "$CURRENT_BRANCH"
+git pull --rebase origin "$CURRENT_BRANCH"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Code updated from origin/$CURRENT_BRANCH${NC}"
