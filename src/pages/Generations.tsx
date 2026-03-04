@@ -162,8 +162,9 @@ export default function Generations() {
         }
 
         // Enrich completed cad_text workflows: screenshots + GLB url/filename
+        // Include failed cad_text workflows too — they may still have GLB/screenshots from earlier steps
         const cadTextCompleted = workflows.filter(
-          (w) => w.source_type === 'cad_text' && w.status === 'completed'
+          (w) => w.source_type === 'cad_text' && (w.status === 'completed' || w.status === 'failed')
         );
         if (cadTextCompleted.length > 0) {
           const cadTextIds = new Set(cadTextCompleted.map((wf) => wf.workflow_id));
@@ -277,9 +278,18 @@ export default function Generations() {
   }, [user]);
 
   // Filter & paginate per section
+  // requireImage: hide workflows where enrichment finished but no image was found (thumbnail_url === '')
   const getSection = useCallback(
-    (source: SourceType, page: number): SectionState => {
-      const filtered = allWorkflows.filter((w) => w.source_type === source && w.status === 'completed');
+    (source: SourceType, page: number, requireImage = false): SectionState => {
+      const statusOk = source === 'cad_text'
+        ? (w: WorkflowSummary) => w.status === 'completed' || w.status === 'failed'
+        : (w: WorkflowSummary) => w.status === 'completed';
+      const filtered = allWorkflows.filter(
+        (w) =>
+          w.source_type === source &&
+          statusOk(w) &&
+          (!requireImage || w.thumbnail_url !== ''),
+      );
       const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
       const start = (page - 1) * PER_PAGE;
       return {
@@ -292,8 +302,8 @@ export default function Generations() {
     [allWorkflows, globalLoading],
   );
 
-  const photoSection = getSection('photo', photoPage);
-  const cadRenderSection = getSection('cad_render', cadRenderPage);
+  const photoSection = getSection('photo', photoPage, true);
+  const cadRenderSection = getSection('cad_render', cadRenderPage, true);
   const cadTextSection = getSection('cad_text', cadTextPage);
 
   return (
