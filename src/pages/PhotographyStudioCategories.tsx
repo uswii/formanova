@@ -4,11 +4,11 @@ import { ArrowRight } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Import jewelry images
-import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
-import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.png';
-import heroModelRings from '@/assets/jewelry/hero-model-rings.png';
-import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.png';
-import heroWatch from '@/assets/jewelry/hero-watch.png';
+import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.webp';
+import heroGreenEarrings from '@/assets/jewelry/hero-green-earrings.webp';
+import heroModelRings from '@/assets/jewelry/hero-model-rings.webp';
+import heroHandsBracelets from '@/assets/jewelry/hero-hands-bracelets.webp';
+import heroWatch from '@/assets/jewelry/hero-watch.webp';
 
 interface JewelryCategory {
   id: string;
