@@ -11,16 +11,16 @@ const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').th
 
 // Assets
 import formanovaLogo from '@/assets/formanova-logo.png';
-import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.png';
-import heroVneckNecklace from '@/assets/jewelry/hero-vneck-necklace.png';
-import heroChokerBack from '@/assets/jewelry/hero-choker-back.png';
-import heroHandDiamonds from '@/assets/jewelry/hero-hand-diamonds.png';
-import heroBlueBracelets from '@/assets/jewelry/hero-blue-bracelets.png';
-import heroGoldPendant from '@/assets/jewelry/hero-gold-pendant.png';
-import heroEmeraldEarrings from '@/assets/jewelry/hero-emerald-earrings.png';
-import heroGemstoneRings from '@/assets/jewelry/hero-gemstone-rings.png';
-import heroAquamarineRings from '@/assets/jewelry/hero-aquamarine-rings.png';
-import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.png';
+import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.webp';
+import heroVneckNecklace from '@/assets/jewelry/hero-vneck-necklace.webp';
+import heroChokerBack from '@/assets/jewelry/hero-choker-back.webp';
+import heroHandDiamonds from '@/assets/jewelry/hero-hand-diamonds.webp';
+import heroBlueBracelets from '@/assets/jewelry/hero-blue-bracelets.webp';
+import heroGoldPendant from '@/assets/jewelry/hero-gold-pendant.webp';
+import heroEmeraldEarrings from '@/assets/jewelry/hero-emerald-earrings.webp';
+import heroGemstoneRings from '@/assets/jewelry/hero-gemstone-rings.webp';
+import heroAquamarineRings from '@/assets/jewelry/hero-aquamarine-rings.webp';
+import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.webp';
 
 export default function Welcome() {
   const navigate = useNavigate();
