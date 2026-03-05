@@ -16,6 +16,7 @@ import {
   ArrowRight,
   ArrowLeft,
   AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -986,17 +987,25 @@ export default function UnifiedStudio() {
                       alt={`Result ${i + 1}`}
                       className="w-full aspect-[3/4] object-contain bg-muted/30"
                     />
-                    <a
-                      href={url}
-                      download={`photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="absolute top-2 right-2"
-                    >
-                      <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background">
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                    </a>
+                    <div className="absolute top-2 right-2 flex gap-1.5">
+                      <a
+                        href={url}
+                        download={`photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`}
+                      >
+                        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background">
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1006,31 +1015,29 @@ export default function UnifiedStudio() {
               </div>
             )}
 
+            {/* Action buttons directly under results */}
+            <div className="flex items-center justify-center gap-4 pt-2">
+              <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
+                <Diamond className="h-4 w-4" />
+                New Photoshoot
+              </Button>
+              <Button
+                size="lg"
+                onClick={() => { setResultImages([]); setCurrentStep('generating'); handleGenerate(); }}
+                className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Regenerate
+                <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
+                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                  10
+                </span>
+              </Button>
+            </div>
+
           </motion.div>
         )}
       </div>
-
-      {/* ── Sticky Bottom Bar — Results only ── */}
-      {currentStep === 'results' && (
-        <div className="flex-shrink-0 px-4 md:px-6 py-4 border-t border-border/20 flex items-center justify-center gap-4 relative z-10 bg-background/95 backdrop-blur-sm">
-          <Button variant="outline" onClick={handleStartOver} className="gap-2 font-mono text-[10px] uppercase tracking-wider">
-            <Diamond className="h-4 w-4" />
-            New Photoshoot
-          </Button>
-          <Button
-            size="lg"
-            onClick={() => { setResultImages([]); setCurrentStep('generating'); handleGenerate(); }}
-            className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Regenerate
-            <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
-              <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-              10
-            </span>
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
