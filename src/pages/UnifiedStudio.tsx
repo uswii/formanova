@@ -965,7 +965,7 @@ export default function UnifiedStudio() {
           >
             <div className="text-center">
               <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-1">Complete</span>
-              <h2 className="font-display text-4xl uppercase tracking-tight">Your Results</h2>
+              <h2 className="font-display text-4xl uppercase tracking-tight">Results</h2>
             </div>
 
             {resultImages.length > 0 ? (
