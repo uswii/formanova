@@ -45,7 +45,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, delay: 0.15 }}
-        className="w-full max-w-xl h-[260px] md:h-[340px] lg:h-[400px] -mt-2"
+        className="w-full max-w-2xl h-[300px] md:h-[400px] lg:h-[480px] -mt-2"
       >
         <InteractiveRing />
       </motion.div>
