@@ -152,7 +152,7 @@ async function uploadToAzure(
       'Content-Type': contentType,
       'Content-Length': binaryData.length.toString(),
     },
-    body: binaryData,
+    body: binaryData as unknown as BodyInit,
   });
 
   if (!response.ok) {

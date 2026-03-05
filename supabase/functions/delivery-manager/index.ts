@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
 
       console.log(`[delivery-manager] ZIP created: ${fetched}/${images.length} images, ${(zipBuffer.length / 1024 / 1024).toFixed(1)}MB`);
 
-      return new Response(zipBuffer, {
+      return new Response(zipBuffer as unknown as BodyInit, {
         status: 200,
         headers: {
           ...corsHeaders,
