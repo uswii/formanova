@@ -29,7 +29,7 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-background flex flex-col items-center px-4 md:px-8 lg:px-12">
+    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col items-center px-2 md:px-4 lg:px-6 overflow-hidden">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
@@ -55,7 +55,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="w-full max-w-[90vw] xl:max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 pb-12 -mt-2"
+        className="w-full max-w-[96vw] xl:max-w-[1600px] grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 pb-8 -mt-2"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
