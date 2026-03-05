@@ -204,9 +204,8 @@ export default function UnifiedStudio() {
     setCustomModelFile(null);
   };
 
-  // Paste handler
+  // Paste handler — supports jewelry upload (step 1) AND model upload (step 2 empty state)
   useEffect(() => {
-    if (jewelryImage) return;
     const handler = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -214,14 +213,19 @@ export default function UnifiedStudio() {
         if (item.type.startsWith('image/')) {
           e.preventDefault();
           const file = item.getAsFile();
-          if (file) handleJewelryUpload(file);
+          if (!file) break;
+          if (currentStep === 'model' && !activeModelUrl) {
+            handleModelUpload(file);
+          } else if (!jewelryImage) {
+            handleJewelryUpload(file);
+          }
           break;
         }
       }
     };
     document.addEventListener('paste', handler);
     return () => document.removeEventListener('paste', handler);
-  }, [jewelryImage, handleJewelryUpload]);
+  }, [jewelryImage, handleJewelryUpload, handleModelUpload, currentStep, activeModelUrl]);
 
   // Auto-advance to Step 2 on valid upload
   const handleNextStep = () => {
@@ -422,33 +426,7 @@ export default function UnifiedStudio() {
 
   const ModelGrid = ({ models }: { models: ModelImage[] }) => (
     <div className="grid grid-cols-3 gap-3">
-      {models.map((model) => {
-        const isSelected = selectedModel?.id === model.id && !customModelImage;
-        return (
-          <button
-            key={model.id}
-            onClick={() => handleSelectLibraryModel(model)}
-            className={`group relative aspect-[3/4] overflow-hidden border-2 transition-all rounded-sm ${
-              isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/20 hover:border-foreground/30'
-            }`}
-          >
-            <img
-              src={model.url}
-              alt={model.label}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-            {isSelected && (
-              <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
-                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
-                </div>
-              </div>
-            )}
-          </button>
-        );
-      })}
-      {/* + Upload Your Own card (shown in each tab) */}
+      {/* + Upload Your Own card — first position */}
       <button
         onClick={() => modelInputRef.current?.click()}
         className={`group relative aspect-[3/4] overflow-hidden border-2 border-dashed transition-all rounded-sm flex flex-col items-center justify-center gap-2 ${
@@ -477,6 +455,32 @@ export default function UnifiedStudio() {
           </>
         )}
       </button>
+      {models.map((model) => {
+        const isSelected = selectedModel?.id === model.id && !customModelImage;
+        return (
+          <button
+            key={model.id}
+            onClick={() => handleSelectLibraryModel(model)}
+            className={`group relative aspect-[3/4] overflow-hidden border-2 transition-all rounded-sm ${
+              isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/20 hover:border-foreground/30'
+            }`}
+          >
+            <img
+              src={model.url}
+              alt={model.label}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+            {isSelected && (
+              <div className="absolute inset-0 bg-primary/15 flex items-center justify-center">
+                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                </div>
+              </div>
+            )}
+          </button>
+        );
+      })}
       <input
         ref={modelInputRef}
         type="file"
@@ -802,7 +806,12 @@ export default function UnifiedStudio() {
                       className="max-w-full max-h-[520px] object-contain"
                     />
                   ) : (
-                    <div className="text-center px-8">
+                    <div
+                      className="text-center px-8 cursor-pointer w-full h-full min-h-[420px] md:min-h-[520px] flex flex-col items-center justify-center hover:bg-foreground/5 transition-colors"
+                      onClick={() => modelInputRef.current?.click()}
+                      onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleModelUpload(f); }}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
                       <div className="relative mx-auto w-16 h-16 mb-4">
                         <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
                         <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
@@ -810,7 +819,10 @@ export default function UnifiedStudio() {
                         </div>
                       </div>
                       <p className="text-foreground text-sm font-medium mb-1">Choose from our AI model library</p>
-                      <p className="text-muted-foreground text-xs">or upload your own reference photo</p>
+                      <p className="text-muted-foreground text-xs mb-4">or upload your own reference photo</p>
+                      <p className="text-muted-foreground/50 text-[10px] font-mono uppercase tracking-wider">
+                        Drop · Click · Paste (Ctrl+V)
+                      </p>
                     </div>
                   )}
                 </div>
