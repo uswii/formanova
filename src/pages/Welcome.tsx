@@ -90,10 +90,11 @@ export default function Welcome() {
                   <span>Start Creating</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
-                <button onClick={() => navigate('/tutorial')} className="marta-button glass-effect magnetic-button">
+                {/* HIDDEN: Watch Tutorial button - uncomment to restore */}
+                {/* <button onClick={() => navigate('/tutorial')} className="marta-button glass-effect magnetic-button">
                   <Play className="h-4 w-4" />
                   <span>Watch Tutorial</span>
-                </button>
+                </button> */}
               </div>
             </ScrollRevealSection>
           </ScrollRevealSection>
