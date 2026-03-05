@@ -35,10 +35,9 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-center pt-8 md:pt-12"
+        className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-center pt-8 md:pt-12 text-foreground"
       >
-        <span className="text-foreground">CAD </span>
-        <span className="text-formanova-hero-accent">Studio</span>
+        CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
 
       {/* 3D Ring */}
