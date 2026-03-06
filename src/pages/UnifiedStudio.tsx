@@ -245,6 +245,7 @@ export default function UnifiedStudio() {
   // ─── Generate ─────────────────────────────────────────────────────
 
   const handleGenerate = async () => {
+    if (isGenerating) return; // Prevent duplicate submit
     if (!jewelryImage || !activeModelUrl) {
       toast({ variant: 'destructive', title: 'Missing inputs', description: 'Upload a jewelry image and select a model.' });
       return;
@@ -317,7 +318,7 @@ export default function UnifiedStudio() {
 
       setGenerationStep('Generating photoshoot...');
       const pollStart = Date.now();
-      const TIMEOUT = 300000;
+      const TIMEOUT = 720000; // 12 minutes (Sonnet-safe)
 
       // Decelerating ticker — starts fast (~2%/tick at 35%), slows near 90%.
       // Keeps bar visibly moving even when API returns no progress data yet.

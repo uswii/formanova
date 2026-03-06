@@ -583,13 +583,20 @@ class WorkflowApi {
       headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
     });
 
+    // Treat transient 404 as "still running" — don't label as failed
+    if (response.status === 404) {
+      return {
+        progress: { state: 'running', total_nodes: 0, completed_nodes: 0, visited: [] },
+        results: {},
+      };
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       
-      // Detect Temporal nondeterminism errors - these mean the workflow is stuck/corrupted
+      // Detect Temporal nondeterminism errors
       if (errorText.includes('Nondeterminism error') || errorText.includes('TMPRL1100')) {
-        console.error('[WorkflowApi] Temporal nondeterminism error detected - workflow is corrupted');
-        // Return a failed status with descriptive error so the UI can handle it gracefully
+        console.error('[WorkflowApi] Temporal nondeterminism error detected');
         return {
           progress: {
             state: 'failed',
@@ -609,20 +616,37 @@ class WorkflowApi {
   }
 
   /**
-   * Get result of a completed workflow
+   * Get result of a completed workflow (with retry for result-write lag)
    */
-  async getResult(workflowId: string): Promise<WorkflowResultResponse> {
-    const response = await fetch(getProxyUrl(`/result/${workflowId}`), {
-      method: 'GET',
-      headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
-    });
+  async getResult(workflowId: string, maxRetries: number = 5, retryDelayMs: number = 1000): Promise<WorkflowResultResponse> {
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get workflow result: ${error}`);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, retryDelayMs));
+      }
+
+      const response = await fetch(getProxyUrl(`/result/${workflowId}`), {
+        method: 'GET',
+        headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
+      });
+
+      // 404 = result not written yet — retry
+      if (response.status === 404) {
+        lastError = new Error('Result not ready yet (404)');
+        console.log(`[WorkflowApi] Result 404, retry ${attempt + 1}/${maxRetries}`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to get workflow result: ${error}`);
+      }
+
+      return await response.json();
     }
 
-    return await response.json();
+    throw lastError || new Error('Result fetch exhausted retries');
   }
 
   /**
@@ -633,7 +657,7 @@ class WorkflowApi {
     workflow: 'masking' | 'flux_gen' | 'all_jewelry' | 'all_jewelry_masking',
     onProgress?: (progress: number, label: string) => void,
     pollInterval: number = 2000,
-    maxWaitMs: number = 600000 // 10 minutes
+    maxWaitMs: number = 720000 // 12 minutes (Sonnet-safe)
   ): Promise<WorkflowResultResponse> {
     const startTime = Date.now();
     let lastStatus: WorkflowStatusResponse | null = null;

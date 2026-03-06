@@ -87,6 +87,11 @@ export async function getPhotoshootStatus(
     headers: getAuthHeaders(),
   });
 
+  // Treat transient 404 as "still running" — don't label as failed
+  if (res.status === 404) {
+    return { state: 'running' };
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Status check failed: ${res.status} — ${text.substring(0, 200)}`);
@@ -95,22 +100,41 @@ export async function getPhotoshootStatus(
   return res.json();
 }
 
-// ─── Get Result ─────────────────────────────────────────────────────
+// ─── Get Result (with retry for result-write lag) ───────────────────
 
 export async function getPhotoshootResult(
   workflowId: string,
+  maxRetries: number = 5,
+  retryDelayMs: number = 1000,
 ): Promise<PhotoshootResultResponse> {
-  const res = await fetch(`${API_BASE}/result/${workflowId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  let lastError: Error | null = null;
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Result fetch failed: ${res.status} — ${text.substring(0, 200)}`);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      await new Promise(r => setTimeout(r, retryDelayMs));
+    }
+
+    const res = await fetch(`${API_BASE}/result/${workflowId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    // 404 = result not written yet — retry
+    if (res.status === 404) {
+      lastError = new Error('Result not ready yet (404)');
+      console.log(`[photoshoot-api] Result 404, retry ${attempt + 1}/${maxRetries}`);
+      continue;
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Result fetch failed: ${res.status} — ${text.substring(0, 200)}`);
+    }
+
+    return res.json();
   }
 
-  return res.json();
+  throw lastError || new Error('Result fetch exhausted retries');
 }
 
 /**

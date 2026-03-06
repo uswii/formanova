@@ -351,18 +351,34 @@ class TemporalApi {
     return await response.json();
   }
 
-  async getDAGResult(workflowId: string): Promise<DAGResultResponse> {
-    const response = await fetch(getProxyUrl(`/result/${workflowId}`), {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
-    });
+  async getDAGResult(workflowId: string, maxRetries: number = 5): Promise<DAGResultResponse> {
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get DAG result: ${error}`);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      const response = await fetch(getProxyUrl(`/result/${workflowId}`), {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (response.status === 404) {
+        lastError = new Error('Result not ready yet (404)');
+        console.log(`[TemporalApi] Result 404, retry ${attempt + 1}/${maxRetries}`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to get DAG result: ${error}`);
+      }
+
+      return await response.json();
     }
 
-    return await response.json();
+    throw lastError || new Error('Result fetch exhausted retries');
   }
 
   // ========== Legacy Methods (kept for compatibility) ==========
@@ -573,7 +589,7 @@ export async function pollDAGUntilComplete(
 ): Promise<DAGResultResponse> {
   const {
     intervalMs = 1500,
-    timeoutMs = 300000,
+    timeoutMs = 720000,
     onProgress,
   } = options;
 
@@ -614,7 +630,7 @@ export async function pollWorkflowUntilComplete(
 ): Promise<WorkflowStatusResponse> {
   const {
     intervalMs = 2000,
-    timeoutMs = 300000,
+    timeoutMs = 720000,
     onProgress,
   } = options;
 

@@ -108,6 +108,7 @@ export default function TextToCAD() {
   };
 
   const simulateGeneration = useCallback(async () => {
+    if (isGenerating) return; // Prevent duplicate submit
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
 
     // Credit preflight — use known cost + real balance
