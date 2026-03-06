@@ -1,6 +1,6 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Upload, ChevronDown, ChevronRight } from "lucide-react";
+import { Diamond, ChevronDown, ChevronRight } from "lucide-react";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 
 interface LeftPanelProps {
