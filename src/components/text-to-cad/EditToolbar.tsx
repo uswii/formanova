@@ -194,10 +194,6 @@ function FlyoutTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="font-display text-base text-foreground mb-4 uppercase tracking-[0.15em]">{children}</h3>;
 }
 
-function FlyoutSubtitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="font-mono text-[10px] text-muted-foreground mt-4 mb-2 uppercase tracking-[0.15em]">{children}</h4>;
-}
-
 function FoSep() {
   return <div className="h-px bg-border my-3" />;
 }
