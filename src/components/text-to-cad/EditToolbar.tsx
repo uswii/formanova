@@ -37,27 +37,71 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
   const metals = MATERIAL_LIBRARY.filter((m) => m.category === "metal");
   const gems = MATERIAL_LIBRARY.filter((m) => m.category === "gemstone");
 
+  // Compute flyout vertical positions based on reduced tool count
+  const getFlyoutTop = (flyout: string) => {
+    const idx = EDIT_TOOLS.findIndex((t) => t.flyout === flyout);
+    return `${56 + idx * 54}px`;
+  };
+
   return (
     <>
-      {/* Vertical toolbar */}
-      <div className="absolute top-[70px] left-0 z-[45] flex flex-col gap-0.5 px-1.5 py-2 bg-card/95 backdrop-blur-sm border-r border-border">
-        {EDIT_TOOLS.map((tool) => (
-          <button
-            key={tool.id}
-            onClick={() => toggleFlyout(tool.flyout)}
-            className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border ${
-              activeFlyout === tool.flyout
-                ? "text-foreground bg-accent border-border"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50 border-transparent"
-            }`}
-          >
-            <span className="text-[20px]">{tool.icon}</span>
-            <span className="font-mono text-[7px] uppercase tracking-wide text-muted-foreground">{tool.label}</span>
-            <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
-              {tool.tip}
-            </span>
-          </button>
-        ))}
+      {/* Vertical toolbar — Transform Actions section */}
+      <div className="absolute top-[70px] left-0 z-[45] flex flex-col">
+        {/* Transform utility actions — shown when a transform tool is active */}
+        {transformMode !== "orbit" && (
+          <div className="flex flex-col gap-0.5 px-1.5 py-2 bg-card/95 backdrop-blur-sm border-r border-b border-border">
+            {[
+              { label: "Reset", icon: "⟳", action: "reset-transform", tip: "Reset transform" },
+              { label: "Apply", icon: "✓", action: "apply-transform", tip: "Apply transform to geometry" },
+              { label: "Dupe", icon: "⧉", action: "duplicate", tip: "Duplicate selected" },
+            ].map((btn) => (
+              <button
+                key={btn.action}
+                onClick={() => onSceneAction(btn.action)}
+                className="w-[56px] h-[44px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              >
+                <span className="text-[16px]">{btn.icon}</span>
+                <span className="font-mono text-[7px] uppercase tracking-wide">{btn.label}</span>
+                <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
+                  {btn.tip}
+                </span>
+              </button>
+            ))}
+            {/* Mirror sub-group */}
+            <div className="h-px bg-border mx-2 my-1" />
+            {(["x", "y", "z"] as const).map((axis) => (
+              <button
+                key={axis}
+                onClick={() => onSceneAction(`mirror-${axis}`)}
+                className="w-[56px] h-[36px] flex items-center justify-center gap-1 cursor-pointer transition-all duration-150 border border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              >
+                <span className="text-[12px]">⌿</span>
+                <span className="font-mono text-[8px] uppercase font-bold">{axis}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Other tools (Mesh, Materials, Display) */}
+        <div className="flex flex-col gap-0.5 px-1.5 py-2 bg-card/95 backdrop-blur-sm border-r border-border">
+          {EDIT_TOOLS.map((tool) => (
+            <button
+              key={tool.id}
+              onClick={() => toggleFlyout(tool.flyout)}
+              className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border ${
+                activeFlyout === tool.flyout
+                  ? "text-foreground bg-accent border-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50 border-transparent"
+              }`}
+            >
+              <span className="text-[20px]">{tool.icon}</span>
+              <span className="font-mono text-[7px] uppercase tracking-wide text-muted-foreground">{tool.label}</span>
+              <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
+                {tool.tip}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Flyout panels */}
@@ -72,10 +116,9 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
             className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4 bg-card/95 backdrop-blur-sm border border-border"
             style={{
               left: "70px",
-              top: activeFlyout === "transform" ? "56px"
-                : activeFlyout === "mesh" ? "100px"
-                : activeFlyout === "materials" ? "144px"
-                : "188px",
+              top: transformMode !== "orbit"
+                ? `${(3 * 44 + 3 * 36 + 40) + EDIT_TOOLS.findIndex((t) => t.flyout === activeFlyout) * 54 + 70}px`
+                : `${EDIT_TOOLS.findIndex((t) => t.flyout === activeFlyout) * 54 + 70}px`,
             }}
           >
             {!hasSelection && activeFlyout !== "display" && (
@@ -83,7 +126,6 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
                 ⚠ Select a mesh in the viewport first
               </div>
             )}
-            {activeFlyout === "transform" && <TransformFlyout transformMode={transformMode} onAction={onSceneAction} />}
             {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
             {activeFlyout === "materials" && <MaterialsFlyout metals={metals} gems={gems} onApply={onApplyMaterial} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
@@ -126,82 +168,6 @@ function FoSep() {
 }
 
 // ── FLYOUT CONTENTS ──
-
-function TransformFlyout({ onAction, transformMode }: { onAction: (a: string) => void; transformMode: string }) {
-  const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; color: string; unit: string; step: string; defaultVal: string }> = {
-    translate: { label: "Move", title: "Position", icon: "↔", color: "text-green-400", unit: "", step: "0.01", defaultVal: "0.00" },
-    rotate:   { label: "Rotate", title: "Rotation", icon: "↻", color: "text-blue-400", unit: "°", step: "1", defaultVal: "0" },
-    scale:    { label: "Scale", title: "Scale", icon: "⇔", color: "text-amber-400", unit: "", step: "0.01", defaultVal: "1.00" },
-  };
-
-  const config = MODE_CONFIG[transformMode] ?? null;
-  const axes = ["X", "Y", "Z"];
-  const axisColors = ["text-red-400", "text-green-400", "text-blue-400"];
-
-  return (
-    <>
-      {/* Dynamic title reflecting active tool */}
-      <div className="flex items-center gap-2.5 mb-4">
-        <h3 className="font-display text-base text-foreground uppercase tracking-[0.15em]">Transform</h3>
-        {config && (
-          <>
-            <span className="text-muted-foreground font-mono text-[10px]">—</span>
-            <span className={`font-mono text-[11px] font-bold uppercase tracking-wider ${config.color}`}>
-              {config.icon} {config.label}
-            </span>
-          </>
-        )}
-      </div>
-
-      {/* Context-aware numeric controls */}
-      {config ? (
-        <div className="mb-4 p-3 bg-muted/10 border border-border/50">
-          <h4 className="font-mono text-[10px] text-muted-foreground mb-3 uppercase tracking-[0.15em]">
-            {config.title}
-          </h4>
-          <div className="flex flex-col gap-1.5">
-            {axes.map((axis, i) => (
-              <div key={axis} className="flex items-center gap-2">
-                <span className={`font-mono text-[11px] font-bold w-4 ${axisColors[i]}`}>{axis}</span>
-                <input
-                  type="number"
-                  step={config.step}
-                  defaultValue={config.defaultVal}
-                  className="flex-1 px-3 py-2 text-[12px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-                {config.unit && (
-                  <span className="font-mono text-[10px] text-muted-foreground w-3">{config.unit}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="mb-4 px-3 py-3 font-mono text-[11px] text-muted-foreground bg-muted/10 border border-border/30 leading-relaxed">
-          Select a tool in the viewport toolbar:
-          <div className="flex gap-3 mt-2">
-            <span><kbd className="font-mono text-[9px] bg-accent px-1.5 py-0.5 text-foreground">G</kbd> Move</span>
-            <span><kbd className="font-mono text-[9px] bg-accent px-1.5 py-0.5 text-foreground">R</kbd> Rotate</span>
-            <span><kbd className="font-mono text-[9px] bg-accent px-1.5 py-0.5 text-foreground">S</kbd> Scale</span>
-          </div>
-        </div>
-      )}
-
-      <FoSep />
-      <FlyoutSubtitle>Actions</FlyoutSubtitle>
-      <FoBtn onClick={() => onAction("reset-transform")}>Reset Transform</FoBtn>
-      <FoBtn onClick={() => onAction("apply-transform")}>Apply Transform</FoBtn>
-      <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
-      <FoSep />
-      <FlyoutSubtitle>Mirror</FlyoutSubtitle>
-      <div className="flex gap-1.5 mb-1">
-        <FoBtn onClick={() => onAction("mirror-x")}>Mirror X</FoBtn>
-        <FoBtn onClick={() => onAction("mirror-y")}>Mirror Y</FoBtn>
-        <FoBtn onClick={() => onAction("mirror-z")}>Mirror Z</FoBtn>
-      </div>
-    </>
-  );
-}
 
 function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
   return (
