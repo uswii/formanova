@@ -438,8 +438,7 @@ export default function TextToCAD() {
 
   return (
     <div
-      className="flex h-[calc(100vh-5rem)] overflow-hidden"
-      style={{ background: "#0d0d0d" }}
+      className="flex h-[calc(100vh-5rem)] overflow-hidden bg-background"
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
