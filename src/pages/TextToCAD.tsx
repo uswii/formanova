@@ -72,17 +72,39 @@ export default function TextToCAD() {
     const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
     const snap = canvasRef.current?.getSnapshot() ?? null;
     setUndoStack((prev) => [...prev, { label, meshes: currentMeshes, canvasSnapshot: snap }]);
+    setRedoStack([]); // Clear redo on new action
   }, []);
 
   const handleUndo = useCallback(() => {
     setUndoStack((prev) => {
       if (prev.length === 0) { toast.info("Nothing to undo"); return prev; }
       const last = prev[prev.length - 1];
+      // Push current state to redo
+      const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
+      const snap = canvasRef.current?.getSnapshot() ?? null;
+      setRedoStack((r) => [...r, { label: last.label, meshes: currentMeshes, canvasSnapshot: snap }]);
       setMeshes(last.meshes);
       if (last.canvasSnapshot) {
         canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
       }
       toast.success(`Undo: ${last.label}`);
+      return prev.slice(0, -1);
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setRedoStack((prev) => {
+      if (prev.length === 0) { toast.info("Nothing to redo"); return prev; }
+      const last = prev[prev.length - 1];
+      // Push current state to undo
+      const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
+      const snap = canvasRef.current?.getSnapshot() ?? null;
+      setUndoStack((u) => [...u, { label: last.label, meshes: currentMeshes, canvasSnapshot: snap }]);
+      setMeshes(last.meshes);
+      if (last.canvasSnapshot) {
+        canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
+      }
+      toast.success(`Redo: ${last.label}`);
       return prev.slice(0, -1);
     });
   }, []);
