@@ -577,7 +577,7 @@ export default function TextToCAD() {
             
             <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
             
-            <StatsBar visible={hasModel && !isGenerating} stats={stats} />
+            
             <ViewportSideTools
               visible={hasModel && !isGenerating}
               onZoomIn={() => canvasRef.current?.zoomIn()}
