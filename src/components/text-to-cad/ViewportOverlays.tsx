@@ -12,74 +12,80 @@ const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; 
 const AXES = ["X", "Y", "Z"] as const;
 const AXIS_COLORS = ["text-red-400", "text-green-400", "text-blue-400"];
 
+// Shared button style for consistent sizing across all toolbar buttons
+const TB_BTN = "h-[38px] px-4 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 border border-transparent";
+const TB_BTN_DEFAULT = `${TB_BTN} text-muted-foreground hover:text-foreground hover:bg-accent/50`;
+const TB_BTN_ACTIVE = `${TB_BTN} text-primary-foreground bg-primary`;
+
 // ── Unified Transform Toolbar + Inspector ──
 export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: string) => void }) {
   const config = MODE_CONFIG[mode] ?? null;
   const isTransformActive = mode !== "orbit" && config !== null;
 
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
-      {/* Tool selector strip */}
-      <div className="flex gap-0 bg-card/95 backdrop-blur-sm border border-border">
-        {TRANSFORM_MODES.map((tm) => (
-          <button
-            key={tm.id}
-            onClick={() => setMode(tm.id)}
-            className={`px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 border-r last:border-r-0 border-border/50 ${
-              mode === tm.id
-                ? "text-primary-foreground bg-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent"
-            }`}
-          >
-            {tm.label}
-            {tm.shortcut && <kbd className="font-mono text-[8px] ml-1 opacity-50">{tm.shortcut}</kbd>}
-          </button>
-        ))}
+    <div className="absolute top-3 left-0 right-0 z-50 flex items-start justify-between px-3">
+      {/* Left: Editing controls */}
+      <div className="flex items-center gap-0 bg-card/95 backdrop-blur-sm border border-border" />
+
+      {/* Center: Viewer tools + transform inspector */}
+      <div className="flex flex-col items-center">
+        <div className="flex gap-0 bg-card/95 backdrop-blur-sm border border-border">
+          {TRANSFORM_MODES.map((tm) => (
+            <button
+              key={tm.id}
+              onClick={() => setMode(tm.id)}
+              className={mode === tm.id ? TB_BTN_ACTIVE : TB_BTN_DEFAULT}
+            >
+              {tm.label}
+              {tm.shortcut && <kbd className="font-mono text-[8px] opacity-50">{tm.shortcut}</kbd>}
+            </button>
+          ))}
+        </div>
+
+        {/* Integrated numeric inspector */}
+        <AnimatePresence>
+          {isTransformActive && config && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -4 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -4 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="overflow-hidden"
+            >
+              <div className="bg-card/95 backdrop-blur-sm border border-border border-t-0 px-4 py-3 min-w-[340px]">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
+                    {config.icon} {config.title}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
+                    Gizmo + Numeric
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {AXES.map((axis, i) => (
+                    <div key={axis} className="flex items-center gap-1.5 flex-1">
+                      <span className={`font-mono text-[11px] font-bold ${AXIS_COLORS[i]}`}>{axis}</span>
+                      <input
+                        type="number"
+                        step={config.step}
+                        defaultValue={config.defaultVal}
+                        className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      {config.unit && (
+                        <span className="font-mono text-[9px] text-muted-foreground">{config.unit}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Integrated numeric inspector — slides down when a transform tool is active */}
-      <AnimatePresence>
-        {isTransformActive && config && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, y: -4 }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="overflow-hidden"
-          >
-            <div className="bg-card/95 backdrop-blur-sm border border-border border-t-0 px-4 py-3 min-w-[340px]">
-              {/* Mode indicator */}
-              <div className="flex items-center gap-2 mb-2.5">
-                <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
-                  {config.icon} {config.title}
-                </span>
-                <div className="flex-1 h-px bg-border" />
-                <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
-                  Gizmo + Numeric
-                </span>
-              </div>
-
-              {/* XYZ inputs */}
-              <div className="flex gap-2">
-                {AXES.map((axis, i) => (
-                  <div key={axis} className="flex items-center gap-1.5 flex-1">
-                    <span className={`font-mono text-[11px] font-bold ${AXIS_COLORS[i]}`}>{axis}</span>
-                    <input
-                      type="number"
-                      step={config.step}
-                      defaultValue={config.defaultVal}
-                      className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
-                    />
-                    {config.unit && (
-                      <span className="font-mono text-[9px] text-muted-foreground">{config.unit}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Right: Project control + Download */}
+      <div className="flex items-center gap-0" />
     </div>
   );
 }
@@ -109,9 +115,7 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
           <p className="text-center font-mono text-[10px] text-muted-foreground -mt-2 mb-4 tracking-wide">
             Click any part below to rebuild it, or add something new
           </p>
-          <div className="flex gap-1.5 flex-wrap justify-center mb-4">
-            {/* Part regen parts would go here */}
-          </div>
+          <div className="flex gap-1.5 flex-wrap justify-center mb-4" />
           <div className="flex gap-2.5 items-center">
             <input
               value={desc}
@@ -224,6 +228,9 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
   );
 }
 
+// Shared toolbar button style
+const ACTION_BTN = "h-[38px] px-4 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 border border-border";
+
 // ── Action Buttons (top right) ──
 export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload }: {
   visible: boolean; onReset: () => void; onUndo: () => void; undoCount: number; onDownload?: () => void;
@@ -231,29 +238,41 @@ export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload 
   if (!visible) return null;
 
   return (
-    <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+    <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
+      {/* Editing controls */}
+      <div className="flex items-center gap-0 bg-card/95 backdrop-blur-sm border border-border">
+        <button
+          onClick={onUndo}
+          disabled={undoCount === 0}
+          className={`${ACTION_BTN} border-0 border-r border-border text-muted-foreground hover:text-foreground hover:bg-accent/50 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed`}
+        >
+          <span className="text-[14px]">↶</span>
+          Undo
+          {undoCount > 0 && (
+            <span className="font-mono text-[9px] bg-accent px-1.5 py-0.5">{undoCount}</span>
+          )}
+        </button>
+        <button
+          className={`${ACTION_BTN} border-0 text-muted-foreground hover:text-foreground hover:bg-accent/50 active:scale-[0.98] opacity-40 cursor-not-allowed`}
+          disabled
+        >
+          <span className="text-[14px]">↷</span>
+          Redo
+        </button>
+      </div>
+
+      {/* Project control */}
       <button
         onClick={onReset}
-        className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 text-muted-foreground hover:text-foreground active:scale-[0.98] bg-card/95 backdrop-blur-sm border border-border"
+        className={`${ACTION_BTN} text-muted-foreground hover:text-foreground active:scale-[0.98] bg-card/95 backdrop-blur-sm`}
       >
         Start Over
       </button>
 
-      <button
-        onClick={onUndo}
-        disabled={undoCount === 0}
-        className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 text-muted-foreground hover:text-foreground active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 bg-card/95 backdrop-blur-sm border border-border"
-      >
-        <span className="text-[16px]">↶</span>
-        Undo
-        {undoCount > 0 && (
-          <span className="font-mono text-[9px] bg-accent px-1.5 py-0.5">{undoCount}</span>
-        )}
-      </button>
-
+      {/* Primary output — visually distinct */}
       <button
         onClick={onDownload}
-        className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] border border-primary"
+        className="h-[38px] px-6 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] border border-primary"
       >
         Download
       </button>
