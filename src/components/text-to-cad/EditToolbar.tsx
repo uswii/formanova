@@ -7,6 +7,7 @@ interface EditToolbarProps {
   onApplyMaterial: (matId: string) => void;
   onSceneAction: (action: string) => void;
   hasSelection: boolean;
+  transformMode?: string;
 }
 
 export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection }: EditToolbarProps) {
