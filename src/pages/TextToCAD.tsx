@@ -13,7 +13,6 @@ import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
 import {
   ViewportToolbar,
-  PartRegenBar,
   ProgressOverlay,
   StatsBar,
   ActionButtons,
@@ -486,7 +485,7 @@ export default function TextToCAD() {
           hasSelection={selectedNames.length > 0}
         />
         <ViewportToolbar mode={transformMode} setMode={setTransformMode} />
-        <PartRegenBar visible={showPartRegen} onClose={() => setShowPartRegen(false)} />
+        {/* PartRegenBar removed — now lives inside LeftPanel's Edit Ring section */}
         <ProgressOverlay visible={isGenerating} progress={progress} currentStep={progressStep} />
         <StatsBar visible={hasModel && !isGenerating} stats={stats} />
         <ActionButtons
