@@ -10,6 +10,30 @@ interface EditToolbarProps {
   transformMode?: string;
 }
 
+// Consistent sidebar icon button
+const SIDE_BTN = "w-[56px] h-[46px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border";
+const SIDE_BTN_DEFAULT = `${SIDE_BTN} border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50`;
+const SIDE_BTN_ACTIVE = `${SIDE_BTN} text-foreground bg-accent border-border`;
+
+function SidebarGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="px-1.5 pt-2 pb-1">
+        <span className="font-mono text-[7px] uppercase tracking-[0.15em] text-muted-foreground/50">{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Tooltip({ text }: { text: string }) {
+  return (
+    <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
+      {text}
+    </span>
+  );
+}
+
 export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection, transformMode = "orbit" }: EditToolbarProps) {
   const [activeFlyout, setActiveFlyout] = useState<string | null>(null);
   const [activeDisplayToggles, setActiveDisplayToggles] = useState<Set<string>>(new Set());
@@ -37,71 +61,89 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
   const metals = MATERIAL_LIBRARY.filter((m) => m.category === "metal");
   const gems = MATERIAL_LIBRARY.filter((m) => m.category === "gemstone");
 
-  // Compute flyout vertical positions based on reduced tool count
+  const isTransformActive = transformMode !== "orbit";
+
+  // Calculate flyout top position
   const getFlyoutTop = (flyout: string) => {
-    const idx = EDIT_TOOLS.findIndex((t) => t.flyout === flyout);
-    return `${56 + idx * 54}px`;
+    const editToolIdx = EDIT_TOOLS.findIndex((t) => t.flyout === flyout);
+    // Transform group: 3 btns * 46 + 3 mirror btns * 38 + gaps + labels ≈ 300px when visible
+    const transformGroupHeight = isTransformActive ? 310 : 0;
+    // Object tools group label + offset
+    const objectToolsOffset = transformGroupHeight + 30; // label gap
+    return objectToolsOffset + editToolIdx * 50 + 55; // 55px top offset
   };
 
   return (
     <>
-      {/* Vertical toolbar — Transform Actions section */}
-      <div className="absolute top-[70px] left-0 z-[45] flex flex-col">
-        {/* Transform utility actions — shown when a transform tool is active */}
-        {transformMode !== "orbit" && (
-          <div className="flex flex-col gap-0.5 px-1.5 py-2 bg-card/95 backdrop-blur-sm border-r border-b border-border">
+      {/* Vertical sidebar toolbar */}
+      <div className="absolute top-[55px] left-0 z-[45] flex flex-col bg-card/95 backdrop-blur-sm border-r border-border">
+        {/* ── Transform Actions — only when transform tool is active ── */}
+        {isTransformActive && (
+          <SidebarGroup label="Transform">
             {[
               { label: "Reset", icon: "⟳", action: "reset-transform", tip: "Reset transform" },
-              { label: "Apply", icon: "✓", action: "apply-transform", tip: "Apply transform to geometry" },
+              { label: "Apply", icon: "✓", action: "apply-transform", tip: "Apply to geometry" },
               { label: "Dupe", icon: "⧉", action: "duplicate", tip: "Duplicate selected" },
             ].map((btn) => (
               <button
                 key={btn.action}
                 onClick={() => onSceneAction(btn.action)}
-                className="w-[56px] h-[44px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                className={`${SIDE_BTN_DEFAULT} h-[42px]`}
               >
                 <span className="text-[16px]">{btn.icon}</span>
                 <span className="font-mono text-[7px] uppercase tracking-wide">{btn.label}</span>
-                <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
-                  {btn.tip}
-                </span>
+                <Tooltip text={btn.tip} />
               </button>
             ))}
             {/* Mirror sub-group */}
-            <div className="h-px bg-border mx-2 my-1" />
+            <div className="h-px bg-border mx-3 my-1" />
             {(["x", "y", "z"] as const).map((axis) => (
               <button
                 key={axis}
                 onClick={() => onSceneAction(`mirror-${axis}`)}
-                className="w-[56px] h-[36px] flex items-center justify-center gap-1 cursor-pointer transition-all duration-150 border border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                className={`${SIDE_BTN_DEFAULT} h-[34px]`}
               >
                 <span className="text-[12px]">⌿</span>
                 <span className="font-mono text-[8px] uppercase font-bold">{axis}</span>
               </button>
             ))}
-          </div>
+            <div className="h-px bg-border mx-2 my-1" />
+          </SidebarGroup>
         )}
 
-        {/* Other tools (Mesh, Materials, Display) */}
-        <div className="flex flex-col gap-0.5 px-1.5 py-2 bg-card/95 backdrop-blur-sm border-r border-border">
-          {EDIT_TOOLS.map((tool) => (
+        {/* ── Object Tools (Mesh, Materials) ── */}
+        <SidebarGroup label="Object">
+          {EDIT_TOOLS.filter(t => t.flyout !== "display").map((tool) => (
             <button
               key={tool.id}
               onClick={() => toggleFlyout(tool.flyout)}
-              className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border ${
-                activeFlyout === tool.flyout
-                  ? "text-foreground bg-accent border-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50 border-transparent"
-              }`}
+              className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
             >
               <span className="text-[20px]">{tool.icon}</span>
               <span className="font-mono text-[7px] uppercase tracking-wide text-muted-foreground">{tool.label}</span>
-              <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
-                {tool.tip}
-              </span>
+              <Tooltip text={tool.tip} />
             </button>
           ))}
-        </div>
+        </SidebarGroup>
+
+        <div className="h-px bg-border mx-2 my-1" />
+
+        {/* ── View Tools ── */}
+        <SidebarGroup label="View">
+          {EDIT_TOOLS.filter(t => t.flyout === "display").map((tool) => (
+            <button
+              key={tool.id}
+              onClick={() => toggleFlyout(tool.flyout)}
+              className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
+            >
+              <span className="text-[20px]">{tool.icon}</span>
+              <span className="font-mono text-[7px] uppercase tracking-wide text-muted-foreground">{tool.label}</span>
+              <Tooltip text={tool.tip} />
+            </button>
+          ))}
+        </SidebarGroup>
+
+        <div className="pb-2" />
       </div>
 
       {/* Flyout panels */}
@@ -116,9 +158,7 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
             className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4 bg-card/95 backdrop-blur-sm border border-border"
             style={{
               left: "70px",
-              top: transformMode !== "orbit"
-                ? `${(3 * 44 + 3 * 36 + 40) + EDIT_TOOLS.findIndex((t) => t.flyout === activeFlyout) * 54 + 70}px`
-                : `${EDIT_TOOLS.findIndex((t) => t.flyout === activeFlyout) * 54 + 70}px`,
+              top: `${getFlyoutTop(activeFlyout)}px`,
             }}
           >
             {!hasSelection && activeFlyout !== "display" && (

@@ -7,6 +7,9 @@ interface MeshPanelProps {
   onAction: (action: string) => void;
 }
 
+// Consistent action button style
+const ACTION_BTN = "py-2 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 font-semibold hover:text-foreground active:scale-[0.98] bg-muted/20 border border-border/50";
+
 export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
   const lastClickedIdx = useRef<number>(-1);
@@ -32,9 +35,9 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelP
   };
 
   return (
-    <div className="w-[270px] flex-shrink-0 flex flex-col bg-card border-l border-border">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3.5 border-b border-border">
+    <div className="w-[270px] flex-shrink-0 flex flex-col bg-card border-l border-border h-full">
+      {/* Header — fixed */}
+      <div className="px-4 pt-4 pb-3.5 border-b border-border flex-shrink-0">
         <h2 className="font-display text-lg tracking-[0.15em] text-foreground uppercase mb-2">Meshes</h2>
         <div className="font-mono text-[10px] text-muted-foreground mb-3 tracking-wide">
           {meshes.length > 0 ? `${meshes.length} meshes · ${totalVerts.toLocaleString()} vertices` : "No model loaded"}
@@ -48,8 +51,8 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelP
         />
       </div>
 
-      {/* Mesh list */}
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
+      {/* Scrollable mesh list */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-2 scrollbar-thin">
         {filtered.length === 0 && (
           <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
             {meshes.length === 0 ? "Generate a ring to see meshes" : "No matching meshes"}
@@ -73,27 +76,25 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelP
         ))}
       </div>
 
-      {/* Batch actions */}
-      <div className="px-4 py-3 border-t border-border">
-        <h4 className="font-mono text-[9px] uppercase text-muted-foreground mb-2 tracking-[0.15em]">Mesh Actions</h4>
-        <div className="grid grid-cols-2 gap-1.5 mb-2">
-          {["Hide", "Show", "Show All", "Isolate"].map((action) => (
+      {/* Sticky footer — always visible */}
+      <div className="px-4 py-3 border-t border-border flex-shrink-0">
+        <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+          {["Hide", "Show", "Show All"].map((action) => (
             <button
               key={action}
               onClick={() => onAction(action.toLowerCase().replace(" ", "-"))}
-              className="py-2.5 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 font-semibold hover:text-foreground active:scale-[0.98] bg-muted/20 border border-border/50"
+              className={ACTION_BTN}
             >
               {action}
             </button>
           ))}
         </div>
-        <h4 className="font-mono text-[9px] uppercase text-muted-foreground mb-2 mt-2 tracking-[0.15em]">Selection</h4>
-        <div className="flex gap-1.5">
-          {["All", "None", "Invert"].map((action) => (
+        <div className="grid grid-cols-2 gap-1.5">
+          {["Isolate", "Invert"].map((action) => (
             <button
               key={action}
-              onClick={() => onAction(`select-${action.toLowerCase()}`)}
-              className="flex-1 py-2.5 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 font-semibold hover:text-foreground active:scale-[0.98] bg-muted/20 border border-border/50"
+              onClick={() => onAction(action === "Invert" ? "select-invert" : action.toLowerCase())}
+              className={ACTION_BTN}
             >
               {action}
             </button>
