@@ -600,6 +600,7 @@ export default function TextToCAD() {
                 onSelectMesh={handleSelectMesh}
                 onAction={handleMeshAction}
                 onApplyMaterial={handleApplyMaterial}
+                onSceneAction={handleSceneAction}
               />
             </ResizablePanel>
           </>
