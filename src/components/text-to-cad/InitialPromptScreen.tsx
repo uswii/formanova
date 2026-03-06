@@ -1,0 +1,128 @@
+import { useRef, useCallback } from "react";
+import { motion } from "framer-motion";
+import { Upload } from "lucide-react";
+import { AI_MODELS } from "./types";
+
+interface InitialPromptScreenProps {
+  model: string;
+  setModel: (m: string) => void;
+  prompt: string;
+  setPrompt: (p: string) => void;
+  isGenerating: boolean;
+  onGenerate: () => void;
+  onGlbUpload: (file: File) => void;
+  creditBlock?: React.ReactNode;
+}
+
+export default function InitialPromptScreen({
+  model, setModel, prompt, setPrompt,
+  isGenerating, onGenerate, onGlbUpload, creditBlock,
+}: InitialPromptScreenProps) {
+  const glbInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGlbUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onGlbUpload(file);
+  }, [onGlbUpload]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (prompt.trim() && !isGenerating) onGenerate();
+    }
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center bg-background">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full max-w-[640px] px-6"
+      >
+        {/* Title */}
+        <div className="text-center mb-10">
+          <h1 className="font-display text-4xl md:text-5xl tracking-[0.2em] text-foreground uppercase mb-3">
+            Text‑to‑3D
+          </h1>
+          <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
+            Describe your ring or upload a CAD file to begin
+          </p>
+        </div>
+
+        {/* Generation Quality */}
+        <div className="mb-6">
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+            Generation Quality
+          </h3>
+          <div className="flex gap-0 border border-border">
+            {AI_MODELS.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => !m.comingSoon && setModel(m.id)}
+                disabled={m.comingSoon}
+                className={`flex-1 py-3 px-2 text-[12px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 ${
+                  m.comingSoon
+                    ? "text-muted-foreground/30 cursor-not-allowed bg-transparent opacity-40"
+                    : model === m.id
+                      ? "text-primary-foreground bg-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer"
+                }`}
+              >
+                {m.label}
+                {m.comingSoon && <span className="block font-mono text-[8px] mt-0.5 normal-case tracking-wide">Soon</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Prompt */}
+        <div className="mb-4">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe your ring — e.g. A rose ring with three blooming roses, twisted vine band with thorns, and diamond accents"
+            className="w-full min-h-[120px] px-5 py-4 text-[14px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border"
+          />
+          <div className="flex justify-between items-center mt-2">
+            <span className="font-mono text-[9px] text-muted-foreground/40 tracking-wide">
+              Press Enter to generate · Shift+Enter for new line
+            </span>
+          </div>
+        </div>
+
+        {/* Credit block */}
+        {creditBlock && <div className="mb-4">{creditBlock}</div>}
+
+        {/* Generate */}
+        {!creditBlock && (
+          <button
+            onClick={onGenerate}
+            disabled={isGenerating || !prompt.trim()}
+            className="w-full py-4 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+          >
+            {isGenerating ? "Generating…" : "Generate Ring"}
+          </button>
+        )}
+
+        {/* Divider */}
+        <div className="flex items-center gap-4 my-6">
+          <div className="flex-1 h-px bg-border" />
+          <span className="font-mono text-[9px] text-muted-foreground/40 uppercase tracking-[0.2em]">or</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* Upload GLB */}
+        <input type="file" ref={glbInputRef} accept=".glb,.gltf" className="hidden" onChange={handleGlbUpload} />
+        <button
+          onClick={() => glbInputRef.current?.click()}
+          disabled={isGenerating}
+          className="w-full py-3.5 text-[12px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground flex items-center justify-center gap-2 bg-muted/20 border border-border"
+        >
+          <Upload className="w-4 h-4" /> Upload CAD File
+        </button>
+      </motion.div>
+    </div>
+  );
+}

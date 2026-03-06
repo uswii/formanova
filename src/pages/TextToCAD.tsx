@@ -1,37 +1,26 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 import { startRingPipeline, pollStatus, fetchResult, calcProgress } from "@/lib/formanova-cad-api";
 import { performCreditPreflight, type PreflightResult } from "@/lib/credit-preflight";
 import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
+import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
+import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
 import {
   ViewportToolbar,
-  ProgressOverlay,
   StatsBar,
   ActionButtons,
 } from "@/components/text-to-cad/ViewportOverlays";
 
-import { PROGRESS_STEPS } from "@/components/text-to-cad/types";
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
-
-const DEMO_MESHES: MeshItemData[] = [
-  { name: "Band_Main", verts: 1240, faces: 2400, visible: true, selected: false },
-  { name: "Band_Inner", verts: 620, faces: 1200, visible: true, selected: false },
-  { name: "Prong_0", verts: 578, faces: 1152, visible: true, selected: false },
-  { name: "Prong_1", verts: 578, faces: 1152, visible: true, selected: false },
-  { name: "Prong_2", verts: 578, faces: 1152, visible: true, selected: false },
-  { name: "Prong_3", verts: 578, faces: 1152, visible: true, selected: false },
-  { name: "Stone_Center", verts: 2048, faces: 4096, visible: true, selected: false },
-  { name: "Stone_Side_0", verts: 128, faces: 256, visible: true, selected: false },
-  { name: "Stone_Side_1", verts: 128, faces: 256, visible: true, selected: false },
-];
 
 // Full undo entry captures both UI mesh list AND 3D canvas state
 interface UndoEntry {
@@ -60,6 +49,9 @@ export default function TextToCAD() {
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
 
+  // Track whether user has ever started a generation or uploaded — drives the phase transition
+  const [workspaceActive, setWorkspaceActive] = useState(false);
+
   const canvasRef = useRef<CADCanvasHandle>(null);
   const meshesRef = useRef<MeshItemData[]>(meshes);
   meshesRef.current = meshes;
@@ -74,14 +66,13 @@ export default function TextToCAD() {
     [meshes]
   );
 
-  // Push full state (UI + 3D) onto undo stack — always reads current state via ref
+  // Push full state (UI + 3D) onto undo stack
   const pushUndo = useCallback((label: string) => {
     const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
     const snap = canvasRef.current?.getSnapshot() ?? null;
     setUndoStack((prev) => [...prev, { label, meshes: currentMeshes, canvasSnapshot: snap }]);
   }, []);
 
-  // LIFO undo — pops the most recent entry and restores both UI + 3D state
   const handleUndo = useCallback(() => {
     setUndoStack((prev) => {
       if (prev.length === 0) { toast.info("Nothing to undo"); return prev; }
@@ -95,7 +86,6 @@ export default function TextToCAD() {
     });
   }, []);
 
-  // Called when user finishes a transform drag (move/rotate/scale)
   const handleTransformEnd = useCallback(() => {
     pushUndo(`Transform (${transformMode})`);
   }, [pushUndo, transformMode]);
@@ -107,10 +97,9 @@ export default function TextToCAD() {
   };
 
   const simulateGeneration = useCallback(async () => {
-    if (isGenerating) return; // Prevent duplicate submit
+    if (isGenerating) return;
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
 
-    // Credit preflight — use known cost + real balance
     const requiredCredits = TOOL_COSTS.cad_generation ?? 5;
     try {
       const result = await performCreditPreflight('ring_full_pipeline', 1);
@@ -124,23 +113,22 @@ export default function TextToCAD() {
     } catch (err) {
       if (err instanceof AuthExpiredError) return;
       console.error('[CAD Preflight] failed, skipping block:', err);
-      // Don't block — backend will enforce credits during generation
       setCreditBlock(null);
     }
 
+    // Transition to workspace phase
+    setWorkspaceActive(true);
     setIsGenerating(true);
     setProgress(0);
     setHasModel(false);
-    setProgressStep("Starting pipeline…");
+    setProgressStep("Queued");
 
     try {
-      // 1. Start the pipeline
       const runRes = await startRingPipeline(prompt, model);
       const { status_url, result_url, projected_cost } = runRes;
       if (projected_cost) toast.info(`Estimated cost: $${projected_cost.toFixed(2)}`);
 
-      // 2. Poll status until complete — status now returns numeric progress
-      setProgressStep("Analyzing your design…");
+      setProgressStep("Generating geometry");
       let done = false;
       let pollErrors = 0;
       let resolvedGlbUrl: string | null = null;
@@ -169,13 +157,13 @@ export default function TextToCAD() {
         } catch (err) {
           pollErrors++;
           if (pollErrors >= 5) throw err;
+          // Don't fail on transient errors
         }
       }
 
-      // 3. If GLB wasn't in status, fetch result separately
       if (!resolvedGlbUrl) {
         setProgress(95);
-        setProgressStep("Downloading your ring…");
+        setProgressStep("Preparing preview");
         const resultRes = await fetchResult(result_url);
         resolvedGlbUrl = resultRes.glb_url;
         glbSource = resultRes.azure_source || null;
@@ -187,14 +175,13 @@ export default function TextToCAD() {
         return;
       }
 
-      // 4. Load the GLB into the viewer
       setGlbUrl(resolvedGlbUrl);
       setProgress(100);
+      setProgressStep("Completed");
       setIsGenerating(false);
       setHasModel(true);
       setShowPartRegen(true);
 
-      // Show source toast
       if (glbSource === "ring-validate") {
         toast.success("✅ Validated model loaded", { position: "bottom-right" });
       } else if (glbSource === "ring-generate") {
@@ -212,14 +199,13 @@ export default function TextToCAD() {
     }
   }, [prompt, model, navigate]);
 
-  // Map progress percentage to a user-friendly label
   function getProgressLabel(pct: number): string {
-    if (pct < 15) return "Analyzing your design…";
-    if (pct < 35) return "Sculpting geometry…";
-    if (pct < 55) return "Refining details…";
-    if (pct < 75) return "Polishing surfaces…";
-    if (pct < 90) return "Preparing your ring…";
-    return "Almost ready…";
+    if (pct < 15) return "Queued";
+    if (pct < 35) return "Generating geometry";
+    if (pct < 55) return "Adding details";
+    if (pct < 75) return "Optimizing structure";
+    if (pct < 90) return "Preparing preview";
+    return "Completed";
   }
 
   const simulateEdit = useCallback(async () => {
@@ -244,13 +230,21 @@ export default function TextToCAD() {
     setEditPrompt(preset);
   }, []);
 
-  // Track additional part URLs to merge into the scene
   const [additionalParts, setAdditionalParts] = useState<string[]>([]);
 
   const handleGlbUpload = useCallback((file: File) => {
     const url = URL.createObjectURL(file);
-    if (!hasModel) {
-      // No model yet — set as the primary model
+    if (!hasModel && !workspaceActive) {
+      // First upload — transition to workspace
+      setWorkspaceActive(true);
+      setGlbUrl(url);
+      setHasModel(true);
+      setShowPartRegen(true);
+      setMeshes([]);
+      setModules([]);
+      setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
+      setUndoStack([]);
+    } else if (!hasModel) {
       setGlbUrl(url);
       setHasModel(true);
       setShowPartRegen(true);
@@ -259,11 +253,10 @@ export default function TextToCAD() {
       setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
       setUndoStack([]);
     } else {
-      // Model already exists — add as an additional part
       setAdditionalParts((prev) => [...prev, url]);
     }
     toast.success(`Added ${file.name}`);
-  }, [hasModel]);
+  }, [hasModel, workspaceActive]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
@@ -281,6 +274,7 @@ export default function TextToCAD() {
     setMeshes([]);
     setModules([]);
     setUndoStack([]);
+    setWorkspaceActive(false);
     if (glbUrl) URL.revokeObjectURL(glbUrl);
     additionalParts.forEach((u) => URL.revokeObjectURL(u));
     setAdditionalParts([]);
@@ -341,7 +335,6 @@ export default function TextToCAD() {
     });
   };
 
-  // ── Scene operations dispatched from EditToolbar ──
   const handleApplyMaterial = useCallback((matId: string) => {
     if (selectedNames.length === 0) {
       toast.error("Select meshes first, then apply a material");
@@ -435,12 +428,38 @@ export default function TextToCAD() {
     }
   }, [handleUndo, handleSceneAction]);
 
+  // ── Phase 1: Initial prompt screen (no model, no generation started) ──
+  if (!workspaceActive) {
+    return (
+      <div className="h-[calc(100vh-5rem)] flex bg-background" tabIndex={0}>
+        <InitialPromptScreen
+          model={model}
+          setModel={setModel}
+          prompt={prompt}
+          setPrompt={setPrompt}
+          isGenerating={isGenerating}
+          onGenerate={simulateGeneration}
+          onGlbUpload={handleGlbUpload}
+          creditBlock={creditBlock ? (
+            <InsufficientCreditsInline
+              currentBalance={creditBlock.currentBalance}
+              requiredCredits={creditBlock.estimatedCredits}
+              onDismiss={() => setCreditBlock(null)}
+            />
+          ) : undefined}
+        />
+      </div>
+    );
+  }
+
+  // ── Phase 2: Full workspace ──
   return (
     <div
       className="flex h-[calc(100vh-5rem)] overflow-hidden bg-background"
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
+      {/* Left panel — always visible in workspace phase */}
       <LeftPanel
         model={model} setModel={setModel}
         prompt={prompt} setPrompt={setPrompt}
@@ -465,6 +484,7 @@ export default function TextToCAD() {
         ) : undefined}
       />
 
+      {/* Viewport */}
       <div className="flex-1 relative border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
         <CADCanvas
           ref={canvasRef}
@@ -479,21 +499,21 @@ export default function TextToCAD() {
           lightIntensity={1}
         />
 
-        {/* Empty state message when no model is loaded */}
+        {/* Empty state in viewport while generating */}
         {!hasModel && !isGenerating && (
           <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
             <div className="text-center">
               <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
-                Empty Workspace
+                Workspace Ready
               </div>
               <div className="font-mono text-[11px] text-muted-foreground/30 tracking-wide">
-                Create or upload a ring to begin
+                Your ring will appear here
               </div>
             </div>
           </div>
         )}
 
-        {/* Only show advanced viewport controls when a model is present */}
+        {/* Advanced controls — only when model exists */}
         {hasModel && (
           <EditToolbar
             onApplyMaterial={handleApplyMaterial}
@@ -502,7 +522,10 @@ export default function TextToCAD() {
           />
         )}
         {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
-        <ProgressOverlay visible={isGenerating} progress={progress} currentStep={progressStep} />
+        
+        {/* New staged progress overlay */}
+        <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
+        
         <StatsBar visible={hasModel && !isGenerating} stats={stats} />
         <ActionButtons
           visible={hasModel && !isGenerating}
@@ -513,14 +536,24 @@ export default function TextToCAD() {
         />
       </div>
 
-      {/* Only show mesh panel when a model is present */}
-      {hasModel && (
-        <MeshPanel
-          meshes={meshes}
-          onSelectMesh={handleSelectMesh}
-          onAction={handleMeshAction}
-        />
-      )}
+      {/* Right panel — mesh panel only when model exists */}
+      <AnimatePresence>
+        {hasModel && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 270, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <MeshPanel
+              meshes={meshes}
+              onSelectMesh={handleSelectMesh}
+              onAction={handleMeshAction}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
