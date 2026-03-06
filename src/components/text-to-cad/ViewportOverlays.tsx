@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2 } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
