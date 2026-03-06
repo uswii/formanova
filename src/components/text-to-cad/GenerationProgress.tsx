@@ -78,15 +78,16 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
         animate={{ opacity: 1, scale: 1 }}
         className="w-[420px] text-center"
       >
-        {/* Animated ring icon */}
-        <div className="mb-8">
+        {/* Percentage display */}
+        <div className="font-display text-[72px] text-foreground leading-none mb-2">
+          {Math.min(progress, 100)}%
+        </div>
+        <div className="w-full h-[2px] overflow-hidden mt-4 mb-6 bg-border">
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 mx-auto border-2 border-primary/30 rounded-full relative"
-          >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary" />
-          </motion.div>
+            className="h-full bg-primary"
+            animate={{ width: `${Math.min(progress, 100)}%` }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          />
         </div>
 
         {/* Current stage label */}
