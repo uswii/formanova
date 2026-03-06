@@ -20,7 +20,6 @@ const PLANS = [
     photos: 10,
     perPhoto: '$0.99',
     popular: false,
-    qualityLabel: 'Draft — cheapest',
   },
   {
     tier: 'standard',
@@ -31,7 +30,6 @@ const PLANS = [
     photos: 50,
     perPhoto: '$0.78',
     popular: true,
-    qualityLabel: 'Standard — mid-tier',
   },
   {
     tier: 'pro',
@@ -42,7 +40,6 @@ const PLANS = [
     photos: 150,
     perPhoto: '$0.66',
     popular: false,
-    qualityLabel: 'Premium — top tier',
   },
 ];
 
