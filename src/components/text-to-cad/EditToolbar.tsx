@@ -142,12 +142,6 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
               top: `${getFlyoutTop()}px`,
             }}
           >
-            {!hasSelection && activeFlyout !== "display" && (
-              <div className="mb-3 px-3 py-2.5 font-mono text-[11px] text-amber-500 bg-amber-500/10 border border-amber-500/20">
-                ⚠ Select a mesh in the viewport first
-              </div>
-            )}
-            {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
           </motion.div>
         )}
