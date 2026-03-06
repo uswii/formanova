@@ -450,7 +450,7 @@ export default function TextToCAD() {
       case "x":
       case "delete": handleSceneAction("delete"); break;
     }
-  }, [handleUndo, handleSceneAction]);
+  }, [handleUndo, handleRedo, handleSceneAction]);
 
   // ── Phase 1: Initial prompt screen (no model, no generation started) ──
   if (!workspaceActive) {
