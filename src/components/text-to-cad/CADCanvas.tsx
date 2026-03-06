@@ -9,7 +9,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
+import { MATERIAL_LIBRARY, findMaterial } from "@/components/cad-studio/materials";
 import type { MaterialDef } from "@/components/cad-studio/materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
