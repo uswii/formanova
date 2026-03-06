@@ -772,6 +772,11 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
 
 
 
+    const getOrbitControls = useCallback(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('canvas');
+      return canvas ? (canvas as any).__orbitControls : null;
+    }, []);
+
     useImperativeHandle(ref, () => ({
       applyMaterial: (matId, meshNames) => modelRef.current?.applyMaterial(matId, meshNames),
       resetTransform: (meshNames) => modelRef.current?.resetTransform(meshNames),
@@ -786,6 +791,27 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       removeAllTextures: () => modelRef.current?.removeAllTextures(),
       getSnapshot: () => modelRef.current!.getSnapshot(),
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
+      zoomIn: () => {
+        const controls = getOrbitControls();
+        if (!controls) return;
+        const dir = new THREE.Vector3().subVectors(controls.target, controls.object.position).normalize();
+        controls.object.position.addScaledVector(dir, controls.object.position.distanceTo(controls.target) * 0.2);
+        controls.update();
+      },
+      zoomOut: () => {
+        const controls = getOrbitControls();
+        if (!controls) return;
+        const dir = new THREE.Vector3().subVectors(controls.target, controls.object.position).normalize();
+        controls.object.position.addScaledVector(dir, -controls.object.position.distanceTo(controls.target) * 0.2);
+        controls.update();
+      },
+      resetCamera: () => {
+        const controls = getOrbitControls();
+        if (!controls) return;
+        controls.object.position.set(0, 1.5, 5);
+        controls.target.set(0, 0, 0);
+        controls.update();
+      },
     }));
 
     return (
