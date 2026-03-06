@@ -127,14 +127,41 @@ function FoSep() {
 
 // ── FLYOUT CONTENTS ──
 
-function TransformFlyout({ onAction }: { onAction: (a: string) => void }) {
+function TransformFlyout({ onAction, transformMode }: { onAction: (a: string) => void; transformMode: string }) {
+  const modeLabel = transformMode === "translate" ? "Position" : transformMode === "rotate" ? "Rotation" : transformMode === "scale" ? "Scale" : null;
+  const axes = ["X", "Y", "Z"];
+  const axisColors = ["text-red-400", "text-green-400", "text-blue-400"];
+
   return (
     <>
-      <FlyoutTitle>Transform</FlyoutTitle>
-      <FoBtn shortcut="G" onClick={() => onAction("set-mode-translate")}>Move</FoBtn>
-      <FoBtn shortcut="R" onClick={() => onAction("set-mode-rotate")}>Rotate</FoBtn>
-      <FoBtn shortcut="S" onClick={() => onAction("set-mode-scale")}>Scale</FoBtn>
+      <FlyoutTitle>Transform Inspector</FlyoutTitle>
+
+      {/* Numeric inspector for current mode */}
+      {modeLabel ? (
+        <div className="mb-4">
+          <FlyoutSubtitle>{modeLabel}</FlyoutSubtitle>
+          <div className="flex flex-col gap-1.5">
+            {axes.map((axis, i) => (
+              <div key={axis} className="flex items-center gap-2">
+                <span className={`font-mono text-[11px] font-bold w-4 ${axisColors[i]}`}>{axis}</span>
+                <input
+                  type="number"
+                  step={transformMode === "rotate" ? "1" : "0.01"}
+                  defaultValue={transformMode === "scale" ? "1.00" : "0.00"}
+                  className="flex-1 px-3 py-2 text-[12px] font-mono text-foreground bg-muted/30 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-4 px-3 py-2.5 font-mono text-[11px] text-muted-foreground bg-muted/10 border border-border/30">
+          Select Move <kbd className="font-mono text-[9px] bg-accent px-1 py-0.5 ml-1">G</kbd>, Rotate <kbd className="font-mono text-[9px] bg-accent px-1 py-0.5 ml-1">R</kbd>, or Scale <kbd className="font-mono text-[9px] bg-accent px-1 py-0.5 ml-1">S</kbd> in the toolbar
+        </div>
+      )}
+
       <FoSep />
+      <FlyoutSubtitle>Actions</FlyoutSubtitle>
       <FoBtn onClick={() => onAction("reset-transform")}>Reset Transform</FoBtn>
       <FoBtn onClick={() => onAction("apply-transform")}>Apply Transform</FoBtn>
       <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
