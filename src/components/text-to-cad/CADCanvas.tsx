@@ -426,9 +426,9 @@ const LoadedModel = forwardRef<
             // Auto-assign materials to new parts
             const gemKeywordsLocal = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave"];
             const platKeywordsLocal = ["prong", "claw", "bead", "milgrain"];
-            const dMat = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
-            const pMat = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
-            const gMat = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+            const dMat = findMaterial("diamond")!;
+            const pMat = findMaterial("platinum")!;
+            const gMat = findMaterial("yellow-gold")!;
 
             const newMaterials: Record<string, MaterialDef> = {};
             newParts.forEach((md) => {
