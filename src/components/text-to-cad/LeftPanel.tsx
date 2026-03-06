@@ -183,119 +183,127 @@ export default function LeftPanel({
                 Apply Edit
               </button>
 
-              {/* Quick edits grid */}
-              <div className="grid grid-cols-2 gap-2 mt-5">
-                {QUICK_EDITS.map((qe) => (
+              {/* ═══ PRIMARY PART TOOLS ═══ */}
+              <div className="mt-6 space-y-3">
+                <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Part Tools</h4>
+
+                {/* Rebuild Parts — primary card */}
+                <div className="border-2 border-border bg-card p-4">
                   <button
-                    key={qe.id}
-                    onClick={() => onQuickEdit(qe.preset)}
-                    className="py-3.5 px-3 text-center cursor-pointer transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent active:scale-[0.98] bg-muted/20 border border-border/50"
+                    onClick={() => setRebuildOpen(!rebuildOpen)}
+                    className="w-full flex items-center justify-between cursor-pointer"
                   >
-                    <span className="block text-[18px] mb-1.5">{qe.icon}</span>
-                    <span className="block font-mono text-[9px] font-bold uppercase tracking-[0.15em]">{qe.label}</span>
-                    <span className="block font-mono text-[8px] text-muted-foreground/60 mt-1">{qe.desc}</span>
+                    <div className="text-left">
+                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">⚙ Rebuild Parts</span>
+                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Select and regenerate any component with a new description</span>
+                    </div>
+                    {rebuildOpen
+                      ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    }
                   </button>
-                ))}
-              </div>
-
-              {/* ── Rebuild Parts (collapsible) ── */}
-              <div className="mt-5 border border-border">
-                <button
-                  onClick={() => setRebuildOpen(!rebuildOpen)}
-                  className="w-full flex items-center justify-between px-4 py-3 cursor-pointer transition-colors duration-150 hover:bg-accent/30"
-                >
-                  <span className="font-display text-[13px] tracking-[0.15em] text-foreground uppercase">⚙ Rebuild Parts</span>
-                  {rebuildOpen
-                    ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  }
-                </button>
-                <AnimatePresence>
-                  {rebuildOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-4 pt-1 space-y-3">
-                        <p className="font-mono text-[9px] text-muted-foreground tracking-wide">
-                          Select a part to rebuild with a new description
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {PART_REGEN_PARTS.map((part) => (
-                            <button
-                              key={part.id}
-                              onClick={() => setSelectedPart(part.id)}
-                              className={`px-3 py-2 text-[10px] font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 border ${
-                                selectedPart === part.id
-                                  ? "text-primary-foreground bg-primary border-primary"
-                                  : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
-                              }`}
-                            >
-                              {part.icon} {part.label}
-                            </button>
-                          ))}
+                  <AnimatePresence>
+                    {rebuildOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 space-y-3">
+                          <div className="flex flex-wrap gap-1.5">
+                            {PART_REGEN_PARTS.map((part) => (
+                              <button
+                                key={part.id}
+                                onClick={() => setSelectedPart(part.id)}
+                                className={`px-3 py-2 text-[10px] font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 border ${
+                                  selectedPart === part.id
+                                    ? "text-primary-foreground bg-primary border-primary"
+                                    : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
+                                }`}
+                              >
+                                {part.icon} {part.label}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            value={rebuildDesc}
+                            onChange={(e) => setRebuildDesc(e.target.value)}
+                            placeholder="How should this part look..."
+                            className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
+                          />
+                          <button
+                            disabled={!selectedPart}
+                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
+                          >
+                            ⚙ Rebuild This Part
+                          </button>
                         </div>
-                        <input
-                          value={rebuildDesc}
-                          onChange={(e) => setRebuildDesc(e.target.value)}
-                          placeholder="How should this part look..."
-                          className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
-                        />
-                        <button
-                          disabled={!selectedPart}
-                          className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
-                        >
-                          ⚙ Rebuild This Part
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Add Parts — primary card */}
+                <div className="border-2 border-border bg-card p-4">
+                  <button
+                    onClick={() => setAddPartOpen(!addPartOpen)}
+                    className="w-full flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="text-left">
+                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">✚ Add Parts</span>
+                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Generate a new element and add it to your ring</span>
+                    </div>
+                    {addPartOpen
+                      ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    }
+                  </button>
+                  <AnimatePresence>
+                    {addPartOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 space-y-3">
+                          <input
+                            value={newPartDesc}
+                            onChange={(e) => setNewPartDesc(e.target.value)}
+                            placeholder="Describe a new part to add..."
+                            className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
+                          />
+                          <button
+                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]"
+                          >
+                            ✚ Add to Ring
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
 
-              {/* ── Add Parts (collapsible) ── */}
-              <div className="mt-2 border border-border">
-                <button
-                  onClick={() => setAddPartOpen(!addPartOpen)}
-                  className="w-full flex items-center justify-between px-4 py-3 cursor-pointer transition-colors duration-150 hover:bg-accent/30"
-                >
-                  <span className="font-display text-[13px] tracking-[0.15em] text-foreground uppercase">✚ Add Parts</span>
-                  {addPartOpen
-                    ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  }
-                </button>
-                <AnimatePresence>
-                  {addPartOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
+              {/* ═══ QUICK ADJUSTMENTS ═══ */}
+              <div className="mt-6">
+                <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Quick Adjustments</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_EDITS.map((qe) => (
+                    <button
+                      key={qe.id}
+                      onClick={() => onQuickEdit(qe.preset)}
+                      className="py-3.5 px-3 text-center cursor-pointer transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent active:scale-[0.98] bg-muted/20 border border-border/50"
                     >
-                      <div className="px-4 pb-4 pt-1 space-y-3">
-                        <p className="font-mono text-[9px] text-muted-foreground tracking-wide">
-                          Describe a new element to generate and add to your ring
-                        </p>
-                        <input
-                          value={newPartDesc}
-                          onChange={(e) => setNewPartDesc(e.target.value)}
-                          placeholder="Describe a new part to add..."
-                          className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
-                        />
-                        <button
-                          className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]"
-                        >
-                          ✚ Add to Ring
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <span className="block text-[18px] mb-1.5">{qe.icon}</span>
+                      <span className="block font-mono text-[9px] font-bold uppercase tracking-[0.15em]">{qe.label}</span>
+                      <span className="block font-mono text-[8px] text-muted-foreground/60 mt-1">{qe.desc}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </motion.section>
           )}
