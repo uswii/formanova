@@ -34,27 +34,22 @@ export default function CADStudio() {
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.3 }}
         className="font-display text-4xl md:text-6xl lg:text-8xl uppercase tracking-wide text-center pt-4 md:pt-6 text-foreground"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
 
       {/* 3D Ring — prominent hero element */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8, delay: 0.15 }}
-        className="w-full flex-1 min-h-0 max-h-[55vh]"
-      >
+      <div className="w-full flex-1 min-h-0 max-h-[55vh]">
         <InteractiveRing />
-      </motion.div>
+      </div>
 
       {/* Feature Cards — compact landscape */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
         className="w-full max-w-5xl grid grid-cols-2 gap-3 md:gap-5 pb-6 md:pb-10 -mt-2"
       >
         {cadFeatures.map((feature) => {
