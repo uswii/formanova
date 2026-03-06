@@ -1,7 +1,7 @@
 // ── Shared types & constants for Text-to-CAD studio ──
 // Material library is shared with CAD-to-Catalog studio
-export { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
-export type { MaterialDef } from "@/components/cad-studio/materials";
+export { MATERIAL_LIBRARY, MATERIAL_TYPES, MATERIAL_ALLOYS, MATERIAL_FINISHES } from "@/components/cad-studio/materials";
+export type { MaterialDef, MaterialType, MaterialAlloy, MaterialFinish } from "@/components/cad-studio/materials";
 
 export const AI_MODELS = [
   { id: "gemini", label: "Draft", comingSoon: false },
