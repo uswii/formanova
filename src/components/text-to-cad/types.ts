@@ -40,7 +40,7 @@ export const TRANSFORM_MODES = [
 ] as const;
 
 export const EDIT_TOOLS = [
-  { id: "transform", icon: "↔", label: "Move", flyout: "transform", tip: "Transform tools" },
+  { id: "transform", icon: "↔", label: "XYZ", flyout: "transform", tip: "Transform inspector" },
   { id: "mesh", icon: "▭", label: "Mesh", flyout: "mesh", tip: "Mesh editing" },
   { id: "materials", icon: "◉", label: "Mat", flyout: "materials", tip: "Materials" },
   { id: "display", icon: "◭", label: "View", flyout: "display", tip: "Display options" },

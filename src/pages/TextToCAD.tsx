@@ -519,6 +519,7 @@ export default function TextToCAD() {
             onApplyMaterial={handleApplyMaterial}
             onSceneAction={handleSceneAction}
             hasSelection={selectedNames.length > 0}
+            transformMode={transformMode}
           />
         )}
         {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
