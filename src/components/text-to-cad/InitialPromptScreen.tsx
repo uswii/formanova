@@ -112,10 +112,10 @@ export default function InitialPromptScreen({
           {prompt.length > 0 && (
             <button
               onClick={() => setPrompt("")}
-              className="absolute top-3 right-3 p-1 rounded-sm text-muted-foreground/40 hover:text-foreground transition-colors"
+              className="absolute top-3 right-3 p-1.5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all duration-150"
               aria-label="Clear prompt"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
