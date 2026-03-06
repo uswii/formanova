@@ -254,9 +254,13 @@ export default function LeftPanel({
                           />
                           <button
                             disabled={!selectedPart}
-                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
+                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                           >
                             ⚙ Rebuild This Part
+                            <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                              <img src={creditCoinIcon} alt="" className="w-3.5 h-3.5" />
+                              <span className="text-[10px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                            </span>
                           </button>
                         </div>
                       </motion.div>
