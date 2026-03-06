@@ -479,13 +479,29 @@ export default function TextToCAD() {
           lightIntensity={1}
         />
 
-        <EditToolbar
-          onApplyMaterial={handleApplyMaterial}
-          onSceneAction={handleSceneAction}
-          hasSelection={selectedNames.length > 0}
-        />
-        <ViewportToolbar mode={transformMode} setMode={setTransformMode} />
-        {/* PartRegenBar removed — now lives inside LeftPanel's Edit Ring section */}
+        {/* Empty state message when no model is loaded */}
+        {!hasModel && !isGenerating && (
+          <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
+                Empty Workspace
+              </div>
+              <div className="font-mono text-[11px] text-muted-foreground/30 tracking-wide">
+                Create or upload a ring to begin
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Only show advanced viewport controls when a model is present */}
+        {hasModel && (
+          <EditToolbar
+            onApplyMaterial={handleApplyMaterial}
+            onSceneAction={handleSceneAction}
+            hasSelection={selectedNames.length > 0}
+          />
+        )}
+        {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
         <ProgressOverlay visible={isGenerating} progress={progress} currentStep={progressStep} />
         <StatsBar visible={hasModel && !isGenerating} stats={stats} />
         <ActionButtons
@@ -497,11 +513,14 @@ export default function TextToCAD() {
         />
       </div>
 
-      <MeshPanel
-        meshes={meshes}
-        onSelectMesh={handleSelectMesh}
-        onAction={handleMeshAction}
-      />
+      {/* Only show mesh panel when a model is present */}
+      {hasModel && (
+        <MeshPanel
+          meshes={meshes}
+          onSelectMesh={handleSelectMesh}
+          onAction={handleMeshAction}
+        />
+      )}
     </div>
   );
 }
