@@ -589,6 +589,13 @@ export default function TextToCAD() {
               redoCount={redoStack.length}
               onReset={handleReset}
               onDownload={handleDownloadGlb}
+              onFullscreen={() => {
+                const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
+                if (el) {
+                  if (document.fullscreenElement) document.exitFullscreen();
+                  else el.requestFullscreen();
+                }
+              }}
             />
           </div>
         </ResizablePanel>
