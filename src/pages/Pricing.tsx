@@ -185,9 +185,6 @@ export default function Pricing() {
                     Checkout failed. Please try again.
                   </p>
                 )}
-                <p className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/70 uppercase text-center mt-3">
-                  {plan.qualityLabel}
-                </p>
               </div>
             </div>
           ))}
