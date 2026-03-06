@@ -47,6 +47,7 @@ export default function TextToCAD() {
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
