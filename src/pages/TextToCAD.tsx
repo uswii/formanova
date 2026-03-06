@@ -570,7 +570,7 @@ export default function TextToCAD() {
         {hasModel && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 270, opacity: 1 }}
+            animate={{ width: 290, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
