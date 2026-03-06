@@ -10,7 +10,7 @@ interface EditToolbarProps {
   transformMode?: string;
 }
 
-export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection, transformMode = "orbit" }: EditToolbarProps) {
+export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection, transformMode = "orbit", transformMode = "orbit" }: EditToolbarProps) {
   const [activeFlyout, setActiveFlyout] = useState<string | null>(null);
   const [activeDisplayToggles, setActiveDisplayToggles] = useState<Set<string>>(new Set());
 
@@ -83,7 +83,7 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
                 ⚠ Select a mesh in the viewport first
               </div>
             )}
-            {activeFlyout === "transform" && <TransformFlyout onAction={onSceneAction} />}
+            {activeFlyout === "transform" && <TransformFlyout transformMode={transformMode} onAction={onSceneAction} />}
             {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
             {activeFlyout === "materials" && <MaterialsFlyout metals={metals} gems={gems} onApply={onApplyMaterial} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
