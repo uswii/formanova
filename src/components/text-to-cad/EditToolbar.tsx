@@ -10,7 +10,7 @@ interface EditToolbarProps {
   transformMode?: string;
 }
 
-export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection }: EditToolbarProps) {
+export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection, transformMode = "orbit" }: EditToolbarProps) {
   const [activeFlyout, setActiveFlyout] = useState<string | null>(null);
   const [activeDisplayToggles, setActiveDisplayToggles] = useState<Set<string>>(new Set());
 
