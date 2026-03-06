@@ -41,7 +41,6 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
       {[
         { icon: "⟳", action: "reset-transform", tip: "Reset Transform" },
         { icon: "✓", action: "apply-transform", tip: "Apply to Geometry" },
-        { icon: "⧉", action: "duplicate", tip: "Duplicate Selected" },
       ].map((btn) => (
         <button
           key={btn.action}
