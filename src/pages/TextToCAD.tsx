@@ -520,7 +520,7 @@ export default function TextToCAD() {
 
         {/* Viewport */}
         <ResizablePanel defaultSize={hasModel ? 56 : 78} minSize={30}>
-          <div className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
+          <div data-cad-viewport className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
             {/* Panel collapse toggles */}
             <button
               onClick={() => setLeftCollapsed(!leftCollapsed)}
