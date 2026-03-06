@@ -183,7 +183,7 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   if (!visible) return null;
 
   return (
-    <div className="absolute right-4 top-4 z-50 flex flex-col bg-card/85 backdrop-blur-sm border border-border/40 rounded-sm shadow-lg overflow-visible">
+    <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col bg-card/85 backdrop-blur-sm border border-border/40 rounded-sm shadow-lg overflow-visible">
       {/* Zoom */}
       <button onClick={onZoomIn} className={SIDE_BTN} title="Zoom in">
         <SideTooltip label="Zoom In" />
