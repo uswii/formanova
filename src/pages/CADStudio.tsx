@@ -29,13 +29,13 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col items-center px-4 md:px-8 lg:px-12 overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col items-center px-4 md:px-6 overflow-hidden">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-center pt-6 md:pt-8 text-foreground"
+        className="font-display text-3xl md:text-4xl lg:text-5xl uppercase tracking-wide text-center pt-4 md:pt-6 text-foreground"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
@@ -45,17 +45,17 @@ export default function CADStudio() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, delay: 0.15 }}
-        className="w-full max-w-5xl h-[340px] md:h-[440px] lg:h-[520px] -mt-2"
+        className="w-full flex-1 min-h-0 max-h-[55vh]"
       >
         <InteractiveRing />
       </motion.div>
 
-      {/* Feature Cards — square */}
+      {/* Feature Cards — compact landscape */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="w-full max-w-[96vw] xl:max-w-[1200px] grid grid-cols-2 gap-4 md:gap-6 -mt-4 pb-8 md:pb-12"
+        className="w-full max-w-5xl grid grid-cols-2 gap-3 md:gap-5 pb-6 md:pb-10 -mt-2"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
@@ -64,7 +64,7 @@ export default function CADStudio() {
             return (
               <div
                 key={feature.title}
-                className="group relative marta-frame overflow-hidden aspect-square opacity-60 cursor-default"
+                className="group relative marta-frame overflow-hidden aspect-[3/2] opacity-60 cursor-default"
               >
                 <img
                   src={feature.image}
@@ -73,21 +73,21 @@ export default function CADStudio() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-                <div className="absolute top-3 left-3">
+                <div className="absolute top-2.5 left-2.5">
                   <Icon className="w-4 h-4 text-formanova-hero-accent/60" />
                 </div>
 
-                <div className="absolute top-3 right-3">
-                  <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground uppercase bg-muted/80 backdrop-blur-sm px-2.5 py-1">
+                <div className="absolute top-2.5 right-2.5">
+                  <span className="font-mono text-[7px] tracking-[0.2em] text-muted-foreground uppercase bg-muted/80 backdrop-blur-sm px-2 py-0.5">
                     Coming Soon
                   </span>
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h2 className="font-display text-base md:text-lg uppercase tracking-wide text-white">
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <h2 className="font-display text-sm md:text-base uppercase tracking-wide text-white">
                     {feature.title}
                   </h2>
-                  <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-white/60 uppercase mt-0.5 max-w-[80%]">
+                  <p className="font-mono text-[7px] md:text-[8px] tracking-[0.15em] text-white/60 uppercase mt-0.5">
                     {feature.description}
                   </p>
                 </div>
@@ -101,7 +101,7 @@ export default function CADStudio() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => navigate(feature.route)}
-              className="group relative marta-frame overflow-hidden aspect-square cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              className="group relative marta-frame overflow-hidden aspect-[3/2] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
               <img
                 src={feature.image}
@@ -110,21 +110,21 @@ export default function CADStudio() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-              <div className="absolute top-3 left-3">
+              <div className="absolute top-2.5 left-2.5">
                 <Icon className="w-4 h-4 text-formanova-hero-accent" />
               </div>
 
-              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                <div className="w-7 h-7 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
+              <div className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                <div className="w-6 h-6 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
                   <ArrowRight className="w-3 h-3 text-primary-foreground" />
                 </div>
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <h2 className="font-display text-base md:text-lg uppercase tracking-wide text-white transition-transform duration-300 group-hover:translate-x-0.5">
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <h2 className="font-display text-sm md:text-base uppercase tracking-wide text-white transition-transform duration-300 group-hover:translate-x-0.5">
                   {feature.title}
                 </h2>
-                <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-white/60 uppercase mt-0.5 max-w-[80%]">
+                <p className="font-mono text-[7px] md:text-[8px] tracking-[0.15em] text-white/60 uppercase mt-0.5">
                   {feature.description}
                 </p>
               </div>
