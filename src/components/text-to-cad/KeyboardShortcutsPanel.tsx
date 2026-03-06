@@ -109,7 +109,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             </div>
 
             {/* Sections */}
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-5 overflow-y-auto flex-1 min-h-0">
               {SHORTCUT_SECTIONS.map((section) => (
                 <div key={section.title}>
                   <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2.5">
