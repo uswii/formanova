@@ -17,9 +17,10 @@ const PLANS = [
     name: 'Basic',
     price: 9,
     credits: 100,
-    photos: 10,       // 100 credits ÷ 10 = 10 photos
+    photos: 10,
     perPhoto: '$0.99',
     popular: false,
+    qualityLabel: 'Draft — cheapest',
   },
   {
     tier: 'standard',
@@ -27,9 +28,10 @@ const PLANS = [
     name: 'Standard',
     price: 39,
     credits: 500,
-    photos: 50,       // 500 credits ÷ 10 = 50 photos
+    photos: 50,
     perPhoto: '$0.78',
     popular: true,
+    qualityLabel: 'Standard — mid-tier',
   },
   {
     tier: 'pro',
@@ -37,9 +39,10 @@ const PLANS = [
     name: 'Pro',
     price: 99,
     credits: 1500,
-    photos: 150,      // 1500 credits ÷ 10 = 150 photos
+    photos: 150,
     perPhoto: '$0.66',
     popular: false,
+    qualityLabel: 'Premium — top tier',
   },
 ];
 
@@ -185,6 +188,9 @@ export default function Pricing() {
                     Checkout failed. Please try again.
                   </p>
                 )}
+                <p className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/50 uppercase text-center mt-3">
+                  {plan.qualityLabel}
+                </p>
               </div>
             </div>
           ))}
