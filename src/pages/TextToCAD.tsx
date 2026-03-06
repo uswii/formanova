@@ -444,9 +444,35 @@ export default function TextToCAD() {
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    // ? — toggle shortcuts panel
+    if (e.key === "?") { setShortcutsOpen((p) => !p); return; }
+    // Ctrl+Shift+Z — Redo
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); handleRedo(); return; }
+    // Ctrl+Z — Undo
     if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); handleUndo(); return; }
+    // Ctrl+Shift+A — Deselect all
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
+      canvasRef.current?.selectMeshes([]);
+      return;
+    }
+    // Ctrl+A — Select all
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      setMeshes((prev) => prev.map((m) => ({ ...m, selected: true })));
+      canvasRef.current?.selectMeshes(meshes.map((m) => m.name));
+      return;
+    }
+    // Shift+D — Duplicate
+    if (e.shiftKey && e.key.toLowerCase() === "d") { e.preventDefault(); handleSceneAction("duplicate"); return; }
+    // U — Undo alt
     if (e.key === "u" || e.key === "U") { handleUndo(); return; }
+    // W — Toggle wireframe
+    if (e.key === "w" || e.key === "W") {
+      handleSceneAction(canvasRef.current ? "wireframe-toggle" : "wireframe-on");
+      return;
+    }
     switch (e.key.toLowerCase()) {
       case "g": setTransformMode("translate"); break;
       case "r": setTransformMode("rotate"); break;
@@ -455,7 +481,7 @@ export default function TextToCAD() {
       case "x":
       case "delete": handleSceneAction("delete"); break;
     }
-  }, [handleUndo, handleRedo, handleSceneAction]);
+  }, [handleUndo, handleRedo, handleSceneAction, meshes]);
 
   // ── Phase 1: Initial prompt screen ──
   if (!workspaceActive) {
