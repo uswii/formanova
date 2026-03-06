@@ -19,8 +19,7 @@ import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
 import {
   ViewportToolbar,
   StatsBar,
-  ActionButtons,
-  ZoomControls,
+  ViewportSideTools,
 } from "@/components/text-to-cad/ViewportOverlays";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
@@ -579,22 +578,18 @@ export default function TextToCAD() {
             <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
             
             <StatsBar visible={hasModel && !isGenerating} stats={stats} />
-            <ActionButtons
+            <ViewportSideTools
               visible={hasModel && !isGenerating}
-              onReset={handleReset}
+              onZoomIn={() => canvasRef.current?.zoomIn()}
+              onZoomOut={() => canvasRef.current?.zoomOut()}
+              onResetView={() => canvasRef.current?.resetCamera()}
               onUndo={handleUndo}
               onRedo={handleRedo}
               undoCount={undoStack.length}
               redoCount={redoStack.length}
+              onReset={handleReset}
               onDownload={handleDownloadGlb}
             />
-            {hasModel && !isGenerating && (
-              <ZoomControls
-                onZoomIn={() => canvasRef.current?.zoomIn()}
-                onZoomOut={() => canvasRef.current?.zoomOut()}
-                onReset={() => canvasRef.current?.resetCamera()}
-              />
-            )}
           </div>
         </ResizablePanel>
 

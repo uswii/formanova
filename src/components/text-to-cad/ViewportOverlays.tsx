@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2 } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
@@ -152,95 +152,85 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
   );
 }
 
-// ── Action Buttons ──
-// Separated into: left=undo/redo, center=viewer tools (handled above), right=start over + download
-const HIST_BTN = "h-[36px] px-4 text-[10px] font-bold uppercase tracking-[0.1em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 text-foreground/70 hover:text-foreground hover:bg-accent/40 active:scale-[0.97] disabled:opacity-25 disabled:cursor-not-allowed";
+// ── Viewport Side Tools (unified vertical strip) ──
+const SIDE_BTN = "w-9 h-9 flex items-center justify-center text-muted-foreground/80 hover:text-foreground hover:bg-accent/50 transition-all duration-150 cursor-pointer active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed relative group";
 
-export function ActionButtons({ visible, onReset, onUndo, onRedo, undoCount, redoCount, onDownload }: {
+function SideDivider() {
+  return <div className="mx-2 h-px bg-border/30" />;
+}
+
+function SideTooltip({ label }: { label: string }) {
+  return (
+    <span className="absolute right-full mr-2 px-2 py-1 text-[9px] font-mono uppercase tracking-wider text-foreground bg-card border border-border rounded-sm shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+      {label}
+    </span>
+  );
+}
+
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onReset, onDownload, onFullscreen }: {
   visible: boolean;
-  onReset: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onResetView: () => void;
   onUndo: () => void;
   onRedo: () => void;
   undoCount: number;
   redoCount: number;
-  onDownload?: () => void;
+  onReset: () => void;
+  onDownload: () => void;
+  onFullscreen?: () => void;
 }) {
   if (!visible) return null;
 
   return (
-    <div className="absolute top-[68px] left-0 right-0 z-50 flex items-center justify-between px-4 pointer-events-none">
-      {/* Left: History controls */}
-      <div className="pointer-events-auto flex items-center gap-0 bg-card border border-border shadow-md">
-        <button
-          onClick={onUndo}
-          disabled={undoCount === 0}
-          className={`${HIST_BTN} border-r border-border`}
-        >
-          <Undo2 className="w-3.5 h-3.5" />
-          Undo
-          {undoCount > 0 && (
-            <span className="font-mono text-[9px] bg-accent px-1.5 py-0.5">{undoCount}</span>
-          )}
-        </button>
-        <button
-          onClick={onRedo}
-          disabled={redoCount === 0}
-          className={HIST_BTN}
-        >
-          <Redo2 className="w-3.5 h-3.5" />
-          Redo
-          {redoCount > 0 && (
-            <span className="font-mono text-[9px] bg-accent px-1.5 py-0.5">{redoCount}</span>
-          )}
-        </button>
-      </div>
-
-      {/* Right: Project actions */}
-      <div className="pointer-events-auto flex items-center gap-2">
-        <button
-          onClick={onReset}
-          className="h-[36px] px-4 text-[10px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 text-foreground/70 hover:text-foreground active:scale-[0.97] bg-card border border-border shadow-md"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          Start Over
-        </button>
-        <button
-          onClick={onDownload}
-          className="h-[36px] px-6 text-[10px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.97] border border-primary shadow-md"
-        >
-          <Download className="w-3.5 h-3.5" />
-          Download
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Zoom Controls ──
-const ZOOM_BTN = "w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors cursor-pointer";
-
-export function ZoomControls({ onZoomIn, onZoomOut, onReset }: {
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onReset?: () => void;
-}) {
-  return (
-    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col bg-card/80 backdrop-blur-sm border border-border/40 rounded-sm shadow-md overflow-hidden">
-      <button onClick={onZoomIn} className={ZOOM_BTN} title="Zoom in">
+    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col bg-card/85 backdrop-blur-sm border border-border/40 rounded-sm shadow-lg overflow-visible">
+      {/* Zoom */}
+      <button onClick={onZoomIn} className={SIDE_BTN} title="Zoom in">
+        <SideTooltip label="Zoom In" />
         <Plus className="w-4 h-4" />
       </button>
-      <div className="h-px bg-border/40" />
-      <button onClick={onZoomOut} className={ZOOM_BTN} title="Zoom out">
+      <button onClick={onZoomOut} className={SIDE_BTN} title="Zoom out">
+        <SideTooltip label="Zoom Out" />
         <Minus className="w-4 h-4" />
       </button>
-      {onReset && (
-        <>
-          <div className="h-px bg-border/40" />
-          <button onClick={onReset} className={ZOOM_BTN} title="Reset view">
-            <Maximize2 className="w-3.5 h-3.5" />
-          </button>
-        </>
+
+      <SideDivider />
+
+      {/* History */}
+      <button onClick={onUndo} disabled={undoCount === 0} className={SIDE_BTN} title="Undo">
+        <SideTooltip label={`Undo${undoCount > 0 ? ` (${undoCount})` : ""}`} />
+        <Undo2 className="w-3.5 h-3.5" />
+      </button>
+      <button onClick={onRedo} disabled={redoCount === 0} className={SIDE_BTN} title="Redo">
+        <SideTooltip label={`Redo${redoCount > 0 ? ` (${redoCount})` : ""}`} />
+        <Redo2 className="w-3.5 h-3.5" />
+      </button>
+
+      <SideDivider />
+
+      {/* View */}
+      <button onClick={onResetView} className={SIDE_BTN} title="Reset view">
+        <SideTooltip label="Reset View" />
+        <Maximize2 className="w-3.5 h-3.5" />
+      </button>
+      {onFullscreen && (
+        <button onClick={onFullscreen} className={SIDE_BTN} title="Fullscreen">
+          <SideTooltip label="Fullscreen" />
+          <Maximize className="w-3.5 h-3.5" />
+        </button>
       )}
+
+      <SideDivider />
+
+      {/* Actions */}
+      <button onClick={onDownload} className={`${SIDE_BTN} text-primary hover:text-primary`} title="Download">
+        <SideTooltip label="Download" />
+        <Download className="w-3.5 h-3.5" />
+      </button>
+      <button onClick={onReset} className={SIDE_BTN} title="Start over">
+        <SideTooltip label="Start Over" />
+        <RotateCcw className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
