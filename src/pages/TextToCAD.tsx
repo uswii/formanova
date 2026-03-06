@@ -15,6 +15,7 @@ import EditToolbar from "@/components/text-to-cad/EditToolbar";
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot } from "@/components/text-to-cad/CADCanvas";
+import ViewportDisplayMenu from "@/components/text-to-cad/ViewportDisplayMenu";
 import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
 import {
   ViewportToolbar,
@@ -575,6 +576,7 @@ export default function TextToCAD() {
             )}
             {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
             
+            <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
             <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
             
             
