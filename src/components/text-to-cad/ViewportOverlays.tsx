@@ -12,10 +12,10 @@ const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; 
 const AXES = ["X", "Y", "Z"] as const;
 const AXIS_COLORS = ["text-red-400", "text-green-400", "text-blue-400"];
 
-// Shared button style for consistent sizing across all toolbar buttons
-const TB_BTN = "h-[38px] px-4 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 border border-transparent";
-const TB_BTN_DEFAULT = `${TB_BTN} text-muted-foreground hover:text-foreground hover:bg-accent/50`;
-const TB_BTN_ACTIVE = `${TB_BTN} text-primary-foreground bg-primary`;
+// ── Viewer Tool Button ──
+const VT_BTN = "h-[40px] px-5 text-[11px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-2";
+const VT_BTN_DEFAULT = `${VT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40`;
+const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 
 // ── Unified Transform Toolbar + Inspector ──
 export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: string) => void }) {
@@ -23,69 +23,61 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
   const isTransformActive = mode !== "orbit" && config !== null;
 
   return (
-    <div className="absolute top-3 left-0 right-0 z-50 flex items-start justify-between px-3">
-      {/* Left: Editing controls */}
-      <div className="flex items-center gap-0 bg-card/95 backdrop-blur-sm border border-border" />
-
-      {/* Center: Viewer tools + transform inspector */}
-      <div className="flex flex-col items-center">
-        <div className="flex gap-0 bg-card/95 backdrop-blur-sm border border-border">
-          {TRANSFORM_MODES.map((tm) => (
-            <button
-              key={tm.id}
-              onClick={() => setMode(tm.id)}
-              className={mode === tm.id ? TB_BTN_ACTIVE : TB_BTN_DEFAULT}
-            >
-              {tm.label}
-              {tm.shortcut && <kbd className="font-mono text-[8px] opacity-50">{tm.shortcut}</kbd>}
-            </button>
-          ))}
-        </div>
-
-        {/* Integrated numeric inspector */}
-        <AnimatePresence>
-          {isTransformActive && config && (
-            <motion.div
-              initial={{ opacity: 0, height: 0, y: -4 }}
-              animate={{ opacity: 1, height: "auto", y: 0 }}
-              exit={{ opacity: 0, height: 0, y: -4 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="overflow-hidden"
-            >
-              <div className="bg-card/95 backdrop-blur-sm border border-border border-t-0 px-4 py-3 min-w-[340px]">
-                <div className="flex items-center gap-2 mb-2.5">
-                  <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
-                    {config.icon} {config.title}
-                  </span>
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
-                    Gizmo + Numeric
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  {AXES.map((axis, i) => (
-                    <div key={axis} className="flex items-center gap-1.5 flex-1">
-                      <span className={`font-mono text-[11px] font-bold ${AXIS_COLORS[i]}`}>{axis}</span>
-                      <input
-                        type="number"
-                        step={config.step}
-                        defaultValue={config.defaultVal}
-                        className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
-                      {config.unit && (
-                        <span className="font-mono text-[9px] text-muted-foreground">{config.unit}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-4 pointer-events-none">
+      {/* Row 1: Centered viewer tools */}
+      <div className="pointer-events-auto flex gap-0 bg-card border border-border shadow-lg">
+        {TRANSFORM_MODES.map((tm) => (
+          <button
+            key={tm.id}
+            onClick={() => setMode(tm.id)}
+            className={mode === tm.id ? VT_BTN_ACTIVE : VT_BTN_DEFAULT}
+          >
+            {tm.label}
+            {tm.shortcut && <kbd className="font-mono text-[9px] opacity-60">{tm.shortcut}</kbd>}
+          </button>
+        ))}
       </div>
 
-      {/* Right: Project control + Download */}
-      <div className="flex items-center gap-0" />
+      {/* Integrated numeric inspector — slides down from viewer tools */}
+      <AnimatePresence>
+        {isTransformActive && config && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -4 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="overflow-hidden pointer-events-auto"
+          >
+            <div className="bg-card border border-border border-t-0 px-4 py-3 min-w-[360px] shadow-lg">
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
+                  {config.icon} {config.title}
+                </span>
+                <div className="flex-1 h-px bg-border" />
+                <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
+                  Gizmo + Numeric
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {AXES.map((axis, i) => (
+                  <div key={axis} className="flex items-center gap-1.5 flex-1">
+                    <span className={`font-mono text-[11px] font-bold ${AXIS_COLORS[i]}`}>{axis}</span>
+                    <input
+                      type="number"
+                      step={config.step}
+                      defaultValue={config.defaultVal}
+                      className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    {config.unit && (
+                      <span className="font-mono text-[9px] text-muted-foreground">{config.unit}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -228,23 +220,29 @@ export function StatsBar({ visible, stats }: { visible: boolean; stats: StatsDat
   );
 }
 
-// Shared toolbar button style
-const ACTION_BTN = "h-[38px] px-4 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 border border-border";
+// Action button style
+const ACT_BTN = "h-[36px] px-4 text-[10px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 border border-transparent";
 
-// ── Action Buttons (top right) ──
-export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload }: {
-  visible: boolean; onReset: () => void; onUndo: () => void; undoCount: number; onDownload?: () => void;
+// ── Action Bar (Row 2 — below viewer tools) ──
+export function ActionButtons({ visible, onReset, onUndo, onRedo, undoCount, redoCount, onDownload }: {
+  visible: boolean;
+  onReset: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  undoCount: number;
+  redoCount: number;
+  onDownload?: () => void;
 }) {
   if (!visible) return null;
 
   return (
-    <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
-      {/* Editing controls */}
-      <div className="flex items-center gap-0 bg-card/95 backdrop-blur-sm border border-border">
+    <div className="absolute top-[68px] left-0 right-0 z-50 flex items-center justify-between px-4 pointer-events-none">
+      {/* Left: Undo / Redo */}
+      <div className="pointer-events-auto flex items-center gap-0 bg-card border border-border shadow-md">
         <button
           onClick={onUndo}
           disabled={undoCount === 0}
-          className={`${ACTION_BTN} border-0 border-r border-border text-muted-foreground hover:text-foreground hover:bg-accent/50 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed`}
+          className={`${ACT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40 active:scale-[0.97] disabled:opacity-25 disabled:cursor-not-allowed border-r border-border`}
         >
           <span className="text-[14px]">↶</span>
           Undo
@@ -253,29 +251,33 @@ export function ActionButtons({ visible, onReset, onUndo, undoCount, onDownload 
           )}
         </button>
         <button
-          className={`${ACTION_BTN} border-0 text-muted-foreground hover:text-foreground hover:bg-accent/50 active:scale-[0.98] opacity-40 cursor-not-allowed`}
-          disabled
+          onClick={onRedo}
+          disabled={redoCount === 0}
+          className={`${ACT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40 active:scale-[0.97] disabled:opacity-25 disabled:cursor-not-allowed`}
         >
           <span className="text-[14px]">↷</span>
           Redo
+          {redoCount > 0 && (
+            <span className="font-mono text-[9px] bg-accent px-1.5 py-0.5">{redoCount}</span>
+          )}
         </button>
       </div>
 
-      {/* Project control */}
-      <button
-        onClick={onReset}
-        className={`${ACTION_BTN} text-muted-foreground hover:text-foreground active:scale-[0.98] bg-card/95 backdrop-blur-sm`}
-      >
-        Start Over
-      </button>
-
-      {/* Primary output — visually distinct */}
-      <button
-        onClick={onDownload}
-        className="h-[38px] px-6 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] border border-primary"
-      >
-        Download
-      </button>
+      {/* Right: Start Over + Download */}
+      <div className="pointer-events-auto flex items-center gap-2">
+        <button
+          onClick={onReset}
+          className={`${ACT_BTN} text-foreground/70 hover:text-foreground active:scale-[0.97] bg-card border-border shadow-md`}
+        >
+          Start Over
+        </button>
+        <button
+          onClick={onDownload}
+          className="h-[36px] px-6 text-[10px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-1.5 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.97] border border-primary shadow-md"
+        >
+          Download
+        </button>
+      </div>
     </div>
   );
 }

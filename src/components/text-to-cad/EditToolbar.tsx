@@ -10,25 +10,26 @@ interface EditToolbarProps {
   transformMode?: string;
 }
 
-// Consistent sidebar icon button
-const SIDE_BTN = "w-[56px] h-[46px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border";
-const SIDE_BTN_DEFAULT = `${SIDE_BTN} border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50`;
-const SIDE_BTN_ACTIVE = `${SIDE_BTN} text-foreground bg-accent border-border`;
+// Icon-only sidebar button with tooltip
+const SIDE_BTN = "w-[48px] h-[48px] flex items-center justify-center cursor-pointer transition-all duration-150 relative group";
+const SIDE_BTN_DEFAULT = `${SIDE_BTN} text-foreground/60 hover:text-foreground hover:bg-accent/50`;
+const SIDE_BTN_ACTIVE = `${SIDE_BTN} text-foreground bg-accent`;
 
-function SidebarGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function SidebarDivider() {
+  return <div className="h-px bg-border mx-2 my-1" />;
+}
+
+function SidebarLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="px-1.5 pt-2 pb-1">
-        <span className="font-mono text-[7px] uppercase tracking-[0.15em] text-muted-foreground/50">{label}</span>
-      </div>
-      {children}
+    <div className="px-2 pt-3 pb-1.5">
+      <span className="font-mono text-[8px] font-semibold uppercase tracking-[0.18em] text-foreground/40">{children}</span>
     </div>
   );
 }
 
-function Tooltip({ text }: { text: string }) {
+function SidebarTooltip({ text }: { text: string }) {
   return (
-    <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
+    <span className="hidden group-hover:flex absolute left-[56px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] font-medium text-foreground px-3 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-lg items-center">
       {text}
     </span>
   );
@@ -63,85 +64,83 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
 
   const isTransformActive = transformMode !== "orbit";
 
-  // Calculate flyout top position
-  const getFlyoutTop = (flyout: string) => {
-    const editToolIdx = EDIT_TOOLS.findIndex((t) => t.flyout === flyout);
-    // Transform group: 3 btns * 46 + 3 mirror btns * 38 + gaps + labels ≈ 300px when visible
-    const transformGroupHeight = isTransformActive ? 310 : 0;
-    // Object tools group label + offset
-    const objectToolsOffset = transformGroupHeight + 30; // label gap
-    return objectToolsOffset + editToolIdx * 50 + 55; // 55px top offset
+  // Calculate flyout position based on sidebar layout
+  const getFlyoutTop = () => {
+    const baseOffset = isTransformActive ? 380 : 60;
+    const editToolIdx = EDIT_TOOLS.findIndex((t) => t.flyout === activeFlyout);
+    const displayIdx = EDIT_TOOLS.findIndex((t) => t.flyout === "display");
+    
+    if (activeFlyout === "display") {
+      return baseOffset + (editToolIdx > 0 ? editToolIdx * 52 : 0) + 30; // extra gap for divider + view label
+    }
+    return baseOffset + editToolIdx * 52;
   };
 
   return (
     <>
       {/* Vertical sidebar toolbar */}
-      <div className="absolute top-[55px] left-0 z-[45] flex flex-col bg-card/95 backdrop-blur-sm border-r border-border">
+      <div className="absolute top-[110px] left-0 z-[45] flex flex-col bg-card border-r border-border shadow-md w-[52px]">
         {/* ── Transform Actions — only when transform tool is active ── */}
         {isTransformActive && (
-          <SidebarGroup label="Transform">
+          <>
+            <SidebarLabel>Transform</SidebarLabel>
             {[
-              { label: "Reset", icon: "⟳", action: "reset-transform", tip: "Reset transform" },
-              { label: "Apply", icon: "✓", action: "apply-transform", tip: "Apply to geometry" },
-              { label: "Dupe", icon: "⧉", action: "duplicate", tip: "Duplicate selected" },
+              { icon: "⟳", action: "reset-transform", tip: "Reset Transform" },
+              { icon: "✓", action: "apply-transform", tip: "Apply to Geometry" },
+              { icon: "⧉", action: "duplicate", tip: "Duplicate Selected" },
             ].map((btn) => (
               <button
                 key={btn.action}
                 onClick={() => onSceneAction(btn.action)}
-                className={`${SIDE_BTN_DEFAULT} h-[42px]`}
+                className={SIDE_BTN_DEFAULT}
               >
-                <span className="text-[16px]">{btn.icon}</span>
-                <span className="font-mono text-[7px] uppercase tracking-wide">{btn.label}</span>
-                <Tooltip text={btn.tip} />
+                <span className="text-[18px]">{btn.icon}</span>
+                <SidebarTooltip text={btn.tip} />
               </button>
             ))}
-            {/* Mirror sub-group */}
-            <div className="h-px bg-border mx-3 my-1" />
+            <SidebarDivider />
+            {/* Mirror */}
             {(["x", "y", "z"] as const).map((axis) => (
               <button
                 key={axis}
                 onClick={() => onSceneAction(`mirror-${axis}`)}
-                className={`${SIDE_BTN_DEFAULT} h-[34px]`}
+                className={`${SIDE_BTN_DEFAULT} h-[38px]`}
               >
-                <span className="text-[12px]">⌿</span>
-                <span className="font-mono text-[8px] uppercase font-bold">{axis}</span>
+                <span className="font-mono text-[12px] font-bold uppercase">{axis}</span>
+                <SidebarTooltip text={`Mirror ${axis.toUpperCase()}`} />
               </button>
             ))}
-            <div className="h-px bg-border mx-2 my-1" />
-          </SidebarGroup>
+            <SidebarDivider />
+          </>
         )}
 
-        {/* ── Object Tools (Mesh, Materials) ── */}
-        <SidebarGroup label="Object">
-          {EDIT_TOOLS.filter(t => t.flyout !== "display").map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => toggleFlyout(tool.flyout)}
-              className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
-            >
-              <span className="text-[20px]">{tool.icon}</span>
-              <span className="font-mono text-[7px] uppercase tracking-wide text-muted-foreground">{tool.label}</span>
-              <Tooltip text={tool.tip} />
-            </button>
-          ))}
-        </SidebarGroup>
+        {/* ── Object Tools ── */}
+        <SidebarLabel>Object</SidebarLabel>
+        {EDIT_TOOLS.filter(t => t.flyout !== "display").map((tool) => (
+          <button
+            key={tool.id}
+            onClick={() => toggleFlyout(tool.flyout)}
+            className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
+          >
+            <span className="text-[20px]">{tool.icon}</span>
+            <SidebarTooltip text={tool.tip} />
+          </button>
+        ))}
 
-        <div className="h-px bg-border mx-2 my-1" />
+        <SidebarDivider />
 
         {/* ── View Tools ── */}
-        <SidebarGroup label="View">
-          {EDIT_TOOLS.filter(t => t.flyout === "display").map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => toggleFlyout(tool.flyout)}
-              className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
-            >
-              <span className="text-[20px]">{tool.icon}</span>
-              <span className="font-mono text-[7px] uppercase tracking-wide text-muted-foreground">{tool.label}</span>
-              <Tooltip text={tool.tip} />
-            </button>
-          ))}
-        </SidebarGroup>
+        <SidebarLabel>View</SidebarLabel>
+        {EDIT_TOOLS.filter(t => t.flyout === "display").map((tool) => (
+          <button
+            key={tool.id}
+            onClick={() => toggleFlyout(tool.flyout)}
+            className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
+          >
+            <span className="text-[20px]">{tool.icon}</span>
+            <SidebarTooltip text={tool.tip} />
+          </button>
+        ))}
 
         <div className="pb-2" />
       </div>
@@ -155,10 +154,10 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4 bg-card/95 backdrop-blur-sm border border-border"
+            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4 bg-card border border-border shadow-lg"
             style={{
-              left: "70px",
-              top: `${getFlyoutTop(activeFlyout)}px`,
+              left: "56px",
+              top: `${getFlyoutTop()}px`,
             }}
           >
             {!hasSelection && activeFlyout !== "display" && (
