@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { EDIT_TOOLS, MATERIAL_LIBRARY } from "./types";
-import MaterialSphere from "@/components/cad-studio/MaterialSphere";
+import { EDIT_TOOLS } from "./types";
 
 interface EditToolbarProps {
-  onApplyMaterial: (matId: string) => void;
   onSceneAction: (action: string) => void;
   hasSelection: boolean;
   transformMode?: string;
