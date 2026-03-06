@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { EDIT_TOOLS, MATERIAL_LIBRARY } from "./types";
 import MaterialSphere from "@/components/cad-studio/MaterialSphere";
@@ -16,9 +16,6 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
   const toggleFlyout = (flyout: string) => {
     setActiveFlyout((prev) => (prev === flyout ? null : flyout));
   };
-
-  // Don't close flyout when selection changes — keep it open
-  // Only close on explicit click-away or button toggle
 
   const toggleDisplay = (id: string) => {
     setActiveDisplayToggles((prev) => {
@@ -45,36 +42,30 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
       <div
         className="absolute top-[70px] left-0 z-[45] flex flex-col gap-0.5 px-1.5 py-2"
         style={{
-          background: "linear-gradient(180deg, rgba(22,22,22,0.92) 0%, rgba(14,14,14,0.96) 100%)",
-          backdropFilter: "blur(24px)",
-          borderRight: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "4px 0 24px rgba(0,0,0,0.5)",
+          background: "rgba(18,18,18,0.95)",
+          borderRight: "1px solid rgba(255,255,255,0.06)",
         }}
       >
         {EDIT_TOOLS.map((tool) => (
           <button
             key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
-            className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 rounded-md cursor-pointer transition-all duration-150 relative group ${
+            className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group ${
               activeFlyout === tool.flyout
-                ? "text-white shadow-[0_0_12px_rgba(255,255,255,0.08)]"
+                ? "text-white"
                 : "text-[#777] hover:text-white hover:bg-white/5"
             }`}
             style={{
-              background: activeFlyout === tool.flyout
-                ? "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)"
-                : "transparent",
-              border: activeFlyout === tool.flyout ? "1px solid rgba(255,255,255,0.15)" : "1px solid transparent",
+              background: activeFlyout === tool.flyout ? "rgba(255,255,255,0.08)" : "transparent",
+              border: activeFlyout === tool.flyout ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
             }}
           >
             <span className="text-[20px]">{tool.icon}</span>
-            <span className="text-[7px] uppercase tracking-[0.5px] text-[#666] font-semibold">{tool.label}</span>
-            <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 text-[12px] text-[#e0e0e0] px-3.5 py-2 rounded-md whitespace-nowrap font-medium tracking-[0.3px] pointer-events-none"
+            <span className="font-mono text-[7px] uppercase tracking-wide text-[#666]">{tool.label}</span>
+            <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-[#e0e0e0] px-3.5 py-2 whitespace-nowrap pointer-events-none"
               style={{
-                background: "linear-gradient(180deg, rgba(35,35,35,0.95) 0%, rgba(25,25,25,0.98) 100%)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                boxShadow: "4px 4px 16px rgba(0,0,0,0.5)",
+                background: "rgba(25,25,25,0.98)",
+                border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
               {tool.tip}
@@ -92,22 +83,20 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] rounded-xl p-4"
+            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4"
             style={{
               left: "70px",
               top: activeFlyout === "transform" ? "56px"
                 : activeFlyout === "mesh" ? "100px"
                 : activeFlyout === "materials" ? "144px"
                 : "188px",
-              background: "linear-gradient(180deg, rgba(30,30,30,0.88) 0%, rgba(18,18,18,0.94) 100%)",
-              backdropFilter: "blur(30px)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "8px 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)",
+              background: "rgba(18,18,18,0.95)",
+              border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
             {!hasSelection && activeFlyout !== "display" && (
-              <div className="mb-3 px-3 py-2.5 rounded-lg text-[11px] text-amber-400/90 font-medium"
-                style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)" }}>
+              <div className="mb-3 px-3 py-2.5 font-mono text-[11px] text-amber-400/90"
+                style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.12)" }}>
                 ⚠ Select a mesh in the viewport first
               </div>
             )}
@@ -118,8 +107,6 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Click-away removed — flyout stays open during viewport interaction */}
     </>
   );
 }
@@ -131,41 +118,26 @@ function FoBtn({ children, shortcut, active, onClick }: {
   return (
     <button
       onClick={onClick}
-      className={`block w-full px-3.5 py-3 mb-1.5 rounded-lg text-[12px] text-left cursor-pointer transition-all duration-200 font-semibold ${
-        active ? "text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-[#aaa] hover:text-white"
+      className={`block w-full px-3.5 py-3 mb-1.5 text-[12px] text-left cursor-pointer transition-all duration-200 font-semibold ${
+        active ? "text-white" : "text-[#aaa] hover:text-white hover:bg-white/[0.06]"
       }`}
       style={{
-        background: active
-          ? "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)"
-          : "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
-        backdropFilter: "blur(12px)",
-        border: `1px solid ${active ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.06)"}`,
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-          e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
-          e.currentTarget.style.background = "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)";
-        }
+        background: active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.02)",
+        border: `1px solid ${active ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.04)"}`,
       }}
     >
       {children}
-      {shortcut && <kbd className="float-right text-[10px] text-[#666] font-semibold">{shortcut}</kbd>}
+      {shortcut && <kbd className="float-right font-mono text-[10px] text-[#666]">{shortcut}</kbd>}
     </button>
   );
 }
 
 function FlyoutTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[12px] text-white mb-3.5 font-bold uppercase tracking-[2px]">{children}</h3>;
+  return <h3 className="font-display text-base text-white mb-4 uppercase tracking-[0.15em]">{children}</h3>;
 }
 
 function FlyoutSubtitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-[10px] text-[#777] mt-4 mb-2 uppercase tracking-[1.5px] font-semibold">{children}</h4>;
+  return <h4 className="font-mono text-[10px] text-[#777] mt-4 mb-2 uppercase tracking-[0.15em]">{children}</h4>;
 }
 
 function FoSep() {
@@ -224,15 +196,13 @@ function MaterialsFlyout({ metals, gems, onApply }: {
           <button
             key={m.id}
             onClick={() => onApply(m.id)}
-            className="py-2.5 px-3 rounded-lg text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white font-medium hover:scale-[1.03] active:scale-[0.97]"
+            className="py-2.5 px-3 text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white active:scale-[0.97]"
             style={{
-              background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
             <MaterialSphere category="metal" preview={m.preview} size={16} />
-            {m.name}
             {m.name}
           </button>
         ))}
@@ -243,15 +213,13 @@ function MaterialsFlyout({ metals, gems, onApply }: {
           <button
             key={g.id}
             onClick={() => onApply(g.id)}
-            className="py-2.5 px-3 rounded-lg text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white font-medium hover:scale-[1.03] active:scale-[0.97]"
+            className="py-2.5 px-3 text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white active:scale-[0.97]"
             style={{
-              background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
             <MaterialSphere category="gemstone" preview={g.preview} size={16} />
-            {g.name}
             {g.name}
           </button>
         ))}

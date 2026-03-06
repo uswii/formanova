@@ -18,6 +18,7 @@ import {
   StatsBar,
   ActionButtons,
 } from "@/components/text-to-cad/ViewportOverlays";
+
 import { PROGRESS_STEPS } from "@/components/text-to-cad/types";
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
 
@@ -45,7 +46,6 @@ export default function TextToCAD() {
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
-  const [refImage, setRefImage] = useState<string | null>(null);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -59,7 +59,6 @@ export default function TextToCAD() {
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
-  const [lightIntensity, setLightIntensity] = useState(1);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
@@ -274,7 +273,6 @@ export default function TextToCAD() {
   const handleReset = () => {
     setPrompt("");
     setEditPrompt("");
-    setRefImage(null);
     setSelectedModules([]);
     setHasModel(false);
     setProgress(0);
@@ -448,7 +446,6 @@ export default function TextToCAD() {
         model={model} setModel={setModel}
         prompt={prompt} setPrompt={setPrompt}
         editPrompt={editPrompt} setEditPrompt={setEditPrompt}
-        refImage={refImage} setRefImage={setRefImage}
         selectedModules={selectedModules} toggleModule={toggleModule}
         isGenerating={isGenerating} isEditing={isEditing}
         hasModel={hasModel} modules={modules}
@@ -460,8 +457,6 @@ export default function TextToCAD() {
           toast.success("All magic textures removed — showing original materials");
         }}
         onGlbUpload={handleGlbUpload}
-        lightIntensity={lightIntensity}
-        setLightIntensity={setLightIntensity}
         creditBlock={creditBlock ? (
           <InsufficientCreditsInline
             currentBalance={creditBlock.currentBalance}
@@ -482,7 +477,7 @@ export default function TextToCAD() {
           transformMode={transformMode}
           onMeshesDetected={handleMeshesDetected}
           onTransformEnd={handleTransformEnd}
-          lightIntensity={lightIntensity}
+          lightIntensity={1}
         />
 
         <EditToolbar
