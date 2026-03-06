@@ -267,6 +267,7 @@ export default function TextToCAD() {
       setModules([]);
       setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
       setUndoStack([]);
+      setRedoStack([]);
     } else if (!hasModel) {
       setGlbUrl(url);
       setHasModel(true);
