@@ -212,12 +212,14 @@ export default function LeftPanel({
                         className="overflow-hidden"
                       >
                         <div className="pt-4 space-y-3">
-                          <div className="flex flex-wrap gap-1.5">
-                            {PART_REGEN_PARTS.map((part) => (
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {PART_REGEN_PARTS.map((part, idx) => (
                               <button
                                 key={part.id}
                                 onClick={() => setSelectedPart(part.id)}
-                                className={`px-3 py-2 text-[10px] font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 border ${
+                                className={`py-2.5 text-[10px] font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 border text-center ${
+                                  PART_REGEN_PARTS.length % 2 !== 0 && idx === PART_REGEN_PARTS.length - 1 ? "col-span-2" : ""
+                                } ${
                                   selectedPart === part.id
                                     ? "text-primary-foreground bg-primary border-primary"
                                     : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
