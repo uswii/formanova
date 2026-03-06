@@ -39,35 +39,20 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
   return (
     <>
       {/* Vertical toolbar */}
-      <div
-        className="absolute top-[70px] left-0 z-[45] flex flex-col gap-0.5 px-1.5 py-2"
-        style={{
-          background: "rgba(18,18,18,0.95)",
-          borderRight: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
+      <div className="absolute top-[70px] left-0 z-[45] flex flex-col gap-0.5 px-1.5 py-2 bg-card/95 backdrop-blur-sm border-r border-border">
         {EDIT_TOOLS.map((tool) => (
           <button
             key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
-            className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group ${
+            className={`w-[56px] h-[50px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 relative group border ${
               activeFlyout === tool.flyout
-                ? "text-white"
-                : "text-[#777] hover:text-white hover:bg-white/5"
+                ? "text-foreground bg-accent border-border"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50 border-transparent"
             }`}
-            style={{
-              background: activeFlyout === tool.flyout ? "rgba(255,255,255,0.08)" : "transparent",
-              border: activeFlyout === tool.flyout ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
-            }}
           >
             <span className="text-[20px]">{tool.icon}</span>
-            <span className="font-mono text-[7px] uppercase tracking-wide text-[#666]">{tool.label}</span>
-            <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-[#e0e0e0] px-3.5 py-2 whitespace-nowrap pointer-events-none"
-              style={{
-                background: "rgba(25,25,25,0.98)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
+            <span className="font-mono text-[7px] uppercase tracking-wide text-muted-foreground">{tool.label}</span>
+            <span className="hidden group-hover:block absolute left-[64px] top-1/2 -translate-y-1/2 z-50 font-mono text-[11px] text-foreground px-3.5 py-2 whitespace-nowrap pointer-events-none bg-popover border border-border shadow-md">
               {tool.tip}
             </span>
           </button>
@@ -83,20 +68,17 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4"
+            className="absolute z-[46] overflow-y-auto max-h-[80vh] w-[300px] p-4 bg-card/95 backdrop-blur-sm border border-border"
             style={{
               left: "70px",
               top: activeFlyout === "transform" ? "56px"
                 : activeFlyout === "mesh" ? "100px"
                 : activeFlyout === "materials" ? "144px"
                 : "188px",
-              background: "rgba(18,18,18,0.95)",
-              border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
             {!hasSelection && activeFlyout !== "display" && (
-              <div className="mb-3 px-3 py-2.5 font-mono text-[11px] text-amber-400/90"
-                style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.12)" }}>
+              <div className="mb-3 px-3 py-2.5 font-mono text-[11px] text-amber-500 bg-amber-500/10 border border-amber-500/20">
                 ⚠ Select a mesh in the viewport first
               </div>
             )}
@@ -118,30 +100,28 @@ function FoBtn({ children, shortcut, active, onClick }: {
   return (
     <button
       onClick={onClick}
-      className={`block w-full px-3.5 py-3 mb-1.5 text-[12px] text-left cursor-pointer transition-all duration-200 font-semibold ${
-        active ? "text-white" : "text-[#aaa] hover:text-white hover:bg-white/[0.06]"
+      className={`block w-full px-3.5 py-3 mb-1.5 text-[12px] text-left cursor-pointer transition-all duration-200 font-semibold border ${
+        active
+          ? "text-foreground bg-accent border-border"
+          : "text-muted-foreground hover:text-foreground hover:bg-accent/50 bg-muted/20 border-border/50"
       }`}
-      style={{
-        background: active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.02)",
-        border: `1px solid ${active ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.04)"}`,
-      }}
     >
       {children}
-      {shortcut && <kbd className="float-right font-mono text-[10px] text-[#666]">{shortcut}</kbd>}
+      {shortcut && <kbd className="float-right font-mono text-[10px] text-muted-foreground">{shortcut}</kbd>}
     </button>
   );
 }
 
 function FlyoutTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="font-display text-base text-white mb-4 uppercase tracking-[0.15em]">{children}</h3>;
+  return <h3 className="font-display text-base text-foreground mb-4 uppercase tracking-[0.15em]">{children}</h3>;
 }
 
 function FlyoutSubtitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="font-mono text-[10px] text-[#777] mt-4 mb-2 uppercase tracking-[0.15em]">{children}</h4>;
+  return <h4 className="font-mono text-[10px] text-muted-foreground mt-4 mb-2 uppercase tracking-[0.15em]">{children}</h4>;
 }
 
 function FoSep() {
-  return <div className="h-px bg-white/5 my-3" />;
+  return <div className="h-px bg-border my-3" />;
 }
 
 // ── FLYOUT CONTENTS ──
@@ -196,11 +176,7 @@ function MaterialsFlyout({ metals, gems, onApply }: {
           <button
             key={m.id}
             onClick={() => onApply(m.id)}
-            className="py-2.5 px-3 text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white active:scale-[0.97]"
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
+            className="py-2.5 px-3 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50"
           >
             <MaterialSphere category="metal" preview={m.preview} size={16} />
             {m.name}
@@ -213,11 +189,7 @@ function MaterialsFlyout({ metals, gems, onApply }: {
           <button
             key={g.id}
             onClick={() => onApply(g.id)}
-            className="py-2.5 px-3 text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 hover:text-white active:scale-[0.97]"
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
+            className="py-2.5 px-3 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50"
           >
             <MaterialSphere category="gemstone" preview={g.preview} size={16} />
             {g.name}

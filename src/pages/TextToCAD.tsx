@@ -466,7 +466,7 @@ export default function TextToCAD() {
         ) : undefined}
       />
 
-      <div className="flex-1 relative" style={{ background: "#111" }}>
+      <div className="flex-1 relative border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
         <CADCanvas
           ref={canvasRef}
           hasModel={hasModel}
