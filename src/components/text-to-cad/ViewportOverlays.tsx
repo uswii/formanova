@@ -1,32 +1,85 @@
 import { useState } from "react";
-import { TRANSFORM_MODES, PART_REGEN_PARTS, PROGRESS_STEPS } from "./types";
+import { AnimatePresence, motion } from "framer-motion";
+import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
-// ── Viewport Top Toolbar (Orbit/Move/Rotate/Scale) ──
+const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; color: string; unit: string; step: string; defaultVal: string }> = {
+  translate: { label: "Move", title: "Position", icon: "↔", color: "text-green-400", unit: "", step: "0.01", defaultVal: "0.00" },
+  rotate:    { label: "Rotate", title: "Rotation", icon: "↻", color: "text-blue-400", unit: "°", step: "1", defaultVal: "0" },
+  scale:     { label: "Scale", title: "Scale", icon: "⇔", color: "text-amber-400", unit: "", step: "0.01", defaultVal: "1.00" },
+};
+
+const AXES = ["X", "Y", "Z"] as const;
+const AXIS_COLORS = ["text-red-400", "text-green-400", "text-blue-400"];
+
+// ── Unified Transform Toolbar + Inspector ──
 export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: string) => void }) {
+  const config = MODE_CONFIG[mode] ?? null;
+  const isTransformActive = mode !== "orbit" && config !== null;
+
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 flex gap-1 px-3 py-2 bg-card/95 backdrop-blur-sm border border-border rounded-sm">
-      {TRANSFORM_MODES.map((tm) => (
-        <button
-          key={tm.id}
-          onClick={() => setMode(tm.id)}
-          className={`px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 border ${
-            mode === tm.id
-              ? "text-primary-foreground bg-primary border-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent border-transparent"
-          }`}
-        >
-          {tm.id !== "orbit" && mode === tm.id && (
-            <span className="flex gap-[3px] mr-1.5">
-              <span className="w-[5px] h-[20px] rounded-full bg-destructive" />
-              <span className="w-[5px] h-[20px] rounded-full bg-green-500" />
-              <span className="w-[5px] h-[20px] rounded-full bg-blue-500" />
-            </span>
-          )}
-          {tm.label}
-          {tm.shortcut && <kbd className="font-mono text-[8px] ml-1.5 opacity-50">{tm.shortcut}</kbd>}
-        </button>
-      ))}
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+      {/* Tool selector strip */}
+      <div className="flex gap-0 bg-card/95 backdrop-blur-sm border border-border">
+        {TRANSFORM_MODES.map((tm) => (
+          <button
+            key={tm.id}
+            onClick={() => setMode(tm.id)}
+            className={`px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center gap-2 border-r last:border-r-0 border-border/50 ${
+              mode === tm.id
+                ? "text-primary-foreground bg-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            }`}
+          >
+            {tm.label}
+            {tm.shortcut && <kbd className="font-mono text-[8px] ml-1 opacity-50">{tm.shortcut}</kbd>}
+          </button>
+        ))}
+      </div>
+
+      {/* Integrated numeric inspector — slides down when a transform tool is active */}
+      <AnimatePresence>
+        {isTransformActive && config && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -4 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <div className="bg-card/95 backdrop-blur-sm border border-border border-t-0 px-4 py-3 min-w-[340px]">
+              {/* Mode indicator */}
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
+                  {config.icon} {config.title}
+                </span>
+                <div className="flex-1 h-px bg-border" />
+                <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
+                  Gizmo + Numeric
+                </span>
+              </div>
+
+              {/* XYZ inputs */}
+              <div className="flex gap-2">
+                {AXES.map((axis, i) => (
+                  <div key={axis} className="flex items-center gap-1.5 flex-1">
+                    <span className={`font-mono text-[11px] font-bold ${AXIS_COLORS[i]}`}>{axis}</span>
+                    <input
+                      type="number"
+                      step={config.step}
+                      defaultValue={config.defaultVal}
+                      className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    {config.unit && (
+                      <span className="font-mono text-[9px] text-muted-foreground">{config.unit}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -57,19 +110,7 @@ export function PartRegenBar({ visible, onClose }: { visible: boolean; onClose: 
             Click any part below to rebuild it, or add something new
           </p>
           <div className="flex gap-1.5 flex-wrap justify-center mb-4">
-            {PART_REGEN_PARTS.map((part) => (
-              <button
-                key={part.id}
-                onClick={() => setSelectedPart(part.id)}
-                className={`px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide cursor-pointer transition-all duration-200 border ${
-                  selectedPart === part.id
-                    ? "text-foreground bg-accent border-border"
-                    : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
-                }`}
-              >
-                {part.icon} {part.label}
-              </button>
-            ))}
+            {/* Part regen parts would go here */}
           </div>
           <div className="flex gap-2.5 items-center">
             <input
