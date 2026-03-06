@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Layers, Camera } from "lucide-react";
-import InteractiveRing from "@/components/cad/InteractiveRing";
 
 import textToCadImg from "@/assets/cad-studio/text-to-cad-card.webp";
 import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
@@ -29,23 +28,18 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col items-center px-4 md:px-6 lg:px-10 overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col items-center justify-center px-4 md:px-6 lg:px-10 overflow-hidden">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="font-display text-5xl md:text-7xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-6 text-foreground leading-none"
+        className="font-display text-5xl md:text-7xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-6 text-foreground leading-none mb-8"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
 
-      {/* 3D Ring — prominent hero element */}
-      <div className="w-full flex-1 min-h-0 max-h-[65vh]">
-        <InteractiveRing />
-      </div>
-
-      {/* Feature Cards — compact landscape */}
+      {/* Feature Cards */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
