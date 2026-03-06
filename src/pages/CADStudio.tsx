@@ -41,7 +41,7 @@ export default function CADStudio() {
       </motion.h1>
 
       {/* 3D Ring — prominent hero element */}
-      <div className="w-full flex-1 min-h-0 max-h-[55vh]">
+      <div className="w-full flex-1 min-h-0 max-h-[65vh]">
         <InteractiveRing />
       </div>
 
