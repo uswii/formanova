@@ -128,7 +128,7 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
 
         {/* ── View Tools ── */}
         <SidebarLabel>View</SidebarLabel>
-        {EDIT_TOOLS.filter(t => t.flyout === "display").map((tool) => (
+        {editToolsFiltered.filter(t => t.flyout === "display").map((tool) => (
           <button
             key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
