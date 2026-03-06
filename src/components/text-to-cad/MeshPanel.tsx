@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, ChevronDown, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, Trash2, Copy, Crosshair, FlipVertical, RefreshCw } from "lucide-react";
 import type { MeshItemData } from "./types";
 import { MATERIAL_LIBRARY, MATERIAL_TYPES, MATERIAL_ALLOYS, MATERIAL_FINISHES } from "@/components/cad-studio/materials";
 import type { MaterialType, MaterialAlloy, MaterialFinish } from "@/components/cad-studio/materials";
