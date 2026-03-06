@@ -109,11 +109,11 @@ export default function CADStudio() {
                 </div>
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <h2 className="font-display text-sm md:text-base uppercase tracking-wide text-white transition-transform duration-300 group-hover:translate-x-0.5">
+              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
+                <h2 className="font-display text-2xl md:text-3xl lg:text-[40px] uppercase tracking-wide text-white leading-none transition-transform duration-300 group-hover:translate-x-0.5">
                   {feature.title}
                 </h2>
-                <p className="font-mono text-[7px] md:text-[8px] tracking-[0.15em] text-white/60 uppercase mt-0.5">
+                <p className="font-mono text-[8px] md:text-[9px] tracking-[0.15em] text-white/60 uppercase mt-2">
                   {feature.description}
                 </p>
               </div>
