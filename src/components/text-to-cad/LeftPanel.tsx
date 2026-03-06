@@ -44,7 +44,7 @@ export default function LeftPanel({
   }, [onGlbUpload]);
 
   return (
-    <div className="w-[400px] flex-shrink-0 flex flex-col bg-card border-r border-border">
+    <div className="flex flex-col bg-card border-r border-border h-full">
       {/* Header */}
       <div className="px-6 pt-6 pb-5 border-b border-border">
         <h1 className="font-display text-2xl tracking-[0.15em] text-foreground uppercase">
