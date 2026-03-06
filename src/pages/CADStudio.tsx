@@ -45,7 +45,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, delay: 0.15 }}
-        className="w-full max-w-2xl h-[300px] md:h-[400px] lg:h-[480px] -mt-2"
+        className="w-full max-w-3xl h-[320px] md:h-[440px] lg:h-[520px] -mt-2"
       >
         <InteractiveRing />
       </motion.div>
@@ -55,7 +55,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="w-full max-w-[96vw] xl:max-w-[1600px] grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 pb-8 -mt-2"
+        className="w-full max-w-[90vw] xl:max-w-[1400px] grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 pb-6 -mt-4"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
@@ -64,7 +64,7 @@ export default function CADStudio() {
             return (
               <div
                 key={feature.title}
-                className="group relative marta-frame overflow-hidden aspect-[4/3] md:aspect-[3/2] opacity-60 cursor-default"
+                className="group relative marta-frame overflow-hidden aspect-[5/3] md:aspect-[3/1.4] opacity-60 cursor-default"
               >
                 {/* Background image */}
                 <img
@@ -101,7 +101,7 @@ export default function CADStudio() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => navigate(feature.route)}
-              className="group relative marta-frame overflow-hidden aspect-[4/3] md:aspect-[3/2] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              className="group relative marta-frame overflow-hidden aspect-[5/3] md:aspect-[3/1.4] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
               {/* Background image */}
               <img
