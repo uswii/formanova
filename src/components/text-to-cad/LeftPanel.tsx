@@ -288,23 +288,6 @@ export default function LeftPanel({
                 </div>
               </div>
 
-              {/* ═══ QUICK ADJUSTMENTS ═══ */}
-              <div className="mt-6">
-                <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Quick Adjustments</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {QUICK_EDITS.map((qe) => (
-                    <button
-                      key={qe.id}
-                      onClick={() => onQuickEdit(qe.preset)}
-                      className="py-3.5 px-3 text-center cursor-pointer transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent active:scale-[0.98] bg-muted/20 border border-border/50"
-                    >
-                      <span className="block text-[18px] mb-1.5">{qe.icon}</span>
-                      <span className="block font-mono text-[9px] font-bold uppercase tracking-[0.15em]">{qe.label}</span>
-                      <span className="block font-mono text-[8px] text-muted-foreground/60 mt-1">{qe.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </motion.section>
           )}
         </AnimatePresence>
