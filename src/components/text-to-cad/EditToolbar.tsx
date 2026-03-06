@@ -16,8 +16,8 @@ function SidebarDivider() {
 
 function SidebarLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-2 pt-3 pb-1.5">
-      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/70">{children}</span>
+    <div className="w-full pt-3 pb-1.5 text-center overflow-hidden">
+      <span className="font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-foreground/70 truncate block">{children}</span>
     </div>
   );
 }
