@@ -53,21 +53,24 @@ export default function LeftPanel({
       >
         {/* AI Model */}
         <section>
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">AI Model</h3>
-          <div className="flex gap-2.5">
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Generation Quality</h3>
+          <div className="flex gap-0 border border-border">
             {AI_MODELS.map((m) => (
-              <label key={m.id} className={`flex-1 ${m.comingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !m.comingSoon && setModel(m.id)}>
-                <div className={`flex flex-col items-center py-4 px-2 transition-all duration-200 relative border ${
+              <button
+                key={m.id}
+                onClick={() => !m.comingSoon && setModel(m.id)}
+                disabled={m.comingSoon}
+                className={`flex-1 py-3 px-2 text-[12px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 ${
                   m.comingSoon
-                    ? "text-muted-foreground/50 opacity-50 bg-muted/30 border-border"
+                    ? "text-muted-foreground/40 cursor-not-allowed bg-muted/20"
                     : model === m.id
-                      ? "text-foreground bg-accent border-border"
-                      : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
-                }`}>
-                  <span className="text-[13px] font-semibold tracking-wide">{m.name}</span>
-                  <span className="font-mono text-[9px] text-muted-foreground mt-1 tracking-wide">{m.comingSoon ? "Coming Soon" : m.desc}</span>
-                </div>
-              </label>
+                      ? "text-primary-foreground bg-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer"
+                }`}
+              >
+                {m.label}
+                {m.comingSoon && <span className="block font-mono text-[8px] mt-0.5 normal-case tracking-wide">Soon</span>}
+              </button>
             ))}
           </div>
         </section>

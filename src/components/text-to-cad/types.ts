@@ -4,9 +4,9 @@ export { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 export type { MaterialDef } from "@/components/cad-studio/materials";
 
 export const AI_MODELS = [
-  { id: "gemini", name: "FORMANOVA1", desc: "Advanced", comingSoon: false },
-  { id: "claude-sonnet", name: "FORMANOVA2", desc: "Balanced", comingSoon: false },
-  { id: "claude-opus", name: "FORMANOVA3", desc: "Premium", comingSoon: true },
+  { id: "gemini", label: "Draft", comingSoon: false },
+  { id: "claude-sonnet", label: "Standard", comingSoon: false },
+  { id: "claude-opus", label: "Premium", comingSoon: true },
 ] as const;
 
 export const QUICK_EDITS = [
