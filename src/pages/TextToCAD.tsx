@@ -612,9 +612,6 @@ export default function TextToCAD() {
             </div>
             <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
             <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
-
-  const wireframeRef = useRef(false);
-
             <ViewportSideTools
               visible={hasModel && !isGenerating}
               onZoomIn={() => canvasRef.current?.zoomIn()}
