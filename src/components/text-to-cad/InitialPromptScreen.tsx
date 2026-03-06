@@ -1,7 +1,16 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Upload } from "lucide-react";
+import { Upload, X, Sparkles } from "lucide-react";
 import { AI_MODELS } from "./types";
+
+const EXAMPLE_PROMPTS = [
+  "Serpentine ring with a coiled snake design",
+  "Sculptural flowing gold band",
+  "Botanical ring with leaves wrapping around the band",
+  "Gothic ring with sharp arches and dark gemstones",
+  "Twisted vine ring with small diamonds",
+  "Minimalist ring with a single oval diamond",
+];
 
 interface InitialPromptScreenProps {
   model: string;
@@ -19,6 +28,7 @@ export default function InitialPromptScreen({
   isGenerating, onGenerate, onGlbUpload, creditBlock,
 }: InitialPromptScreenProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleGlbUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,26 +42,38 @@ export default function InitialPromptScreen({
     }
   };
 
+  // Auto-resize textarea
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 240) + "px";
+  }, []);
+
+  useEffect(() => {
+    autoResize();
+  }, [prompt, autoResize]);
+
   return (
     <div className="flex-1 flex items-center justify-center bg-background">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-[640px] px-6"
+        className="w-full max-w-[680px] px-6"
       >
         {/* Title */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <h1 className="font-display text-4xl md:text-5xl tracking-[0.2em] text-foreground uppercase mb-3">
             Text‑to‑3D
           </h1>
           <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
-            Describe your ring or upload a CAD file to begin
+            Describe your ring or upload a CAD file
           </p>
         </div>
 
         {/* Generation Quality */}
-        <div className="mb-6">
+        <div className="mb-5">
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
             Generation Quality
           </h3>
@@ -77,19 +99,27 @@ export default function InitialPromptScreen({
         </div>
 
         {/* Prompt */}
-        <div className="mb-4">
+        <div className="mb-4 relative">
           <textarea
+            ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Describe your ring — e.g. A rose ring with three blooming roses, twisted vine band with thorns, and diamond accents"
-            className="w-full min-h-[120px] px-5 py-4 text-[14px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border"
+            rows={3}
+            className="w-full min-h-[100px] max-h-[240px] px-5 py-4 pr-10 text-[15px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
+            style={{ overflow: prompt.length < 200 ? "hidden" : "auto" }}
           />
-          <div className="flex justify-between items-center mt-2">
-            <span className="font-mono text-[9px] text-muted-foreground/40 tracking-wide">
-              Press Enter to generate · Shift+Enter for new line
-            </span>
-          </div>
+          {/* Clear button */}
+          {prompt.length > 0 && (
+            <button
+              onClick={() => setPrompt("")}
+              className="absolute top-3 right-3 p-1 rounded-sm text-muted-foreground/40 hover:text-foreground transition-colors"
+              aria-label="Clear prompt"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Credit block */}
@@ -107,7 +137,7 @@ export default function InitialPromptScreen({
         )}
 
         {/* Divider */}
-        <div className="flex items-center gap-4 my-6">
+        <div className="flex items-center gap-4 my-5">
           <div className="flex-1 h-px bg-border" />
           <span className="font-mono text-[9px] text-muted-foreground/40 uppercase tracking-[0.2em]">or</span>
           <div className="flex-1 h-px bg-border" />
@@ -122,6 +152,27 @@ export default function InitialPromptScreen({
         >
           <Upload className="w-4 h-4" /> Upload CAD File
         </button>
+
+        {/* Example Prompts */}
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-muted-foreground/50" />
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Try an example
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {EXAMPLE_PROMPTS.map((ex) => (
+              <button
+                key={ex}
+                onClick={() => setPrompt(ex)}
+                className="px-3 py-1.5 text-[12px] font-body text-muted-foreground hover:text-foreground border border-border hover:border-foreground/20 hover:bg-accent/30 transition-all duration-150 cursor-pointer"
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        </div>
       </motion.div>
     </div>
   );
