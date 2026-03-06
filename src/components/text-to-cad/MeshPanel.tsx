@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, ChevronDown, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, Trash2, Copy, Crosshair, FlipVertical, RefreshCw } from "lucide-react";
 import type { MeshItemData } from "./types";
 import { MATERIAL_LIBRARY, MATERIAL_TYPES, MATERIAL_ALLOYS, MATERIAL_FINISHES } from "@/components/cad-studio/materials";
 import type { MaterialType, MaterialAlloy, MaterialFinish } from "@/components/cad-studio/materials";
@@ -11,6 +11,7 @@ interface MeshPanelProps {
   onSelectMesh: (name: string, multi: boolean) => void;
   onAction: (action: string) => void;
   onApplyMaterial: (matId: string) => void;
+  onSceneAction: (action: string) => void;
 }
 
 const ACTION_BTN = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.97] bg-muted/40 border border-border text-foreground/80";
@@ -19,7 +20,7 @@ const CHIP = "px-2.5 py-1.5 text-[9px] font-mono font-semibold uppercase trackin
 const CHIP_DEFAULT = `${CHIP} text-muted-foreground border-border/50 hover:text-foreground hover:bg-accent/30`;
 const CHIP_ACTIVE = `${CHIP} text-foreground bg-accent border-border`;
 
-export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial }: MeshPanelProps) {
+export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial, onSceneAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
   const [materialOpen, setMaterialOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -251,25 +252,53 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
       </div>
 
       {/* ═══ SECTION 3: Mesh actions (fixed footer) ═══ */}
-      <div className="px-3 py-3 border-t border-border flex-shrink-0 bg-card">
-        <div className="grid grid-cols-3 gap-1.5 mb-1.5">
-          <button onClick={() => onAction("hide")} className={ACTION_BTN}>
-            <EyeOff className="w-3.5 h-3.5" /> Hide
-          </button>
-          <button onClick={() => onAction("show")} className={ACTION_BTN}>
-            <Eye className="w-3.5 h-3.5" /> Show
-          </button>
-          <button onClick={() => onAction("show-all")} className={ACTION_BTN}>
-            <Layers className="w-3.5 h-3.5" /> All
-          </button>
+      <div className="px-3 py-3 border-t border-border flex-shrink-0 bg-card space-y-2">
+        {/* Visibility controls */}
+        <div>
+          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Visibility</span>
+          <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+            <button onClick={() => onAction("hide")} className={ACTION_BTN}>
+              <EyeOff className="w-3.5 h-3.5" /> Hide
+            </button>
+            <button onClick={() => onAction("show")} className={ACTION_BTN}>
+              <Eye className="w-3.5 h-3.5" /> Show
+            </button>
+            <button onClick={() => onAction("show-all")} className={ACTION_BTN}>
+              <Layers className="w-3.5 h-3.5" /> All
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button onClick={() => onAction("isolate")} className={ACTION_BTN}>
+              <Focus className="w-3.5 h-3.5" /> Isolate
+            </button>
+            <button onClick={() => onAction("select-invert")} className={ACTION_BTN}>
+              <Shuffle className="w-3.5 h-3.5" /> Invert
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => onAction("isolate")} className={ACTION_BTN}>
-            <Focus className="w-3.5 h-3.5" /> Isolate
-          </button>
-          <button onClick={() => onAction("select-invert")} className={ACTION_BTN}>
-            <Shuffle className="w-3.5 h-3.5" /> Invert
-          </button>
+
+        {/* Mesh editing controls */}
+        <div>
+          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Edit</span>
+          <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+            <button onClick={() => onSceneAction("duplicate")} className={ACTION_BTN}>
+              <Copy className="w-3.5 h-3.5" /> Duplicate
+            </button>
+            <button onClick={() => onSceneAction("delete")} className={`${ACTION_BTN} hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40`}>
+              <Trash2 className="w-3.5 h-3.5" /> Delete
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button onClick={() => onSceneAction("center-origin")} className={ACTION_BTN}>
+              <Crosshair className="w-3.5 h-3.5" /> Origin
+            </button>
+            <button onClick={() => onSceneAction("flip-normals")} className={ACTION_BTN}>
+              <FlipVertical className="w-3.5 h-3.5" /> Flip N
+            </button>
+            <button onClick={() => onSceneAction("recalc-normals")} className={ACTION_BTN}>
+              <RefreshCw className="w-3.5 h-3.5" /> Recalc
+            </button>
+          </div>
         </div>
       </div>
     </div>

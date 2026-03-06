@@ -57,7 +57,6 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
     });
   };
 
-  const objectTools = EDIT_TOOLS.filter(t => t.flyout !== "display");
   const viewTools = EDIT_TOOLS.filter(t => t.flyout === "display");
 
   const isTransformActive = transformMode !== "orbit";
@@ -112,21 +111,6 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
           </>
         )}
 
-        {/* ── Object Tools ── */}
-        <SidebarLabel>Object</SidebarLabel>
-        {objectTools.map((tool) => (
-          <button
-            key={tool.id}
-            onClick={() => toggleFlyout(tool.flyout)}
-            className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
-          >
-            <span className="text-[20px]">{tool.icon}</span>
-            <SidebarTooltip text={tool.tip} />
-          </button>
-        ))}
-
-        <SidebarDivider />
-
         {/* ── View Tools ── */}
         <SidebarLabel>View</SidebarLabel>
         {viewTools.map((tool) => (
@@ -158,12 +142,6 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
               top: `${getFlyoutTop()}px`,
             }}
           >
-            {!hasSelection && activeFlyout !== "display" && (
-              <div className="mb-3 px-3 py-2.5 font-mono text-[11px] text-amber-500 bg-amber-500/10 border border-amber-500/20">
-                ⚠ Select a mesh in the viewport first
-              </div>
-            )}
-            {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
           </motion.div>
         )}
@@ -201,22 +179,6 @@ function FlyoutTitle({ children }: { children: React.ReactNode }) {
 
 function FoSep() {
   return <div className="h-px bg-border my-3" />;
-}
-
-// ── FLYOUT CONTENTS ──
-
-function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
-  return (
-    <>
-      <FlyoutTitle>Mesh</FlyoutTitle>
-      <FoBtn shortcut="X" onClick={() => onAction("delete")}>Delete Selected</FoBtn>
-      <FoBtn shortcut="Shift+D" onClick={() => onAction("duplicate")}>Duplicate</FoBtn>
-      <FoSep />
-      <FoBtn onClick={() => onAction("flip-normals")}>Flip Normals</FoBtn>
-      <FoBtn onClick={() => onAction("center-origin")}>Center Origin</FoBtn>
-      <FoBtn onClick={() => onAction("recalc-normals")}>Recalculate Normals</FoBtn>
-    </>
-  );
 }
 
 
