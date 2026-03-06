@@ -543,7 +543,6 @@ export default function TextToCAD() {
         {/* Advanced controls — only when model exists */}
         {hasModel && (
           <EditToolbar
-            onApplyMaterial={handleApplyMaterial}
             onSceneAction={handleSceneAction}
             hasSelection={selectedNames.length > 0}
             transformMode={transformMode}
@@ -571,7 +570,7 @@ export default function TextToCAD() {
         {hasModel && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 270, opacity: 1 }}
+            animate={{ width: 290, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
@@ -580,6 +579,7 @@ export default function TextToCAD() {
               meshes={meshes}
               onSelectMesh={handleSelectMesh}
               onAction={handleMeshAction}
+              onApplyMaterial={handleApplyMaterial}
             />
           </motion.div>
         )}

@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { EDIT_TOOLS, MATERIAL_LIBRARY } from "./types";
-import MaterialSphere from "@/components/cad-studio/MaterialSphere";
+import { EDIT_TOOLS } from "./types";
 
 interface EditToolbarProps {
-  onApplyMaterial: (matId: string) => void;
   onSceneAction: (action: string) => void;
   hasSelection: boolean;
   transformMode?: string;
@@ -35,7 +33,7 @@ function SidebarTooltip({ text }: { text: string }) {
   );
 }
 
-export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelection, transformMode = "orbit" }: EditToolbarProps) {
+export default function EditToolbar({ onSceneAction, hasSelection, transformMode = "orbit" }: EditToolbarProps) {
   const [activeFlyout, setActiveFlyout] = useState<string | null>(null);
   const [activeDisplayToggles, setActiveDisplayToggles] = useState<Set<string>>(new Set());
 
@@ -59,8 +57,8 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
     });
   };
 
-  const metals = MATERIAL_LIBRARY.filter((m) => m.category === "metal");
-  const gems = MATERIAL_LIBRARY.filter((m) => m.category === "gemstone");
+  const objectTools = EDIT_TOOLS.filter(t => t.flyout !== "display");
+  const viewTools = EDIT_TOOLS.filter(t => t.flyout === "display");
 
   const isTransformActive = transformMode !== "orbit";
 
@@ -116,7 +114,7 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
 
         {/* ── Object Tools ── */}
         <SidebarLabel>Object</SidebarLabel>
-        {EDIT_TOOLS.filter(t => t.flyout !== "display").map((tool) => (
+        {objectTools.map((tool) => (
           <button
             key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
@@ -131,7 +129,7 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
 
         {/* ── View Tools ── */}
         <SidebarLabel>View</SidebarLabel>
-        {EDIT_TOOLS.filter(t => t.flyout === "display").map((tool) => (
+        {viewTools.map((tool) => (
           <button
             key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
@@ -166,7 +164,6 @@ export default function EditToolbar({ onApplyMaterial, onSceneAction, hasSelecti
               </div>
             )}
             {activeFlyout === "mesh" && <MeshFlyout onAction={onSceneAction} />}
-            {activeFlyout === "materials" && <MaterialsFlyout metals={metals} gems={gems} onApply={onApplyMaterial} />}
             {activeFlyout === "display" && <DisplayFlyout toggles={activeDisplayToggles} onToggle={toggleDisplay} />}
           </motion.div>
         )}
@@ -198,10 +195,6 @@ function FlyoutTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="font-display text-base text-foreground mb-4 uppercase tracking-[0.15em]">{children}</h3>;
 }
 
-function FlyoutSubtitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="font-mono text-[10px] text-muted-foreground mt-4 mb-2 uppercase tracking-[0.15em]">{children}</h4>;
-}
-
 function FoSep() {
   return <div className="h-px bg-border my-3" />;
 }
@@ -222,43 +215,6 @@ function MeshFlyout({ onAction }: { onAction: (a: string) => void }) {
   );
 }
 
-function MaterialsFlyout({ metals, gems, onApply }: {
-  metals: typeof MATERIAL_LIBRARY;
-  gems: typeof MATERIAL_LIBRARY;
-  onApply: (matId: string) => void;
-}) {
-  return (
-    <>
-      <FlyoutTitle>Materials</FlyoutTitle>
-      <FlyoutSubtitle>Metals ({metals.length})</FlyoutSubtitle>
-      <div className="grid grid-cols-2 gap-1.5 mb-3">
-        {metals.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => onApply(m.id)}
-            className="py-2.5 px-3 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50"
-          >
-            <MaterialSphere category="metal" preview={m.preview} size={16} />
-            {m.name}
-          </button>
-        ))}
-      </div>
-      <FlyoutSubtitle>Gems ({gems.length})</FlyoutSubtitle>
-      <div className="grid grid-cols-2 gap-1.5 mb-3">
-        {gems.map((g) => (
-          <button
-            key={g.id}
-            onClick={() => onApply(g.id)}
-            className="py-2.5 px-3 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 hover:text-foreground active:scale-[0.97] bg-muted/20 border border-border/50"
-          >
-            <MaterialSphere category="gemstone" preview={g.preview} size={16} />
-            {g.name}
-          </button>
-        ))}
-      </div>
-    </>
-  );
-}
 
 function DisplayFlyout({ toggles, onToggle }: { toggles: Set<string>; onToggle: (id: string) => void }) {
   return (

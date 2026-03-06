@@ -1,375 +1,304 @@
 import * as THREE from "three";
 
+// ── Structured Material System ──
+
+export type MaterialType = "gold" | "silver" | "platinum" | "titanium" | "copper" | "brass" | "rhodium";
+export type MaterialAlloy = "yellow" | "rose" | "white" | "black" | "natural";
+export type MaterialFinish = "polished" | "brushed" | "matte" | "satin";
+
 export interface MaterialDef {
   id: string;
   name: string;
   category: "metal" | "gemstone";
+  type?: MaterialType;
+  alloy?: MaterialAlloy;
+  finish?: MaterialFinish;
   preview: string;
   create: () => THREE.MeshPhysicalMaterial;
 }
 
-export const MATERIAL_LIBRARY: MaterialDef[] = [
-  // ── Metals ──
-  {
-    id: "yellow-gold",
-    name: "Yellow Gold",
-    category: "metal",
-    preview: "linear-gradient(135deg, #FFc353, #f5d060)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xffc353),
-        metalness: 1.0,
-        roughness: 0.15,
-        envMapIntensity: 1.5,
-        clearcoat: 0.1,
-        clearcoatRoughness: 0.1,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "rose-gold",
-    name: "Rose Gold",
-    category: "metal",
-    preview: "linear-gradient(135deg, #B76E79, #e8a88e)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xb76e79),
-        metalness: 1.0,
-        roughness: 0.12,
-        envMapIntensity: 1.5,
-        clearcoat: 0.1,
-        clearcoatRoughness: 0.12,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "white-gold",
-    name: "White Gold",
-    category: "metal",
-    preview: "linear-gradient(135deg, #c0c0c0, #f0f0f0)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xe8e8e8),
-        metalness: 1.0,
-        roughness: 0.1,
-        envMapIntensity: 1.8,
-        clearcoat: 0.3,
-        clearcoatRoughness: 0.08,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "platinum",
-    name: "Platinum",
-    category: "metal",
-    preview: "linear-gradient(135deg, #e0e0e0, #ffffff)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xe5e4e2),
-        metalness: 1.0,
-        roughness: 0.08,
-        envMapIntensity: 1.9,
-        clearcoat: 0.4,
-        clearcoatRoughness: 0.05,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "sterling-silver",
-    name: "Sterling Silver",
-    category: "metal",
-    preview: "linear-gradient(135deg, #a8a8a8, #e0e0e0)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xc0c0c0),
-        metalness: 1.0,
-        roughness: 0.1,
-        envMapIntensity: 1.8,
-        clearcoat: 0.2,
-        clearcoatRoughness: 0.1,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "black-rhodium",
-    name: "Black Rhodium",
-    category: "metal",
-    preview: "linear-gradient(135deg, #1a1a1a, #3a3a3a)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x2a2a2a),
-        metalness: 1.0,
-        roughness: 0.2,
-        envMapIntensity: 2.0,
-        clearcoat: 0.5,
-        clearcoatRoughness: 0.1,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "copper",
-    name: "Copper",
-    category: "metal",
-    preview: "linear-gradient(135deg, #b87333, #d4956a)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xb87333),
-        metalness: 1.0,
-        roughness: 0.25,
-        envMapIntensity: 1.5,
-        clearcoat: 0.1,
-        clearcoatRoughness: 0.2,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "bronze",
-    name: "Bronze",
-    category: "metal",
-    preview: "linear-gradient(135deg, #cd7f32, #e0a060)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xcd7f32),
-        metalness: 1.0,
-        roughness: 0.3,
-        envMapIntensity: 1.5,
-        clearcoat: 0.1,
-        clearcoatRoughness: 0.2,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "titanium",
-    name: "Titanium",
-    category: "metal",
-    preview: "linear-gradient(135deg, #878681, #b8b8b0)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x878681),
-        metalness: 1.0,
-        roughness: 0.2,
-        envMapIntensity: 1.6,
-        clearcoat: 0.3,
-        clearcoatRoughness: 0.15,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "brushed-gold",
-    name: "Brushed Gold",
-    category: "metal",
-    preview: "linear-gradient(135deg, #c9a227, #e6c65a)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xc9a227),
-        metalness: 1.0,
-        roughness: 0.4,
-        envMapIntensity: 1.2,
-        clearcoat: 0.05,
-        clearcoatRoughness: 0.3,
-        reflectivity: 0.9,
-      }),
-  },
-  {
-    id: "polished-brass",
-    name: "Polished Brass",
-    category: "metal",
-    preview: "linear-gradient(135deg, #d4af37, #f0d060)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xd4af37),
-        metalness: 1.0,
-        roughness: 0.1,
-        envMapIntensity: 1.7,
-        clearcoat: 0.2,
-        clearcoatRoughness: 0.08,
-        reflectivity: 1.0,
-      }),
-  },
-  {
-    id: "gunmetal",
-    name: "Gunmetal",
-    category: "metal",
-    preview: "linear-gradient(135deg, #2a3439, #536872)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x2a3439),
-        metalness: 1.0,
-        roughness: 0.15,
-        envMapIntensity: 1.8,
-        clearcoat: 0.4,
-        clearcoatRoughness: 0.1,
-        reflectivity: 1.0,
-      }),
-  },
+// ── Available options for UI selectors ──
+export const MATERIAL_TYPES: { id: MaterialType; label: string }[] = [
+  { id: "gold", label: "Gold" },
+  { id: "silver", label: "Silver" },
+  { id: "platinum", label: "Platinum" },
+  { id: "titanium", label: "Titanium" },
+  { id: "copper", label: "Copper" },
+  { id: "brass", label: "Brass" },
+  { id: "rhodium", label: "Rhodium" },
+];
 
-  // ── Gemstones (transmission-based, lightweight) ──
+export const MATERIAL_ALLOYS: { id: MaterialAlloy; label: string }[] = [
+  { id: "natural", label: "Natural" },
+  { id: "yellow", label: "Yellow" },
+  { id: "rose", label: "Rose" },
+  { id: "white", label: "White" },
+  { id: "black", label: "Black" },
+];
+
+export const MATERIAL_FINISHES: { id: MaterialFinish; label: string }[] = [
+  { id: "polished", label: "Polished" },
+  { id: "brushed", label: "Brushed" },
+  { id: "matte", label: "Matte" },
+  { id: "satin", label: "Satin" },
+];
+
+// Helper to build roughness from finish
+function finishRoughness(finish: MaterialFinish): number {
+  switch (finish) {
+    case "polished": return 0.08;
+    case "satin": return 0.2;
+    case "brushed": return 0.4;
+    case "matte": return 0.55;
+  }
+}
+
+function finishClearcoat(finish: MaterialFinish): number {
+  switch (finish) {
+    case "polished": return 0.4;
+    case "satin": return 0.15;
+    case "brushed": return 0.05;
+    case "matte": return 0.0;
+  }
+}
+
+// Base metal colors per type + alloy
+interface MetalBase { color: number; envMapIntensity: number; reflectivity: number }
+
+function getMetalBase(type: MaterialType, alloy: MaterialAlloy): MetalBase {
+  const bases: Record<MaterialType, Partial<Record<MaterialAlloy, MetalBase>>> = {
+    gold: {
+      yellow:  { color: 0xffc353, envMapIntensity: 1.5, reflectivity: 1.0 },
+      rose:    { color: 0xb76e79, envMapIntensity: 1.5, reflectivity: 1.0 },
+      white:   { color: 0xe8e8e8, envMapIntensity: 1.8, reflectivity: 1.0 },
+      natural: { color: 0xffc353, envMapIntensity: 1.5, reflectivity: 1.0 },
+    },
+    silver: {
+      natural: { color: 0xc0c0c0, envMapIntensity: 1.8, reflectivity: 1.0 },
+    },
+    platinum: {
+      natural: { color: 0xe5e4e2, envMapIntensity: 1.9, reflectivity: 1.0 },
+    },
+    titanium: {
+      natural: { color: 0x878681, envMapIntensity: 1.6, reflectivity: 1.0 },
+      black:   { color: 0x2a2a2a, envMapIntensity: 1.8, reflectivity: 1.0 },
+    },
+    copper: {
+      natural: { color: 0xb87333, envMapIntensity: 1.5, reflectivity: 1.0 },
+    },
+    brass: {
+      natural: { color: 0xd4af37, envMapIntensity: 1.7, reflectivity: 1.0 },
+    },
+    rhodium: {
+      natural: { color: 0xe0e0e0, envMapIntensity: 2.0, reflectivity: 1.0 },
+      black:   { color: 0x2a2a2a, envMapIntensity: 2.0, reflectivity: 1.0 },
+    },
+  };
+
+  const typeMap = bases[type] ?? {};
+  return typeMap[alloy] ?? typeMap["natural"] ?? { color: 0xc0c0c0, envMapIntensity: 1.5, reflectivity: 1.0 };
+}
+
+// Generate a metal material from structured attributes
+export function createMetalMaterial(type: MaterialType, alloy: MaterialAlloy, finish: MaterialFinish): THREE.MeshPhysicalMaterial {
+  const base = getMetalBase(type, alloy);
+  return new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(base.color),
+    metalness: 1.0,
+    roughness: finishRoughness(finish),
+    envMapIntensity: base.envMapIntensity,
+    clearcoat: finishClearcoat(finish),
+    clearcoatRoughness: finishRoughness(finish) * 0.5,
+    reflectivity: base.reflectivity,
+  });
+}
+
+// Compose display name from attributes
+export function composeMaterialName(type: MaterialType, alloy: MaterialAlloy, finish: MaterialFinish): string {
+  const parts: string[] = [];
+  if (finish !== "polished") parts.push(MATERIAL_FINISHES.find(f => f.id === finish)?.label ?? finish);
+  if (alloy !== "natural") parts.push(MATERIAL_ALLOYS.find(a => a.id === alloy)?.label ?? alloy);
+  parts.push(MATERIAL_TYPES.find(t => t.id === type)?.label ?? type);
+  return parts.join(" ");
+}
+
+// Compose a preview gradient
+function metalPreview(type: MaterialType, alloy: MaterialAlloy): string {
+  const base = getMetalBase(type, alloy);
+  const hex = `#${base.color.toString(16).padStart(6, "0")}`;
+  const lighter = lightenHex(hex, 30);
+  return `linear-gradient(135deg, ${hex}, ${lighter})`;
+}
+
+function lightenHex(hex: string, pct: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.min(255, ((num >> 16) & 0xff) + pct);
+  const g = Math.min(255, ((num >> 8) & 0xff) + pct);
+  const b = Math.min(255, (num & 0xff) + pct);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
+// ── Pre-built Material Library (backward-compatible) ──
+export const MATERIAL_LIBRARY: MaterialDef[] = [
+  // ── Metals — structured ──
+  { id: "gold-yellow-polished", name: "Yellow Gold", category: "metal", type: "gold", alloy: "yellow", finish: "polished",
+    preview: metalPreview("gold", "yellow"),
+    create: () => createMetalMaterial("gold", "yellow", "polished") },
+  { id: "gold-rose-polished", name: "Rose Gold", category: "metal", type: "gold", alloy: "rose", finish: "polished",
+    preview: metalPreview("gold", "rose"),
+    create: () => createMetalMaterial("gold", "rose", "polished") },
+  { id: "gold-white-polished", name: "White Gold", category: "metal", type: "gold", alloy: "white", finish: "polished",
+    preview: metalPreview("gold", "white"),
+    create: () => createMetalMaterial("gold", "white", "polished") },
+  { id: "gold-yellow-brushed", name: "Brushed Gold", category: "metal", type: "gold", alloy: "yellow", finish: "brushed",
+    preview: metalPreview("gold", "yellow"),
+    create: () => createMetalMaterial("gold", "yellow", "brushed") },
+  { id: "gold-yellow-satin", name: "Satin Gold", category: "metal", type: "gold", alloy: "yellow", finish: "satin",
+    preview: metalPreview("gold", "yellow"),
+    create: () => createMetalMaterial("gold", "yellow", "satin") },
+  { id: "gold-yellow-matte", name: "Matte Gold", category: "metal", type: "gold", alloy: "yellow", finish: "matte",
+    preview: metalPreview("gold", "yellow"),
+    create: () => createMetalMaterial("gold", "yellow", "matte") },
+  { id: "platinum-natural-polished", name: "Platinum", category: "metal", type: "platinum", alloy: "natural", finish: "polished",
+    preview: metalPreview("platinum", "natural"),
+    create: () => createMetalMaterial("platinum", "natural", "polished") },
+  { id: "silver-natural-polished", name: "Sterling Silver", category: "metal", type: "silver", alloy: "natural", finish: "polished",
+    preview: metalPreview("silver", "natural"),
+    create: () => createMetalMaterial("silver", "natural", "polished") },
+  { id: "silver-natural-brushed", name: "Brushed Silver", category: "metal", type: "silver", alloy: "natural", finish: "brushed",
+    preview: metalPreview("silver", "natural"),
+    create: () => createMetalMaterial("silver", "natural", "brushed") },
+  { id: "rhodium-black-polished", name: "Black Rhodium", category: "metal", type: "rhodium", alloy: "black", finish: "polished",
+    preview: metalPreview("rhodium", "black"),
+    create: () => createMetalMaterial("rhodium", "black", "polished") },
+  { id: "rhodium-natural-polished", name: "Rhodium", category: "metal", type: "rhodium", alloy: "natural", finish: "polished",
+    preview: metalPreview("rhodium", "natural"),
+    create: () => createMetalMaterial("rhodium", "natural", "polished") },
+  { id: "copper-natural-polished", name: "Copper", category: "metal", type: "copper", alloy: "natural", finish: "polished",
+    preview: metalPreview("copper", "natural"),
+    create: () => createMetalMaterial("copper", "natural", "polished") },
+  { id: "brass-natural-polished", name: "Brass", category: "metal", type: "brass", alloy: "natural", finish: "polished",
+    preview: metalPreview("brass", "natural"),
+    create: () => createMetalMaterial("brass", "natural", "polished") },
+  { id: "titanium-natural-polished", name: "Titanium", category: "metal", type: "titanium", alloy: "natural", finish: "polished",
+    preview: metalPreview("titanium", "natural"),
+    create: () => createMetalMaterial("titanium", "natural", "polished") },
+  { id: "titanium-black-polished", name: "Black Titanium", category: "metal", type: "titanium", alloy: "black", finish: "polished",
+    preview: metalPreview("titanium", "black"),
+    create: () => createMetalMaterial("titanium", "black", "polished") },
+
+  // ── Gemstones (unchanged — not structured by type/alloy/finish) ──
   {
-    id: "diamond",
-    name: "Diamond",
-    category: "gemstone",
+    id: "diamond", name: "Diamond", category: "gemstone",
     preview: "linear-gradient(135deg, #e8f4ff, #ffffff)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xffffff),
-        metalness: 0.0,
-        roughness: 0.0,
-        transmission: 1.0,
-        ior: 2.42,
-        thickness: 2.5,
-        envMapIntensity: 3.0,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 4.5,
-        attenuationColor: new THREE.Color(0xffffff),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0xffffff), metalness: 0.0, roughness: 0.0,
+      transmission: 1.0, ior: 2.42, thickness: 2.5, envMapIntensity: 3.0,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 4.5, attenuationColor: new THREE.Color(0xffffff),
+      side: THREE.DoubleSide,
+    }),
   },
   {
-    id: "ruby",
-    name: "Ruby",
-    category: "gemstone",
+    id: "ruby", name: "Ruby", category: "gemstone",
     preview: "linear-gradient(135deg, #9b111e, #e0115f)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xe0115f),
-        metalness: 0.0,
-        roughness: 0.0,
-        transmission: 1.0,
-        ior: 1.77,
-        thickness: 2.0,
-        envMapIntensity: 2.5,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 3.0,
-        attenuationColor: new THREE.Color(0x9b111e),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0xe0115f), metalness: 0.0, roughness: 0.0,
+      transmission: 1.0, ior: 1.77, thickness: 2.0, envMapIntensity: 2.5,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 3.0, attenuationColor: new THREE.Color(0x9b111e),
+      side: THREE.DoubleSide,
+    }),
   },
   {
-    id: "emerald",
-    name: "Emerald",
-    category: "gemstone",
+    id: "emerald", name: "Emerald", category: "gemstone",
     preview: "linear-gradient(135deg, #046307, #50c878)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x50c878),
-        metalness: 0.0,
-        roughness: 0.0,
-        transmission: 1.0,
-        ior: 1.58,
-        thickness: 2.0,
-        envMapIntensity: 2.5,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 3.0,
-        attenuationColor: new THREE.Color(0x046307),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0x50c878), metalness: 0.0, roughness: 0.0,
+      transmission: 1.0, ior: 1.58, thickness: 2.0, envMapIntensity: 2.5,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 3.0, attenuationColor: new THREE.Color(0x046307),
+      side: THREE.DoubleSide,
+    }),
   },
   {
-    id: "sapphire",
-    name: "Sapphire",
-    category: "gemstone",
+    id: "sapphire", name: "Sapphire", category: "gemstone",
     preview: "linear-gradient(135deg, #0f52ba, #6593f5)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x6593f5),
-        metalness: 0.0,
-        roughness: 0.0,
-        transmission: 1.0,
-        ior: 1.77,
-        thickness: 2.0,
-        envMapIntensity: 2.5,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 3.0,
-        attenuationColor: new THREE.Color(0x0f52ba),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0x6593f5), metalness: 0.0, roughness: 0.0,
+      transmission: 1.0, ior: 1.77, thickness: 2.0, envMapIntensity: 2.5,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 3.0, attenuationColor: new THREE.Color(0x0f52ba),
+      side: THREE.DoubleSide,
+    }),
   },
   {
-    id: "black-diamond",
-    name: "Black Diamond",
-    category: "gemstone",
+    id: "black-diamond", name: "Black Diamond", category: "gemstone",
     preview: "linear-gradient(135deg, #0a0a0a, #333344)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x1a1a2e),
-        metalness: 0.3,
-        roughness: 0.05,
-        transmission: 0.4,
-        ior: 2.42,
-        thickness: 1.5,
-        envMapIntensity: 2.0,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 2.0,
-        attenuationColor: new THREE.Color(0x0a0a0a),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0x1a1a2e), metalness: 0.3, roughness: 0.05,
+      transmission: 0.4, ior: 2.42, thickness: 1.5, envMapIntensity: 2.0,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 2.0, attenuationColor: new THREE.Color(0x0a0a0a),
+      side: THREE.DoubleSide,
+    }),
   },
   {
-    id: "amethyst",
-    name: "Amethyst",
-    category: "gemstone",
+    id: "amethyst", name: "Amethyst", category: "gemstone",
     preview: "linear-gradient(135deg, #6b3fa0, #9966cc)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x9966cc),
-        metalness: 0.0,
-        roughness: 0.0,
-        transmission: 1.0,
-        ior: 1.54,
-        thickness: 2.0,
-        envMapIntensity: 2.5,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 3.5,
-        attenuationColor: new THREE.Color(0x6b3fa0),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0x9966cc), metalness: 0.0, roughness: 0.0,
+      transmission: 1.0, ior: 1.54, thickness: 2.0, envMapIntensity: 2.5,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 3.5, attenuationColor: new THREE.Color(0x6b3fa0),
+      side: THREE.DoubleSide,
+    }),
   },
   {
-    id: "topaz",
-    name: "Topaz",
-    category: "gemstone",
+    id: "topaz", name: "Topaz", category: "gemstone",
     preview: "linear-gradient(135deg, #ffc87c, #ffe4b5)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0xffc87c),
-        metalness: 0.0,
-        roughness: 0.0,
-        transmission: 1.0,
-        ior: 1.64,
-        thickness: 2.0,
-        envMapIntensity: 2.5,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 3.5,
-        attenuationColor: new THREE.Color(0xffc87c),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0xffc87c), metalness: 0.0, roughness: 0.0,
+      transmission: 1.0, ior: 1.64, thickness: 2.0, envMapIntensity: 2.5,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 3.5, attenuationColor: new THREE.Color(0xffc87c),
+      side: THREE.DoubleSide,
+    }),
   },
   {
-    id: "aquamarine",
-    name: "Aquamarine",
-    category: "gemstone",
+    id: "aquamarine", name: "Aquamarine", category: "gemstone",
     preview: "linear-gradient(135deg, #7fffd4, #b2fff0)",
-    create: () =>
-      new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0x7fffd4),
-        metalness: 0.0,
-        roughness: 0.0,
-        transmission: 1.0,
-        ior: 1.57,
-        thickness: 2.0,
-        envMapIntensity: 2.5,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        attenuationDistance: 4.0,
-        attenuationColor: new THREE.Color(0x7fffd4),
-        side: THREE.DoubleSide,
-      }),
+    create: () => new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0x7fffd4), metalness: 0.0, roughness: 0.0,
+      transmission: 1.0, ior: 1.57, thickness: 2.0, envMapIntensity: 2.5,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      attenuationDistance: 4.0, attenuationColor: new THREE.Color(0x7fffd4),
+      side: THREE.DoubleSide,
+    }),
   },
 ];
+
+// ── Legacy ID mapping for backward compat ──
+const LEGACY_ID_MAP: Record<string, string> = {
+  "yellow-gold": "gold-yellow-polished",
+  "rose-gold": "gold-rose-polished",
+  "white-gold": "gold-white-polished",
+  "platinum": "platinum-natural-polished",
+  "sterling-silver": "silver-natural-polished",
+  "black-rhodium": "rhodium-black-polished",
+  "copper": "copper-natural-polished",
+  "bronze": "brass-natural-polished",
+  "titanium": "titanium-natural-polished",
+  "brushed-gold": "gold-yellow-brushed",
+  "polished-brass": "brass-natural-polished",
+  "gunmetal": "titanium-black-polished",
+};
+
+export function resolveMaterialId(id: string): string {
+  return LEGACY_ID_MAP[id] ?? id;
+}
+
+export function findMaterial(id: string): MaterialDef | undefined {
+  const resolved = resolveMaterialId(id);
+  return MATERIAL_LIBRARY.find((m) => m.id === resolved);
+}

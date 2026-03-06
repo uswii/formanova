@@ -9,7 +9,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
+import { MATERIAL_LIBRARY, findMaterial } from "@/components/cad-studio/materials";
 import type { MaterialDef } from "@/components/cad-studio/materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
@@ -271,9 +271,9 @@ const LoadedModel = forwardRef<
     const autoMaterials: Record<string, MaterialDef> = {};
     const gemKeywords = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave", "brilliant", "round_cut", "cushion", "oval", "marquise", "princess", "facet"];
     const platinumKeywords = ["prong", "claw", "bead", "milgrain", "setting", "basket", "collet"];
-    const diamondMatDef = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
-    const platinumMatDef = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
-    const goldMatDef = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+    const diamondMatDef = findMaterial("diamond")!;
+    const platinumMatDef = findMaterial("platinum")!;
+    const goldMatDef = findMaterial("yellow-gold")!;
 
     // Compute median vertex count to identify small meshes (likely gems)
     const vertCounts = list.map((md) => md.geometry?.attributes?.position?.count || 0).sort((a, b) => a - b);
@@ -426,9 +426,9 @@ const LoadedModel = forwardRef<
             // Auto-assign materials to new parts
             const gemKeywordsLocal = ["gem", "diamond", "stone", "ruby", "sapphire", "emerald", "crystal", "halo_gem", "center_gem", "pave"];
             const platKeywordsLocal = ["prong", "claw", "bead", "milgrain"];
-            const dMat = MATERIAL_LIBRARY.find((m) => m.id === "diamond")!;
-            const pMat = MATERIAL_LIBRARY.find((m) => m.id === "platinum")!;
-            const gMat = MATERIAL_LIBRARY.find((m) => m.id === "yellow-gold")!;
+            const dMat = findMaterial("diamond")!;
+            const pMat = findMaterial("platinum")!;
+            const gMat = findMaterial("yellow-gold")!;
 
             const newMaterials: Record<string, MaterialDef> = {};
             newParts.forEach((md) => {
@@ -501,7 +501,7 @@ const LoadedModel = forwardRef<
   // ── Imperative API ──
   useImperativeHandle(ref, () => ({
     applyMaterial: (matId: string, meshNames: string[]) => {
-      const matDef = MATERIAL_LIBRARY.find((m) => m.id === matId);
+      const matDef = findMaterial(matId);
       if (!matDef) return;
       meshNames.forEach((n) => {
         flatGeoCache.current.delete(n);
