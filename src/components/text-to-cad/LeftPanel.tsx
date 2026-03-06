@@ -1,6 +1,8 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Diamond, ChevronDown, ChevronRight } from "lucide-react";
+import creditCoinIcon from "@/assets/icons/credit-coin.png";
+import { TOOL_COSTS } from "@/lib/credits-api";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 
 interface LeftPanelProps {
@@ -98,9 +100,17 @@ export default function LeftPanel({
             <button
               onClick={onGenerate}
               disabled={isGenerating || !prompt.trim()}
-              className="w-full py-4 mt-4 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+              className="w-full py-4 mt-4 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
             >
-              {isGenerating ? "Generating…" : "Generate Ring"}
+              {isGenerating ? "Generating…" : (
+                <>
+                  Generate Ring
+                  <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                    <img src={creditCoinIcon} alt="" className="w-4 h-4" />
+                    <span className="text-[11px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                  </span>
+                </>
+              )}
             </button>
           )}
 
@@ -181,9 +191,13 @@ export default function LeftPanel({
               <button
                 onClick={onEdit}
                 disabled={isGenerating || !editPrompt.trim()}
-                className="w-full py-4 mt-3 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+                className="w-full py-4 mt-3 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
               >
                 Apply Edit
+                <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                  <img src={creditCoinIcon} alt="" className="w-4 h-4" />
+                  <span className="text-[11px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                </span>
               </button>
 
               {/* ═══ PRIMARY PART TOOLS ═══ */}
@@ -240,9 +254,13 @@ export default function LeftPanel({
                           />
                           <button
                             disabled={!selectedPart}
-                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98]"
+                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                           >
                             ⚙ Rebuild This Part
+                            <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                              <img src={creditCoinIcon} alt="" className="w-3.5 h-3.5" />
+                              <span className="text-[10px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                            </span>
                           </button>
                         </div>
                       </motion.div>
@@ -282,9 +300,13 @@ export default function LeftPanel({
                             className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
                           />
                           <button
-                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]"
+                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                           >
                             ✚ Add to Ring
+                            <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                              <img src={creditCoinIcon} alt="" className="w-3.5 h-3.5" />
+                              <span className="text-[10px] font-mono">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                            </span>
                           </button>
                         </div>
                       </motion.div>

@@ -20,7 +20,6 @@ const PLANS = [
     photos: 10,
     perPhoto: '$0.99',
     popular: false,
-    qualityLabel: 'Draft — cheapest',
   },
   {
     tier: 'standard',
@@ -31,7 +30,6 @@ const PLANS = [
     photos: 50,
     perPhoto: '$0.78',
     popular: true,
-    qualityLabel: 'Standard — mid-tier',
   },
   {
     tier: 'pro',
@@ -42,7 +40,6 @@ const PLANS = [
     photos: 150,
     perPhoto: '$0.66',
     popular: false,
-    qualityLabel: 'Premium — top tier',
   },
 ];
 
@@ -188,9 +185,6 @@ export default function Pricing() {
                     Checkout failed. Please try again.
                   </p>
                 )}
-                <p className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/70 uppercase text-center mt-3">
-                  {plan.qualityLabel}
-                </p>
               </div>
             </div>
           ))}
