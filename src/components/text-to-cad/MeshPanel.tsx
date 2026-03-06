@@ -32,17 +32,11 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelP
   };
 
   return (
-    <div
-      className="w-[270px] flex-shrink-0 flex flex-col"
-      style={{
-        background: "rgba(12,12,12,0.98)",
-        borderLeft: "1px solid rgba(255,255,255,0.06)",
-      }}
-    >
+    <div className="w-[270px] flex-shrink-0 flex flex-col bg-card border-l border-border">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <h2 className="font-display text-lg tracking-[0.15em] text-white uppercase mb-2">Meshes</h2>
-        <div className="font-mono text-[10px] text-[#666] mb-3 tracking-wide">
+      <div className="px-4 pt-4 pb-3.5 border-b border-border">
+        <h2 className="font-display text-lg tracking-[0.15em] text-foreground uppercase mb-2">Meshes</h2>
+        <div className="font-mono text-[10px] text-muted-foreground mb-3 tracking-wide">
           {meshes.length > 0 ? `${meshes.length} meshes · ${totalVerts.toLocaleString()} vertices` : "No model loaded"}
         </div>
         <input
@@ -50,18 +44,14 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelP
           placeholder="Search meshes..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2.5 text-[11px] text-[#e0e0e0] placeholder:text-[#444] transition-all duration-200 focus:outline-none focus:border-white/15 font-body"
-          style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
+          className="w-full px-3 py-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
         />
       </div>
 
       {/* Mesh list */}
       <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
         {filtered.length === 0 && (
-          <div className="text-center font-mono text-[10px] text-[#444] py-5">
+          <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
             {meshes.length === 0 ? "Generate a ring to see meshes" : "No matching meshes"}
           </div>
         )}
@@ -69,18 +59,14 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelP
           <button
             key={mesh.name}
             onClick={(e) => handleMeshClick(mesh, e)}
-            className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 ${
-              mesh.selected ? "text-white" : "hover:bg-white/5 text-[#ccc]"
+            className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 border ${
+              mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"
             } ${!mesh.visible ? "opacity-35" : ""}`}
-            style={{
-              background: mesh.selected ? "rgba(255,255,255,0.08)" : "transparent",
-              border: mesh.selected ? "1px solid rgba(255,255,255,0.15)" : "1px solid transparent",
-            }}
           >
             <div className="text-[11px] mb-0.5 truncate font-medium">
               {!mesh.visible && "[H] "}{mesh.name}
             </div>
-            <div className="font-mono text-[9px] text-[#666]">
+            <div className="font-mono text-[9px] text-muted-foreground">
               {mesh.verts} verts / {mesh.faces} faces
             </div>
           </button>
@@ -88,34 +74,26 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction }: MeshPanelP
       </div>
 
       {/* Batch actions */}
-      <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <h4 className="font-mono text-[9px] uppercase text-[#777] mb-2 tracking-[0.15em]">Mesh Actions</h4>
+      <div className="px-4 py-3 border-t border-border">
+        <h4 className="font-mono text-[9px] uppercase text-muted-foreground mb-2 tracking-[0.15em]">Mesh Actions</h4>
         <div className="grid grid-cols-2 gap-1.5 mb-2">
           {["Hide", "Show", "Show All", "Isolate"].map((action) => (
             <button
               key={action}
               onClick={() => onAction(action.toLowerCase().replace(" ", "-"))}
-              className="py-2.5 text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 font-semibold hover:text-white active:scale-[0.98]"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
-              }}
+              className="py-2.5 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 font-semibold hover:text-foreground active:scale-[0.98] bg-muted/20 border border-border/50"
             >
               {action}
             </button>
           ))}
         </div>
-        <h4 className="font-mono text-[9px] uppercase text-[#777] mb-2 mt-2 tracking-[0.15em]">Selection</h4>
+        <h4 className="font-mono text-[9px] uppercase text-muted-foreground mb-2 mt-2 tracking-[0.15em]">Selection</h4>
         <div className="flex gap-1.5">
           {["All", "None", "Invert"].map((action) => (
             <button
               key={action}
               onClick={() => onAction(`select-${action.toLowerCase()}`)}
-              className="flex-1 py-2.5 text-[10px] text-[#bbb] text-center cursor-pointer transition-all duration-200 font-semibold hover:text-white active:scale-[0.98]"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
-              }}
+              className="flex-1 py-2.5 text-[10px] text-muted-foreground text-center cursor-pointer transition-all duration-200 font-semibold hover:text-foreground active:scale-[0.98] bg-muted/20 border border-border/50"
             >
               {action}
             </button>
