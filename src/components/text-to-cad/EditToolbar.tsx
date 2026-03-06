@@ -114,9 +114,7 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
 
         {/* ── Object Tools ── */}
         <SidebarLabel>Object</SidebarLabel>
-        {objectTools.map((tool) => (
-          <button
-            key={tool.id}
+        {objectTools     key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
             className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
           >
@@ -129,9 +127,7 @@ export default function EditToolbar({ onSceneAction, hasSelection, transformMode
 
         {/* ── View Tools ── */}
         <SidebarLabel>View</SidebarLabel>
-        {editToolsFiltered.filter(t => t.flyout === "display").map((tool) => (
-          <button
-            key={tool.id}
+        {editToolsFiltered.filter(t => t.flyout ===viewTools     key={tool.id}
             onClick={() => toggleFlyout(tool.flyout)}
             className={activeFlyout === tool.flyout ? SIDE_BTN_ACTIVE : SIDE_BTN_DEFAULT}
           >
