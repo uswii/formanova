@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Layers, Camera } from "lucide-react";
-import InteractiveRing from "@/components/cad/InteractiveRing";
 
 import textToCadImg from "@/assets/cad-studio/text-to-cad-card.webp";
 import cadToCatalogImg from "@/assets/cad-studio/cad-to-catalog-card.webp";
