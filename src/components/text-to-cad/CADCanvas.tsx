@@ -855,20 +855,6 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           </Suspense>
         </Canvas>
 
-        {!hasModel && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ border: "1px solid #333" }}>
-                <svg className="w-8 h-8 text-[#444]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V15m0 0l-2.25 1.313" />
-                </svg>
-              </div>
-              <p className="text-[#555] text-[10px] uppercase tracking-[3px]">
-                Describe your ring to begin
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
