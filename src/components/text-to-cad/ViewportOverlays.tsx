@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2 } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
@@ -212,6 +212,35 @@ export function ActionButtons({ visible, onReset, onUndo, onRedo, undoCount, red
           Download
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── Zoom Controls ──
+const ZOOM_BTN = "w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors cursor-pointer";
+
+export function ZoomControls({ onZoomIn, onZoomOut, onReset }: {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset?: () => void;
+}) {
+  return (
+    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col bg-card/80 backdrop-blur-sm border border-border/40 rounded-sm shadow-md overflow-hidden">
+      <button onClick={onZoomIn} className={ZOOM_BTN} title="Zoom in">
+        <Plus className="w-4 h-4" />
+      </button>
+      <div className="h-px bg-border/40" />
+      <button onClick={onZoomOut} className={ZOOM_BTN} title="Zoom out">
+        <Minus className="w-4 h-4" />
+      </button>
+      {onReset && (
+        <>
+          <div className="h-px bg-border/40" />
+          <button onClick={onReset} className={ZOOM_BTN} title="Reset view">
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+        </>
+      )}
     </div>
   );
 }

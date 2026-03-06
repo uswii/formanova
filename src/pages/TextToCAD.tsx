@@ -20,6 +20,7 @@ import {
   ViewportToolbar,
   StatsBar,
   ActionButtons,
+  ZoomControls,
 } from "@/components/text-to-cad/ViewportOverlays";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
@@ -587,6 +588,13 @@ export default function TextToCAD() {
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
             />
+            {hasModel && !isGenerating && (
+              <ZoomControls
+                onZoomIn={() => canvasRef.current?.zoomIn()}
+                onZoomOut={() => canvasRef.current?.zoomOut()}
+                onReset={() => canvasRef.current?.resetCamera()}
+              />
+            )}
           </div>
         </ResizablePanel>
 
