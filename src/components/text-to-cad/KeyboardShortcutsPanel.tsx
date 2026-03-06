@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, X } from "lucide-react";
 
@@ -61,7 +61,6 @@ interface KeyboardShortcutsPanelProps {
 }
 
 export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortcutsPanelProps) {
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -81,47 +80,47 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] bg-black/20"
             onClick={onClose}
           />
-          {/* Panel */}
+          {/* Panel – anchored above trigger via absolute positioning in parent */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-[420px] max-w-[95vw] max-h-[90vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
+            className="absolute bottom-full left-0 mb-2 z-[201] w-[340px] max-h-[70vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <div className="flex items-center gap-2.5">
-                <Keyboard className="w-4 h-4 text-muted-foreground" />
-                <span className="font-mono text-[11px] font-bold uppercase tracking-[0.15em] text-foreground">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+              <div className="flex items-center gap-2">
+                <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-foreground">
                   Keyboard Shortcuts
                 </span>
               </div>
               <button
                 onClick={onClose}
-                className="w-7 h-7 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer"
+                className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             </div>
 
-            {/* Sections */}
-            <div className="p-5 space-y-5 overflow-y-auto flex-1 min-h-0">
+            {/* Sections – scrollable */}
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
               {SHORTCUT_SECTIONS.map((section) => (
                 <div key={section.title}>
-                  <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2.5">
+                  <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">
                     {section.title}
                   </h3>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {section.shortcuts.map((sc) => (
                       <div
                         key={sc.desc}
-                        className="flex items-center justify-between py-1 px-1"
+                        className="flex items-center justify-between py-0.5 px-1"
                       >
-                        <span className="text-[12px] text-foreground/80">{sc.desc}</span>
+                        <span className="text-[11px] text-foreground/80">{sc.desc}</span>
                         <div className="flex items-center gap-1">
                           {sc.keys.map((k, i) => (
                             <span key={i} className="flex items-center gap-1">
@@ -138,7 +137,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-border">
+            <div className="px-4 py-2 border-t border-border shrink-0">
               <p className="font-mono text-[9px] text-muted-foreground/50 text-center tracking-wider">
                 Press <Kbd>?</Kbd> to toggle this panel
               </p>
@@ -150,7 +149,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
   );
 }
 
-/** Trigger button for bottom-left of viewport */
+/** Trigger button – wrap in relative container so panel anchors above */
 export function KeyboardShortcutsButton({ onClick }: { onClick: () => void }) {
   return (
     <button
