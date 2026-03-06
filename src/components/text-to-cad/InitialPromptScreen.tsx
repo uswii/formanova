@@ -106,16 +106,19 @@ export default function InitialPromptScreen({
             onKeyDown={handleKeyDown}
             placeholder="Describe your ring — e.g. A rose ring with three blooming roses, twisted vine band with thorns, and diamond accents"
             rows={4}
-            className="w-full min-h-[130px] max-h-[240px] px-5 py-4 pr-10 text-[15px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
+            className="w-full min-h-[130px] max-h-[240px] px-5 py-4 pb-9 text-[15px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
             style={{ overflow: prompt.length < 200 ? "hidden" : "auto" }}
           />
           {prompt.length > 0 && (
             <button
-              onClick={() => setPrompt("")}
-              className="absolute top-3 right-3 p-1.5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all duration-150"
+              onClick={() => {
+                setPrompt("");
+                textareaRef.current?.focus();
+              }}
+              className="absolute bottom-2.5 right-3 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors duration-150 cursor-pointer"
               aria-label="Clear prompt"
             >
-              <X className="w-3.5 h-3.5" />
+              Clear
             </button>
           )}
         </div>
