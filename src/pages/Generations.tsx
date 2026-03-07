@@ -265,6 +265,8 @@ export default function Generations() {
           try {
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
+            // Preload into browser cache immediately
+            if (thumbnail_url) preloadImage(thumbnail_url);
             return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
           } catch (e) {
             console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
