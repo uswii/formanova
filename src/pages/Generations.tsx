@@ -12,7 +12,9 @@ import {
 import { WorkflowSection, SectionIcons } from '@/components/generations/WorkflowSection';
 import { azureUriToUrl } from '@/lib/azure-utils';
 
-const PER_PAGE = 10;
+const PER_PAGE = 5;
+const CACHE_KEY = 'formanova_gen_cache';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 type SourceType = 'photo' | 'cad_render' | 'cad_text';
 
@@ -23,16 +25,36 @@ interface SectionState {
   loading: boolean;
 }
 
-const defaultSection = (): SectionState => ({
-  workflows: [],
-  page: 1,
-  totalPages: 1,
-  loading: true,
-});
+// ── SessionStorage cache helpers ─────────────────────────────────────
+
+interface CachePayload {
+  workflows: WorkflowSummary[];
+  enriched: Record<string, Partial<WorkflowSummary>>;
+  ts: number;
+}
+
+function loadCache(): CachePayload | null {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed: CachePayload = JSON.parse(raw);
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) {
+      sessionStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch { return null; }
+}
+
+function saveCache(workflows: WorkflowSummary[], enriched: Record<string, Partial<WorkflowSummary>>) {
+  try {
+    const payload: CachePayload = { workflows, enriched, ts: Date.now() };
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+  } catch { /* quota exceeded — ignore */ }
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/** Recursively find first azure:// URI in any object or array */
 function findAzureUri(obj: unknown): string | null {
   if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
   if (Array.isArray(obj)) {
@@ -46,28 +68,6 @@ function findAzureUri(obj: unknown): string | null {
   return null;
 }
 
-/** Match azure:// URIs, snapwear blob URLs, or HTTPS image URLs */
-function findImageUrl(obj: unknown): string | null {
-  if (typeof obj === 'string') {
-    if (obj.startsWith('azure://')) return obj;
-    if (obj.startsWith('https://') && (
-      obj.includes('snapwear.blob.core.windows.net') ||
-      obj.includes('blob.core.windows.net') ||
-      /\.(jpe?g|png|webp)(\?.*)?$/i.test(obj)
-    )) return obj;
-  }
-  if (Array.isArray(obj)) {
-    for (const item of obj) { const f = findImageUrl(item); if (f) return f; }
-  } else if (obj && typeof obj === 'object') {
-    for (const v of Object.values(obj as Record<string, unknown>)) {
-      const found = findImageUrl(v);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-/** Run at most CONCURRENCY tasks at a time */
 async function batchSettled<T>(
   tasks: Array<() => Promise<T>>,
   concurrency = 3,
@@ -80,7 +80,6 @@ async function batchSettled<T>(
   return results;
 }
 
-/** Extract photo thumbnail from workflow detail */
 function extractPhotoThumbnail(steps: any[]): string | null {
   const genStep = steps.find((s: any) => s.tool === 'generate_jewelry_image');
   if (!genStep?.output) return null;
@@ -93,9 +92,7 @@ function extractPhotoThumbnail(steps: any[]): string | null {
   return null;
 }
 
-/** Extract cadText screenshots + GLB from workflow detail */
 function extractCadTextData(steps: any[]) {
-  // Screenshots
   const screenshotStep = steps.find((s: any) =>
     s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
   );
@@ -114,7 +111,6 @@ function extractCadTextData(steps: any[]) {
   }
   const front = screenshots.find(s => s.angle === 'front') ?? screenshots[0];
 
-  // GLB
   const validateStep = steps.find((s: any) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
   const generateStep = steps.find((s: any) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
   const glbStep = validateStep || generateStep;
@@ -158,31 +154,52 @@ export default function Generations() {
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
-  // All workflows fetched from API (we paginate client-side per section)
   const [allWorkflows, setAllWorkflows] = useState<WorkflowSummary[]>([]);
   const [globalLoading, setGlobalLoading] = useState(true);
 
-  // Per-section pagination state
   const [photoPage, setPhotoPage] = useState(1);
   const [cadRenderPage, setCadRenderPage] = useState(1);
   const [cadTextPage, setCadTextPage] = useState(1);
 
-  // Track which workflow IDs have already been enriched to avoid re-fetching
-  const enrichedIdsRef = useRef<Set<string>>(new Set());
+  // Track enriched IDs + their data for sessionStorage persistence
+  const enrichedRef = useRef<Record<string, Partial<WorkflowSummary>>>({});
 
-  // ── Step 1: Fetch workflow list (lightweight, no details) ─────────
+  // ── Step 1: Fetch workflow list — use cache for instant load ──────
   useEffect(() => {
     if (!user) return;
 
+    // Try cache first for instant render
+    const cached = loadCache();
+    if (cached) {
+      // Apply cached enrichment data on top of workflow list
+      const hydrated = cached.workflows.map(w => {
+        const e = cached.enriched[w.workflow_id];
+        return e ? { ...w, ...e } : w;
+      });
+      setAllWorkflows(hydrated);
+      enrichedRef.current = cached.enriched;
+      setGlobalLoading(false);
+      console.log('[Generations] loaded from cache:', cached.workflows.length, 'workflows');
+    }
+
+    // Always fetch fresh in background
     (async () => {
       try {
-        setGlobalLoading(true);
+        if (!cached) setGlobalLoading(true);
         const workflows = await listMyWorkflows(100, 0);
-        console.log('[Generations] workflows:', workflows.map(w => ({ name: w.name, status: w.status, source_type: w.source_type })));
-        setAllWorkflows(workflows);
+        console.log('[Generations] fetched:', workflows.length, 'workflows');
+
+        // Re-apply any previously enriched data so thumbnails don't flash
+        const merged = workflows.map(w => {
+          const e = enrichedRef.current[w.workflow_id];
+          return e ? { ...w, ...e } : w;
+        });
+        setAllWorkflows(merged);
+        // Save list to cache (enrichment data will be added as it arrives)
+        saveCache(workflows, enrichedRef.current);
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
-        if (err.name !== 'AuthExpiredError') {
+        if (err.name !== 'AuthExpiredError' && !cached) {
           setError('Could not load your generation history. Please try again.');
         }
       } finally {
@@ -215,33 +232,32 @@ export default function Generations() {
     [allWorkflows, globalLoading],
   );
 
-  // ── Step 2: Enrich ONLY the visible page of each section ──────────
-  // This runs whenever allWorkflows or page numbers change.
+  // ── Step 2: Enrich visible page — cards show immediately, thumbnails load async
   useEffect(() => {
     if (globalLoading || allWorkflows.length === 0) return;
 
-    // Get visible workflows for each section that need enrichment
     const photoVisible = getSection('photo', photoPage).workflows
-      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedIdsRef.current.has(w.workflow_id));
+      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id]);
     const cadRenderVisible = getSection('cad_render', cadRenderPage).workflows
-      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedIdsRef.current.has(w.workflow_id));
+      .filter(w => w.status === 'completed' && w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id]);
     const cadTextVisible = getSection('cad_text', cadTextPage).workflows
-      .filter(w => (w.status === 'completed' || w.status === 'failed') && w.thumbnail_url === undefined && !enrichedIdsRef.current.has(w.workflow_id));
+      .filter(w => (w.status === 'completed' || w.status === 'failed') && w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id]);
 
     const photoAndCadRender = [...photoVisible, ...cadRenderVisible];
 
-    // Mark as enriching immediately to prevent duplicate fetches
-    [...photoAndCadRender, ...cadTextVisible].forEach(w => enrichedIdsRef.current.add(w.workflow_id));
+    // Mark immediately to prevent duplicate fetches
+    [...photoAndCadRender, ...cadTextVisible].forEach(w => {
+      enrichedRef.current[w.workflow_id] = {}; // placeholder
+    });
 
-    // Enrich photo & cad_render workflows
+    // Enrich photo & cad_render
     if (photoAndCadRender.length > 0) {
       const ids = new Set(photoAndCadRender.map(w => w.workflow_id));
       batchSettled(
         photoAndCadRender.map(wf => async () => {
           try {
             const details = await getWorkflowDetails(wf.workflow_id);
-            const steps = details.steps ?? [];
-            const thumbnail_url = extractPhotoThumbnail(steps);
+            const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
           } catch (e) {
             console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
@@ -249,50 +265,53 @@ export default function Generations() {
           }
         })
       ).then(results => {
-        const enrichMap = new Map<string, string>();
+        const updates: Record<string, Partial<WorkflowSummary>> = {};
         for (const r of results) {
           if (r.status === 'fulfilled' && r.value) {
-            enrichMap.set(r.value.id, r.value.thumbnail_url);
+            updates[r.value.id] = { thumbnail_url: r.value.thumbnail_url };
+            enrichedRef.current[r.value.id] = updates[r.value.id];
           }
         }
         setAllWorkflows(prev =>
-          prev.map(w => {
-            if (!ids.has(w.workflow_id)) return w;
-            return { ...w, thumbnail_url: enrichMap.get(w.workflow_id) ?? '' };
-          })
+          prev.map(w => ids.has(w.workflow_id) && updates[w.workflow_id]
+            ? { ...w, ...updates[w.workflow_id] }
+            : w
+          )
         );
+        // Persist enrichment to cache
+        saveCache(allWorkflows, enrichedRef.current);
       });
     }
 
-    // Enrich cad_text workflows
+    // Enrich cad_text
     if (cadTextVisible.length > 0) {
       const ids = new Set(cadTextVisible.map(w => w.workflow_id));
       batchSettled(
         cadTextVisible.map(wf => async () => {
           try {
             const details = await getWorkflowDetails(wf.workflow_id);
-            const steps = details.steps ?? [];
-            return { id: wf.workflow_id, ...extractCadTextData(steps) };
+            return { id: wf.workflow_id, ...extractCadTextData(details.steps ?? []) };
           } catch (e) {
             console.warn('[Generations] cadText detail fetch failed:', wf.workflow_id, e);
             return { id: wf.workflow_id, thumbnail_url: '', screenshots: [] as { angle: string; url: string }[], glb_url: null, glb_filename: null };
           }
         })
       ).then(results => {
-        const enrichMap = new Map<string, any>();
+        const updates: Record<string, Partial<WorkflowSummary>> = {};
         for (const r of results) {
           if (r.status === 'fulfilled' && r.value) {
-            enrichMap.set(r.value.id, r.value);
+            const { id, ...data } = r.value;
+            updates[id] = data;
+            enrichedRef.current[id] = data;
           }
         }
         setAllWorkflows(prev =>
-          prev.map(w => {
-            if (!ids.has(w.workflow_id)) return w;
-            const e = enrichMap.get(w.workflow_id);
-            if (e) return { ...w, thumbnail_url: e.thumbnail_url, screenshots: e.screenshots, glb_url: e.glb_url, glb_filename: e.glb_filename };
-            return { ...w, screenshots: [], glb_url: null, glb_filename: null };
-          })
+          prev.map(w => ids.has(w.workflow_id) && updates[w.workflow_id]
+            ? { ...w, ...updates[w.workflow_id] }
+            : w
+          )
         );
+        saveCache(allWorkflows, enrichedRef.current);
       });
     }
   }, [allWorkflows.length, globalLoading, photoPage, cadRenderPage, cadTextPage, getSection]);
@@ -304,7 +323,6 @@ export default function Generations() {
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
       <div className="max-w-7xl mx-auto">
-        {/* Header — Marta style, matches Dashboard/Studio */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -328,7 +346,6 @@ export default function Generations() {
           </p>
         </motion.div>
 
-        {/* Error state */}
         {error && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -351,7 +368,6 @@ export default function Generations() {
 
         {!error && (
           <>
-            {/* Section: From Photos */}
             <WorkflowSection
               title="From Photo"
               subtitle="Jewelry photo to on-model imagery"
@@ -365,7 +381,6 @@ export default function Generations() {
               onWorkflowClick={() => {}}
             />
 
-            {/* Section: CAD Render */}
             <WorkflowSection
               title="From CAD"
               subtitle="3D CAD to photorealistic catalog"
@@ -379,7 +394,6 @@ export default function Generations() {
               onWorkflowClick={() => {}}
             />
 
-            {/* Section: Text to CAD */}
             <WorkflowSection
               title="Text to CAD"
               subtitle="AI-generated 3D models from text"
