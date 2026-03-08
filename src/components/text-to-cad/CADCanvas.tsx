@@ -156,12 +156,14 @@ const LoadedModel = forwardRef<
   }
 >(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const loadedUrlRef = useRef<string>("");
 
   // Load GLB via server-side blob-proxy to avoid CORS issues with Azure
   useEffect(() => {
     if (!url || loadedUrlRef.current === url) return;
     loadedUrlRef.current = url;
+    setIsLoading(true);
     let cancelled = false;
 
     (async () => {
@@ -195,13 +197,18 @@ const LoadedModel = forwardRef<
           if (cancelled) return;
           console.log("[CADCanvas] GLB parsed successfully, size:", arrayBuffer.byteLength);
           setScene(gltf.scene);
+          setIsLoading(false);
         }, (error) => {
           console.error("[CADCanvas] Failed to parse GLB:", error);
           loadedUrlRef.current = "";
+          setIsLoading(false);
         });
       } catch (error) {
         console.error("[CADCanvas] Failed to fetch GLB:", error);
-        if (!cancelled) loadedUrlRef.current = "";
+        if (!cancelled) {
+          loadedUrlRef.current = "";
+          setIsLoading(false);
+        }
       }
     })();
 
