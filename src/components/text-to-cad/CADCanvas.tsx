@@ -160,6 +160,11 @@ const LoadedModel = forwardRef<
   const [isLoading, setIsLoading] = useState(false);
   const loadedUrlRef = useRef<string>("");
 
+  // Notify parent of loading state changes
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
+
   // Load GLB via server-side blob-proxy to avoid CORS issues with Azure
   useEffect(() => {
     if (!url || loadedUrlRef.current === url) return;
