@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Upload, Diamond } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
-import { getWorkflowCost } from "@/lib/credits-api";
+import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS } from "./types";
 
 const EXAMPLE_PROMPTS = [
@@ -31,6 +31,7 @@ export default function InitialPromptScreen({
 }: InitialPromptScreenProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
 
   const handleGlbUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,7 +143,7 @@ export default function InitialPromptScreen({
                   Generate Ring
                   <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                     <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                    <span className="text-[13px] font-mono font-semibold">{getWorkflowCost('ring_generate_v1', model)}</span>
+                    <span className="text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                   </span>
                 </>
               )}

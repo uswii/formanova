@@ -2,7 +2,7 @@ import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Diamond, ChevronDown, ChevronRight } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
-import { getWorkflowCost } from "@/lib/credits-api";
+import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 
 interface LeftPanelProps {
@@ -34,6 +34,7 @@ export default function LeftPanel({
   creditBlock,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
+  const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
   const [rebuildOpen, setRebuildOpen] = useState(false);
   const [addPartOpen, setAddPartOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
@@ -108,7 +109,7 @@ export default function LeftPanel({
                   Generate Ring
                   <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                     <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                    <span className="text-[13px] font-mono font-semibold">{getWorkflowCost('ring_generate_v1', model)}</span>
+                    <span className="text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                   </span>
                 </>
               )}
@@ -197,7 +198,7 @@ export default function LeftPanel({
                 Apply Edit
                 <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                   <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                  <span className="text-[13px] font-mono font-semibold">{getWorkflowCost('ring_generate_v1', model)}</span>
+                  <span className="text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                 </span>
               </button>
 
@@ -260,7 +261,7 @@ export default function LeftPanel({
                             ⚙ Rebuild This Part
                             <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                               <img src={creditCoinIcon} alt="" className="w-4.5 h-4.5" />
-                              <span className="text-[12px] font-mono font-semibold">{getWorkflowCost('ring_generate_v1', model)}</span>
+                              <span className="text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                             </span>
                           </button>
                         </div>
@@ -306,7 +307,7 @@ export default function LeftPanel({
                             ✚ Add to Ring
                             <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                               <img src={creditCoinIcon} alt="" className="w-4.5 h-4.5" />
-                              <span className="text-[12px] font-mono font-semibold">{getWorkflowCost('ring_generate_v1', model)}</span>
+                              <span className="text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                             </span>
                           </button>
                         </div>
