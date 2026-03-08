@@ -13,6 +13,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MATERIAL_LIBRARY, findMaterial, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
+import { getQualitySettings } from "@/lib/gpu-detect";
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
