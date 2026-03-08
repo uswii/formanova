@@ -71,34 +71,67 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
           return null;
         };
 
-        // Find ring-screenshot step
-        const screenshotStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-screenshot');
-        if (screenshotStep?.output?.screenshots) {
-          const raw = screenshotStep.output.screenshots as Record<string, unknown>[];
-          const mapped = raw
-            .map(s => {
-              // Actual DB field is 'name'; fall back to 'angle' for legacy data
-              const angle = (s.name as string) || (s.angle as string) || 'unknown';
-              // Actual DB field is data_uri.uri; fall back to deep search
-              const rawUri = (s as any)?.data_uri?.uri ?? (s as any)?.url ?? (s as any)?.uri;
-              const uri = rawUri || findAzureUri(s);
-              return uri ? { angle, url: azureUriToUrl(uri as string) } : null;
-            })
-            .filter(Boolean) as { angle: string; url: string }[];
-          setScreenshots(sortScreenshots(mapped));
+        // ── PRIMARY: Find the last successful run_blender step ──
+        const blenderSteps = details.steps?.filter(
+          (s: WorkflowStep) => s.tool === 'run_blender' && (s.output as any)?.success === true
+        ) ?? [];
+        const blenderStep = blenderSteps.length > 0 ? blenderSteps[blenderSteps.length - 1] : null;
+
+        if (blenderStep?.output) {
+          // GLB from glb_artifact.uri
+          const glbUri = (blenderStep.output as any)?.glb_artifact?.uri;
+          if (typeof glbUri === 'string' && glbUri.startsWith('https://')) {
+            setGlbUrl(glbUri);
+          } else if (glbUri) {
+            setGlbUrl(azureUriToUrl(glbUri));
+          }
+
+          // Screenshots from output.screenshots[].uri
+          const rawShots = (blenderStep.output as any)?.screenshots as any[] | undefined;
+          if (rawShots?.length) {
+            const mapped = rawShots
+              .map((s: any, i: number) => {
+                const uri = s?.uri;
+                if (typeof uri === 'string' && uri.startsWith('https://')) {
+                  return { angle: `angle_${i + 1}`, url: uri };
+                }
+                if (uri) return { angle: `angle_${i + 1}`, url: azureUriToUrl(uri) };
+                return null;
+              })
+              .filter(Boolean) as { angle: string; url: string }[];
+            setScreenshots(sortScreenshots(mapped));
+          }
         }
 
-        // Find ring-validate step (preferred) or ring-generate for GLB
-        const validateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-validate');
-        const generateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-generate');
-        const glbStep = validateStep || generateStep;
-        if (glbStep?.output) {
-          const uri = findAzureUri(glbStep.output);
-          if (uri) setGlbUrl(azureUriToUrl(uri));
+        // ── FALLBACK: Legacy ring-screenshot / ring-validate / ring-generate ──
+        if (!blenderStep) {
+          const screenshotStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-screenshot');
+          if (screenshotStep?.output?.screenshots) {
+            const raw = screenshotStep.output.screenshots as Record<string, unknown>[];
+            const mapped = raw
+              .map(s => {
+                const angle = (s.name as string) || (s.angle as string) || 'unknown';
+                const rawUri = (s as any)?.data_uri?.uri ?? (s as any)?.url ?? (s as any)?.uri;
+                const uri = rawUri || findAzureUri(s);
+                return uri ? { angle, url: azureUriToUrl(uri as string) } : null;
+              })
+              .filter(Boolean) as { angle: string; url: string }[];
+            setScreenshots(sortScreenshots(mapped));
+          }
+
+          const validateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-validate');
+          const generateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-generate');
+          const glbStep = validateStep || generateStep;
+          if (glbStep?.output) {
+            const uri = findAzureUri(glbStep.output);
+            if (uri) setGlbUrl(azureUriToUrl(uri));
+          }
         }
 
-        if (validateStep?.output?.message) {
-          setCaption(validateStep.output.message as string);
+        // Caption from validate step (legacy)
+        const legacyValidate = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-validate');
+        if (legacyValidate?.output?.message) {
+          setCaption(legacyValidate.output.message as string);
         }
       } catch (err: any) {
         console.error('[CadWorkflowModal] fetch error:', err);
