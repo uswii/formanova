@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const GENERATION_STAGES = [
-  { id: "queued", label: "INITIALIZING" },
-  { id: "generating", label: "GENERATING GEOMETRY" },
-  { id: "detailing", label: "ADDING DETAILS" },
-  { id: "optimizing", label: "OPTIMIZING STRUCTURE" },
-  { id: "preview", label: "PREPARING PREVIEW" },
-  { id: "completed", label: "COMPLETED" },
+  { id: "queued", label: "Initializing" },
+  { id: "generating", label: "Generating geometry" },
+  { id: "detailing", label: "Adding details" },
+  { id: "optimizing", label: "Optimizing structure" },
+  { id: "preview", label: "Preparing preview" },
+  { id: "completed", label: "Completed" },
 ] as const;
 
 const ROTATING_MESSAGES: Record<string, string[]> = {
