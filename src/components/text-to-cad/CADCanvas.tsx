@@ -352,7 +352,14 @@ const LoadedModel = forwardRef<
         faces: m.geometry?.index ? m.geometry.index.count / 3 : (m.geometry?.attributes?.position?.count || 0) / 3,
       })));
     }
-  }, [scene, onMeshesDetected, inv]);
+
+    // Signal model is fully processed and ready to render after next frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        onModelReady?.();
+      });
+    });
+  }, [scene, onMeshesDetected, inv, onModelReady]);
 
   // ── Merge additional GLB parts into the existing scene ──
   const mergedUrlsRef = useRef<Set<string>>(new Set());
