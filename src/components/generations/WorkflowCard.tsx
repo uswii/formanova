@@ -43,7 +43,11 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   // undefined = enrichment not started yet; [] = enriched but no shots found
   const isEnriching = workflow.screenshots === undefined;
 
-  const modelLabel = workflow.ai_model ? MODEL_LABELS[workflow.ai_model] ?? workflow.ai_model : null;
+  const modelLabel = workflow.mode
+    ? MODEL_LABELS[workflow.mode.toLowerCase()] ?? workflow.mode
+    : workflow.ai_model
+      ? MODEL_LABELS[workflow.ai_model] ?? workflow.ai_model
+      : null;
 
   const handleDownloadGlb = (e: React.MouseEvent) => {
     e.stopPropagation();
