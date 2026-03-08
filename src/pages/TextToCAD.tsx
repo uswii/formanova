@@ -666,17 +666,17 @@ export default function TextToCAD() {
             {hasModel && <ViewportToolbar mode={transformMode} setMode={setTransformMode} />}
             
             <div className="absolute bottom-4 left-4 z-50 flex gap-2">
-              <ViewportDisplayMenu visible={hasModel && !isGenerating} onSceneAction={handleSceneAction} />
-              {hasModel && !isGenerating && (
+              <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
+              {hasModel && !isGenerating && !isModelLoading && (
                 <div className="relative">
                   <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
                   <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
                 </div>
               )}
             </div>
-            <GenerationProgress visible={isGenerating} progress={progress} currentStep={progressStep} />
+            <GenerationProgress visible={isGenerating || isModelLoading} progress={progress} currentStep={progressStep} />
             <ViewportSideTools
-              visible={hasModel && !isGenerating}
+              visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}
               onZoomOut={() => canvasRef.current?.zoomOut()}
               onResetView={() => canvasRef.current?.resetCamera()}
