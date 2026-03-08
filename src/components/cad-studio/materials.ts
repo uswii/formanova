@@ -219,10 +219,11 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
     preview: metalPreview("titanium", "black"),
     create: () => createMetalMaterial("titanium", "black", "polished") },
 
-  // ── Gemstones (unchanged — not structured by type/alloy/finish) ──
+  // ── Gemstones — with refraction config for MeshRefractionMaterial overlay ──
   {
     id: "diamond", name: "Diamond", category: "gemstone",
     preview: "linear-gradient(135deg, #e8f4ff, #ffffff)",
+    refractionConfig: GEM_REFRACTION_CONFIGS.diamond,
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0xffffff), metalness: 0.0, roughness: 0.0,
       transmission: 1.0, ior: 2.42, thickness: 2.5, envMapIntensity: 3.0,
@@ -234,6 +235,7 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
   {
     id: "ruby", name: "Ruby", category: "gemstone",
     preview: "linear-gradient(135deg, #9b111e, #e0115f)",
+    refractionConfig: GEM_REFRACTION_CONFIGS.ruby,
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0xe0115f), metalness: 0.0, roughness: 0.0,
       transmission: 1.0, ior: 1.77, thickness: 2.0, envMapIntensity: 2.5,
@@ -245,6 +247,7 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
   {
     id: "emerald", name: "Emerald", category: "gemstone",
     preview: "linear-gradient(135deg, #046307, #50c878)",
+    refractionConfig: GEM_REFRACTION_CONFIGS.emerald,
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0x50c878), metalness: 0.0, roughness: 0.0,
       transmission: 1.0, ior: 1.58, thickness: 2.0, envMapIntensity: 2.5,
@@ -256,6 +259,7 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
   {
     id: "sapphire", name: "Sapphire", category: "gemstone",
     preview: "linear-gradient(135deg, #0f52ba, #6593f5)",
+    refractionConfig: GEM_REFRACTION_CONFIGS.sapphire,
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0x6593f5), metalness: 0.0, roughness: 0.0,
       transmission: 1.0, ior: 1.77, thickness: 2.0, envMapIntensity: 2.5,
@@ -267,6 +271,7 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
   {
     id: "black-diamond", name: "Black Diamond", category: "gemstone",
     preview: "linear-gradient(135deg, #0a0a0a, #333344)",
+    refractionConfig: GEM_REFRACTION_CONFIGS["black-diamond"],
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0x1a1a2e), metalness: 0.3, roughness: 0.05,
       transmission: 0.4, ior: 2.42, thickness: 1.5, envMapIntensity: 2.0,
@@ -278,6 +283,7 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
   {
     id: "amethyst", name: "Amethyst", category: "gemstone",
     preview: "linear-gradient(135deg, #6b3fa0, #9966cc)",
+    refractionConfig: GEM_REFRACTION_CONFIGS.amethyst,
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0x9966cc), metalness: 0.0, roughness: 0.0,
       transmission: 1.0, ior: 1.54, thickness: 2.0, envMapIntensity: 2.5,
@@ -289,6 +295,7 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
   {
     id: "topaz", name: "Topaz", category: "gemstone",
     preview: "linear-gradient(135deg, #ffc87c, #ffe4b5)",
+    refractionConfig: GEM_REFRACTION_CONFIGS.topaz,
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0xffc87c), metalness: 0.0, roughness: 0.0,
       transmission: 1.0, ior: 1.64, thickness: 2.0, envMapIntensity: 2.5,
@@ -300,6 +307,7 @@ export const MATERIAL_LIBRARY: MaterialDef[] = [
   {
     id: "aquamarine", name: "Aquamarine", category: "gemstone",
     preview: "linear-gradient(135deg, #7fffd4, #b2fff0)",
+    refractionConfig: GEM_REFRACTION_CONFIGS.aquamarine,
     create: () => new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(0x7fffd4), metalness: 0.0, roughness: 0.0,
       transmission: 1.0, ior: 1.57, thickness: 2.0, envMapIntensity: 2.5,
