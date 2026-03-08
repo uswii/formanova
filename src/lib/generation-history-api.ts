@@ -137,6 +137,21 @@ export async function getWorkflowDetails(
 
   const raw = await res.json();
   console.debug('[HistoryAPI] detail raw response keys:', Object.keys(raw ?? {}));
+  console.debug('[HistoryAPI] detail raw response (full):', JSON.stringify(raw, null, 2).substring(0, 5000));
+
+  // Log steps detail
+  const stepsSource = raw?.data?.steps ?? raw?.workflow?.steps ?? raw?.result?.steps ?? raw?.steps ?? raw?.workflow_steps ?? [];
+  console.debug('[HistoryAPI] steps count:', stepsSource.length);
+  stepsSource.forEach((step: any, i: number) => {
+    console.debug(`[HistoryAPI] step[${i}] tool="${step.tool ?? step.tool_name ?? step.name}" status="${step.status}" has_output=${!!step.output}`);
+    const toolName = (step.tool ?? step.tool_name ?? step.name ?? '').toLowerCase();
+    if (toolName.includes('blender')) {
+      console.debug(`[HistoryAPI] run_blender output:`, JSON.stringify(step.output, null, 2)?.substring(0, 3000));
+      console.debug(`[HistoryAPI] run_blender output.success:`, step.output?.success);
+      console.debug(`[HistoryAPI] run_blender screenshots:`, step.output?.screenshots);
+      console.debug(`[HistoryAPI] run_blender glb_artifact:`, step.output?.glb_artifact);
+    }
+  });
 
   // Normalize: backend may wrap response in different shapes
   const payload = raw?.data ?? raw?.workflow ?? raw?.result ?? raw;
