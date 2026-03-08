@@ -72,10 +72,13 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
         };
 
         // ── PRIMARY: Find the last successful run_blender step ──
-        const blenderSteps = details.steps?.filter(
-          (s: WorkflowStep) => s.tool === 'run_blender' && (s.output as any)?.success === true
-        ) ?? [];
-        const blenderStep = blenderSteps.length > 0 ? blenderSteps[blenderSteps.length - 1] : null;
+        // Pick the FIRST run_blender step that succeeded AND has screenshots
+        const blenderStep = details.steps?.find(
+          (s: WorkflowStep) =>
+            s.tool === 'run_blender' &&
+            (s.output as any)?.success === true &&
+            ((s.output as any)?.screenshots as any[])?.length > 0
+        ) ?? null;
 
         if (blenderStep?.output) {
           // GLB from glb_artifact.uri
