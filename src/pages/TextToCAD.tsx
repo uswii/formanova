@@ -143,6 +143,42 @@ export default function TextToCAD() {
     if (isGenerating) return;
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
 
+    const trimmed = prompt.trim().toLowerCase();
+    const isDemo = trimmed === 'demo' || trimmed === 'test';
+
+    // ── Demo mode: load local placeholder model, no backend calls ──
+    if (isDemo) {
+      setWorkspaceActive(true);
+      setIsGenerating(true);
+      setProgress(0);
+      setHasModel(false);
+      setProgressStep("Demo mode — loading placeholder…");
+
+      // Simulate progress over ~3 seconds
+      const steps = [
+        { pct: 15, label: "Queued (demo)", ms: 400 },
+        { pct: 35, label: "Generating geometry (demo)", ms: 600 },
+        { pct: 55, label: "Adding details (demo)", ms: 600 },
+        { pct: 75, label: "Optimizing structure (demo)", ms: 500 },
+        { pct: 90, label: "Preparing preview (demo)", ms: 400 },
+        { pct: 98, label: "Loading model…", ms: 300 },
+      ];
+      for (const step of steps) {
+        await new Promise((r) => setTimeout(r, step.ms));
+        setProgress(step.pct);
+        setProgressStep(step.label);
+      }
+
+      setGlbUrl("/models/ring.glb");
+      setIsModelLoading(true);
+      setIsGenerating(false);
+      setHasModel(true);
+      setShowPartRegen(true);
+      toast.success("Demo model loaded — no credits used");
+      return;
+    }
+
+    // ── Real generation ──
     const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
     const modelKey = `ring_generate_v1:${model}`;
