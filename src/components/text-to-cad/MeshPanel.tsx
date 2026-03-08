@@ -449,7 +449,7 @@ function MeshSectionHeader({ title, subtitle, collapsed, onToggle, meshTab, setM
 }
 
 // ── Mesh content (scrollable) ──
-function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction }: {
+function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction, onApplyMaterial }: {
   meshTab: "list" | "actions";
   search: string; setSearch: (v: string) => void;
   filtered: MeshItemData[];
@@ -459,6 +459,7 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
   handleMeshClick: (mesh: MeshItemData, e: React.MouseEvent) => void;
   onAction: (action: string) => void;
   onSceneAction: (action: string) => void;
+  onApplyMaterial: (matId: string) => void;
 }) {
   if (meshTab === "list") {
     return (
