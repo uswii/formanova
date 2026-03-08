@@ -678,29 +678,43 @@ const LoadedModel = forwardRef<
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd]);
 
-  // ── All meshes use standard MeshPhysicalMaterial now (no refraction) ──
+  // ── Separate gemstone meshes from standard meshes ──
+  // Gemstones get hidden and rendered via MeshRefractionMaterial overlay
+  const { standardElements, gemElements } = useMemo(() => {
+    const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
+    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
 
-  // Build materials for standard meshes (memoized)
-  const standardElements = useMemo(() => {
-    return meshDataList.map((md) => {
+    meshDataList.forEach((md) => {
       const isSelected = selectedMeshNames.has(md.name);
-      if (isSelected) {
-        return { ...md, material: SELECTION_MATERIAL, isSelected };
-      }
       const assigned = assignedMaterials[md.name];
+
+      // Check if this mesh is assigned a gemstone material with refraction config
+      if (assigned?.category === "gemstone" && assigned.refractionConfig) {
+        // Gem mesh: hidden in standard render, rendered via overlay
+        gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
+        // Still need a hidden placeholder mesh for TransformControls to work on
+        const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+        standard.push({ ...md, material: hiddenMat, isSelected });
+        return;
+      }
+
+      if (isSelected) {
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        return;
+      }
+
       const cacheKey = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
       let material = materialCache.current.get(cacheKey);
       if (!material) {
         material = assigned ? assigned.create() : md.originalMaterial.clone();
-        // Ensure double-sided rendering on all materials
         if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         materialCache.current.set(cacheKey, material);
       }
-      return { ...md, material, isSelected };
+      standard.push({ ...md, material, isSelected });
     });
-  }, [meshDataList, assignedMaterials, selectedMeshNames]);
 
-  // Flat geometry cache removed — no longer needed without refraction
+    return { standardElements: standard, gemElements: gems };
+  }, [meshDataList, assignedMaterials, selectedMeshNames]);
 
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
@@ -724,8 +738,23 @@ const LoadedModel = forwardRef<
         />
       ))}
 
+      {/* Diamond overlay: refraction material rendered separately */}
+      {gemElements.map((gem) => (
+        <SyncedGemOverlay
+          key={`gem_${gem.meshData.name}`}
+          meshName={gem.meshData.name}
+          geometry={gem.meshData.geometry}
+          position={gem.meshData.position}
+          rotation={gem.meshData.rotation}
+          scale={gem.meshData.scale}
+          refractionConfig={gem.refractionConfig}
+          isSelected={gem.isSelected}
+          meshRefs={meshRefs}
+          onMeshClick={onMeshClick}
+        />
+      ))}
 
-  {selectedMeshRef && transformMode !== "orbit" && (
+      {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
