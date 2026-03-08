@@ -141,13 +141,17 @@ function getMetalBase(type: MaterialType, alloy: MaterialAlloy): MetalBase {
 // Generate a metal material from structured attributes
 export function createMetalMaterial(type: MaterialType, alloy: MaterialAlloy, finish: MaterialFinish): THREE.MeshPhysicalMaterial {
   const base = getMetalBase(type, alloy);
+  // Use per-metal overrides when available (polished finish), otherwise fall back to finish-based defaults
+  const roughness = (finish === "polished" && base.roughness != null) ? base.roughness : finishRoughness(finish);
+  const clearcoat = (finish === "polished" && base.clearcoat != null) ? base.clearcoat : finishClearcoat(finish);
+  const clearcoatRoughness = (finish === "polished" && base.clearcoatRoughness != null) ? base.clearcoatRoughness : roughness * 0.5;
   return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(base.color),
     metalness: 1.0,
-    roughness: finishRoughness(finish),
+    roughness,
     envMapIntensity: base.envMapIntensity,
-    clearcoat: finishClearcoat(finish),
-    clearcoatRoughness: finishRoughness(finish) * 0.5,
+    clearcoat,
+    clearcoatRoughness,
     reflectivity: base.reflectivity,
   });
 }
