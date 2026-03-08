@@ -145,7 +145,7 @@ const LoadedModel = forwardRef<
     removeAllTextures: () => void;
   },
   {
-    url: string;
+  url: string;
     additionalGlbUrls?: string[];
     selectedMeshNames: Set<string>;
     hiddenMeshNames: Set<string>;
@@ -155,6 +155,7 @@ const LoadedModel = forwardRef<
     onTransformEnd?: () => void;
     onLoadStart?: () => void;
     onLoadEnd?: () => void;
+    onModelReady?: () => void;
   }
 >(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadStart, onLoadEnd }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
