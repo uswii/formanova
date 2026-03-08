@@ -207,6 +207,20 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
             );
           })}
         </div>
+
+        {/* Rotating sub-message */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={`${currentStageData.id}-${messageIndex}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 0.7, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.4 }}
+            className="font-mono text-xs text-muted-foreground mt-6 tracking-wide"
+          >
+            {currentMessage}
+          </motion.p>
+        </AnimatePresence>
       </motion.div>
     </div>
   );
