@@ -2,68 +2,68 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const GENERATION_STAGES = [
-  { id: "queued", label: "Initializing" },
-  { id: "generating", label: "Generating geometry" },
-  { id: "detailing", label: "Adding details" },
-  { id: "optimizing", label: "Optimizing structure" },
-  { id: "preview", label: "Preparing preview" },
-  { id: "completed", label: "Completed" },
+  { id: "queued", label: "INITIALIZING" },
+  { id: "generating", label: "GENERATING GEOMETRY" },
+  { id: "detailing", label: "ADDING DETAILS" },
+  { id: "optimizing", label: "OPTIMIZING STRUCTURE" },
+  { id: "preview", label: "PREPARING PREVIEW" },
+  { id: "completed", label: "COMPLETED" },
 ] as const;
 
 const ROTATING_MESSAGES: Record<string, string[]> = {
   queued: [
-    "Initializing generation pipeline…",
-    "Loading ring design parameters…",
-    "Setting up 3D workspace…",
-    "Configuring material properties…",
-    "Preparing geometry engine…",
-    "Allocating compute resources…",
-    "Parsing design intent…",
+    "Initializing generation pipeline",
+    "Loading ring design parameters",
+    "Setting up 3D workspace",
+    "Configuring material properties",
+    "Preparing geometry engine",
+    "Allocating compute resources",
+    "Parsing design intent",
   ],
   generating: [
-    "Building base ring profile…",
-    "Constructing mesh topology…",
-    "Extruding band cross-section…",
-    "Calculating curve segments…",
-    "Defining prong placements…",
-    "Generating shank geometry…",
-    "Laying out stone settings…",
-    "Shaping the stone seat…",
-    "Calculating ring proportions…",
-    "Building band geometry…",
+    "Building base ring profile",
+    "Constructing mesh topology",
+    "Extruding band cross-section",
+    "Calculating curve segments",
+    "Defining prong placements",
+    "Generating shank geometry",
+    "Laying out stone settings",
+    "Shaping the stone seat",
+    "Calculating ring proportions",
+    "Building band geometry",
   ],
   detailing: [
-    "Sculpting surface details…",
-    "Carving filigree patterns…",
-    "Refining prong tips…",
-    "Adding edge bevels…",
-    "Shaping gallery openings…",
-    "Engraving decorative elements…",
-    "Refining edges and surfaces…",
-    "Polishing micro-details…",
-    "Adding texture definition…",
+    "Sculpting surface details",
+    "Carving filigree patterns",
+    "Refining prong tips",
+    "Adding edge bevels",
+    "Shaping gallery openings",
+    "Engraving decorative elements",
+    "Refining edges and surfaces",
+    "Polishing micro-details",
+    "Adding texture definition",
   ],
   optimizing: [
-    "Validating watertight mesh…",
-    "Checking wall thickness…",
-    "Optimizing polygon count…",
-    "Verifying structural integrity…",
-    "Cleaning non-manifold edges…",
-    "Smoothing surface normals…",
-    "Running topology analysis…",
-    "Validating ring dimensions…",
-    "Checking mesh integrity…",
+    "Validating watertight mesh",
+    "Checking wall thickness",
+    "Optimizing polygon count",
+    "Verifying structural integrity",
+    "Cleaning non-manifold edges",
+    "Smoothing surface normals",
+    "Running topology analysis",
+    "Validating ring dimensions",
+    "Checking mesh integrity",
   ],
   preview: [
-    "Rendering final preview…",
-    "Applying studio lighting…",
-    "Capturing angle views…",
-    "Packaging model files…",
-    "Generating preview thumbnails…",
-    "Loading 3D preview…",
-    "Finalizing output…",
+    "Rendering final preview",
+    "Applying studio lighting",
+    "Capturing angle views",
+    "Packaging model files",
+    "Generating preview thumbnails",
+    "Loading 3D preview",
+    "Finalizing output",
   ],
-  completed: ["Done!"],
+  completed: ["Done"],
 };
 
 function mapBackendStatus(status: string, progress: number): number {
@@ -88,7 +88,6 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
   const lastBackendStage = useRef(0);
   const [messageIndex, setMessageIndex] = useState(0);
 
-  // Smooth stage progression
   useEffect(() => {
     if (!visible) {
       setDisplayStage(0);
@@ -100,7 +99,6 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
     setDisplayStage(prev => Math.max(prev, backendStage));
   }, [visible, currentStep, progress]);
 
-  // Auto-advance stages
   useEffect(() => {
     if (!visible) return;
     const advanceIfNeeded = () => {
@@ -118,7 +116,6 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
     };
   }, [visible]);
 
-  // Rotate sub-messages every 3.5s, reset on stage change
   useEffect(() => {
     if (!visible) return;
     setMessageIndex(0);
@@ -138,9 +135,7 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
   const currentMessage = stageMessages[messageIndex % stageMessages.length] || "";
   const isCompleted = displayStage === GENERATION_STAGES.length - 1;
   const displayPct = isCompleted ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100));
-
-  // Stage dots for minimal progress indicator
-  const totalStages = GENERATION_STAGES.length - 1; // exclude "completed"
+  const totalStages = GENERATION_STAGES.length - 1;
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center flex-col bg-background/95 backdrop-blur-sm">
@@ -149,59 +144,72 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
         animate={{ opacity: 1, scale: 1 }}
         className="w-[420px] flex flex-col items-center text-center"
       >
-        {/* Percentage */}
-        <div className="font-display text-[72px] text-foreground leading-none mb-2">
+        {/* Percentage — Bebas Neue display font */}
+        <div className="font-display text-[80px] tracking-[0.08em] text-foreground leading-none">
           {displayPct}%
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full h-[2px] overflow-hidden mt-4 mb-8 bg-border">
+        {/* Stage label — Bebas Neue, smaller */}
+        <AnimatePresence mode="wait">
           <motion.div
-            className="h-full bg-primary"
+            key={currentStageData.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.3 }}
+            className="font-display text-lg tracking-[0.2em] text-muted-foreground uppercase mt-2"
+          >
+            {currentStageData.label}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Progress bar — flat, no radius, brutalist */}
+        <div className="w-full h-[1px] overflow-hidden mt-6 mb-6 bg-border">
+          <motion.div
+            className="h-full bg-foreground"
             animate={{ width: `${displayPct}%` }}
             transition={{ duration: 1.2, ease: "easeOut" }}
           />
         </div>
 
-        {/* Single active message — stage-specific, rotating */}
+        {/* Rotating message — Space Mono, single line */}
         <AnimatePresence mode="wait">
           <motion.p
             key={`${currentStageData.id}-${messageIndex}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 0.6, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.35 }}
-            className="font-mono text-sm text-foreground tracking-wide h-6"
+            className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground h-5"
           >
             {currentMessage}
           </motion.p>
         </AnimatePresence>
 
-        {/* Minimal stage dots */}
-        <div className="flex items-center gap-2 mt-8">
+        {/* Minimal stage dots — flat squares, brutalist */}
+        <div className="flex items-center gap-1.5 mt-8">
           {GENERATION_STAGES.slice(0, totalStages).map((stage, i) => {
             const isDone = i < displayStage;
             const isActive = i === displayStage;
             return (
-              <motion.div
+              <div
                 key={stage.id}
-                className={`rounded-full transition-all duration-500 ${
+                className={`transition-all duration-500 ${
                   isDone
-                    ? "w-2 h-2 bg-primary"
+                    ? "w-6 h-[2px] bg-foreground"
                     : isActive
-                      ? "w-3 h-3 bg-primary"
-                      : "w-1.5 h-1.5 bg-muted-foreground/25"
+                      ? "w-8 h-[2px] bg-foreground"
+                      : "w-4 h-[1px] bg-muted-foreground/20"
                 }`}
-                layout
               >
                 {isActive && (
                   <motion.div
-                    className="w-full h-full rounded-full bg-primary"
-                    animate={{ opacity: [1, 0.4, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="w-full h-full bg-foreground"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.8, repeat: Infinity }}
                   />
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>
