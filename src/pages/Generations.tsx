@@ -104,29 +104,31 @@ function extractCadTextData(steps: any[]) {
   let glb_url: string | null = null;
   let glb_filename: string | null = null;
 
-  // ── PRIMARY: Find the last successful run_blender step (new API format) ──
-  const blenderSteps = steps.filter(
-    (s: any) => s.tool === 'run_blender' && s.output?.success === true
-  );
-  const blenderStep = blenderSteps.length > 0 ? blenderSteps[blenderSteps.length - 1] : null;
+  // ── PRIMARY: Find the FIRST successful run_blender step with screenshots ──
+  const blenderStep = steps.find(
+    (s: any) =>
+      s.tool === 'run_blender' &&
+      s.output?.success === true &&
+      (s.output?.screenshots as any[])?.length > 0,
+  ) ?? null;
 
   if (blenderStep?.output) {
-    // GLB artifact
+    // GLB artifact — apply azureUriToUrl
     const glbUri = blenderStep.output.glb_artifact?.uri;
-    if (typeof glbUri === 'string' && glbUri.startsWith('https://')) {
-      glb_url = glbUri;
-      const parts = glbUri.split('/');
+    if (glbUri) {
+      glb_url = azureUriToUrl(glbUri);
+      const parts = String(glbUri).split('/');
       glb_filename = parts[parts.length - 1] || 'model.glb';
     }
 
-    // Screenshots
+    // Screenshots — apply azureUriToUrl to each
     const rawShots = blenderStep.output.screenshots as any[] | undefined;
     if (rawShots?.length) {
       screenshots = rawShots
         .map((s: any, i: number) => {
           const uri = s?.uri;
-          if (typeof uri === 'string' && uri.startsWith('https://')) {
-            return { angle: `angle_${i + 1}`, url: uri };
+          if (uri) {
+            return { angle: `angle_${i + 1}`, url: azureUriToUrl(uri) };
           }
           return null;
         })
