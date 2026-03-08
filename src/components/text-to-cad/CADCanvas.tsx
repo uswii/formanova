@@ -153,15 +153,23 @@ const LoadedModel = forwardRef<
     transformMode: string;
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
     onTransformEnd?: () => void;
+    onLoadingChange?: (loading: boolean) => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadingChange }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const loadedUrlRef = useRef<string>("");
+
+  // Notify parent of loading state changes
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
 
   // Load GLB via server-side blob-proxy to avoid CORS issues with Azure
   useEffect(() => {
     if (!url || loadedUrlRef.current === url) return;
     loadedUrlRef.current = url;
+    setIsLoading(true);
     let cancelled = false;
 
     (async () => {
@@ -195,13 +203,18 @@ const LoadedModel = forwardRef<
           if (cancelled) return;
           console.log("[CADCanvas] GLB parsed successfully, size:", arrayBuffer.byteLength);
           setScene(gltf.scene);
+          setIsLoading(false);
         }, (error) => {
           console.error("[CADCanvas] Failed to parse GLB:", error);
           loadedUrlRef.current = "";
+          setIsLoading(false);
         });
       } catch (error) {
         console.error("[CADCanvas] Failed to fetch GLB:", error);
-        if (!cancelled) loadedUrlRef.current = "";
+        if (!cancelled) {
+          loadedUrlRef.current = "";
+          setIsLoading(false);
+        }
       }
     })();
 
@@ -977,8 +990,16 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
   ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformEnd, lightIntensity = 1 }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
+    const [modelLoading, setModelLoading] = useState(false);
+    const prevGlbRef = useRef<string | undefined>(undefined);
 
-
+    // Track when glbUrl changes to show loading state
+    useEffect(() => {
+      if (glbUrl && glbUrl !== prevGlbRef.current) {
+        setModelLoading(true);
+        prevGlbRef.current = glbUrl;
+      }
+    }, [glbUrl]);
 
     const getOrbitControls = useCallback(() => {
       const canvas = document.querySelector<HTMLCanvasElement>('canvas');
@@ -1070,6 +1091,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 transformMode={transformMode}
                 onMeshesDetected={onMeshesDetected}
                 onTransformEnd={onTransformEnd}
+                onLoadingChange={setModelLoading}
               />
             )}
 
@@ -1089,6 +1111,20 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           </Suspense>
         </Canvas>
 
+        {/* Loading overlay while model is being fetched/parsed */}
+        {modelLoading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#111]/95 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 border-2 border-border/20 rounded-full" />
+                <div className="absolute inset-0 border-2 border-t-primary rounded-full animate-spin" />
+              </div>
+              <p className="font-mono text-[11px] text-muted-foreground uppercase tracking-[3px]">
+                Loading model…
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
