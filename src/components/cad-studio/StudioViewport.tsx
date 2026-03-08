@@ -85,7 +85,7 @@ function LoadedModel({
 
   // Build materials with caching — separate gems from standard
   const { standardMeshes, gemMeshes } = useMemo(() => {
-    const standard: typeof meshDataList extends (infer T)[] ? (T & { material: THREE.Material })[] : never[] = [];
+    const standard: (typeof meshDataList[0] & { material: THREE.Material })[] = [];
     const gems: { meshData: typeof meshDataList[0]; refractionConfig: GemRefractionConfig }[] = [];
 
     meshDataList.forEach((md) => {
