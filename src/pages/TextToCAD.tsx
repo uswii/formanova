@@ -203,18 +203,30 @@ export default function TextToCAD() {
         }
       }
 
-      // Step 3: Fetch result GLB URL
+      // Step 3: Fetch result GLB URL (retry up to 5 times on 404 with 2s delay)
       setProgressStep("Loading model…");
-      const resultRes = await authenticatedFetch(
-        `${SUPABASE_URL}/functions/v1/ring-result?workflow_id=${encodeURIComponent(workflow_id)}`
-      );
+      let glb_url: string | null = null;
+      const MAX_RESULT_RETRIES = 5;
+      for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
+        const resultRes = await authenticatedFetch(
+          `${SUPABASE_URL}/functions/v1/ring-result?workflow_id=${encodeURIComponent(workflow_id)}`
+        );
 
-      if (!resultRes.ok) {
+        if (resultRes.ok) {
+          const data = await resultRes.json();
+          glb_url = data.glb_url;
+          break;
+        }
+
+        if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
+          console.warn(`[TextToCAD] ring-result 404, retry ${attempt}/${MAX_RESULT_RETRIES}`);
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+
         const err = await resultRes.json().catch(() => ({}));
         throw new Error(err.error || "Failed to fetch result");
       }
-
-      const { glb_url } = await resultRes.json();
       if (!glb_url) throw new Error("No GLB model found in results");
 
       // Load into viewer
