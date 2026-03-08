@@ -4,10 +4,10 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 export const TOOL_COSTS: Record<string, number> = {
   from_photo: 3,
-  cad_generation: 5,
+  cad_generation: 85,
   qa_with_gpu: 3,
-  ring_full_pipeline: 5,
-  ring_generate_v1: 5,
+  ring_full_pipeline: 85,
+  ring_generate_v1: 85,
 };
 
 export interface CreditBalance {

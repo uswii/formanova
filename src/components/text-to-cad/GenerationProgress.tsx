@@ -82,15 +82,15 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
         animate={{ opacity: 1, scale: 1 }}
         className="w-[420px] text-center"
       >
-        {/* Percentage display */}
+        {/* Percentage display — use smoothed display percentage */}
         <div className="font-display text-[72px] text-foreground leading-none mb-2">
-          {Math.min(progress, 100)}%
+          {displayStage === GENERATION_STAGES.length - 1 ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100))}%
         </div>
         <div className="w-full h-[2px] overflow-hidden mt-4 mb-6 bg-border">
           <motion.div
             className="h-full bg-primary"
-            animate={{ width: `${Math.min(progress, 100)}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            animate={{ width: `${displayStage === GENERATION_STAGES.length - 1 ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100))}%` }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
           />
         </div>
 

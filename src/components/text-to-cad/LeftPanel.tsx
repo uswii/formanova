@@ -115,17 +115,17 @@ export default function LeftPanel({
             </button>
           )}
 
-          {/* Upload GLB */}
+          {/* Upload GLB — always enabled (not just when hasModel) */}
           <input type="file" ref={glbInputRef} accept=".glb,.gltf" className="hidden" onChange={handleGlbUpload} />
           <button
             onClick={() => glbInputRef.current?.click()}
-            disabled={isGenerating || !hasModel}
+            disabled={isGenerating}
             className="w-full py-3.5 mt-3 text-[12px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground flex items-center justify-center gap-2.5 bg-muted/30 border border-border"
           >
             <span className="w-6 h-6 rounded-full border border-primary/60 flex items-center justify-center shrink-0 shadow-[0_0_8px_hsl(var(--primary)/0.4)] text-primary">
               <Diamond className="w-3 h-3" />
             </span>
-            Upload Ring Part
+            {hasModel ? "Upload Ring Part" : "Upload GLB Model"}
           </button>
 
           {/* Remove Magic Textures */}
