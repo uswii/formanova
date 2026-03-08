@@ -10,6 +10,37 @@ const GENERATION_STAGES = [
   { id: "completed", label: "Completed", minTime: 0 },
 ] as const;
 
+const ROTATING_MESSAGES: Record<string, string[]> = {
+  queued: [
+    "Warming up the engine…",
+    "Preparing your workspace…",
+    "Loading generation pipeline…",
+  ],
+  generating: [
+    "Running 3D simulation…",
+    "Building mesh topology…",
+    "Shaping base geometry…",
+    "Constructing ring profile…",
+  ],
+  detailing: [
+    "Sculpting fine details…",
+    "Refining surface contours…",
+    "Adding intricate features…",
+  ],
+  optimizing: [
+    "Validating geometry…",
+    "Optimizing mesh density…",
+    "Cleaning up topology…",
+    "Checking structural integrity…",
+  ],
+  preview: [
+    "Rendering final preview…",
+    "Almost there…",
+    "Polishing the result…",
+  ],
+  completed: ["Done!"],
+};
+
 // Maps backend status strings to our stage indices
 function mapBackendStatus(status: string, progress: number): number {
   const s = status.toLowerCase();
