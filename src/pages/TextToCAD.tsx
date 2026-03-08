@@ -125,6 +125,14 @@ export default function TextToCAD() {
     pushUndo(`Transform (${transformMode})`);
   }, [pushUndo, transformMode]);
 
+  // Called when CADCanvas has fully parsed, textured, and rendered the model
+  const handleModelReady = useCallback(() => {
+    setIsModelLoading(false);
+    setProgress(100);
+    setProgressStep("Completed");
+    toast.success("Ring generated successfully");
+  }, []);
+
   const toggleModule = (mod: string) => {
     setSelectedModules((prev) =>
       prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod]
