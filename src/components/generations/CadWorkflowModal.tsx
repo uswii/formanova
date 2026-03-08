@@ -128,8 +128,10 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
           }
         }
 
-        if (validateStep?.output?.message) {
-          setCaption(validateStep.output.message as string);
+        // Caption from validate step (legacy)
+        const legacyValidate = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-validate');
+        if (legacyValidate?.output?.message) {
+          setCaption(legacyValidate.output.message as string);
         }
       } catch (err: any) {
         console.error('[CadWorkflowModal] fetch error:', err);
