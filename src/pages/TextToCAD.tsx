@@ -247,14 +247,14 @@ export default function TextToCAD() {
       }
       if (!glb_url) throw new Error("No GLB model found in results");
 
-      // Load into viewer
+      // Load into viewer — keep progress overlay visible until model is rendered
       setGlbUrl(glb_url);
-      setProgress(100);
-      setProgressStep("Completed");
+      setProgress(98);
+      setProgressStep("Loading model…");
+      setIsModelLoading(true);
       setIsGenerating(false);
       setHasModel(true);
       setShowPartRegen(true);
-      toast.success("Ring generated successfully");
 
     } catch (err) {
       console.error("Generation failed:", err);
