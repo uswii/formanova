@@ -155,7 +155,7 @@ const LoadedModel = forwardRef<
     onTransformEnd?: () => void;
     onLoadingChange?: (loading: boolean) => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadingChange }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const loadedUrlRef = useRef<string>("");
