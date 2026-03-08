@@ -154,7 +154,7 @@ const LoadedModel = forwardRef<
     onMeshesDetected?: (meshes: { name: string; verts: number; faces: number }[]) => void;
     onTransformEnd?: () => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformEnd, onLoadStart, onLoadEnd }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -163,6 +163,7 @@ const LoadedModel = forwardRef<
     if (!url || loadedUrlRef.current === url) return;
     loadedUrlRef.current = url;
     let cancelled = false;
+    onLoadStart?.();
 
     (async () => {
       try {
@@ -195,18 +196,23 @@ const LoadedModel = forwardRef<
           if (cancelled) return;
           console.log("[CADCanvas] GLB parsed successfully, size:", arrayBuffer.byteLength);
           setScene(gltf.scene);
+          onLoadEnd?.();
         }, (error) => {
           console.error("[CADCanvas] Failed to parse GLB:", error);
           loadedUrlRef.current = "";
+          onLoadEnd?.();
         });
       } catch (error) {
         console.error("[CADCanvas] Failed to fetch GLB:", error);
-        if (!cancelled) loadedUrlRef.current = "";
+        if (!cancelled) {
+          loadedUrlRef.current = "";
+          onLoadEnd?.();
+        }
       }
     })();
 
     return () => { cancelled = true; };
-  }, [url]);
+  }, [url, onLoadStart, onLoadEnd]);
   const [meshDataList, setMeshDataList] = useState<MeshData[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<Record<string, MaterialDef>>({});
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
