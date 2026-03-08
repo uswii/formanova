@@ -99,6 +99,7 @@ export async function listMyWorkflows(
       created_at: w.created_at ?? w.started_at ?? '',
       finished_at: w.finished_at ?? null,
       source_type: sourceType,
+      mode: w.input?.mode ?? null,
     };
   });
   console.log('[HistoryAPI] source_type breakdown:', {
