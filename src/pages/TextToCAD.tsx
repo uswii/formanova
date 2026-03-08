@@ -223,19 +223,21 @@ export default function TextToCAD() {
       console.log("[TextToCAD] Workflow started:", workflow_id);
 
       // Step 2: Poll status every 3s with continuous synthetic micro-increments
-      // The bar never sits still — it inches forward ~1-2% every second between polls
+      // The bar NEVER stops moving, but also NEVER reaches 100% until status=completed.
+      // Uses asymptotic deceleration: increment shrinks as we approach 99%.
       const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted"]);
-      const SYNTHETIC_CAP = 92; // Never exceed this until backend confirms completion
-      const TICK_INTERVAL_MS = 1000; // Micro-increment every second
-      const TICK_INCREMENT = 1.2; // % per tick
+      const TICK_INTERVAL_MS = 1000;
       let pollErrors = 0;
-      let currentPct = 3; // Start just above zero so user sees immediate movement
+      let currentPct = 3;
       setProgress(currentPct);
 
-      // Micro-increment ticker — runs every second to keep the bar alive
+      // Asymptotic ticker — always moves, but the remaining gap to 99% shrinks logarithmically
       const tickHandle = setInterval(() => {
-        currentPct = Math.min(SYNTHETIC_CAP, currentPct + TICK_INCREMENT);
-        setProgress(Math.round(currentPct));
+        const remaining = 99 - currentPct;
+        // Always advance by at least 0.1%, but proportionally less as we near 99%
+        const increment = Math.max(0.1, remaining * 0.02);
+        currentPct = Math.min(98.9, currentPct + increment);
+        setProgress(Math.round(currentPct * 10) / 10);
         setProgressStep(getProgressLabel(Math.round(currentPct)));
       }, TICK_INTERVAL_MS);
 
