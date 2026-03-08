@@ -318,7 +318,18 @@ export default function TextToCAD() {
   }, [hasModel, workspaceActive]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
-    setMeshes(detected.map((d) => ({ ...d, visible: true, selected: false })));
+    setMeshes((prev) => {
+      // Preserve existing visibility/selection state for known meshes
+      const prevMap = new Map(prev.map(m => [m.name, m]));
+      return detected.map((d) => {
+        const existing = prevMap.get(d.name);
+        return {
+          ...d,
+          visible: existing?.visible ?? true,
+          selected: existing?.selected ?? false,
+        };
+      });
+    });
     setStats((prev) => ({ ...prev, meshes: detected.length }));
   }, []);
 
