@@ -56,16 +56,13 @@ export function Header() {
           {/* Left side: Logo first, then Theme Switcher */}
           <div className="flex items-center gap-3 md:gap-4">
             {/* Logo - First at corner */}
-            <Link 
-              to="/" 
-              className="flex items-center group relative z-10"
-            >
+            <div className="flex items-center relative z-10">
               <img 
                 src={formanovaLogo} 
                 alt="FormaNova" 
-                className="h-10 md:h-12 lg:h-14 w-auto object-contain logo-adaptive transition-transform duration-300 group-hover:scale-105"
+                className="h-10 md:h-12 lg:h-14 w-auto object-contain logo-adaptive"
               />
-            </Link>
+            </div>
             
             {/* Theme Switcher - After logo */}
             <div className="hidden md:block">

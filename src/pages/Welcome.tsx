@@ -114,12 +114,9 @@ export default function Welcome() {
 
           <StaggerContainer className="grid md:grid-cols-3 border-t border-l border-border/20" staggerDelay={150}>
             {features.map((feature, index) => (
-              <div key={index} className="marta-block border-r border-b border-border/20 relative group overflow-hidden">
-                {/* Background hover effect */}
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+              <div key={index} className="marta-block border-r border-b border-border/20 relative overflow-hidden">
                 <div className="relative z-10">
-                  <h3 className="font-display text-2xl md:text-3xl mb-4 transition-transform duration-300 group-hover:translate-x-2">{feature.title}</h3>
+                  <h3 className="font-display text-2xl md:text-3xl mb-4">{feature.title}</h3>
                   <p className="marta-body text-muted-foreground">{feature.description}</p>
                 </div>
               </div>
