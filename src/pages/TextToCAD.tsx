@@ -592,7 +592,22 @@ export default function TextToCAD() {
 
         {/* Viewport */}
         <ResizablePanel defaultSize={hasModel ? 56 : 78} minSize={30}>
-          <div data-cad-viewport className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]" style={{ background: "#000000" }}>
+          <div
+            data-cad-viewport
+            className="relative h-full border-x-2 border-primary/20 shadow-[inset_0_0_30px_-10px_hsl(var(--primary)/0.15)]"
+            style={{ background: "#000000" }}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const matId = e.dataTransfer.getData("application/material-id");
+              if (!matId) return;
+              if (selectedNames.length === 0) {
+                toast.error("Please select a mesh first, then drop a material");
+                return;
+              }
+              handleApplyMaterial(matId);
+            }}
+          >
             {/* Panel collapse toggles */}
             <button
               onClick={() => setLeftCollapsed(!leftCollapsed)}
