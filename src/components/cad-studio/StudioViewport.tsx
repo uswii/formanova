@@ -1,12 +1,14 @@
 import { useRef, useCallback, Suspense, useEffect, useMemo } from "react";
-import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
+import { Canvas, useThree, useFrame, ThreeEvent, useLoader } from "@react-three/fiber";
 import {
   Environment,
   OrbitControls,
   useGLTF,
+  MeshRefractionMaterial,
 } from "@react-three/drei";
+import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
-import type { MaterialDef } from "./materials";
+import type { MaterialDef, GemRefractionConfig } from "./materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
 // ── Quality settings (cached, runs once) ──
