@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const GENERATION_STAGES = [
-  { id: "queued", label: "Creating your ring…", minTime: 2000 },
-  { id: "generating", label: "Generating geometry", minTime: 4000 },
-  { id: "detailing", label: "Adding details", minTime: 3000 },
-  { id: "optimizing", label: "Optimizing structure", minTime: 3000 },
-  { id: "preview", label: "Preparing preview", minTime: 2000 },
-  { id: "completed", label: "Completed", minTime: 0 },
+  { id: "queued", label: "Initializing" },
+  { id: "generating", label: "Generating geometry" },
+  { id: "detailing", label: "Adding details" },
+  { id: "optimizing", label: "Optimizing structure" },
+  { id: "preview", label: "Preparing preview" },
+  { id: "completed", label: "Completed" },
 ] as const;
 
 const ROTATING_MESSAGES: Record<string, string[]> = {
@@ -17,6 +17,8 @@ const ROTATING_MESSAGES: Record<string, string[]> = {
     "Setting up 3D workspace…",
     "Configuring material properties…",
     "Preparing geometry engine…",
+    "Allocating compute resources…",
+    "Parsing design intent…",
   ],
   generating: [
     "Building base ring profile…",
@@ -26,6 +28,9 @@ const ROTATING_MESSAGES: Record<string, string[]> = {
     "Defining prong placements…",
     "Generating shank geometry…",
     "Laying out stone settings…",
+    "Shaping the stone seat…",
+    "Calculating ring proportions…",
+    "Building band geometry…",
   ],
   detailing: [
     "Sculpting surface details…",
@@ -34,6 +39,9 @@ const ROTATING_MESSAGES: Record<string, string[]> = {
     "Adding edge bevels…",
     "Shaping gallery openings…",
     "Engraving decorative elements…",
+    "Refining edges and surfaces…",
+    "Polishing micro-details…",
+    "Adding texture definition…",
   ],
   optimizing: [
     "Validating watertight mesh…",
@@ -43,18 +51,21 @@ const ROTATING_MESSAGES: Record<string, string[]> = {
     "Cleaning non-manifold edges…",
     "Smoothing surface normals…",
     "Running topology analysis…",
+    "Validating ring dimensions…",
+    "Checking mesh integrity…",
   ],
   preview: [
     "Rendering final preview…",
     "Applying studio lighting…",
-    "Capturing angle screenshots…",
+    "Capturing angle views…",
     "Packaging model files…",
-    "Wrapping up…",
+    "Generating preview thumbnails…",
+    "Loading 3D preview…",
+    "Finalizing output…",
   ],
   completed: ["Done!"],
 };
 
-// Maps backend status strings to our stage indices
 function mapBackendStatus(status: string, progress: number): number {
   const s = status.toLowerCase();
   if (s.includes("complete") || s.includes("done") || progress >= 100) return 5;
@@ -75,29 +86,23 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
   const [displayStage, setDisplayStage] = useState(0);
   const stageTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastBackendStage = useRef(0);
+  const [messageIndex, setMessageIndex] = useState(0);
 
-  // Smooth stage progression — never goes backwards, advances at minimum pace
+  // Smooth stage progression
   useEffect(() => {
     if (!visible) {
       setDisplayStage(0);
       lastBackendStage.current = 0;
       return;
     }
-
     const backendStage = mapBackendStatus(currentStep, progress);
     lastBackendStage.current = backendStage;
-
-    // If backend is ahead, jump to it
     setDisplayStage(prev => Math.max(prev, backendStage));
   }, [visible, currentStep, progress]);
 
-  // Rotating sub-message index
-  const [messageIndex, setMessageIndex] = useState(0);
-
-  // Auto-advance stages to keep the UI feeling active even when backend progress is slow
+  // Auto-advance stages
   useEffect(() => {
     if (!visible) return;
-
     const advanceIfNeeded = () => {
       setDisplayStage(prev => {
         const maxAllowed = Math.min(lastBackendStage.current + 1, GENERATION_STAGES.length - 2);
@@ -105,7 +110,6 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
         return prev;
       });
     };
-
     stageTimerRef.current = setInterval(advanceIfNeeded, 8000);
     const initialTimer = setTimeout(advanceIfNeeded, 3000);
     return () => {
@@ -114,14 +118,13 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
     };
   }, [visible]);
 
-  // Rotate sub-messages every 3.5s, reset index when stage changes
+  // Rotate sub-messages every 3.5s, reset on stage change
   useEffect(() => {
     if (!visible) return;
     setMessageIndex(0);
     const stageId = GENERATION_STAGES[displayStage]?.id;
     const msgs = ROTATING_MESSAGES[stageId] || [];
     if (msgs.length <= 1) return;
-
     const interval = setInterval(() => {
       setMessageIndex(prev => (prev + 1) % msgs.length);
     }, 3500);
@@ -133,107 +136,75 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
   const currentStageData = GENERATION_STAGES[displayStage];
   const stageMessages = ROTATING_MESSAGES[currentStageData.id] || [];
   const currentMessage = stageMessages[messageIndex % stageMessages.length] || "";
+  const isCompleted = displayStage === GENERATION_STAGES.length - 1;
+  const displayPct = isCompleted ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100));
+
+  // Stage dots for minimal progress indicator
+  const totalStages = GENERATION_STAGES.length - 1; // exclude "completed"
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center flex-col bg-background/95 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-[420px] text-center"
+        className="w-[420px] flex flex-col items-center text-center"
       >
-        {/* Percentage display — use smoothed display percentage */}
+        {/* Percentage */}
         <div className="font-display text-[72px] text-foreground leading-none mb-2">
-          {displayStage === GENERATION_STAGES.length - 1 ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100))}%
+          {displayPct}%
         </div>
-        <div className="w-full h-[2px] overflow-hidden mt-4 mb-6 bg-border">
+
+        {/* Progress bar */}
+        <div className="w-full h-[2px] overflow-hidden mt-4 mb-8 bg-border">
           <motion.div
             className="h-full bg-primary"
-            animate={{ width: `${displayStage === GENERATION_STAGES.length - 1 ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100))}%` }}
+            animate={{ width: `${displayPct}%` }}
             transition={{ duration: 1.2, ease: "easeOut" }}
           />
         </div>
 
-        {/* Current stage label */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStageData.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3 }}
-            className="font-display text-2xl text-foreground tracking-[0.15em] uppercase mb-8"
-          >
-            {currentStageData.label}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Stage checklist */}
-        <div className="flex flex-col gap-0 text-left max-w-[280px] mx-auto">
-          {GENERATION_STAGES.map((stage, i) => {
-            const isDone = i < displayStage;
-            const isActive = i === displayStage;
-            const isPending = i > displayStage;
-
-            return (
-              <motion.div
-                key={stage.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isPending ? 0.2 : 1 }}
-                transition={{ duration: 0.4, delay: i * 0.05 }}
-                className={`flex items-center gap-3 py-2.5 transition-all duration-500 ${
-                  isPending ? "opacity-20" : ""
-                }`}
-              >
-                {/* Status indicator */}
-                <div className="w-5 flex-shrink-0 flex items-center justify-center">
-                  {isDone && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="text-[14px]"
-                      style={{ color: "hsl(var(--formanova-success))" }}
-                    >
-                      ✓
-                    </motion.span>
-                  )}
-                  {isActive && (
-                    <motion.div
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="w-2 h-2 rounded-full bg-primary"
-                    />
-                  )}
-                  {isPending && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20" />
-                  )}
-                </div>
-
-                {/* Label */}
-                <span className={`font-mono text-[11px] tracking-wide transition-all duration-300 ${
-                  isDone ? "text-muted-foreground line-through" : 
-                  isActive ? "text-foreground font-semibold" : 
-                  "text-muted-foreground/40"
-                }`}>
-                  {stage.label}
-                </span>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Rotating sub-message */}
+        {/* Single active message — stage-specific, rotating */}
         <AnimatePresence mode="wait">
           <motion.p
             key={`${currentStageData.id}-${messageIndex}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 0.7, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.4 }}
-            className="font-mono text-xs text-muted-foreground mt-6 tracking-wide"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.35 }}
+            className="font-mono text-sm text-foreground tracking-wide h-6"
           >
             {currentMessage}
           </motion.p>
         </AnimatePresence>
+
+        {/* Minimal stage dots */}
+        <div className="flex items-center gap-2 mt-8">
+          {GENERATION_STAGES.slice(0, totalStages).map((stage, i) => {
+            const isDone = i < displayStage;
+            const isActive = i === displayStage;
+            return (
+              <motion.div
+                key={stage.id}
+                className={`rounded-full transition-all duration-500 ${
+                  isDone
+                    ? "w-2 h-2 bg-primary"
+                    : isActive
+                      ? "w-3 h-3 bg-primary"
+                      : "w-1.5 h-1.5 bg-muted-foreground/25"
+                }`}
+                layout
+              >
+                {isActive && (
+                  <motion.div
+                    className="w-full h-full rounded-full bg-primary"
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
       </motion.div>
     </div>
   );
