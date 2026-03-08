@@ -27,6 +27,8 @@ export interface WorkflowSummary {
   glb_url?: string | null;
   /** GLB file name extracted from the azure URI */
   glb_filename?: string | null;
+  /** AI model tier used (e.g. 'gemini', 'claude-sonnet', 'claude-opus') — populated client-side */
+  ai_model?: string | null;
 }
 
 export interface WorkflowStep {

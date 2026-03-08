@@ -58,11 +58,18 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         variants={itemVariants}
         className="marta-frame overflow-hidden"
       >
-        {/* Card header: number + date */}
+        {/* Card header: number + model tier + date */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3">
-          <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
-            #{index}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
+              #{index}
+            </span>
+            {modelLabel && (
+              <span className="font-mono text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-border bg-muted/40 text-muted-foreground">
+                {modelLabel}
+              </span>
+            )}
+          </div>
           <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
             {dateStr}
           </span>

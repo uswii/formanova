@@ -152,7 +152,17 @@ function extractCadTextData(steps: any[]) {
     }
   }
 
-  return { thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename };
+  // Extract AI model from the first step's input (prompt step or generate step)
+  let ai_model: string | null = null;
+  for (const step of steps) {
+    const model = step.input?.model ?? step.input?.ai_model;
+    if (typeof model === 'string' && model.length > 0) {
+      ai_model = model;
+      break;
+    }
+  }
+
+  return { thumbnail_url: front?.url ?? '', screenshots, glb_url, glb_filename, ai_model };
 }
 
 // ── Component ────────────────────────────────────────────────────────
