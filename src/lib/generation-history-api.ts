@@ -84,14 +84,28 @@ export async function listMyWorkflows(
   // Normalize — backend may return array or { workflows: [...] }
   const raw: any[] = Array.isArray(data) ? data : (data.workflows ?? []);
 
-  return raw.map((w: any) => ({
-    workflow_id: w.workflow_id ?? w.id,
-    name: w.name ?? '',
-    status: w.status ?? 'unknown',
-    created_at: w.created_at ?? w.started_at ?? '',
-    finished_at: w.finished_at ?? null,
-    source_type: inferSourceType(w.name ?? ''),
-  }));
+  const mapped = raw.map((w: any) => {
+    const name = w.name ?? '';
+    const sourceType = inferSourceType(name);
+    if (sourceType === 'unknown') {
+      console.warn('[HistoryAPI] unknown source_type for workflow:', { id: w.workflow_id ?? w.id, name, status: w.status });
+    }
+    return {
+      workflow_id: w.workflow_id ?? w.id,
+      name,
+      status: w.status ?? 'unknown',
+      created_at: w.created_at ?? w.started_at ?? '',
+      finished_at: w.finished_at ?? null,
+      source_type: sourceType,
+    };
+  });
+  console.log('[HistoryAPI] source_type breakdown:', {
+    photo: mapped.filter(w => w.source_type === 'photo').length,
+    cad_text: mapped.filter(w => w.source_type === 'cad_text').length,
+    cad_render: mapped.filter(w => w.source_type === 'cad_render').length,
+    unknown: mapped.filter(w => w.source_type === 'unknown').length,
+  });
+  return mapped;
 }
 
 /**
