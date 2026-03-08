@@ -260,7 +260,7 @@ export default function LeftPanel({
                             ⚙ Rebuild This Part
                             <span className="inline-flex items-center gap-1 ml-1 opacity-80">
                               <img src={creditCoinIcon} alt="" className="w-4.5 h-4.5" />
-                              <span className="text-[12px] font-mono font-semibold">{TOOL_COSTS.ring_full_pipeline ?? '—'}</span>
+                              <span className="text-[12px] font-mono font-semibold">{getWorkflowCost('ring_generate_v1', model)}</span>
                             </span>
                           </button>
                         </div>
