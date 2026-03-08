@@ -91,7 +91,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   key={shot.angle}
                   onClick={() => setPreviewIndex(i)}
                   title={shot.angle.replace(/_/g, ' ')}
-                  className="group/thumb flex-shrink-0 max-w-[120px] bg-black overflow-hidden rounded-sm border border-border/30 hover:border-foreground/50 transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+                  className="group/thumb flex-shrink-0 bg-black overflow-hidden rounded-sm border border-border/30 hover:border-foreground/50 transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
                 >
                   <OptimizedImage
                     src={shot.url}
