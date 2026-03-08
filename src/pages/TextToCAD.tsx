@@ -231,11 +231,22 @@ export default function TextToCAD() {
       let currentPct = 3;
       setProgress(currentPct);
 
-      // Asymptotic ticker — always moves, but the remaining gap to 99% shrinks logarithmically
+      // Asymptotic ticker — decelerates aggressively so it never stalls at one number
+      // Phase 1 (0-60%): steady climb ~0.5%/s
+      // Phase 2 (60-85%): slows to ~0.2%/s
+      // Phase 3 (85-95%): crawls ~0.08%/s
+      // Phase 4 (95-99%): micro-crawl, always moving but barely
       const tickHandle = setInterval(() => {
-        const remaining = 99 - currentPct;
-        // Always advance by at least 0.1%, but proportionally less as we near 99%
-        const increment = Math.max(0.1, remaining * 0.02);
+        let increment: number;
+        if (currentPct < 60) {
+          increment = 0.5 + Math.random() * 0.15;
+        } else if (currentPct < 85) {
+          increment = 0.18 + Math.random() * 0.07;
+        } else if (currentPct < 95) {
+          increment = 0.06 + Math.random() * 0.03;
+        } else {
+          increment = 0.015 + Math.random() * 0.01;
+        }
         currentPct = Math.min(98.9, currentPct + increment);
         setProgress(Math.round(currentPct * 10) / 10);
         setProgressStep(getProgressLabel(Math.round(currentPct)));
