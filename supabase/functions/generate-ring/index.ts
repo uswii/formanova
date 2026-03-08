@@ -33,7 +33,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { prompt, model } = await req.json();
+    const { prompt, model, mode, source_code, current_code, original_glb_artifact, original_screenshots } = await req.json();
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -46,9 +46,31 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const llm = model === "claude-sonnet" ? "claude-sonnet" : model === "claude-opus" ? "claude-opus" : "gemini";
+    // Map frontend model IDs to backend LLM identifiers
+    const LLM_MAP: Record<string, string> = {
+      "gemini": "gemini",
+      "claude-sonnet": "claude-sonnet-4-6",
+      "claude-opus": "claude-opus",
+    };
+    const llm = LLM_MAP[model] || "gemini";
+    const generationMode = mode || "generate";
 
-    console.log(`[generate-ring] User ${auth.userId} starting ring generation with llm=${llm}`);
+    console.log(`[generate-ring] User ${auth.userId} starting ring ${generationMode} with llm=${llm}`);
+
+    // Build payload — edit mode includes previous generation artifacts
+    const payload: Record<string, unknown> = {
+      llm,
+      mode: generationMode,
+      user_prompt: prompt.trim(),
+      max_attempts: 3,
+    };
+
+    if (generationMode === "edit") {
+      if (source_code) payload.source_code = source_code;
+      if (current_code) payload.current_code = current_code;
+      if (original_glb_artifact) payload.original_glb_artifact = original_glb_artifact;
+      if (original_screenshots) payload.original_screenshots = original_screenshots;
+    }
 
     const res = await fetch(`${baseUrl}/run/ring_generate_v1`, {
       method: "POST",
@@ -57,13 +79,7 @@ serve(async (req) => {
         "X-On-Behalf-Of": auth.userId,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        payload: { llm, prompt: prompt.trim(), max_attempts: 3 },
-        return_nodes: [
-          "build_initial", "build_retry", "build_corrected",
-          "validate_output", "success_final", "success_original_glb", "failed_final",
-        ],
-      }),
+      body: JSON.stringify({ payload }),
     });
 
     if (!res.ok) {
@@ -74,7 +90,10 @@ serve(async (req) => {
 
     const result = await res.json();
     console.log(`[generate-ring] Workflow started: ${result.workflow_id}`);
-    return new Response(JSON.stringify({ workflow_id: result.workflow_id }), {
+    return new Response(JSON.stringify({
+      workflow_id: result.workflow_id,
+      result_url: result.result_url || null,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
