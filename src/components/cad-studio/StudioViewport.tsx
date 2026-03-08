@@ -1,12 +1,14 @@
 import { useRef, useCallback, Suspense, useEffect, useMemo } from "react";
-import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
+import { Canvas, useThree, useFrame, ThreeEvent, useLoader } from "@react-three/fiber";
 import {
   Environment,
   OrbitControls,
   useGLTF,
+  MeshRefractionMaterial,
 } from "@react-three/drei";
+import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
-import type { MaterialDef } from "./materials";
+import type { MaterialDef, GemRefractionConfig } from "./materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
 // ── Quality settings (cached, runs once) ──
@@ -81,10 +83,20 @@ function LoadedModel({
     onMeshesDetected(meshDataList.map(m => ({ name: m.name, original: m.original })));
   }, [meshDataList, onMeshesDetected]);
 
-  // Build materials with caching
-  const meshElements = useMemo(() => {
-    return meshDataList.map((md) => {
+  // Build materials with caching — separate gems from standard
+  const { standardMeshes, gemMeshes } = useMemo(() => {
+    const standard: (typeof meshDataList[0] & { material: THREE.Material })[] = [];
+    const gems: { meshData: typeof meshDataList[0]; refractionConfig: GemRefractionConfig }[] = [];
+
+    meshDataList.forEach((md) => {
       const assigned = meshMaterials[md.name];
+      
+      // If assigned a gemstone with refractionConfig, render via overlay
+      if (assigned?.category === "gemstone" && assigned.refractionConfig) {
+        gems.push({ meshData: md, refractionConfig: assigned.refractionConfig });
+        return;
+      }
+
       const cacheKey = assigned ? `studio_${md.name}_${assigned.id}` : `studio_orig_${md.name}`;
       let material: THREE.Material;
 
@@ -110,13 +122,15 @@ function LoadedModel({
         }
       }
 
-      return { ...md, material };
+      standard.push({ ...md, material });
     });
+
+    return { standardMeshes: standard, gemMeshes: gems };
   }, [meshDataList, meshMaterials, selectedMeshes]);
 
   return (
     <group ref={groupRef}>
-      {meshElements.map((md) => (
+      {standardMeshes.map((md) => (
         <mesh
           key={md.name}
           geometry={md.geometry}
@@ -127,7 +141,71 @@ function LoadedModel({
           onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(md.name, e); }}
         />
       ))}
+      {/* Diamond overlay with MeshRefractionMaterial */}
+      {gemMeshes.map((gem) => (
+        <StudioGemOverlay
+          key={`gem_${gem.meshData.name}`}
+          geometry={gem.meshData.geometry}
+          position={gem.meshData.position}
+          rotation={gem.meshData.rotation}
+          scale={gem.meshData.scale}
+          refractionConfig={gem.refractionConfig}
+          name={gem.meshData.name}
+          onMeshClick={onMeshClick}
+        />
+      ))}
     </group>
+  );
+}
+
+/**
+ * StudioGemOverlay — renders a gem with MeshRefractionMaterial
+ * using dedicated diamond HDRI for realistic refraction.
+ */
+function StudioGemOverlay({
+  geometry,
+  position,
+  rotation,
+  scale,
+  refractionConfig,
+  name,
+  onMeshClick,
+}: {
+  geometry: THREE.BufferGeometry;
+  position: THREE.Vector3;
+  rotation: THREE.Euler;
+  scale: THREE.Vector3;
+  refractionConfig: GemRefractionConfig;
+  name: string;
+  onMeshClick: (name: string, e?: ThreeEvent<MouseEvent>) => void;
+}) {
+  const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
+
+  useEffect(() => {
+    if (envMap) envMap.mapping = THREE.EquirectangularReflectionMapping;
+  }, [envMap]);
+
+  if (!envMap) return null;
+
+  return (
+    <mesh
+      geometry={geometry}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+      castShadow
+      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onMeshClick(name, e); }}
+    >
+      <MeshRefractionMaterial
+        envMap={envMap}
+        color={new THREE.Color(refractionConfig.color)}
+        ior={refractionConfig.ior}
+        aberrationStrength={refractionConfig.sparkle}
+        bounces={refractionConfig.bounces}
+        fresnel={refractionConfig.fresnel}
+        toneMapped={false}
+      />
+    </mesh>
   );
 }
 

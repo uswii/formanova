@@ -1,16 +1,18 @@
 import React, { useRef, useState, useEffect, Suspense, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
-import { Canvas, useThree, useFrame, ThreeEvent, invalidate } from "@react-three/fiber";
+import { Canvas, useThree, useFrame, ThreeEvent, invalidate, useLoader } from "@react-three/fiber";
 import {
   Environment,
   OrbitControls,
   TransformControls,
   GizmoHelper,
   GizmoViewport,
+  MeshRefractionMaterial,
 } from "@react-three/drei";
+import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { MATERIAL_LIBRARY, findMaterial } from "@/components/cad-studio/materials";
-import type { MaterialDef } from "@/components/cad-studio/materials";
+import { MATERIAL_LIBRARY, findMaterial, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
+import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
 // ── Quality settings (cached, runs once) ──
@@ -676,29 +678,43 @@ const LoadedModel = forwardRef<
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd]);
 
-  // ── All meshes use standard MeshPhysicalMaterial now (no refraction) ──
+  // ── Separate gemstone meshes from standard meshes ──
+  // Gemstones get hidden and rendered via MeshRefractionMaterial overlay
+  const { standardElements, gemElements } = useMemo(() => {
+    const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
+    const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
 
-  // Build materials for standard meshes (memoized)
-  const standardElements = useMemo(() => {
-    return meshDataList.map((md) => {
+    meshDataList.forEach((md) => {
       const isSelected = selectedMeshNames.has(md.name);
-      if (isSelected) {
-        return { ...md, material: SELECTION_MATERIAL, isSelected };
-      }
       const assigned = assignedMaterials[md.name];
+
+      // Check if this mesh is assigned a gemstone material with refraction config
+      if (assigned?.category === "gemstone" && assigned.refractionConfig) {
+        // Gem mesh: hidden in standard render, rendered via overlay
+        gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
+        // Still need a hidden placeholder mesh for TransformControls to work on
+        const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+        standard.push({ ...md, material: hiddenMat, isSelected });
+        return;
+      }
+
+      if (isSelected) {
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        return;
+      }
+
       const cacheKey = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
       let material = materialCache.current.get(cacheKey);
       if (!material) {
         material = assigned ? assigned.create() : md.originalMaterial.clone();
-        // Ensure double-sided rendering on all materials
         if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         materialCache.current.set(cacheKey, material);
       }
-      return { ...md, material, isSelected };
+      standard.push({ ...md, material, isSelected });
     });
-  }, [meshDataList, assignedMaterials, selectedMeshNames]);
 
-  // Flat geometry cache removed — no longer needed without refraction
+    return { standardElements: standard, gemElements: gems };
+  }, [meshDataList, assignedMaterials, selectedMeshNames]);
 
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
@@ -722,8 +738,23 @@ const LoadedModel = forwardRef<
         />
       ))}
 
+      {/* Diamond overlay: refraction material rendered separately */}
+      {gemElements.map((gem) => (
+        <SyncedGemOverlay
+          key={`gem_${gem.meshData.name}`}
+          meshName={gem.meshData.name}
+          geometry={gem.meshData.geometry}
+          position={gem.meshData.position}
+          rotation={gem.meshData.rotation}
+          scale={gem.meshData.scale}
+          refractionConfig={gem.refractionConfig}
+          isSelected={gem.isSelected}
+          meshRefs={meshRefs}
+          onMeshClick={onMeshClick}
+        />
+      ))}
 
-  {selectedMeshRef && transformMode !== "orbit" && (
+      {selectedMeshRef && transformMode !== "orbit" && (
         <TransformControlsWrapper
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
@@ -736,7 +767,145 @@ const LoadedModel = forwardRef<
 
 LoadedModel.displayName = "LoadedModel";
 
-// ── Public API ──
+// ── Diamond/Gem Overlay with MeshRefractionMaterial ──
+// Renders gemstone meshes using real refraction (MeshRefractionMaterial from drei)
+// Uses a dedicated HDRI envMap loaded via RGBELoader, synced per frame.
+
+function DiamondEnvMapLoader({ onEnvMapReady }: { onEnvMapReady: (map: THREE.Texture) => void }) {
+  const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
+  const { scene } = useThree();
+
+  useEffect(() => {
+    if (envMap) {
+      envMap.mapping = THREE.EquirectangularReflectionMapping;
+      onEnvMapReady(envMap);
+    }
+  }, [envMap, onEnvMapReady]);
+
+  return null;
+}
+
+/**
+ * SyncedGemOverlay — renders a single gem mesh with MeshRefractionMaterial.
+ * Syncs world transform from the source (hidden) mesh every frame.
+ * Exact replica of user's ModelViewer diamond overlay pattern.
+ */
+function SyncedGemOverlay({
+  meshName,
+  geometry,
+  position,
+  rotation,
+  scale,
+  refractionConfig,
+  isSelected,
+  meshRefs,
+  onMeshClick,
+}: {
+  meshName: string;
+  geometry: THREE.BufferGeometry;
+  position: THREE.Vector3;
+  rotation: THREE.Euler;
+  scale: THREE.Vector3;
+  refractionConfig: GemRefractionConfig;
+  isSelected: boolean;
+  meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
+  onMeshClick: (name: string, multi: boolean) => void;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const inv = useInvalidate();
+
+  // Sync position from the hidden source mesh every frame
+  useFrame(() => {
+    const source = meshRefs.current.get(meshName);
+    if (!meshRef.current || !source) return;
+
+    source.updateWorldMatrix(true, false);
+    const _pos = new THREE.Vector3();
+    const _quat = new THREE.Quaternion();
+    const _scale = new THREE.Vector3();
+    source.matrixWorld.decompose(_pos, _quat, _scale);
+
+    meshRef.current.position.copy(_pos);
+    meshRef.current.quaternion.copy(_quat);
+    meshRef.current.scale.copy(_scale);
+  });
+
+  return (
+    <DiamondEnvMapConsumer
+      meshRef={meshRef}
+      geometry={geometry}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+      refractionConfig={refractionConfig}
+      isSelected={isSelected}
+      meshName={meshName}
+      onMeshClick={onMeshClick}
+    />
+  );
+}
+
+/**
+ * Consumes the diamond envMap from context and renders MeshRefractionMaterial.
+ */
+function DiamondEnvMapConsumer({
+  meshRef,
+  geometry,
+  position,
+  rotation,
+  scale,
+  refractionConfig,
+  isSelected,
+  meshName,
+  onMeshClick,
+}: {
+  meshRef: React.RefObject<THREE.Mesh>;
+  geometry: THREE.BufferGeometry;
+  position: THREE.Vector3;
+  rotation: THREE.Euler;
+  scale: THREE.Vector3;
+  refractionConfig: GemRefractionConfig;
+  isSelected: boolean;
+  meshName: string;
+  onMeshClick: (name: string, multi: boolean) => void;
+}) {
+  const envMap = useLoader(RGBELoader, "/hdri/diamond-studio.hdr");
+
+  useEffect(() => {
+    if (envMap) {
+      envMap.mapping = THREE.EquirectangularReflectionMapping;
+    }
+  }, [envMap]);
+
+  if (!envMap) return null;
+
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+      castShadow
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation();
+        onMeshClick(meshName, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
+      }}
+    >
+      <MeshRefractionMaterial
+        envMap={envMap}
+        color={new THREE.Color(refractionConfig.color)}
+        ior={refractionConfig.ior}
+        aberrationStrength={refractionConfig.sparkle}
+        bounces={refractionConfig.bounces}
+        fresnel={refractionConfig.fresnel}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
+
+
 export interface CADCanvasHandle {
   applyMaterial: (matId: string, meshNames: string[]) => void;
   resetTransform: (meshNames: string[]) => void;
