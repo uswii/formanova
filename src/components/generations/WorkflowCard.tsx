@@ -96,7 +96,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                   <OptimizedImage
                     src={shot.url}
                     alt={shot.angle}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110"
+                    className="w-full h-full object-contain bg-black transition-transform duration-300 group-hover/thumb:scale-110"
                   />
                 </button>
               ))}
