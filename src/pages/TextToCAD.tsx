@@ -639,10 +639,11 @@ export default function TextToCAD() {
               onMeshesDetected={handleMeshesDetected}
               onTransformEnd={handleTransformEnd}
               lightIntensity={1}
+              onModelReady={handleModelReady}
             />
 
             {/* Empty state */}
-            {!hasModel && !isGenerating && (
+            {!hasModel && !isGenerating && !isModelLoading && (
               <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
