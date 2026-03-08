@@ -130,9 +130,51 @@ export default function TextToCAD() {
     );
   };
 
+  // ── Demo mode: test progress UI without burning credits ──
+  // Type "demo" or "test" as the prompt to trigger
+  const runDemoGeneration = useCallback(async () => {
+    setWorkspaceActive(true);
+    setIsGenerating(true);
+    setProgress(0);
+    setHasModel(false);
+    setProgressStep("Queued");
+
+    const stages = [
+      { pct: 8, label: "Queued", delay: 2000 },
+      { pct: 20, label: "Generating geometry", delay: 3000 },
+      { pct: 35, label: "Generating geometry", delay: 3000 },
+      { pct: 50, label: "Adding details", delay: 3000 },
+      { pct: 65, label: "Optimizing structure", delay: 3000 },
+      { pct: 80, label: "Optimizing structure", delay: 2000 },
+      { pct: 92, label: "Preparing preview", delay: 2000 },
+      { pct: 100, label: "Completed", delay: 1000 },
+    ];
+
+    for (const stage of stages) {
+      await new Promise((r) => setTimeout(r, stage.delay));
+      setProgress(stage.pct);
+      setProgressStep(stage.label);
+    }
+
+    // Load the bundled demo ring.glb
+    setGlbUrl("/models/ring.glb");
+    setProgress(100);
+    setProgressStep("Completed");
+    setIsGenerating(false);
+    setHasModel(true);
+    setShowPartRegen(true);
+    toast.success("Demo generation complete (no credits used)");
+  }, []);
+
   const simulateGeneration = useCallback(async () => {
     if (isGenerating) return;
     if (!prompt.trim()) { toast.error("Please describe your ring first"); return; }
+
+    // Demo mode — type "demo" or "test" to test UI without credits
+    const lower = prompt.trim().toLowerCase();
+    if (lower === "demo" || lower === "test") {
+      return runDemoGeneration();
+    }
 
     const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
