@@ -155,13 +155,15 @@ export async function getWorkflowDetails(
 export function inferSourceType(name: string): SourceType {
   const lower = name.toLowerCase();
 
-  // Text-to-CAD workflows (ring_full_pipeline, text_to_cad, etc.)
+  // Text-to-CAD workflows (ring_full_pipeline, ring_generate, text_to_cad, etc.)
   if (
     lower.includes('ring_full_pipeline') ||
-    lower.includes('ring_generate_v1') ||
+    lower.includes('ring_generate') ||
     lower.includes('text_to_cad') ||
     lower.includes('text-to-cad') ||
-    (lower.includes('ring') && lower.includes('pipeline'))
+    lower.includes('ring-generate') ||
+    (lower.includes('ring') && lower.includes('pipeline')) ||
+    (lower.includes('ring') && lower.includes('generate'))
   )
     return 'cad_text';
 
