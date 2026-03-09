@@ -60,31 +60,24 @@ export default function GenerationProgress({
   onRetry,
 }: GenerationProgressProps) {
   const [elapsed, setElapsed] = useState(0);
-  const stageStartRef = useRef(Date.now());
-  const prevStepRef = useRef(currentStep);
+  const workflowStartRef = useRef(Date.now());
 
+  // Reset total timer only when overlay appears
   useEffect(() => {
-    if (currentStep !== prevStepRef.current) {
-      stageStartRef.current = Date.now();
+    if (visible) {
+      workflowStartRef.current = Date.now();
       setElapsed(0);
-      prevStepRef.current = currentStep;
     }
-  }, [currentStep]);
+  }, [visible]);
 
+  // Tick elapsed from workflow start
   useEffect(() => {
     if (!visible || TERMINAL_NODES.has(currentStep)) return;
     const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - stageStartRef.current) / 1000));
+      setElapsed(Math.floor((Date.now() - workflowStartRef.current) / 1000));
     }, 1000);
     return () => clearInterval(interval);
   }, [visible, currentStep]);
-
-  useEffect(() => {
-    if (!visible) {
-      setElapsed(0);
-      stageStartRef.current = Date.now();
-    }
-  }, [visible]);
 
   if (!visible) return null;
 
