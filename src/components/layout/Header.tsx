@@ -280,7 +280,7 @@ export function Header() {
       </div>
 
       {/* Spacer for fixed header */}
-      <div className="h-16 md:h-20" />
+      <div className="h-16 lg:h-20" />
     </>
   );
 }
