@@ -124,7 +124,22 @@ export default function TextToCAD() {
 
   const handleTransformEnd = useCallback(() => {
     pushUndo(`Transform (${transformMode})`);
+    // Sync numeric fields after gizmo drag
+    setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
   }, [pushUndo, transformMode]);
+
+  // Refresh transform data whenever selection changes
+  useEffect(() => {
+    setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
+  }, [selectedMeshNames]);
+
+  const handleNumericTransformChange = useCallback((axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => {
+    canvasRef.current?.setMeshTransform(axis, property, value);
+    // Read back the updated transform for UI sync
+    requestAnimationFrame(() => {
+      setSelectedTransform(canvasRef.current?.getSelectedTransform() ?? null);
+    });
+  }, []);
 
   // Called when CADCanvas has fully parsed, textured, and rendered the model
   const handleModelReady = useCallback(() => {
