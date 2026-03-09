@@ -146,7 +146,7 @@ export function useImageValidation() {
       });
 
       if (!runRes.ok) {
-        console.warn('[ImageValidation] /run/image_classification failed:', runRes.status);
+        console.warn('[ImageValidation] /tools/image_classification/run failed:', runRes.status);
         clearTimeout(timeoutId);
         return {
           category: 'flatlay',
@@ -158,59 +158,17 @@ export function useImageValidation() {
         };
       }
 
-      const runData = await runRes.json();
-      const resultUrl = runData.result_url;
-      console.log('[ImageValidation] Got result_url:', resultUrl);
+      // Response is the classification result directly (no polling needed)
+      const result = await runRes.json();
+      console.log('[ImageValidation] Classification result:', JSON.stringify(result));
 
-      // 3. GET the result (blocks until workflow completes)
-      const resultRes = await fetch(`${BASE_URL}/api${resultUrl}`, {
-        method: 'GET',
-        headers: authHeaders,
-        signal: controller.signal,
-      });
-
-      if (!resultRes.ok) {
-        console.warn('[ImageValidation] Result fetch failed:', resultRes.status);
-        clearTimeout(timeoutId);
-        return {
-          category: 'flatlay',
-          is_worn: true,
-          confidence: 0,
-          reason: 'error',
-          flagged: false,
-          uploaded_url: uploadedUrl,
-        };
-      }
-
-      const resultData = await resultRes.json();
-      console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
-      const classificationResults = resultData.image_captioning;
-
-      if (classificationResults && classificationResults.length > 0) {
-        const raw = classificationResults[0];
-        const label = raw.label || raw.category || 'unknown';
-        const reason = raw.reason || '';
-        const is_worn = reason === 'worn';
-
-        clearTimeout(timeoutId);
-        return {
-          category: label,
-          is_worn,
-          confidence: raw.confidence || 0,
-          reason,
-          flagged: reason === 'not_worn',
-          uploaded_url: uploadedUrl,
-        };
-      }
-
-      console.warn('[ImageValidation] No image_captioning in result');
       clearTimeout(timeoutId);
       return {
-        category: 'flatlay' as const,
-        is_worn: true,
-        confidence: 0,
-        reason: 'no_result',
-        flagged: false,
+        category: result.category || 'unknown',
+        is_worn: result.is_worn ?? true,
+        confidence: result.confidence || 0,
+        reason: result.reason || '',
+        flagged: result.flagged ?? false,
         uploaded_url: uploadedUrl,
       };
     } catch (error) {
