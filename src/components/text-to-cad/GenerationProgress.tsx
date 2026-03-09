@@ -70,7 +70,6 @@ export default function GenerationProgress({
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-6">
-        {/* Single line: spinner + label + timer */}
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -98,7 +97,6 @@ export default function GenerationProgress({
           </motion.div>
         </AnimatePresence>
 
-        {/* Retry button on failure */}
         {isFailed && onRetry && (
           <button
             onClick={onRetry}
@@ -108,83 +106,6 @@ export default function GenerationProgress({
           </button>
         )}
       </div>
-    </div>
-  );
-}
-  const currentIdx = STAGE_ORDER.indexOf(currentStep);
-
-  return (
-    <div className="absolute inset-0 z-[100] flex items-center justify-center flex-col bg-background/95 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-[420px] max-w-[90vw] flex flex-col items-center text-center"
-      >
-        {/* Stage label */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.3 }}
-            className={`font-display text-xl tracking-[0.15em] uppercase ${
-              isFailed ? "text-destructive" : isDone ? "text-foreground" : "text-muted-foreground"
-            }`}
-          >
-            {label}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Elapsed timer */}
-        {!isTerminal && currentStep && (
-          <p className="font-mono text-[11px] text-muted-foreground/60 mt-2 tracking-wide">
-            ({formatElapsed(elapsed)})
-          </p>
-        )}
-
-        {/* Slow stage warning */}
-        <AnimatePresence>
-          {showSlowWarning && (
-            <motion.p
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="font-mono text-[10px] text-muted-foreground/50 mt-3 tracking-wide"
-            >
-              This step can take a couple of minutes — still working
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        {/* Crawling stage progress bars */}
-        {!isFailed && (
-          <div className="flex items-center gap-1 w-full mt-6 mb-2">
-            {STAGE_ORDER.map((node, i) => {
-              const stageDone = currentIdx >= 0 && i < currentIdx;
-              const stageActive = node === currentStep && !isTerminal;
-              const stageDoneTerminal = isDone && i === STAGE_ORDER.length - 1;
-              return (
-                <StageSegment
-                  key={node}
-                  active={stageActive}
-                  done={stageDone || stageDoneTerminal}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {/* Retry button on failure */}
-        {isFailed && onRetry && (
-          <button
-            onClick={onRetry}
-            className="mt-8 px-8 py-3 text-[12px] font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
-          >
-            Try Again
-          </button>
-        )}
-      </motion.div>
     </div>
   );
 }
