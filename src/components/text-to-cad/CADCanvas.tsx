@@ -911,7 +911,7 @@ function SyncedGemOverlay({
   meshName,
   geometry,
   position,
-  rotation,
+  quaternion,
   scale,
   refractionConfig,
   isSelected,
@@ -921,7 +921,7 @@ function SyncedGemOverlay({
   meshName: string;
   geometry: THREE.BufferGeometry;
   position: THREE.Vector3;
-  rotation: THREE.Euler;
+  quaternion: THREE.Quaternion;
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
@@ -952,7 +952,7 @@ function SyncedGemOverlay({
       meshRef={meshRef}
       geometry={geometry}
       position={position}
-      rotation={rotation}
+      quaternion={quaternion}
       scale={scale}
       refractionConfig={refractionConfig}
       isSelected={isSelected}
