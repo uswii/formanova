@@ -255,12 +255,12 @@ function RetroDecorations() {
         <div className="absolute top-0 left-0 w-4 h-full bg-green-500/60" />
       </div>
       <div className="absolute top-4 right-4 w-40 h-40">
-        <div className="absolute top-0 right-0 w-full h-4 bg-yellow-500/60" />
-        <div className="absolute top-0 right-0 w-4 h-full bg-yellow-500/60" />
+        <div className="absolute top-0 right-0 w-full h-4 bg-green-500/60" />
+        <div className="absolute top-0 right-0 w-4 h-full bg-green-500/60" />
       </div>
       <div className="absolute bottom-4 left-4 w-40 h-40">
-        <div className="absolute bottom-0 left-0 w-full h-4 bg-yellow-500/60" />
-        <div className="absolute bottom-0 left-0 w-4 h-full bg-yellow-500/60" />
+        <div className="absolute bottom-0 left-0 w-full h-4 bg-green-500/60" />
+        <div className="absolute bottom-0 left-0 w-4 h-full bg-green-500/60" />
       </div>
       <div className="absolute bottom-4 right-4 w-40 h-40">
         <div className="absolute bottom-0 right-0 w-full h-4 bg-green-500/60" />
