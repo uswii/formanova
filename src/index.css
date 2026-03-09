@@ -125,12 +125,12 @@
     --popover-foreground: 120 100% 70%;
     --primary: 120 100% 50%;
     --primary-foreground: 240 20% 8%;
-    --secondary: 60 100% 50%;
-    --secondary-foreground: 240 20% 8%;
+    --secondary: 120 60% 18%;
+    --secondary-foreground: 120 100% 70%;
     --muted: 240 20% 16%;
     --muted-foreground: 120 50% 50%;
-    --accent: 0 100% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 120 80% 40%;
+    --accent-foreground: 240 20% 8%;
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 120 40% 25%;
