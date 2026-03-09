@@ -85,8 +85,9 @@ function buildFlags(result: ClassificationResult): string[] {
  *
  * Flow:
  * 1. Upload image via azure-upload edge function → get URL
- * 2. POST /api/run/state/image_classification with { payload: { jewelry_image_url } }
- * 3. Response returns classification directly: { label, confidence, reason, flagged }
+ * 2. POST /api/run/image_classification with { payload: { jewelry_image_url } }
+ * 3. Poll GET /api/status/{workflow_id} until completed
+ * 4. GET /api/result/{workflow_id} → { image_captioning: [{ label, confidence, reason, flagged }] }
  */
 export function useImageValidation() {
   const [state, setState] = useState<ValidationState>({
@@ -96,9 +97,6 @@ export function useImageValidation() {
     error: null,
   });
 
-  /**
-   * Convert File to base64 string (for azure-upload)
-   */
   const fileToBase64 = useCallback(async (file: File): Promise<string> => {
     const blob = new Blob([await file.arrayBuffer()], { type: file.type });
     const { blob: compressed } = await compressImageBlob(blob, 900);
@@ -111,12 +109,6 @@ export function useImageValidation() {
     });
   }, []);
 
-  /**
-   * Classify a single image:
-   * 1. Upload to Azure via edge function → get URL
-   * 2. POST /api/run/state/image_classification with { payload: { jewelry_image_url } }
-   * 3. Response: { label, confidence, reason, flagged }
-   */
   const classifyImage = useCallback(async (
     base64DataUri: string
   ): Promise<ClassificationResult | null> => {
@@ -131,7 +123,7 @@ export function useImageValidation() {
       const uploadedUrl = azureResult.https_url || azureResult.sas_url;
       console.log('[ImageValidation] Uploaded:', uploadedUrl);
 
-      // 2. POST to /api/run/state/image_classification
+      // 2. POST /api/run/image_classification
       const authHeaders = getAuthHeaders();
       const runRes = await fetch(CLASSIFICATION_URL, {
         method: 'POST',
@@ -157,23 +149,91 @@ export function useImageValidation() {
         };
       }
 
-      // Response is the classification result directly
-      const result = await runRes.json();
-      console.log('[ImageValidation] Classification result:', JSON.stringify(result));
+      const runData = await runRes.json();
+      const workflowId = runData.workflow_id;
+      console.log('[ImageValidation] Workflow started:', workflowId);
 
-      const label = result.label || result.category || 'unknown';
-      const reason = result.reason || '';
-      const is_worn = reason === 'worn' || WORN_CATEGORIES.includes(label);
+      // 3. Poll /api/status/{workflow_id} until completed
+      let statusState = 'running';
+      const maxPolls = 60; // 60s max
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        
+        const statusRes = await fetch(`${STATUS_URL}/${workflowId}`, {
+          method: 'GET',
+          headers: authHeaders,
+          signal: controller.signal,
+        });
 
+        if (statusRes.status === 404) {
+          // Not ready yet, keep polling
+          continue;
+        }
+
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          statusState = statusData.runtime?.state || statusData.progress?.state || statusData.state || 'running';
+          console.log('[ImageValidation] Poll status:', statusState);
+          if (statusState === 'completed' || statusState === 'succeeded') break;
+          if (statusState === 'failed') {
+            console.warn('[ImageValidation] Workflow failed');
+            clearTimeout(timeoutId);
+            return { category: 'flatlay', is_worn: true, confidence: 0, reason: 'error', flagged: false, uploaded_url: uploadedUrl };
+          }
+        }
+      }
+
+      // 4. GET /api/result/{workflow_id}
+      let resultData: any = null;
+      const maxResultRetries = 5;
+      for (let i = 0; i < maxResultRetries; i++) {
+        const resultRes = await fetch(`${RESULT_URL}/${workflowId}`, {
+          method: 'GET',
+          headers: authHeaders,
+          signal: controller.signal,
+        });
+
+        if (resultRes.status === 404) {
+          console.log(`[ImageValidation] Result not ready, retry ${i + 1}/${maxResultRetries}`);
+          await new Promise(r => setTimeout(r, 1000));
+          continue;
+        }
+
+        if (resultRes.ok) {
+          resultData = await resultRes.json();
+          break;
+        }
+      }
+
+      if (!resultData) {
+        console.warn('[ImageValidation] Could not fetch result');
+        clearTimeout(timeoutId);
+        return { category: 'flatlay', is_worn: true, confidence: 0, reason: 'no_result', flagged: false, uploaded_url: uploadedUrl };
+      }
+
+      console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
+      const captioning = resultData.image_captioning;
+
+      if (captioning && captioning.length > 0) {
+        const raw = captioning[0];
+        const label = raw.label || 'unknown';
+        const reason = raw.reason || '';
+        const is_worn = reason === 'worn' || WORN_CATEGORIES.includes(label);
+
+        clearTimeout(timeoutId);
+        return {
+          category: label,
+          is_worn,
+          confidence: raw.confidence || 0,
+          reason,
+          flagged: raw.flagged ?? (reason === 'not_worn'),
+          uploaded_url: uploadedUrl,
+        };
+      }
+
+      console.warn('[ImageValidation] No image_captioning in result');
       clearTimeout(timeoutId);
-      return {
-        category: label,
-        is_worn,
-        confidence: result.confidence || 0,
-        reason,
-        flagged: result.flagged ?? (reason === 'not_worn'),
-        uploaded_url: uploadedUrl,
-      };
+      return { category: 'flatlay', is_worn: true, confidence: 0, reason: 'no_result', flagged: false, uploaded_url: uploadedUrl };
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
