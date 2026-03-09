@@ -30,6 +30,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const userName = user?.email ? user.email.split('@')[0] : '';
+  const cadEnabled = isCADEnabled(user?.email);
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
