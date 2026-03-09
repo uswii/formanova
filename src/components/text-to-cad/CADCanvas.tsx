@@ -563,22 +563,41 @@ const LoadedModel = forwardRef<
   }, [additionalGlbUrls, meshDataList, inv, onMeshesDetected]);
 
   // ── Sync transform from Three.js object back to React state ──
-  // After TransformControls modifies the object, read back transforms.
-  // Unwrap rotation degrees against previous value to support unlimited rotation.
+  // Position and scale are read directly. Rotation is NOT derived from quaternion
+  // (Euler decomposition is lossy/clamped). Instead rotation is tracked incrementally.
   const syncTransformFromObject = useCallback((meshName: string, obj: THREE.Object3D) => {
     setMeshDataList((prev) => prev.map((md) => {
       if (md.name !== meshName) return md;
-      const newQuat = obj.quaternion.clone();
-      const rawDeg = quatToDeg(newQuat);
-      const unwrapped = unwrapDeg(rawDeg, md.rotationDeg);
       return {
         ...md,
         position: obj.position.clone(),
-        quaternion: newQuat,
-        rotationDeg: unwrapped,
+        quaternion: obj.quaternion.clone(),
+        // rotationDeg is NOT updated here — it's updated incrementally via handleRotationDelta
         scale: obj.scale.clone(),
       };
     }));
+  }, []);
+
+  // Called during rotate gizmo drag with incremental degree deltas (no Euler decomposition)
+  const handleRotationDelta = useCallback((obj: THREE.Object3D, deltaDeg: [number, number, number]) => {
+    // Find which mesh this object is
+    for (const [name, meshObj] of meshRefs.current.entries()) {
+      if (meshObj === obj) {
+        setMeshDataList((prev) => prev.map((md) => {
+          if (md.name !== name) return md;
+          return {
+            ...md,
+            quaternion: obj.quaternion.clone(),
+            rotationDeg: [
+              md.rotationDeg[0] + deltaDeg[0],
+              md.rotationDeg[1] + deltaDeg[1],
+              md.rotationDeg[2] + deltaDeg[2],
+            ],
+          };
+        }));
+        break;
+      }
+    }
   }, []);
 
   // Called when TransformControls drag ends
