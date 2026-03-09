@@ -4,7 +4,7 @@ import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 
 const BASE_URL = 'https://formanova.ai';
-const CLASSIFICATION_URL = `${BASE_URL}/tools/image_classification/run`;
+const CLASSIFICATION_URL = `${BASE_URL}/api/run/state/image_classification`;
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 
 // Response from the classification service
@@ -83,8 +83,8 @@ function buildFlags(result: ClassificationResult): string[] {
  *
  * Flow:
  * 1. Upload image via azure-upload edge function → get URL
- * 2. POST /tools/image_classification/run with { data: { image: { uri } } }
- * 3. Response returns classification directly (category, is_worn, confidence, reason, flagged)
+ * 2. POST /api/run/state/image_classification with { payload: { jewelry_image_url } }
+ * 3. Response returns classification directly: { label, confidence, reason, flagged }
  */
 export function useImageValidation() {
   const [state, setState] = useState<ValidationState>({
@@ -112,9 +112,8 @@ export function useImageValidation() {
   /**
    * Classify a single image:
    * 1. Upload to Azure via edge function → get URL
-   * 2. POST /api/run/image_classification with { payload: { original_path: url } }
-   * 3. Response contains { result_url } — GET that (blocks until done)
-   * 4. Read result.image_captioning[0]
+   * 2. POST /api/run/state/image_classification with { payload: { jewelry_image_url } }
+   * 3. Response: { label, confidence, reason, flagged }
    */
   const classifyImage = useCallback(async (
     base64DataUri: string
@@ -130,21 +129,21 @@ export function useImageValidation() {
       const uploadedUrl = azureResult.https_url || azureResult.sas_url;
       console.log('[ImageValidation] Uploaded:', uploadedUrl);
 
-      // 2. POST to /tools/image_classification/run (tool adapter format)
+      // 2. POST to /api/run/state/image_classification
       const authHeaders = getAuthHeaders();
       const runRes = await fetch(CLASSIFICATION_URL, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
-          data: {
-            image: { uri: uploadedUrl },
+          payload: {
+            jewelry_image_url: uploadedUrl,
           },
         }),
         signal: controller.signal,
       });
 
       if (!runRes.ok) {
-        console.warn('[ImageValidation] /tools/image_classification/run failed:', runRes.status);
+        console.warn('[ImageValidation] Classification request failed:', runRes.status);
         clearTimeout(timeoutId);
         return {
           category: 'flatlay',
@@ -156,17 +155,21 @@ export function useImageValidation() {
         };
       }
 
-      // Response is the classification result directly (no polling needed)
+      // Response is the classification result directly
       const result = await runRes.json();
       console.log('[ImageValidation] Classification result:', JSON.stringify(result));
 
+      const label = result.label || result.category || 'unknown';
+      const reason = result.reason || '';
+      const is_worn = reason === 'worn' || WORN_CATEGORIES.includes(label);
+
       clearTimeout(timeoutId);
       return {
-        category: result.category || 'unknown',
-        is_worn: result.is_worn ?? true,
+        category: label,
+        is_worn,
         confidence: result.confidence || 0,
-        reason: result.reason || '',
-        flagged: result.flagged ?? false,
+        reason,
+        flagged: result.flagged ?? (reason === 'not_worn'),
         uploaded_url: uploadedUrl,
       };
     } catch (error) {
