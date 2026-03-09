@@ -873,6 +873,20 @@ const LoadedModel = forwardRef<
     return { standardElements: standard, gemElements: gems };
   }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
 
+  // ── Imperative transform sync: prevents React props from fighting TransformControls ──
+  useEffect(() => {
+    if (_isTransformDragging) return;
+    meshDataList.forEach((md) => {
+      const mesh = meshRefs.current.get(md.name);
+      if (mesh) {
+        mesh.position.copy(md.position);
+        mesh.quaternion.copy(md.quaternion);
+        mesh.scale.copy(md.scale);
+      }
+    });
+    inv();
+  }, [meshDataList, inv]);
+
   // Find selected mesh ref for TransformControls
   const selectedMeshName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
   const selectedMeshRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : undefined;
@@ -885,9 +899,6 @@ const LoadedModel = forwardRef<
           ref={(r) => { if (r) meshRefs.current.set(md.name, r); }}
           geometry={md.geometry}
           material={md.material}
-          position={md.position}
-          quaternion={md.quaternion}
-          scale={md.scale}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
             onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
