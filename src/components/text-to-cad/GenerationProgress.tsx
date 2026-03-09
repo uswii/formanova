@@ -3,45 +3,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
-  generate_initial: "Designing your ring",
-  build_initial: "Building 3D model",
-  validate_output: "Polishing details",
-  generate_fix: "Enhancing design",
-  build_retry: "Rebuilding model",
-  build_corrected: "Applying final touches",
-  success_final: "Your ring is ready ✓",
-  success_original_glb: "Your ring is ready ✓",
-  failed_final: "We couldn't complete this one — please try again",
+  generate_initial: "Designing your ring...",
+  build_initial: "Crafting the 3D model...",
+  generate_fix: "Improving the design...",
+  build_retry: "Refining the geometry...",
+  validate_output: "Checking for accuracy...",
+  build_corrected: "Applying corrections...",
+  success_final: "Your ring is ready",
+  success_original_glb: "Your ring is ready",
+  failed_final: "Something went wrong — want to try again?",
   _loading: "Loading model into viewport",
 };
 
 const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
 
-const STAGE_ORDER = [
-  "generate_initial", "build_initial", "validate_output",
-  "generate_fix", "build_retry", "build_corrected", "success_final",
-];
-
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-/** Crawling progress bar for a single stage — never reaches 100% on its own */
-/** A single step segment: spinner when active, solid when done, dim when pending */
-function StageSegment({ active, done }: { active: boolean; done: boolean }) {
-  if (done) {
-    return <div className="flex-1 h-[2px] bg-foreground/70" />;
-  }
-  if (active) {
-    return (
-      <div className="flex-1 h-[2px] bg-muted-foreground/10 relative flex items-center justify-center">
-        <Loader2 className="absolute h-4 w-4 text-foreground/60 animate-spin" />
-      </div>
-    );
-  }
-  return <div className="flex-1 h-[2px] bg-muted-foreground/10" />;
 }
 
 interface GenerationProgressProps {
@@ -62,7 +41,6 @@ export default function GenerationProgress({
   const [elapsed, setElapsed] = useState(0);
   const workflowStartRef = useRef(Date.now());
 
-  // Reset total timer only when overlay appears
   useEffect(() => {
     if (visible) {
       workflowStartRef.current = Date.now();
@@ -70,7 +48,6 @@ export default function GenerationProgress({
     }
   }, [visible]);
 
-  // Tick elapsed from workflow start
   useEffect(() => {
     if (!visible || TERMINAL_NODES.has(currentStep)) return;
     const interval = setInterval(() => {
@@ -84,13 +61,56 @@ export default function GenerationProgress({
   const isFailed = currentStep === "failed_final";
   const isDone = currentStep === "success_final" || currentStep === "success_original_glb";
   const isTerminal = isFailed || isDone;
-  const showSlowWarning = !isTerminal && elapsed > 60;
 
   let label = NODE_LABELS[currentStep] || "";
   if (currentStep === "generate_fix" && retryAttempt) {
-    label = `Enhancing design (attempt ${retryAttempt} of ${maxAttempts})`;
+    label = `Improving the design... (attempt ${retryAttempt} of ${maxAttempts})`;
   }
 
+  return (
+    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-6">
+        {/* Single line: spinner + label + timer */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+            className="flex items-center gap-3"
+          >
+            {!isTerminal && (
+              <Loader2 className="h-4 w-4 text-foreground/60 animate-spin" />
+            )}
+            <span
+              className={`font-display text-lg tracking-[0.12em] uppercase ${
+                isFailed ? "text-destructive" : "text-foreground/80"
+              }`}
+            >
+              {label}
+            </span>
+            {!isTerminal && (
+              <span className="font-mono text-sm text-muted-foreground/50 tabular-nums">
+                {formatElapsed(elapsed)}
+              </span>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Retry button on failure */}
+        {isFailed && onRetry && (
+          <button
+            onClick={onRetry}
+            className="px-8 py-3 text-[12px] font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            Try Again
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
   const currentIdx = STAGE_ORDER.indexOf(currentStep);
 
   return (
