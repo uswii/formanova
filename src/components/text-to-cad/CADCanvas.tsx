@@ -78,6 +78,8 @@ function TransformControlsWrapper({
     const handler = (e: any) => {
       const orbitControls = (gl.domElement as any).__orbitControls;
       if (orbitControls) orbitControls.enabled = !e.value;
+      // Set module-level flag so React doesn't overwrite transforms during drag
+      _isTransformDragging = e.value;
       if (e.value) {
         inv();
       }
@@ -90,6 +92,7 @@ function TransformControlsWrapper({
     return () => {
       controls.removeEventListener("dragging-changed", handler);
       controls.removeEventListener("objectChange", onChange);
+      _isTransformDragging = false;
     };
   }, [gl, onDragEnd, inv, object]);
 
