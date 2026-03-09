@@ -205,6 +205,7 @@ export default function TextToCAD() {
     // ── Real generation ──
     const LLM_MAP: Record<string, string> = { "gemini": "gemini", "claude-sonnet": "claude-sonnet", "claude-opus": "claude-opus" };
     const llm = LLM_MAP[model] ?? "gemini";
+    console.log("[TextToCAD] User selected model:", model, "→ llm:", llm);
 
     const modelKey = `ring_generate_v1:${model}`;
     const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
@@ -227,15 +228,15 @@ export default function TextToCAD() {
     setIsGenerating(true);
     setProgress(0);
     setHasModel(false);
-    setProgressStep("Generating…");
+    setProgressStep("generate_initial");
 
     try {
       // Step 1: Start generation
-      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
+      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: prompt.trim(), mode: 'text', max_attempts: 3 },
+          payload: { llm, prompt: prompt.trim(), max_attempts: 3 },
           return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
         }),
       });
@@ -250,83 +251,81 @@ export default function TextToCAD() {
 
       console.log("[TextToCAD] Workflow started:", workflow_id);
 
-      // Step 2: Poll status every 3s with continuous synthetic micro-increments
-      // The bar NEVER stops moving, but also NEVER reaches 100% until status=completed.
-      // Uses asymptotic deceleration: increment shrinks as we approach 99%.
+      // Step 2: Poll status every 3s — use active_nodes[0] for real progress
       const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted", "error", "node_failed"]);
-      const TICK_INTERVAL_MS = 1000;
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
       let pollErrors = 0;
-      let currentPct = 3;
-      setProgress(currentPct);
-      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+      const POLL_TIMEOUT_MS = 60 * 60 * 1000;
       const pollStart = Date.now();
 
-      // Asymptotic ticker — decelerates aggressively so it never stalls at one number
-      // Phase 1 (0-60%): steady climb ~0.5%/s
-      // Phase 2 (60-85%): slows to ~0.2%/s
-      // Phase 3 (85-95%): crawls ~0.08%/s
-      // Phase 4 (95-99%): micro-crawl, always moving but barely
-      const tickHandle = setInterval(() => {
-        let increment: number;
-        if (currentPct < 60) {
-          increment = 0.5 + Math.random() * 0.15;
-        } else if (currentPct < 85) {
-          increment = 0.18 + Math.random() * 0.07;
-        } else if (currentPct < 95) {
-          increment = 0.06 + Math.random() * 0.03;
-        } else {
-          increment = 0.015 + Math.random() * 0.01;
+      const NODE_PCT: Record<string, number> = {
+        generate_initial: 10,
+        build_initial: 30,
+        validate_output: 55,
+        generate_fix: 65,
+        build_retry: 75,
+        build_corrected: 85,
+        success_final: 100,
+        success_original_glb: 100,
+      };
+
+      while (true) {
+        if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
+          throw new Error("Generation timed out after 1 hour");
         }
-        currentPct = Math.min(98.9, currentPct + increment);
-        setProgress(Math.round(currentPct * 10) / 10);
-        setProgressStep(getProgressLabel(Math.round(currentPct)));
-      }, TICK_INTERVAL_MS);
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const statusRes = await authenticatedFetch(
+            `/api/status/${encodeURIComponent(workflow_id)}`,
+            { signal: pollAbort.signal }
+          );
 
-      try {
-        while (true) {
-          if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
-            throw new Error("Generation timed out after 1 hour");
+          if (statusRes.status === 404) {
+            throw new Error("Workflow not found — generation was terminated");
           }
-          await new Promise((r) => setTimeout(r, 2000));
-          try {
-            const statusRes = await authenticatedFetch(
-              `/api/status/${encodeURIComponent(workflow_id)}`,
-              { signal: pollAbort.signal }
-            );
-
-            if (statusRes.status === 404) {
-              throw new Error("Workflow not found — generation was terminated");
-            }
-            if (!statusRes.ok) {
-              pollErrors++;
-              if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
-              continue;
-            }
-
-            const statusData = await statusRes.json();
-            pollErrors = 0;
-
-            const state = (statusData.runtime?.state || "unknown").toLowerCase();
-            if (state === "completed") break;
-            if (TERMINAL_STATES.has(state)) {
-              throw new Error(`Generation ${state}`);
-            }
-          } catch (err) {
-            if (err instanceof AuthExpiredError) { clearInterval(tickHandle); return; }
-            if (err instanceof Error && err.name === "AbortError") { clearInterval(tickHandle); return; }
+          if (!statusRes.ok) {
             pollErrors++;
-            if (pollErrors >= 10) throw err;
+            if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
+            continue;
           }
+
+          const statusData = await statusRes.json();
+          pollErrors = 0;
+
+          const state = (statusData.runtime?.state || "unknown").toLowerCase();
+          const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const retryCount = statusData.node_visit_seq?.generate_fix || 0;
+
+          if (activeNode) {
+            const nodePct = NODE_PCT[activeNode] ?? 5;
+            setProgress(nodePct);
+            setProgressStep(activeNode);
+            if (retryCount > 0) {
+              console.log(`[TextToCAD] Retry attempt: ${retryCount}`);
+            }
+          }
+
+          if (state === "completed") break;
+          if (TERMINAL_STATES.has(state)) {
+            const lastNode = statusData.runtime?.last_exit_node_id || "";
+            if (lastNode === "failed_final" || activeNode === "failed_final") {
+              setProgressStep("failed_final");
+            }
+            throw new Error(`Generation ${state}`);
+          }
+        } catch (err) {
+          if (err instanceof AuthExpiredError) return;
+          if (err instanceof Error && err.name === "AbortError") return;
+          pollErrors++;
+          if (pollErrors >= 10) throw err;
         }
-      } finally {
-        clearInterval(tickHandle);
       }
 
       // Step 3: Fetch result GLB URL (retry up to 5 times on 404 with 2s delay)
-      setProgressStep("Loading model…");
+      setProgressStep("_loading");
+      setProgress(98);
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
@@ -334,7 +333,6 @@ export default function TextToCAD() {
 
         if (resultRes.ok) {
           const result = await resultRes.json();
-          // Extract GLB URL from result nodes
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
@@ -357,10 +355,9 @@ export default function TextToCAD() {
       }
       if (!glb_url) throw new Error("No GLB model found in results");
 
-      // Load into viewer — keep progress overlay visible until model is rendered
       setGlbUrl(glb_url);
       setProgress(98);
-      setProgressStep("Loading model…");
+      setProgressStep("_loading");
       setIsModelLoading(true);
       setIsGenerating(false);
       setHasModel(true);
@@ -374,15 +371,6 @@ export default function TextToCAD() {
       setProgressStep("");
     }
   }, [prompt, model, isGenerating]);
-
-  function getProgressLabel(pct: number): string {
-    if (pct < 15) return "Queued";
-    if (pct < 35) return "Generating geometry";
-    if (pct < 55) return "Adding details";
-    if (pct < 75) return "Optimizing structure";
-    if (pct < 90) return "Preparing preview";
-    return "Completed";
-  }
 
   const simulateEdit = useCallback(async () => {
     if (!editPrompt.trim()) { toast.error("Please describe the edit"); return; }
