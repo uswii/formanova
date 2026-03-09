@@ -192,7 +192,7 @@ export function Header() {
 
       {/* Mobile Menu Overlay - Marta Style */}
       <div 
-        className={`fixed inset-0 z-40 bg-background transition-all duration-500 md:hidden ${
+        className={`fixed inset-0 z-40 bg-background transition-all duration-500 lg:hidden ${
           isMobileMenuOpen 
             ? 'opacity-100 pointer-events-auto' 
             : 'opacity-0 pointer-events-none'
