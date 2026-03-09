@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Diamond } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
   generate_initial: "Designing your ring...",
@@ -70,6 +70,15 @@ export default function GenerationProgress({
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-6">
+        {/* Diamond spinner — same as photo studio */}
+        {!isTerminal && (
+          <div className="relative mb-2">
+            <div className="w-24 h-24 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <Diamond className="absolute inset-0 m-auto h-10 w-10 text-primary" />
+          </div>
+        )}
+
+        {/* Label + timer */}
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -77,11 +86,8 @@ export default function GenerationProgress({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.25 }}
-            className="flex items-center gap-3"
+            className="flex flex-col items-center gap-2"
           >
-            {!isTerminal && (
-              <Loader2 className="h-4 w-4 text-foreground/60 animate-spin" />
-            )}
             <span
               className={`font-display text-lg tracking-[0.12em] uppercase ${
                 isFailed ? "text-destructive" : "text-foreground/80"
