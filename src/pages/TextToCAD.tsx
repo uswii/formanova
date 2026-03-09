@@ -152,8 +152,7 @@ export default function TextToCAD() {
   // Called when CADCanvas has fully parsed, textured, and rendered the model
   const handleModelReady = useCallback(() => {
     setIsModelLoading(false);
-    setProgress(100);
-    setProgressStep("Completed");
+    setProgressStep("success_final");
     toast.success("Ring generated successfully");
   }, []);
 
