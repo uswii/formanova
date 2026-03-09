@@ -143,6 +143,8 @@ const LoadedModel = forwardRef<
     restoreSnapshot: (snap: CanvasSnapshot) => void;
     applyTransform: (meshNames: string[]) => void;
     removeAllTextures: () => void;
+    getSelectedTransform: () => MeshTransformData | null;
+    setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
   },
   {
   url: string;
