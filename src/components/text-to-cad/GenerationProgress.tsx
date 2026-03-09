@@ -1,141 +1,119 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const GENERATION_STAGES = [
-  { id: "queued", label: "Initializing" },
-  { id: "generating", label: "Generating geometry" },
-  { id: "detailing", label: "Adding details" },
-  { id: "optimizing", label: "Optimizing structure" },
-  { id: "preview", label: "Preparing preview" },
-  { id: "completed", label: "Completed" },
+// Node-based stages matching the backend's active_nodes[0]
+const NODE_STAGES = [
+  { node: "generate_initial", label: "Writing Blender code", pct: 10 },
+  { node: "build_initial", label: "Building 3D model", pct: 30 },
+  { node: "validate_output", label: "Validating render", pct: 55 },
+  { node: "generate_fix", label: "Fixing errors", pct: 65 },
+  { node: "build_retry", label: "Rebuilding model", pct: 75 },
+  { node: "build_corrected", label: "Applying corrections", pct: 85 },
+  { node: "success_final", label: "Done", pct: 100 },
+  { node: "success_original_glb", label: "Done", pct: 100 },
+  { node: "failed_final", label: "Failed", pct: 0 },
 ] as const;
 
 const ROTATING_MESSAGES: Record<string, string[]> = {
-  queued: [
-    "Initializing generation pipeline",
-    "Loading ring design parameters",
-    "Setting up 3D workspace",
-    "Configuring material properties",
-    "Preparing geometry engine",
-    "Allocating compute resources",
-    "Parsing design intent",
+  generate_initial: [
+    "Analyzing your design prompt",
+    "Writing Blender Python code",
+    "Translating description to geometry",
+    "Mapping ring proportions",
+    "Preparing build script",
   ],
-  generating: [
-    "Building base ring profile",
+  build_initial: [
+    "Executing Blender build",
     "Constructing mesh topology",
     "Extruding band cross-section",
-    "Calculating curve segments",
-    "Defining prong placements",
     "Generating shank geometry",
-    "Laying out stone settings",
-    "Shaping the stone seat",
-    "Calculating ring proportions",
-    "Building band geometry",
+    "Placing stone settings",
+    "Building base ring profile",
   ],
-  detailing: [
-    "Sculpting surface details",
-    "Carving filigree patterns",
-    "Refining prong tips",
-    "Adding edge bevels",
-    "Shaping gallery openings",
-    "Engraving decorative elements",
-    "Refining edges and surfaces",
-    "Polishing micro-details",
-    "Adding texture definition",
-  ],
-  optimizing: [
-    "Validating watertight mesh",
-    "Checking wall thickness",
-    "Optimizing polygon count",
-    "Verifying structural integrity",
-    "Cleaning non-manifold edges",
-    "Smoothing surface normals",
-    "Running topology analysis",
+  validate_output: [
+    "Rendering validation screenshot",
+    "Checking structural integrity",
+    "Verifying mesh is watertight",
     "Validating ring dimensions",
-    "Checking mesh integrity",
+    "Inspecting gem placements",
   ],
-  preview: [
-    "Rendering final preview",
-    "Applying studio lighting",
-    "Capturing angle views",
-    "Packaging model files",
-    "Generating preview thumbnails",
-    "Loading 3D preview",
-    "Finalizing output",
+  generate_fix: [
+    "Analyzing validation feedback",
+    "Rewriting problem sections",
+    "Adjusting geometry parameters",
+    "Correcting proportions",
   ],
-  completed: ["Done"],
+  build_retry: [
+    "Rebuilding with corrections",
+    "Re-executing Blender script",
+    "Reconstructing mesh topology",
+    "Applying structural fixes",
+  ],
+  build_corrected: [
+    "Applying final corrections",
+    "Polishing surface normals",
+    "Smoothing edge transitions",
+    "Finalizing geometry",
+  ],
+  success_final: ["Done"],
+  success_original_glb: ["Done"],
+  failed_final: ["Generation failed"],
+  _loading: ["Loading model into viewport"],
 };
 
-function mapBackendStatus(status: string, progress: number): number {
-  const s = status.toLowerCase();
-  if (s.includes("complete") || s.includes("done") || progress >= 100) return 5;
-  if (s.includes("download") || s.includes("preview") || s.includes("polish") || progress >= 80) return 4;
-  if (s.includes("optimi") || s.includes("refin") || progress >= 60) return 3;
-  if (s.includes("detail") || s.includes("sculpt") || progress >= 40) return 2;
-  if (s.includes("generat") || s.includes("analyz") || progress >= 15) return 1;
-  return 0;
+function getNodeStage(activeNode: string): { label: string; pct: number } {
+  const stage = NODE_STAGES.find((s) => s.node === activeNode);
+  if (stage) return { label: stage.label, pct: stage.pct };
+  return { label: "Processing", pct: 5 };
 }
 
 interface GenerationProgressProps {
   visible: boolean;
   progress: number;
   currentStep: string;
+  retryAttempt?: number;
 }
 
-export default function GenerationProgress({ visible, progress, currentStep }: GenerationProgressProps) {
-  const [displayStage, setDisplayStage] = useState(0);
-  const stageTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastBackendStage = useRef(0);
+export default function GenerationProgress({ visible, progress, currentStep, retryAttempt }: GenerationProgressProps) {
   const [messageIndex, setMessageIndex] = useState(0);
+  const prevNodeRef = useRef(currentStep);
 
+  // Reset message index when node changes
   useEffect(() => {
-    if (!visible) {
-      setDisplayStage(0);
-      lastBackendStage.current = 0;
-      return;
+    if (currentStep !== prevNodeRef.current) {
+      setMessageIndex(0);
+      prevNodeRef.current = currentStep;
     }
-    const backendStage = mapBackendStatus(currentStep, progress);
-    lastBackendStage.current = backendStage;
-    setDisplayStage(prev => Math.max(prev, backendStage));
-  }, [visible, currentStep, progress]);
+  }, [currentStep]);
 
+  // Rotate messages within current node
   useEffect(() => {
     if (!visible) return;
-    const advanceIfNeeded = () => {
-      setDisplayStage(prev => {
-        const maxAllowed = Math.min(lastBackendStage.current + 1, GENERATION_STAGES.length - 2);
-        if (prev < maxAllowed) return prev + 1;
-        return prev;
-      });
-    };
-    stageTimerRef.current = setInterval(advanceIfNeeded, 8000);
-    const initialTimer = setTimeout(advanceIfNeeded, 3000);
-    return () => {
-      if (stageTimerRef.current) clearInterval(stageTimerRef.current);
-      clearTimeout(initialTimer);
-    };
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible) return;
-    setMessageIndex(0);
-    const stageId = GENERATION_STAGES[displayStage]?.id;
-    const msgs = ROTATING_MESSAGES[stageId] || [];
+    const msgs = ROTATING_MESSAGES[currentStep] || ROTATING_MESSAGES["_loading"] || [];
     if (msgs.length <= 1) return;
     const interval = setInterval(() => {
-      setMessageIndex(prev => (prev + 1) % msgs.length);
+      setMessageIndex((prev) => (prev + 1) % msgs.length);
     }, 3500);
     return () => clearInterval(interval);
-  }, [visible, displayStage]);
+  }, [visible, currentStep]);
 
   if (!visible) return null;
 
-  const currentStageData = GENERATION_STAGES[displayStage];
-  const stageMessages = ROTATING_MESSAGES[currentStageData.id] || [];
-  const currentMessage = stageMessages[messageIndex % stageMessages.length] || "";
-  const isCompleted = displayStage === GENERATION_STAGES.length - 1;
-  const displayPct = isCompleted ? 100 : Math.max(Math.min(progress, 99), Math.round((displayStage / (GENERATION_STAGES.length - 1)) * 100));
-  const totalStages = GENERATION_STAGES.length - 1;
+  const { label, pct } = getNodeStage(currentStep);
+  const displayPct = progress >= 100 ? 100 : Math.max(pct, Math.min(progress, 99));
+  const displayLabel = retryAttempt && retryAttempt > 0 && currentStep === "generate_fix"
+    ? `${label} (attempt ${retryAttempt})`
+    : label;
+
+  const msgs = ROTATING_MESSAGES[currentStep] || ROTATING_MESSAGES["_loading"] || [];
+  const currentMessage = msgs[messageIndex % msgs.length] || "";
+
+  const isCompleted = displayPct >= 100;
+  const isFailed = currentStep === "failed_final";
+
+  // Count completed stages for dots
+  const mainStages = NODE_STAGES.filter((s) => s.node !== "failed_final" && s.node !== "success_original_glb");
+  const currentIdx = mainStages.findIndex((s) => s.node === currentStep);
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center flex-col bg-background/95 backdrop-blur-sm">
@@ -144,26 +122,26 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
         animate={{ opacity: 1, scale: 1 }}
         className="w-[420px] flex flex-col items-center text-center"
       >
-        {/* Percentage — Bebas Neue display font */}
+        {/* Percentage */}
         <div className="font-display text-[80px] tracking-[0.08em] text-foreground leading-none">
-          {displayPct}%
+          {isFailed ? "✕" : `${Math.round(displayPct)}%`}
         </div>
 
-        {/* Stage label — Bebas Neue, smaller */}
+        {/* Stage label */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentStageData.id}
+            key={currentStep}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.3 }}
             className="font-display text-lg tracking-[0.2em] text-muted-foreground uppercase mt-2"
           >
-            {currentStageData.label}
+            {displayLabel}
           </motion.div>
         </AnimatePresence>
 
-        {/* Progress bar — flat, no radius, brutalist */}
+        {/* Progress bar */}
         <div className="w-full h-[1px] overflow-hidden mt-6 mb-6 bg-border">
           <motion.div
             className="h-full bg-foreground"
@@ -172,10 +150,10 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
           />
         </div>
 
-        {/* Rotating message — Space Mono, single line */}
+        {/* Rotating message */}
         <AnimatePresence mode="wait">
           <motion.p
-            key={`${currentStageData.id}-${messageIndex}`}
+            key={`${currentStep}-${messageIndex}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 0.6, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -186,14 +164,14 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
           </motion.p>
         </AnimatePresence>
 
-        {/* Minimal stage dots — flat squares, brutalist */}
+        {/* Stage dots */}
         <div className="flex items-center gap-1.5 mt-8">
-          {GENERATION_STAGES.slice(0, totalStages).map((stage, i) => {
-            const isDone = i < displayStage;
-            const isActive = i === displayStage;
+          {mainStages.map((stage, i) => {
+            const isDone = currentIdx >= 0 && i < currentIdx;
+            const isActive = i === currentIdx;
             return (
               <div
-                key={stage.id}
+                key={stage.node}
                 className={`transition-all duration-500 ${
                   isDone
                     ? "w-6 h-[2px] bg-foreground"
@@ -202,7 +180,7 @@ export default function GenerationProgress({ visible, progress, currentStep }: G
                       : "w-4 h-[1px] bg-muted-foreground/20"
                 }`}
               >
-                {isActive && (
+                {isActive && !isCompleted && (
                   <motion.div
                     className="w-full h-full bg-foreground"
                     animate={{ opacity: [1, 0.3, 1] }}
