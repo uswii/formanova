@@ -28,13 +28,13 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="h-[calc(100vh-5rem)] bg-background flex flex-col items-center justify-center px-4 md:px-6 lg:px-10 overflow-hidden">
+    <div className="min-h-[calc(100vh-5rem)] min-h-[calc(100dvh-5rem)] bg-background flex flex-col items-center justify-center px-4 md:px-6 lg:px-10 py-6 md:py-8">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="font-display text-5xl md:text-7xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-6 text-foreground leading-none mb-8"
+        className="font-display text-5xl md:text-7xl lg:text-[clamp(5rem,10vw,10rem)] uppercase tracking-wide text-center text-foreground leading-none mb-6 md:mb-8"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
@@ -44,7 +44,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="w-full max-w-7xl grid grid-cols-2 gap-4 md:gap-6 pb-6 md:pb-10 -mt-2"
+        className="w-full max-w-7xl grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 pb-6 md:pb-10"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
