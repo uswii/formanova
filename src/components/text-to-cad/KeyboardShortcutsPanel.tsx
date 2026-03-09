@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, X } from "lucide-react";
 import { SHORTCUT_SECTIONS } from "@/hooks/use-cad-keyboard-shortcuts";
