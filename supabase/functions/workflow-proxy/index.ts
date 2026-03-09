@@ -26,29 +26,13 @@ function getCorsHeaders(req: Request): Record<string, string> {
 // SERVICE URLs — Edit these directly when endpoints change
 // ═══════════════════════════════════════════════════════════════
 const TEMPORAL_URL = 'https://formanova.ai/api';                                                  // Temporal/DAG gateway
-const STANDALONE_URL = 'http://48.214.48.103:8000';                                              // A100 standalone server
-const DIRECT_API_URL = 'http://48.214.48.103:8000';                                              // A100 jewelry direct API
-const IMAGE_UTILS_URL = 'http://20.157.122.64:8001';                                              // Image Utils (classification, etc.)
 const AUTH_SERVICE_URL = 'https://formanova.ai/auth';                                            // Auth service
-const TEMPORAL_API_KEY = Deno.env.get('TEMPORAL_API_KEY') || '';                                    // API key for Temporal gateway (never fallback to ADMIN_SECRET)
 
-function getTemporalHeaders(userId?: string): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (TEMPORAL_API_KEY) {
-    headers['X-API-Key'] = TEMPORAL_API_KEY;
-  }
-  if (userId) {
-    headers['X-On-Behalf-Of'] = userId;
-  }
-  return headers;
+function getTemporalHeaders(userToken: string): Record<string, string> {
+  return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userToken}` };
 }
 
-function getBackendUrl(mode: string | null): string {
-  if (mode === 'temporal') return TEMPORAL_URL;
-  return STANDALONE_URL;
-}
-
-async function authenticateRequest(req: Request, corsHeaders: Record<string, string>): Promise<{ userId: string } | { error: Response }> {
+async function authenticateRequest(req: Request, corsHeaders: Record<string, string>): Promise<{ userId: string; userToken: string } | { error: Response }> {
   const userToken = req.headers.get('X-User-Token');
   if (!userToken) {
     return {
@@ -73,7 +57,7 @@ async function authenticateRequest(req: Request, corsHeaders: Record<string, str
 
     const user = await response.json();
     console.log('[workflow-proxy] Authenticated user:', user.email || user.id);
-    return { userId: user.id || user.email || 'authenticated' };
+    return { userId: user.id || user.email || 'authenticated', userToken };
   } catch (e) {
     return {
       error: new Response(JSON.stringify({ error: 'Unauthorized - auth service unavailable' }), {
@@ -108,16 +92,14 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const endpoint = url.searchParams.get('endpoint') || '/process';
-    const mode = url.searchParams.get('mode');
-    const BACKEND_URL = getBackendUrl(mode);
 
     // Health check
     if (endpoint === '/health') {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
+
       try {
-        const response = await fetch(`${BACKEND_URL}/health`, {
+        const response = await fetch(`${TEMPORAL_URL}/health`, {
           method: 'GET', headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
         });
@@ -133,8 +115,8 @@ serve(async (req) => {
     // Status check
     if (endpoint.startsWith('/status/')) {
       const workflowId = endpoint.replace('/status/', '');
-      const response = await fetch(`${BACKEND_URL}/status/${workflowId}`, {
-        method: 'GET', headers: getTemporalHeaders(auth.userId),
+      const response = await fetch(`${TEMPORAL_URL}/status/${workflowId}`, {
+        method: 'GET', headers: getTemporalHeaders(auth.userToken),
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -143,8 +125,8 @@ serve(async (req) => {
     // Result fetch
     if (endpoint.startsWith('/result/')) {
       const workflowId = endpoint.replace('/result/', '');
-      const response = await fetch(`${BACKEND_URL}/result/${workflowId}`, {
-        method: 'GET', headers: getTemporalHeaders(auth.userId),
+      const response = await fetch(`${TEMPORAL_URL}/result/${workflowId}`, {
+        method: 'GET', headers: getTemporalHeaders(auth.userToken),
       });
       const data = await response.text();
       return new Response(data, { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -159,9 +141,9 @@ serve(async (req) => {
       const timeoutId = setTimeout(() => controller.abort(), 600000);
 
       try {
-        const response = await fetch(`${BACKEND_URL}/process`, {
+        const response = await fetch(`${TEMPORAL_URL}/process`, {
           method: 'POST',
-          headers: { ...getTemporalHeaders(auth.userId), 'Content-Type': contentType },
+          headers: { ...getTemporalHeaders(auth.userToken), 'Content-Type': contentType },
           body: body,
           signal: controller.signal,
         });
@@ -190,92 +172,6 @@ serve(async (req) => {
       }
     }
 
-    // Agentic masking
-    if (endpoint === '/tools/agentic_masking/run' && req.method === 'POST') {
-      const body = await req.json();
-      let imageObj = body.data?.image;
-      if (typeof imageObj === 'string') {
-        const base64Data = imageObj.includes(',') ? imageObj.split(',')[1] : imageObj;
-        imageObj = { base64: base64Data };
-      }
-      
-      const transformedBody = { data: { ...body.data, image: imageObj } };
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000);
-
-      try {
-        const response = await fetch(`${STANDALONE_URL}/tools/agentic_masking/run`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(transformedBody),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          return new Response(
-            JSON.stringify({ error: `Agentic masking failed: ${errorText}` }),
-            { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        const data = await response.text();
-        return new Response(data, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      } catch (e) {
-        clearTimeout(timeoutId);
-        if (e instanceof Error && e.name === 'AbortError') {
-          return new Response(
-            JSON.stringify({ error: 'Agentic masking timed out after 5 minutes' }),
-            { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        throw e;
-      }
-    }
-
-    // Multipart photoshoot
-    if (endpoint === '/tools/agentic_photoshoot/run-multipart' && req.method === 'POST') {
-      const contentType = req.headers.get('content-type') || '';
-      const body = await req.arrayBuffer();
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600000);
-
-      try {
-        const response = await fetch(`${STANDALONE_URL}/tools/agentic_photoshoot/run-multipart`, {
-          method: 'POST',
-          headers: { 'Content-Type': contentType },
-          body: body,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          return new Response(
-            JSON.stringify({ error: `Multipart photoshoot failed: ${errorText}` }),
-            { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        const data = await response.text();
-        return new Response(data, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      } catch (e) {
-        clearTimeout(timeoutId);
-        if (e instanceof Error && e.name === 'AbortError') {
-          return new Response(
-            JSON.stringify({ error: 'Multipart photoshoot timed out after 10 minutes' }),
-            { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        throw e;
-      }
-    }
-
     // Validation API
     if (endpoint.startsWith('/api/validate/') && req.method === 'POST') {
       const body = await req.text();
@@ -286,7 +182,7 @@ serve(async (req) => {
       try {
         const response = await fetch(`${TEMPORAL_URL}${endpoint}`, {
           method: 'POST',
-          headers: getTemporalHeaders(auth.userId),
+          headers: getTemporalHeaders(auth.userToken),
           body: body,
           signal: controller.signal,
         });
@@ -344,9 +240,7 @@ serve(async (req) => {
         formData.append('num_variations', '1');
 
         // POST to /process
-        const processHeaders: Record<string, string> = {};
-        if (TEMPORAL_API_KEY) processHeaders['X-API-Key'] = TEMPORAL_API_KEY;
-        if (auth.userId) processHeaders['X-On-Behalf-Of'] = auth.userId;
+        const processHeaders: Record<string, string> = { 'Authorization': `Bearer ${auth.userToken}` };
 
         const startResponse = await fetch(`${TEMPORAL_URL}/process`, {
           method: 'POST',

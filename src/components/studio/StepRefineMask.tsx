@@ -9,7 +9,6 @@ import { StudioState } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
-import { a100Api } from '@/lib/a100-api';
 
 interface Props {
   state: StudioState;
@@ -106,27 +105,7 @@ export function StepRefineMask({ state, updateState, onNext, onBack, jewelryType
     setIsApplying(true);
 
     try {
-      // Extract base64 from data URLs
-      let originalBase64 = state.originalImage;
-      if (originalBase64.includes(',')) originalBase64 = originalBase64.split(',')[1];
-
-      let maskBase64 = state.editedMask || state.maskBinary;
-      if (maskBase64.includes(',')) maskBase64 = maskBase64.split(',')[1];
-
-      const response = await a100Api.refineMask({
-        original_image_base64: originalBase64,
-        current_mask_base64: maskBase64,
-        brush_strokes: effectiveStrokes,
-      });
-
-      if (!response) throw new Error('Refine failed');
-
-      updateState({
-        maskBinary: `data:image/png;base64,${response.mask_base64}`,
-        maskOverlay: `data:image/jpeg;base64,${response.mask_overlay_base64}`,
-        editedMask: `data:image/png;base64,${response.mask_base64}`,
-      });
-
+      // TODO: wire to new workflow
       onNext();
     } catch (error) {
       console.error('Refine mask error:', error);

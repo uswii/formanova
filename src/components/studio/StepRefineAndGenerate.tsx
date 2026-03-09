@@ -25,8 +25,6 @@ import { StudioState, SkinTone } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { BinaryMaskPreview } from './BinaryMaskPreview';
-import { a100Api } from '@/lib/a100-api';
-import { compressDataUrl } from '@/lib/image-compression';
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -339,189 +337,16 @@ export function StepRefineAndGenerate({ state, updateState, onBack, jewelryType 
     setGenerationProgress(0);
     setCurrentStepLabel('Preparing your photoshoot...');
 
-    const isNecklace = jewelryType === 'necklace' || jewelryType === 'necklaces';
-
     try {
-      // Check if A100 server is online
-      const isOnline = await a100Api.ensureOnline();
-      if (!isOnline) {
-        throw new Error('AI server is offline. Please try again later.');
-      }
-      
-      setGenerationProgress(5);
-      setCurrentStepLabel('Preparing mask...');
-      
-      // IMPORTANT: If user has made brush edits, bake them into the mask before sending
-      let maskToUse = baseMask;
-      
-      if (effectiveStrokes.length > 0) {
-        console.log('[A100] Baking', effectiveStrokes.length, 'brush strokes into mask');
-        try {
-          maskToUse = await bakeMaskWithStrokes(baseMask, effectiveStrokes);
-          console.log('[A100] Baked mask ready');
-          updateState({ editedMask: maskToUse });
-        } catch (bakeError) {
-          console.error('[A100] Failed to bake strokes, using base mask:', bakeError);
-        }
-      }
-      
-      setGenerationProgress(10);
-      setCurrentStepLabel('Compressing images...');
-      
-      // Compress the mask if it's large
-      let compressedMask = maskToUse;
-      const maskSizeKB = (maskToUse.length * 0.75) / 1024;
-      
-      if (maskSizeKB > 800) {
-        console.log('[A100] Mask exceeds 800KB, compressing...');
-        const { blob: compressedMaskBlob, wasCompressed } = await compressDataUrl(maskToUse, 800);
-        if (wasCompressed) {
-          const reader = new FileReader();
-          compressedMask = await new Promise((resolve) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(compressedMaskBlob);
-          });
-        }
-      }
-      
-      setGenerationProgress(20);
-      setCurrentStepLabel('Generating photoshoot...');
-      
-      // Map jewelry type to singular form
-      let singularType = jewelryType;
-      if (jewelryType === 'necklaces') singularType = 'necklace';
-      else if (jewelryType === 'rings') singularType = 'ring';
-      else if (jewelryType === 'bracelets') singularType = 'bracelet';
-      else if (jewelryType === 'earrings') singularType = 'earring';
-      else if (jewelryType === 'watches') singularType = 'watch';
-      
-      console.log('[A100] Calling generate API');
-      console.log('[A100] Jewelry type:', singularType, 'isNecklace:', isNecklace);
-      console.log('[A100] Skin tone:', state.skinTone);
-      
-      // Start a simulated progress interval since A100 doesn't stream progress
-      // This provides visual feedback during the long generation call
-      const progressSteps = [
-        { progress: 30, label: 'Creating model scene...', delay: 3000 },
-        { progress: 40, label: 'Placing jewelry...', delay: 6000 },
-        { progress: 50, label: 'Generating photoshoot...', delay: 10000 },
-        { progress: 60, label: 'Refining details...', delay: 15000 },
-        { progress: 70, label: 'Enhancing with AI...', delay: 25000 },
-        { progress: 80, label: 'Finalizing...', delay: 40000 },
-      ];
-      
-      const progressTimeouts: NodeJS.Timeout[] = [];
-      progressSteps.forEach(({ progress, label, delay }) => {
-        const timeout = setTimeout(() => {
-          setGenerationProgress(progress);
-          setCurrentStepLabel(label);
-        }, delay);
-        progressTimeouts.push(timeout);
-      });
-      
-      // Call A100 generate endpoint directly
-      const generateResult = await a100Api.generate({
-        image_base64: state.originalImage,
-        mask_base64: compressedMask,
-        jewelry_type: singularType,
-        skin_tone: state.skinTone,
-        original_mask_base64: state.originalMask || undefined,
-        gender: state.gender,
-        use_gemini: true,
-        scaled_points: state.scaledPoints || undefined,
-        enable_quality_check: true,
-        enable_transformation: true,
-      });
-      
-      // Clear all progress timeouts once we get the response
-      progressTimeouts.forEach(clearTimeout);
-      
-      if (!generateResult) {
-        throw new Error('Generation failed. Please try again.');
-      }
-      
-      setGenerationProgress(90);
-      setCurrentStepLabel('Processing results...');
-      
-      console.log('[A100] Generate response:', {
-        sessionId: generateResult.session_id,
-        hasTwoModes: generateResult.has_two_modes,
-        hasResult: !!generateResult.result_base64,
-        hasGeminiResult: !!generateResult.result_gemini_base64,
-        hasFidelityViz: !!generateResult.fidelity_viz_base64,
-        hasMetrics: !!generateResult.metrics,
-      });
-      
-      // Format results from A100 API
-      const fluxResult = generateResult.result_base64?.startsWith('data:')
-        ? generateResult.result_base64
-        : `data:image/jpeg;base64,${generateResult.result_base64}`;
-      
-      const geminiResult = generateResult.result_gemini_base64
-        ? (generateResult.result_gemini_base64.startsWith('data:')
-          ? generateResult.result_gemini_base64
-          : `data:image/jpeg;base64,${generateResult.result_gemini_base64}`)
-        : null;
-      
-      const fidelityViz = generateResult.fidelity_viz_base64
-        ? (generateResult.fidelity_viz_base64.startsWith('data:')
-          ? generateResult.fidelity_viz_base64
-          : `data:image/jpeg;base64,${generateResult.fidelity_viz_base64}`)
-        : null;
-      
-      const fidelityVizGemini = generateResult.fidelity_viz_gemini_base64
-        ? (generateResult.fidelity_viz_gemini_base64.startsWith('data:')
-          ? generateResult.fidelity_viz_gemini_base64
-          : `data:image/jpeg;base64,${generateResult.fidelity_viz_gemini_base64}`)
-        : null;
-      
-      // Format metrics
-      const metrics = generateResult.metrics ? {
-        precision: generateResult.metrics.precision,
-        recall: generateResult.metrics.recall,
-        iou: generateResult.metrics.iou,
-        growthRatio: generateResult.metrics.growth_ratio,
-      } : null;
-      
-      const metricsGemini = generateResult.metrics_gemini ? {
-        precision: generateResult.metrics_gemini.precision,
-        recall: generateResult.metrics_gemini.recall,
-        iou: generateResult.metrics_gemini.iou,
-        growthRatio: generateResult.metrics_gemini.growth_ratio,
-      } : null;
-      
-      setGenerationProgress(100);
-      setCurrentStepLabel('Complete!');
-      
-      // Determine status based on metrics
-      const status = (metrics && metrics.precision > 0.9) || (metricsGemini && metricsGemini.precision > 0.9)
-        ? 'good' as const
-        : 'bad' as const;
-
-      updateState({
-        fluxResult,
-        geminiResult,
-        fidelityViz,
-        fidelityVizGemini: fidelityVizGemini,
-        metrics,
-        metricsGemini,
-        status,
-        isGenerating: false,
-        hasTwoModes: generateResult.has_two_modes ?? isNecklace,
-        sessionId: generateResult.session_id,
-      });
-
-      setCurrentView('results');
-
-      // Refresh balance after generation (credits may have been deducted)
-      refreshCredits().catch(() => {});
-
+      // TODO: wire to new workflow
+      updateState({ isGenerating: false });
+      setCurrentView('refine');
     } catch (error) {
-      console.error('[A100] Generation error:', error);
+      console.error('[Generate] Generation error:', error);
       toast({
         variant: 'destructive',
         title: 'Generation failed',
-        description: error instanceof Error ? error.message : 'Failed to generate. Is the A100 server online?',
+        description: error instanceof Error ? error.message : 'Failed to generate. Please try again.',
       });
       updateState({ isGenerating: false });
       setCurrentView('refine');

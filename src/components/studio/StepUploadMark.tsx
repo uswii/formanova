@@ -8,7 +8,6 @@ import { StudioState, SkinTone, MaskingOutputs } from '@/pages/JewelryStudio';
 import { useToast } from '@/hooks/use-toast';
 import { MaskCanvas } from './MaskCanvas';
 import { MarkingTutorial } from './MarkingTutorial';
-import { a100Api } from '@/lib/a100-api';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { normalizeImageFile } from '@/lib/image-normalize';
 // Import embedded example images (768x1024) - Necklaces
@@ -307,7 +306,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
     }
   }, [state.originalImage, handlePaste]);
 
-  // Run segmentation via A100 API directly
+  // Run segmentation
   const handleProceed = async () => {
     if (redDots.length === 0) {
       toast({
@@ -327,130 +326,7 @@ export function StepUploadMark({ state, updateState, onNext, jewelryType = 'neck
       return;
     }
 
-    // Start processing
-    setIsProcessing(true);
-    setProcessingProgress(0);
-    setProcessingStep('AI is identifying jewelry...');
-
-    try {
-      // Check if A100 server is online
-      const isOnline = await a100Api.ensureOnline();
-      if (!isOnline) {
-        throw new Error('AI server is offline. Please try again later.');
-      }
-      
-      setProcessingProgress(10);
-      setProcessingStep('Preparing image...');
-      
-      // Convert image to base64
-      const rawBlob = await imageSourceToBlob(state.originalImage);
-      const { blob: imageBlob, wasCompressed } = await compressImageBlob(rawBlob);
-      if (wasCompressed) {
-        console.log('[A100] Image compressed for upload');
-      }
-      
-      const imageBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(imageBlob);
-      });
-      
-      // Convert points to array format [[x, y], ...]
-      const points = redDots.map(dot => [dot.x, dot.y]);
-      
-      setProcessingProgress(30);
-      setProcessingStep('AI is identifying jewelry...');
-      
-      // Map jewelry type to singular form for A100
-      let singularType = jewelryType;
-      if (jewelryType === 'necklaces') singularType = 'necklace';
-      else if (jewelryType === 'rings') singularType = 'ring';
-      else if (jewelryType === 'bracelets') singularType = 'bracelet';
-      else if (jewelryType === 'earrings') singularType = 'earring';
-      else if (jewelryType === 'watches') singularType = 'watch';
-      
-      console.log('[A100] Calling segment API with', points.length, 'points, type:', singularType);
-      
-      // Call A100 segment endpoint directly
-      const segmentResult = await a100Api.segment({
-        image_base64: imageBase64,
-        points: points,
-        jewelry_type: singularType,
-      });
-      
-      if (!segmentResult) {
-        throw new Error('Segmentation failed. Please try again.');
-      }
-      
-      setProcessingProgress(80);
-      setProcessingStep('Processing mask...');
-      
-      console.log('[A100] Segment response:', {
-        sessionId: segmentResult.session_id,
-        imageWidth: segmentResult.image_width,
-        imageHeight: segmentResult.image_height,
-        hasScaledPoints: segmentResult.scaled_points?.length > 0,
-      });
-      
-      // A100 returns masks with proper format
-      let maskBinary = segmentResult.mask_base64.startsWith('data:') 
-        ? segmentResult.mask_base64 
-        : `data:image/png;base64,${segmentResult.mask_base64}`;
-      
-      let originalMask = segmentResult.original_mask_base64.startsWith('data:')
-        ? segmentResult.original_mask_base64
-        : `data:image/png;base64,${segmentResult.original_mask_base64}`;
-      
-      const processedImage = segmentResult.processed_image_base64.startsWith('data:')
-        ? segmentResult.processed_image_base64
-        : `data:image/jpeg;base64,${segmentResult.processed_image_base64}`;
-      
-      // For non-necklace jewelry, invert the mask so BLACK = jewelry (consistent convention)
-      const isNecklace = singularType === 'necklace';
-      if (!isNecklace) {
-        console.log('[A100] Inverting mask for non-necklace jewelry type:', singularType);
-        maskBinary = await invertMask(maskBinary);
-        originalMask = await invertMask(originalMask);
-      }
-      
-      // Create custom overlay - necklaces use WHITE=jewelry, others use BLACK=jewelry
-      const customOverlay = await createMaskOverlay(
-        processedImage,
-        maskBinary,
-        { r: 0, g: 255, b: 0 }, // Default green overlay
-        isNecklace // Pass jewelry type to flip overlay logic for necklaces
-      );
-      
-      setProcessingProgress(100);
-      setProcessingStep('Complete!');
-      
-      // Update state with results
-      updateState({
-        maskOverlay: customOverlay,
-        maskBinary: maskBinary,
-        originalMask: originalMask,
-        originalImage: processedImage,
-        scaledPoints: segmentResult.scaled_points,
-        processingState: {
-          sessionId: segmentResult.session_id,
-          imageWidth: segmentResult.image_width,
-          imageHeight: segmentResult.image_height,
-        },
-      });
-
-      setIsProcessing(false);
-      onNext();
-
-    } catch (error) {
-      console.error('[A100] Masking error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Masking failed',
-        description: error instanceof Error ? error.message : 'Failed to generate mask. Is the A100 server online?',
-      });
-      setIsProcessing(false);
-    }
+    // TODO: wire to new workflow
   };
 
   const handleCancelProcessing = () => {

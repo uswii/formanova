@@ -1,11 +1,5 @@
 /**
  * DAG Workflow API Client
- * 
- * Connects to the workflow orchestrator at http://20.173.91.22:8000/process
- * Supports 3 workflow types:
- * 1. necklace_point_masking - SAM3 mask generation for necklaces
- * 2. flux_gen_pipeline - Image generation with existing mask (necklaces)
- * 3. all_jewelry_pipeline - Complete pipeline for rings, bracelets, earrings, watches
  */
 
 import { getStoredToken } from './auth-api';
@@ -103,22 +97,6 @@ export interface AllJewelryMaskingResult {
 
 // ========== Workflow 3b: all_jewelry_generation ==========
 
-// Optional masking outputs to skip re-masking in generation workflow
-export interface MaskingOutputsForGeneration {
-  resizedImage?: string;      // resized_image_base64 from agentic_masking
-  jewelrySegment?: string;    // jewelry_segment_base64 from agentic_masking
-  jewelryGreen?: string;      // jewelry_green_base64 from agentic_masking
-  resizeMetadata?: Record<string, unknown>;  // Pass resize_metadata as-is from masking response
-}
-
-export interface AllJewelryGenerationRequest {
-  imageBlob: Blob;
-  maskBase64: string;      // Required: mask from masking step (data:image/png;base64,...)
-  jewelryType: 'ring' | 'bracelet' | 'earrings' | 'watch';
-  skinTone: SkinTone;
-  maskingOutputs?: MaskingOutputsForGeneration;  // Optional: skip re-masking if provided
-}
-
 export interface AllJewelryResult {
   result_base64: string;
   fidelity_viz_base64?: string;
@@ -129,31 +107,6 @@ export interface AllJewelryResult {
     growth_ratio: number;
   };
   session_id: string;
-}
-
-// Synchronous response from agentic masking endpoint (port 8001)
-export interface AgenticMaskingResponse {
-  success: boolean;
-  resized_image_base64: string;
-  mask_base64: string;
-  jewelry_segment_base64: string;
-  jewelry_green_base64: string;
-  resize_metadata: {
-    original_width: number;
-    original_height: number;
-    scale: number;
-    offset_x: number;
-    offset_y: number;
-  };
-}
-
-// Synchronous response from multipart photoshoot endpoint (port 8001)
-export interface MultipartPhotoshootResponse {
-  success: boolean;
-  error: string | null;
-  final_image_base64: string;
-  viton_image_base64?: string;
-  quality_passed?: boolean;
 }
 
 // ========== DAG Step Labels ==========
@@ -431,147 +384,6 @@ class WorkflowApi {
     }
 
     return await response.json();
-  }
-
-  /**
-   * Run agentic_masking via JSON endpoint (synchronous)
-   * Uses /tools/agentic_masking/run on port 8001 (direct API)
-   * Returns mask and segment data directly - no polling needed.
-   */
-  async runAgenticMasking(request: {
-    imageBase64: string;
-    textPrompt: string;
-    points?: number[][];
-  }): Promise<AgenticMaskingResponse> {
-    const payload = {
-      data: {
-        image: request.imageBase64,
-        text_prompt: request.textPrompt,
-        ...(request.points && { points: request.points }),
-      },
-    };
-
-    console.log('[WorkflowApi] Running synchronous agentic masking', {
-      textPrompt: request.textPrompt,
-      hasPoints: !!request.points,
-      imageLength: request.imageBase64.length,
-    });
-
-    const response = await fetch(getProxyUrl('/tools/agentic_masking/run'), {
-      method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Agentic masking failed: ${error}`);
-    }
-
-    const result: AgenticMaskingResponse = await response.json();
-    
-    if (!result.success) {
-      throw new Error('Agentic masking returned success=false');
-    }
-
-    console.log('[WorkflowApi] Agentic masking complete', {
-      hasResizedImage: !!result.resized_image_base64,
-      hasMask: !!result.mask_base64,
-      hasSegment: !!result.jewelry_segment_base64,
-      hasGreen: !!result.jewelry_green_base64,
-    });
-    
-    return result;
-  }
-
-  /**
-   * Run agentic_photoshoot via multipart endpoint (synchronous, skips re-masking)
-   * Uses /tools/agentic_photoshoot/run-multipart on port 8001 (direct API)
-   * Returns the final image directly - no polling needed.
-   * This avoids the 1024KB per-part limit when passing masking outputs.
-   */
-  async runMultipartPhotoshoot(request: AllJewelryGenerationRequest): Promise<MultipartPhotoshootResponse> {
-    if (!request.maskingOutputs) {
-      throw new Error('Multipart photoshoot requires masking outputs');
-    }
-
-    const { resizedImage, jewelrySegment, jewelryGreen, resizeMetadata } = request.maskingOutputs;
-    
-    // Need all 4 masking outputs for the multipart endpoint
-    if (!resizedImage || !jewelrySegment || !jewelryGreen || !resizeMetadata) {
-      throw new Error('Incomplete masking outputs for multipart photoshoot');
-    }
-
-    const formData = new FormData();
-    
-    // Convert base64 strings to Blobs for file uploads
-    const resizedImageBlob = base64ToBlob(
-      resizedImage.replace(/^data:image\/\w+;base64,/, ''), 
-      'image/png'
-    );
-    const maskBlob = base64ToBlob(
-      request.maskBase64.replace(/^data:image\/\w+;base64,/, ''), 
-      'image/png'
-    );
-    const jewelrySegmentBlob = base64ToBlob(
-      jewelrySegment.replace(/^data:image\/\w+;base64,/, ''), 
-      'image/png'
-    );
-    const jewelryGreenBlob = base64ToBlob(
-      jewelryGreen.replace(/^data:image\/\w+;base64,/, ''), 
-      'image/png'
-    );
-
-    // Append files as separate form-data parts (each under 1024KB limit)
-    formData.append('resized_image', resizedImageBlob, 'resized_image.png');
-    formData.append('mask', maskBlob, 'mask.png');
-    formData.append('jewelry_segment', jewelrySegmentBlob, 'jewelry_segment.png');
-    formData.append('jewelry_green', jewelryGreenBlob, 'jewelry_green.png');
-    
-    // Append metadata and parameters
-    formData.append('resize_metadata', JSON.stringify(resizeMetadata));
-    formData.append('jewelry_type', request.jewelryType);
-    formData.append('skin_tone', request.skinTone);
-    formData.append('max_retries', '3');
-
-    console.log('[WorkflowApi] Running synchronous multipart photoshoot', {
-      jewelryType: request.jewelryType,
-      skinTone: request.skinTone,
-      resizedImageSize: resizedImageBlob.size,
-      maskSize: maskBlob.size,
-      jewelrySegmentSize: jewelrySegmentBlob.size,
-      jewelryGreenSize: jewelryGreenBlob.size,
-    });
-
-    // Use workflow-proxy edge function with multipart endpoint (routes to port 8001)
-    const response = await fetch(getProxyUrl('/tools/agentic_photoshoot/run-multipart'), {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: formData,
-      // No Content-Type header - browser sets it with boundary
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      const toolUnavailableMatch = error.match(/tool_unavailable\s*\[([^\]]+)\]/i);
-      if (toolUnavailableMatch || error.includes('tool_unavailable')) {
-        const missingTools = toolUnavailableMatch ? toolUnavailableMatch[1] : 'unknown';
-        throw new Error(`Backend service missing required tool: ${missingTools}. Please contact support or try again later.`);
-      }
-      throw new Error(`Multipart photoshoot failed: ${error}`);
-    }
-
-    const result: MultipartPhotoshootResponse = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Multipart photoshoot failed');
-    }
-
-    console.log('[WorkflowApi] Multipart photoshoot complete, image received');
-    return result;
   }
 
   /**

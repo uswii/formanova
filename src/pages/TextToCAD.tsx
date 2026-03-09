@@ -65,6 +65,13 @@ export default function TextToCAD() {
   const canvasRef = useRef<CADCanvasHandle>(null);
   const wireframeRef = useRef(false);
   const meshesRef = useRef<MeshItemData[]>(meshes);
+  const pollAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      pollAbortRef.current?.abort();
+    };
+  }, []);
   meshesRef.current = meshes;
 
   const selectedMeshNames = useMemo(
@@ -195,7 +202,8 @@ export default function TextToCAD() {
     }
 
     // ── Real generation ──
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const LLM_MAP: Record<string, string> = { "gemini": "gemini", "claude-sonnet": "claude-sonnet", "claude-opus": "claude-opus" };
+    const llm = LLM_MAP[model] ?? "gemini";
 
     const modelKey = `ring_generate_v1:${model}`;
     const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
@@ -222,10 +230,13 @@ export default function TextToCAD() {
 
     try {
       // Step 1: Start generation
-      const startRes = await authenticatedFetch(`${SUPABASE_URL}/functions/v1/generate-ring`, {
+      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim(), model }),
+        body: JSON.stringify({
+          payload: { llm, prompt: prompt.trim(), max_attempts: 3 },
+          return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
+        }),
       });
 
       if (!startRes.ok) {
@@ -241,11 +252,16 @@ export default function TextToCAD() {
       // Step 2: Poll status every 3s with continuous synthetic micro-increments
       // The bar NEVER stops moving, but also NEVER reaches 100% until status=completed.
       // Uses asymptotic deceleration: increment shrinks as we approach 99%.
-      const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted"]);
+      const TERMINAL_STATES = new Set(["failed", "cancelled", "terminated", "timed_out", "budget_exhausted", "error", "node_failed"]);
       const TICK_INTERVAL_MS = 1000;
+      pollAbortRef.current?.abort();
+      const pollAbort = new AbortController();
+      pollAbortRef.current = pollAbort;
       let pollErrors = 0;
       let currentPct = 3;
       setProgress(currentPct);
+      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+      const pollStart = Date.now();
 
       // Asymptotic ticker — decelerates aggressively so it never stalls at one number
       // Phase 1 (0-60%): steady climb ~0.5%/s
@@ -270,12 +286,19 @@ export default function TextToCAD() {
 
       try {
         while (true) {
-          await new Promise((r) => setTimeout(r, 3000));
+          if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
+            throw new Error("Generation timed out after 1 hour");
+          }
+          await new Promise((r) => setTimeout(r, 2000));
           try {
             const statusRes = await authenticatedFetch(
-              `${SUPABASE_URL}/functions/v1/ring-status?workflow_id=${encodeURIComponent(workflow_id)}`
+              `/api/status/${encodeURIComponent(workflow_id)}`,
+              { signal: pollAbort.signal }
             );
 
+            if (statusRes.status === 404) {
+              throw new Error("Workflow not found — generation was terminated");
+            }
             if (!statusRes.ok) {
               pollErrors++;
               if (pollErrors >= 10) throw new Error("Status polling failed repeatedly");
@@ -285,19 +308,14 @@ export default function TextToCAD() {
             const statusData = await statusRes.json();
             pollErrors = 0;
 
-            // If backend reports real progress ahead of our synthetic value, jump to it
-            const backendPct = statusData.progress ?? 0;
-            if (backendPct > currentPct && backendPct < 99) {
-              currentPct = backendPct;
-              setProgress(Math.round(currentPct));
-            }
-
-            if (statusData.state === "completed") break;
-            if (TERMINAL_STATES.has(statusData.state)) {
-              throw new Error(`Generation ${statusData.state}`);
+            const state = (statusData.runtime?.state || "unknown").toLowerCase();
+            if (state === "completed") break;
+            if (TERMINAL_STATES.has(state)) {
+              throw new Error(`Generation ${state}`);
             }
           } catch (err) {
             if (err instanceof AuthExpiredError) { clearInterval(tickHandle); return; }
+            if (err instanceof Error && err.name === "AbortError") { clearInterval(tickHandle); return; }
             pollErrors++;
             if (pollErrors >= 10) throw err;
           }
@@ -311,18 +329,24 @@ export default function TextToCAD() {
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(
-          `${SUPABASE_URL}/functions/v1/ring-result?workflow_id=${encodeURIComponent(workflow_id)}`
-        );
+        const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
 
         if (resultRes.ok) {
-          const data = await resultRes.json();
-          glb_url = data.glb_url;
-          break;
+          const result = await resultRes.json();
+          // Extract GLB URL from result nodes
+          const toUrl = (uri: string) => uri.startsWith("azure://")
+            ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
+            : uri;
+          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri;
+          const successOriginal = result["success_original_glb"]?.[0]?.glb_artifact?.uri;
+          const rawUri = successFinal || successOriginal;
+          if (rawUri) { glb_url = toUrl(rawUri); break; }
+          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
+          throw new Error(hasFailed ? "Generation failed — no valid model produced" : "No GLB model found in results");
         }
 
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
-          console.warn(`[TextToCAD] ring-result 404, retry ${attempt}/${MAX_RESULT_RETRIES}`);
+          console.warn(`[TextToCAD] result 404, retry ${attempt}/${MAX_RESULT_RETRIES}`);
           await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
