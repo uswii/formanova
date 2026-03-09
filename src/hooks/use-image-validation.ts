@@ -4,7 +4,7 @@ import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 
 const BASE_URL = 'https://formanova.ai';
-const CLASSIFICATION_URL = `${BASE_URL}/tools/image_classification/run`;
+const CLASSIFICATION_URL = `${BASE_URL}/api/run/state/image_classification`;
 const WORN_CATEGORIES = ['mannequin', 'model', 'body_part'];
 
 // Response from the classification service
