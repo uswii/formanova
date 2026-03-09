@@ -28,7 +28,7 @@ export default function CADStudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[calc(100dvh-5rem)] bg-background flex flex-col items-center justify-center px-4 md:px-6 lg:px-10 overflow-x-hidden">
+    <div className="min-h-[calc(100dvh-5rem)] bg-background flex flex-col items-center justify-center px-4 sm:px-6 lg:px-10 overflow-x-hidden">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
@@ -44,7 +44,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="w-full max-w-7xl grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 pb-6 md:pb-10 -mt-2"
+        className="w-full max-w-[1200px] grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 pb-6 md:pb-10 -mt-2"
       >
         {cadFeatures.map((feature) => {
           const Icon = feature.icon;
@@ -53,7 +53,7 @@ export default function CADStudio() {
             return (
               <div
                 key={feature.title}
-                className="group relative marta-frame overflow-hidden aspect-[4/3] sm:aspect-[4/3] sm:aspect-square opacity-60 cursor-default"
+                className="group relative marta-frame overflow-hidden aspect-[4/3] opacity-60 cursor-default"
               >
                 <img
                   src={feature.image}
@@ -90,7 +90,7 @@ export default function CADStudio() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => navigate(feature.route)}
-              className="group relative marta-frame overflo[4/3] sm:aspect-w-hidden aspect-square cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              className="group relative marta-frame overflow-hidden aspect-[4/3] cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
               <img
                 src={feature.image}
