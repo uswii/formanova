@@ -708,10 +708,10 @@ const LoadedModel = forwardRef<
       meshDataList: meshDataList.map((md) => ({
         ...md,
         position: md.position.clone(),
-        rotation: md.rotation.clone(),
+        quaternion: md.quaternion.clone(),
         scale: md.scale.clone(),
         origPos: md.origPos.clone(),
-        origRot: md.origRot.clone(),
+        origQuat: md.origQuat.clone(),
         origScale: md.origScale.clone(),
       })),
       assignedMaterials: { ...assignedMaterials },
