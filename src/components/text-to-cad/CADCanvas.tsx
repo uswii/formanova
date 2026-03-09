@@ -675,26 +675,25 @@ const LoadedModel = forwardRef<
       const names = new Set(meshNames);
       setMeshDataList((prev) => prev.map((md) => {
         if (!names.has(md.name)) return md;
-        // Build the object matrix: T * R * S
+        // Build the object matrix: T * Q * S
         const matrix = new THREE.Matrix4();
-        const quat = new THREE.Quaternion().setFromEuler(md.rotation);
-        matrix.compose(md.position, quat, md.scale);
+        matrix.compose(md.position, md.quaternion, md.scale);
         // Apply matrix to geometry vertices
         const newGeo = md.geometry.clone();
         newGeo.applyMatrix4(matrix);
         newGeo.computeVertexNormals();
         // Reset transform to identity
         const identityPos = new THREE.Vector3(0, 0, 0);
-        const identityRot = new THREE.Euler(0, 0, 0);
+        const identityQuat = new THREE.Quaternion();
         const identityScale = new THREE.Vector3(1, 1, 1);
         return {
           ...md,
           geometry: newGeo,
           position: identityPos,
-          rotation: identityRot,
+          quaternion: identityQuat,
           scale: identityScale,
           origPos: identityPos.clone(),
-          origRot: identityRot.clone(),
+          origQuat: identityQuat.clone(),
           origScale: identityScale.clone(),
         };
       }));
