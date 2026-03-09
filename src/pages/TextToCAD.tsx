@@ -356,7 +356,7 @@ export default function TextToCAD() {
       if (!glb_url) throw new Error("No GLB model found in results");
 
       setGlbUrl(glb_url);
-      setProgress(98);
+      setProgressStep("success_final");
       setProgressStep("_loading");
       setIsModelLoading(true);
       setIsGenerating(false);
