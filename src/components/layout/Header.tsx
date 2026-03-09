@@ -55,7 +55,7 @@ export function Header() {
             : 'bg-transparent'
         }`}
       >
-        <div className="flex h-16 md:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
+        <div className="flex h-16 lg:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
           {/* Left side: Logo first, then Theme Switcher */}
           <div className="flex items-center gap-3 md:gap-4">
             {/* Logo - First at corner */}
