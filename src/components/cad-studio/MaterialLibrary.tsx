@@ -56,16 +56,16 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
       )}
 
       <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-thin">
-        <div className="grid grid-cols-2 gap-2 mt-2">
+        <div className="grid grid-cols-2 gap-1.5 mt-2">
           {items.map((mat) => (
             <button
               key={mat.id}
               onClick={() => onApplyMaterial(mat)}
               disabled={!selectedMesh}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/30 bg-card/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl border border-border/30 bg-card/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group overflow-hidden min-w-0"
             >
-              <MaterialSphere category={mat.category} preview={mat.preview} size={40} />
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-foreground/80 group-hover:text-foreground text-center leading-tight w-full break-words">
+              <MaterialSphere category={mat.category} preview={mat.preview} size={36} />
+              <span className="text-[8px] font-semibold uppercase tracking-wider text-foreground/80 group-hover:text-foreground text-center leading-tight w-full break-words hyphens-auto overflow-hidden">
                 {mat.name}
               </span>
             </button>
