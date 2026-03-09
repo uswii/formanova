@@ -29,19 +29,15 @@ function formatElapsed(seconds: number): string {
 }
 
 /** Crawling progress bar for a single stage — never reaches 100% on its own */
-/** A single step segment: shimmer when active, solid when done, dim when pending */
+/** A single step segment: spinner when active, solid when done, dim when pending */
 function StageSegment({ active, done }: { active: boolean; done: boolean }) {
   if (done) {
     return <div className="flex-1 h-[2px] bg-foreground/70" />;
   }
   if (active) {
     return (
-      <div className="flex-1 h-[2px] bg-muted-foreground/10 overflow-hidden relative">
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/60 to-transparent"
-          animate={{ x: ["-100%", "100%"] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
-        />
+      <div className="flex-1 h-[2px] bg-muted-foreground/10 relative flex items-center justify-center">
+        <Loader2 className="absolute h-4 w-4 text-foreground/60 animate-spin" />
       </div>
     );
   }
