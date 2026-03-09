@@ -143,11 +143,11 @@ export function useImageValidation() {
         console.warn('[ImageValidation] Classification request failed:', runRes.status);
         clearTimeout(timeoutId);
         return {
-          category: 'flatlay',
-          is_worn: true,
+          category: 'unknown',
+          is_worn: false,
           confidence: 0,
-          reason: 'skipped',
-          flagged: false,
+          reason: 'classification_unavailable',
+          flagged: true,
           uploaded_url: uploadedUrl,
         };
       }
@@ -213,7 +213,7 @@ export function useImageValidation() {
       if (!resultData) {
         console.warn('[ImageValidation] Could not fetch result');
         clearTimeout(timeoutId);
-        return { category: 'flatlay', is_worn: true, confidence: 0, reason: 'no_result', flagged: false, uploaded_url: uploadedUrl };
+        return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_result', flagged: true, uploaded_url: uploadedUrl };
       }
 
       console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
@@ -238,7 +238,7 @@ export function useImageValidation() {
 
       console.warn('[ImageValidation] No image_captioning in result');
       clearTimeout(timeoutId);
-      return { category: 'flatlay', is_worn: true, confidence: 0, reason: 'no_result', flagged: false, uploaded_url: uploadedUrl };
+      return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_captioning_data', flagged: true, uploaded_url: uploadedUrl };
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
