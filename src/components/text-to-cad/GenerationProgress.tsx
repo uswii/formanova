@@ -43,12 +43,13 @@ function StageBar({ active, done }: { active: boolean; done: boolean }) {
       setWidth(0);
       return;
     }
-    // Start crawling from 0 — asymptotically approach 90% over ~5 min
+    // Crawl very slowly — asymptotically approach 60% over many minutes
+    // Feels like it always has a long way to go
     startRef.current = Date.now();
     const tick = () => {
       const elapsed = (Date.now() - startRef.current) / 1000;
-      // Asymptotic: 90 * (1 - e^(-t/120))  — reaches ~45% at 1min, ~75% at 3min, ~90% cap
-      const pct = 90 * (1 - Math.exp(-elapsed / 120));
+      // Cap at 60%, time constant 300s — reaches ~18% at 1min, ~33% at 2min, ~45% at 4min
+      const pct = 60 * (1 - Math.exp(-elapsed / 300));
       setWidth(pct);
       rafRef.current = requestAnimationFrame(tick);
     };
