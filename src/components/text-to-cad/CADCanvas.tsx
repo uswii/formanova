@@ -542,7 +542,7 @@ const LoadedModel = forwardRef<
       const names = new Set(meshNames);
       setMeshDataList((prev) => prev.map((md) => {
         if (!names.has(md.name)) return md;
-        return { ...md, position: md.origPos.clone(), rotation: md.origRot.clone(), scale: md.origScale.clone() };
+        return { ...md, position: md.origPos.clone(), quaternion: md.origQuat.clone(), scale: md.origScale.clone() };
       }));
       inv();
     },
