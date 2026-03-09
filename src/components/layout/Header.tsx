@@ -55,7 +55,7 @@ export function Header() {
             : 'bg-transparent'
         }`}
       >
-        <div className="flex h-16 md:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
+        <div className="flex h-16 lg:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
           {/* Left side: Logo first, then Theme Switcher */}
           <div className="flex items-center gap-3 md:gap-4">
             {/* Logo - First at corner */}
@@ -68,13 +68,13 @@ export function Header() {
             </div>
             
             {/* Theme Switcher - After logo */}
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               <ThemeSwitcher />
             </div>
           </div>
 
           {/* Desktop Navigation - Marta Style */}
-          <nav className="hidden md:flex items-center gap-4 lg:gap-6 flex-nowrap">
+          <nav className="hidden lg:flex items-center gap-4 lg:gap-6 flex-nowrap">
             {navLinks.map((link) => (
               <Link 
                 key={link.path}
@@ -172,7 +172,7 @@ export function Header() {
           </nav>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-3">
+          <div className="flex lg:hidden items-center gap-3">
             <ThemeSwitcher />
             <Button
               variant="ghost"
@@ -192,7 +192,7 @@ export function Header() {
 
       {/* Mobile Menu Overlay - Marta Style */}
       <div 
-        className={`fixed inset-0 z-40 bg-background transition-all duration-500 md:hidden ${
+        className={`fixed inset-0 z-40 bg-background transition-all duration-500 lg:hidden ${
           isMobileMenuOpen 
             ? 'opacity-100 pointer-events-auto' 
             : 'opacity-0 pointer-events-none'
@@ -280,7 +280,7 @@ export function Header() {
       </div>
 
       {/* Spacer for fixed header */}
-      <div className="h-16 md:h-20" />
+      <div className="h-16 lg:h-20" />
     </>
   );
 }
