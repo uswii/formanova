@@ -34,7 +34,7 @@ export default function CADStudio() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="font-display text-5xl md:text-7xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-6 text-foreground leading-none mb-8"
+        className="font-display text-5xl md:text-6xl lg:text-[10rem] uppercase tracking-wide text-center pt-4 md:pt-8 lg:pt-6 text-foreground leading-none mb-6 md:mb-8"
       >
         CAD <span className="hero-accent-text">Studio</span>
       </motion.h1>
