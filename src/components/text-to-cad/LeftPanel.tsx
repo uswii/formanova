@@ -271,14 +271,14 @@ export default function LeftPanel({
                 </div>
 
                 {/* Add Parts — primary card */}
-                <div className="border-2 border-border bg-card p-4">
+                <div className="border-2 border-border bg-card p-3 lg:p-4 min-w-0 overflow-hidden">
                   <button
                     onClick={() => setAddPartOpen(!addPartOpen)}
-                    className="w-full flex items-center justify-between cursor-pointer"
+                    className="w-full flex items-center justify-between cursor-pointer min-w-0"
                   >
-                    <div className="text-left">
-                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">✚ Add On</span>
-                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Generate and add a new element</span>
+                    <div className="text-left min-w-0 overflow-hidden mr-2">
+                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block truncate">✚ Add On</span>
+                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block truncate">Generate and add a new element</span>
                     </div>
                     {addPartOpen
                       ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
