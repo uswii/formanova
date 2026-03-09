@@ -47,28 +47,28 @@ export default function LeftPanel({
   }, [onGlbUpload]);
 
   return (
-    <div className="flex flex-col bg-card border-r border-border h-full">
+    <div className="flex flex-col bg-card border-r border-border h-full min-w-0 overflow-hidden">
       {/* Header */}
-      <div className="px-6 pt-6 pb-5 border-b border-border">
-        <h1 className="font-display text-2xl tracking-[0.15em] text-foreground uppercase">
+      <div className="px-4 lg:px-6 pt-6 pb-5 border-b border-border min-w-0">
+        <h1 className="font-display text-xl lg:text-2xl tracking-[0.15em] text-foreground uppercase truncate">
           Text‑to‑3D Jewelry
         </h1>
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 scrollbar-thin"
+      <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-6 space-y-6 scrollbar-thin min-w-0"
         style={{ scrollbarWidth: "thin" }}
       >
         {/* AI Model */}
         <section>
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Generation Quality</h3>
-          <div className="flex gap-0 border border-border">
+          <div className="flex gap-0 border border-border min-w-0 overflow-hidden">
             {AI_MODELS.map((m) => (
               <button
                 key={m.id}
                 onClick={() => !m.comingSoon && setModel(m.id)}
                 disabled={m.comingSoon}
-                className={`flex-1 py-3 px-2 text-[12px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 ${
+                className={`flex-1 min-w-0 py-3 px-1.5 text-[11px] lg:text-[12px] font-semibold uppercase tracking-[0.05em] lg:tracking-[0.1em] transition-colors duration-150 border-r border-border last:border-r-0 overflow-hidden ${
                   m.comingSoon
                     ? "text-muted-foreground/30 cursor-not-allowed bg-transparent opacity-40"
                     : model === m.id
@@ -76,9 +76,9 @@ export default function LeftPanel({
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50 cursor-pointer"
                 }`}
               >
-                {m.label}
-                {m.comingSoon && <span className="block font-mono text-[8px] mt-0.5 normal-case tracking-wide">Soon</span>}
-                {!m.comingSoon && <span className={`block font-mono text-[8px] mt-0.5 normal-case tracking-wide ${model === m.id ? "text-primary-foreground/60" : "text-muted-foreground/50"}`}>{m.tier}</span>}
+                <span className="block truncate">{m.label}</span>
+                {m.comingSoon && <span className="block font-mono text-[7px] lg:text-[8px] mt-0.5 normal-case tracking-wide truncate">Soon</span>}
+                {!m.comingSoon && <span className={`block font-mono text-[7px] lg:text-[8px] mt-0.5 normal-case tracking-wide truncate ${model === m.id ? "text-primary-foreground/60" : "text-muted-foreground/50"}`}>{m.tier}</span>}
               </button>
             ))}
           </div>
@@ -102,14 +102,14 @@ export default function LeftPanel({
             <button
               onClick={onGenerate}
               disabled={isGenerating || !prompt.trim()}
-              className="w-full py-4 mt-4 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full py-4 mt-4 text-[12px] lg:text-[13px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
             >
               {isGenerating ? "Generating…" : (
                 <>
-                  Generate Ring
-                  <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                  <span className="truncate">Generate Ring</span>
+                  <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
                     <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                    <span className="text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                    <span className="text-[12px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                   </span>
                 </>
               )}
@@ -121,12 +121,12 @@ export default function LeftPanel({
           <button
             onClick={() => glbInputRef.current?.click()}
             disabled={isGenerating}
-            className="w-full py-3.5 mt-3 text-[12px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground flex items-center justify-center gap-2.5 bg-muted/30 border border-border"
+            className="w-full py-3.5 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground flex items-center justify-center gap-2 bg-muted/30 border border-border min-w-0 overflow-hidden"
           >
             <span className="w-6 h-6 rounded-full border border-primary/60 flex items-center justify-center shrink-0 shadow-[0_0_8px_hsl(var(--primary)/0.4)] text-primary">
               <Diamond className="w-3 h-3" />
             </span>
-            {hasModel ? "Upload Ring Part" : "Upload GLB Model"}
+            <span className="truncate">{hasModel ? "Upload Ring Part" : "Upload GLB Model"}</span>
           </button>
 
           {/* Remove Magic Textures */}
@@ -134,9 +134,9 @@ export default function LeftPanel({
             <button
               onClick={onMagicTexture}
               disabled={isGenerating}
-              className="w-full py-3.5 mt-3 text-[12px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 text-destructive/80 disabled:opacity-30 disabled:cursor-not-allowed hover:text-destructive bg-destructive/5 border border-border"
+              className="w-full py-3.5 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 text-destructive/80 disabled:opacity-30 disabled:cursor-not-allowed hover:text-destructive bg-destructive/5 border border-border min-w-0 overflow-hidden"
             >
-              ✕ Remove Magic Textures
+              <span className="truncate">✕ Remove Magic Textures</span>
             </button>
           )}
         </section>
@@ -150,12 +150,12 @@ export default function LeftPanel({
               exit={{ opacity: 0, height: 0 }}
             >
               <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Components</h3>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 min-w-0">
                 {modules.map((mod) => (
                   <button
                     key={mod}
                     onClick={() => toggleModule(mod)}
-                    className={`px-4 py-2.5 text-[11px] font-semibold cursor-pointer transition-all duration-200 tracking-wide border ${
+                    className={`px-3 lg:px-4 py-2 lg:py-2.5 text-[10px] lg:text-[11px] font-semibold cursor-pointer transition-all duration-200 tracking-wide border truncate max-w-full ${
                       selectedModules.includes(mod)
                         ? "text-foreground bg-accent border-border"
                         : "text-muted-foreground hover:text-foreground bg-muted/20 border-border/50"
@@ -177,10 +177,10 @@ export default function LeftPanel({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="relative p-5 bg-muted/30 border border-border"
+              className="relative p-4 lg:p-5 bg-muted/30 border border-border min-w-0 overflow-hidden"
             >
-              <h3 className="font-display text-lg tracking-[0.15em] text-foreground uppercase mb-1">Edit Your Ring</h3>
-              <p className="font-mono text-[10px] text-muted-foreground mb-4 tracking-wide">Describe changes, rebuild parts, or add new elements</p>
+              <h3 className="font-display text-base lg:text-lg tracking-[0.12em] lg:tracking-[0.15em] text-foreground uppercase mb-1 truncate">Edit Your Ring</h3>
+              <p className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mb-4 tracking-wide truncate">Describe changes, rebuild parts, or add new elements</p>
 
               {/* Text edit prompt */}
               <textarea
@@ -193,12 +193,12 @@ export default function LeftPanel({
               <button
                 onClick={onEdit}
                 disabled={isGenerating || !editPrompt.trim()}
-                className="w-full py-4 mt-3 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                className="w-full py-4 mt-3 text-[12px] lg:text-[13px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
               >
-                Apply Edit
-                <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                <span className="truncate">Apply Edit</span>
+                <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
                   <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                  <span className="text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                  <span className="text-[12px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                 </span>
               </button>
 
@@ -207,14 +207,14 @@ export default function LeftPanel({
                 <h4 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Part Tools</h4>
 
                 {/* Rebuild Parts — primary card */}
-                <div className="border-2 border-border bg-card p-4">
+                <div className="border-2 border-border bg-card p-3 lg:p-4 min-w-0 overflow-hidden">
                   <button
                     onClick={() => setRebuildOpen(!rebuildOpen)}
-                    className="w-full flex items-center justify-between cursor-pointer"
+                    className="w-full flex items-center justify-between cursor-pointer min-w-0"
                   >
-                    <div className="text-left">
-                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">⚙ Rebuild</span>
-                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Select and regenerate any component</span>
+                    <div className="text-left min-w-0 overflow-hidden mr-2">
+                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block truncate">⚙ Rebuild</span>
+                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block truncate">Select and regenerate any component</span>
                     </div>
                     {rebuildOpen
                       ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -256,12 +256,12 @@ export default function LeftPanel({
                           />
                           <button
                             disabled={!selectedPart}
-                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                            className="w-full py-3.5 text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
                           >
-                            ⚙ Rebuild This Part
-                            <span className="inline-flex items-center gap-1 ml-1 opacity-80">
-                              <img src={creditCoinIcon} alt="" className="w-4.5 h-4.5" />
-                              <span className="text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                            <span className="truncate">⚙ Rebuild This Part</span>
+                            <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
+                              <img src={creditCoinIcon} alt="" className="w-4 h-4" />
+                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                             </span>
                           </button>
                         </div>
@@ -271,14 +271,14 @@ export default function LeftPanel({
                 </div>
 
                 {/* Add Parts — primary card */}
-                <div className="border-2 border-border bg-card p-4">
+                <div className="border-2 border-border bg-card p-3 lg:p-4 min-w-0 overflow-hidden">
                   <button
                     onClick={() => setAddPartOpen(!addPartOpen)}
-                    className="w-full flex items-center justify-between cursor-pointer"
+                    className="w-full flex items-center justify-between cursor-pointer min-w-0"
                   >
-                    <div className="text-left">
-                      <span className="font-display text-base tracking-[0.12em] text-foreground uppercase block">✚ Add On</span>
-                      <span className="font-mono text-[10px] text-muted-foreground mt-1 block">Generate and add a new element</span>
+                    <div className="text-left min-w-0 overflow-hidden mr-2">
+                      <span className="font-display text-sm lg:text-base tracking-[0.12em] text-foreground uppercase block truncate">✚ Add On</span>
+                      <span className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mt-1 block truncate">Generate and add a new element</span>
                     </div>
                     {addPartOpen
                       ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -302,12 +302,12 @@ export default function LeftPanel({
                             className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
                           />
                           <button
-                            className="w-full py-3.5 text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+                            className="w-full py-3.5 text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
                           >
-                            ✚ Add to Ring
-                            <span className="inline-flex items-center gap-1 ml-1 opacity-80">
-                              <img src={creditCoinIcon} alt="" className="w-4.5 h-4.5" />
-                              <span className="text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                            <span className="truncate">✚ Add to Ring</span>
+                            <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
+                              <img src={creditCoinIcon} alt="" className="w-4 h-4" />
+                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
                             </span>
                           </button>
                         </div>
@@ -323,11 +323,11 @@ export default function LeftPanel({
       </div>
 
       {/* Status bar */}
-      <div className="px-5 py-3 flex items-center gap-2.5 font-mono text-[10px] border-t border-border bg-card">
+      <div className="px-4 lg:px-5 py-3 flex items-center gap-2.5 font-mono text-[10px] border-t border-border bg-card min-w-0">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
           isGenerating ? "bg-yellow-400 animate-pulse" : "bg-green-400"
         }`} />
-        <span className="text-muted-foreground tracking-wide">{isGenerating ? "Processing…" : "Ready"}</span>
+        <span className="text-muted-foreground tracking-wide truncate">{isGenerating ? "Processing…" : "Ready"}</span>
       </div>
     </div>
   );
