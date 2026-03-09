@@ -121,18 +121,22 @@ export function useImageValidation() {
       // 1. Upload to Azure to get a URL
       const azureResult = await uploadToAzure(base64DataUri);
       const uploadedUrl = azureResult.https_url || azureResult.sas_url;
-      console.log('[ImageValidation] Uploaded:', uploadedUrl);
+      console.log('[ImageValidation] Uploaded URL:', uploadedUrl);
+      console.log('[ImageValidation] Azure result keys:', Object.keys(azureResult), JSON.stringify(azureResult));
 
       // 2. POST /api/run/image_classification
       const authHeaders = getAuthHeaders();
+      const classificationPayload = {
+        payload: {
+          jewelry_image_url: uploadedUrl,
+        },
+      };
+      console.log('[ImageValidation] Sending classification request:', JSON.stringify(classificationPayload));
+      
       const runRes = await fetch(CLASSIFICATION_URL, {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({
-          payload: {
-            jewelry_image_url: uploadedUrl,
-          },
-        }),
+        body: JSON.stringify(classificationPayload),
         signal: controller.signal,
       });
 
