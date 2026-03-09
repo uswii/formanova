@@ -53,7 +53,7 @@ export default function CADStudio() {
             return (
               <div
                 key={feature.title}
-                className="group relative marta-frame overflow-hidden aspect-square opacity-60 cursor-default"
+                className="group relative marta-frame overflow-hidden aspect-[4/3] sm:aspect-square opacity-60 cursor-default"
               >
                 <img
                   src={feature.image}
