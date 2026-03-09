@@ -1,13 +1,14 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
+import type { MeshTransformData } from "./CADCanvas";
 
-const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; color: string; unit: string; step: string; defaultVal: string }> = {
-  translate: { label: "Move", title: "Position", icon: "↔", color: "text-green-400", unit: "", step: "0.01", defaultVal: "0.00" },
-  rotate:    { label: "Rotate", title: "Rotation", icon: "↻", color: "text-blue-400", unit: "°", step: "1", defaultVal: "0" },
-  scale:     { label: "Scale", title: "Scale", icon: "⇔", color: "text-amber-400", unit: "", step: "0.01", defaultVal: "1.00" },
+const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; color: string; unit: string; step: string; defaultVal: string; property: 'position' | 'rotation' | 'scale' }> = {
+  translate: { label: "Move", title: "Position", icon: "↔", color: "text-green-400", unit: "", step: "0.01", defaultVal: "0.00", property: "position" },
+  rotate:    { label: "Rotate", title: "Rotation", icon: "↻", color: "text-blue-400", unit: "°", step: "1", defaultVal: "0", property: "rotation" },
+  scale:     { label: "Scale", title: "Scale", icon: "⇔", color: "text-amber-400", unit: "", step: "0.01", defaultVal: "1.00", property: "scale" },
 };
 
 const AXES = ["X", "Y", "Z"] as const;
@@ -19,9 +20,35 @@ const VT_BTN_DEFAULT = `${VT_BTN} text-foreground/70 hover:text-foreground hover
 const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 
 // ── Unified Transform Toolbar + Inspector ──
-export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: string) => void }) {
+export function ViewportToolbar({
+  mode,
+  setMode,
+  transformData,
+  onTransformChange,
+}: {
+  mode: string;
+  setMode: (m: string) => void;
+  transformData?: MeshTransformData | null;
+  onTransformChange?: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
+}) {
   const config = MODE_CONFIG[mode] ?? null;
   const isTransformActive = mode !== "orbit" && config !== null;
+
+  // Get values for current mode from transform data
+  const getValues = (): [number, number, number] => {
+    if (!transformData || !config) return [0, 0, 0];
+    return transformData[config.property];
+  };
+
+  const values = isTransformActive ? getValues() : [0, 0, 0];
+
+  const handleChange = (axisIdx: number, rawValue: string) => {
+    if (!config || !onTransformChange) return;
+    const num = parseFloat(rawValue);
+    if (isNaN(num)) return;
+    const axis = (['x', 'y', 'z'] as const)[axisIdx];
+    onTransformChange(axis, config.property, num);
+  };
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-4 pointer-events-none">
@@ -60,24 +87,87 @@ export function ViewportToolbar({ mode, setMode }: { mode: string; setMode: (m: 
               </div>
               <div className="flex gap-2">
                 {AXES.map((axis, i) => (
-                  <div key={axis} className="flex items-center gap-1.5 flex-1">
-                    <span className={`font-mono text-[11px] font-bold ${AXIS_COLORS[i]}`}>{axis}</span>
-                    <input
-                      type="number"
-                      step={config.step}
-                      defaultValue={config.defaultVal}
-                      className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
-                    />
-                    {config.unit && (
-                      <span className="font-mono text-[9px] text-muted-foreground">{config.unit}</span>
-                    )}
-                  </div>
+                  <NumericAxisInput
+                    key={`${mode}-${axis}`}
+                    axis={axis}
+                    axisColor={AXIS_COLORS[i]}
+                    value={values[i]}
+                    step={config.step}
+                    unit={config.unit}
+                    onChange={(val) => handleChange(i, val)}
+                  />
                 ))}
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** Controlled numeric input that syncs with external value but allows free typing */
+function NumericAxisInput({
+  axis,
+  axisColor,
+  value,
+  step,
+  unit,
+  onChange,
+}: {
+  axis: string;
+  axisColor: string;
+  value: number;
+  step: string;
+  unit: string;
+  onChange: (val: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [localValue, setLocalValue] = useState(formatNum(value));
+  const isFocused = useRef(false);
+
+  // Sync external value when not focused
+  useEffect(() => {
+    if (!isFocused.current) {
+      setLocalValue(formatNum(value));
+    }
+  }, [value]);
+
+  function formatNum(n: number): string {
+    return Number(n.toFixed(2)).toString();
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 flex-1">
+      <span className={`font-mono text-[11px] font-bold ${axisColor}`}>{axis}</span>
+      <input
+        ref={inputRef}
+        type="number"
+        step={step}
+        value={localValue}
+        onFocus={() => { isFocused.current = true; }}
+        onBlur={() => {
+          isFocused.current = false;
+          onChange(localValue);
+          setLocalValue(formatNum(parseFloat(localValue) || 0));
+        }}
+        onChange={(e) => {
+          setLocalValue(e.target.value);
+          // Live update on every keystroke
+          const num = parseFloat(e.target.value);
+          if (!isNaN(num)) onChange(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onChange(localValue);
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+      />
+      {unit && (
+        <span className="font-mono text-[9px] text-muted-foreground">{unit}</span>
+      )}
     </div>
   );
 }
