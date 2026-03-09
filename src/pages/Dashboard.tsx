@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { isCADEnabled } from '@/lib/feature-flags';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const userName = user?.email ? user.email.split('@')[0] : '';
+  const cadEnabled = isCADEnabled(user?.email);
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
@@ -87,33 +89,35 @@ export default function Dashboard() {
           </div>
         </motion.button>
 
-        {/* From Jewelry CAD — Coming Soon */}
-        <motion.div
-          variants={itemVariants}
-          className="group relative aspect-[4/3] marta-frame overflow-hidden text-left opacity-50 pointer-events-none"
-        >
-          <OptimizedImage
-            src={heroModelRings}
-            alt="From CAD designs"
-            className="absolute inset-0 w-full h-full object-cover grayscale"
-          />
-          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
+        {cadEnabled && (
+          <motion.button
+            variants={itemVariants}
+            onClick={() => navigate('/studio-cad')}
+            className="group relative aspect-[4/3] marta-frame overflow-hidden text-left cursor-pointer transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+          >
+            <OptimizedImage
+              src={heroModelRings}
+              alt="From CAD designs"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
 
-          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
-            <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground">
-              From CAD
-            </h2>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
-              3D CAD to photorealistic catalog
-            </p>
-          </div>
+            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+              <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground">
+                From CAD
+              </h2>
+              <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
+                3D CAD to photorealistic catalog
+              </p>
+            </div>
 
-          <div className="absolute top-4 right-4">
-            <span className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase bg-muted/80 backdrop-blur-sm px-3 py-1.5">
-              Coming Soon
-            </span>
-          </div>
-        </motion.div>
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+              <div className="w-8 h-8 flex items-center justify-center bg-formanova-hero-accent shadow-lg shadow-formanova-hero-accent/30">
+                <ArrowRight className="w-4 h-4 text-primary-foreground" />
+              </div>
+            </div>
+          </motion.button>
+        )}
       </motion.div>
     </div>
   );

@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { CADGate } from '@/components/CADGate';
 import { AdminRoute } from '@/components/admin/AdminRoute';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { Loader2 } from "lucide-react";
@@ -137,9 +138,9 @@ const App = () => (
                   {/* <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} /> */}
                   {/* PRESERVED: Batch upload route - uncomment to restore batch workflow */}
                   {/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}
-                  <Route path="/studio-cad" element={<ProtectedRoute><CADStudio /></ProtectedRoute>} />
-                  <Route path="/cad-to-catalog" element={<ProtectedRoute><CADToCatalog /></ProtectedRoute>} />
-                  <Route path="/text-to-cad" element={<ProtectedRoute><TextToCAD /></ProtectedRoute>} />
+                  <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
+                  <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
+                  <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
                   
                   {/* Admin routes - protected by admin secret */}
                   <Route path="/admin" element={<AdminRoute><AdminBatches /></AdminRoute>} />

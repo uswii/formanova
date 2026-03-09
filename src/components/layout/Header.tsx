@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
+import { isCADEnabled } from '@/lib/feature-flags';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,10 +37,12 @@ export function Header() {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  const cadEnabled = isCADEnabled(user?.email);
+
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/studio', label: 'From Photo' },
-    { path: '/studio-cad', label: 'From CAD' },
+    ...(cadEnabled ? [{ path: '/studio-cad', label: 'From CAD' }] : []),
     // { path: '/tutorial', label: 'Tutorial' }, // hidden for now
   ];
 
