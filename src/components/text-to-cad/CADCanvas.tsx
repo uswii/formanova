@@ -461,15 +461,18 @@ const LoadedModel = forwardRef<
                 const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
                 if ((origMat as any).side !== undefined) (origMat as any).side = THREE.DoubleSide;
 
+                const partDeg = quatToDeg(quat);
                 newParts.push({
                   name,
                   geometry: mesh.geometry,
                   originalMaterial: origMat,
                   position: pos.clone(),
                   quaternion: quat.clone(),
+                  rotationDeg: [...partDeg],
                   scale: scl.clone(),
                   origPos: pos.clone(),
                   origQuat: quat.clone(),
+                  origRotationDeg: [...partDeg],
                   origScale: scl.clone(),
                 });
                 idx++;
