@@ -120,9 +120,8 @@ export function useImageValidation() {
 
       // 1. Upload to Azure to get a URL
       const azureResult = await uploadToAzure(base64DataUri);
-      const uploadedUrl = azureResult.https_url || azureResult.sas_url;
-      console.log('[ImageValidation] Uploaded URL:', uploadedUrl);
-      console.log('[ImageValidation] Azure result keys:', Object.keys(azureResult), JSON.stringify(azureResult));
+      const uploadedUrl = azureResult.uri; // azure:// URI for backend services
+      console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
 
       // 2. POST /api/run/image_classification
       const authHeaders = getAuthHeaders();
