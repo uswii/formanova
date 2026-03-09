@@ -114,10 +114,10 @@ interface MeshData {
   geometry: THREE.BufferGeometry;
   originalMaterial: THREE.Material;
   position: THREE.Vector3;
-  rotation: THREE.Euler;
+  quaternion: THREE.Quaternion;
   scale: THREE.Vector3;
   origPos: THREE.Vector3;
-  origRot: THREE.Euler;
+  origQuat: THREE.Quaternion;
   origScale: THREE.Vector3;
 }
 
@@ -252,7 +252,7 @@ const LoadedModel = forwardRef<
           (worldPos.y - center.y) * s,
           (worldPos.z - center.z) * s
         );
-        const rot = new THREE.Euler().setFromQuaternion(worldQuat);
+        const quat = worldQuat.clone();
         const scl = worldScale.multiplyScalar(s);
         const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
         // Ensure double-sided rendering to prevent disappearing faces at certain angles
@@ -265,10 +265,10 @@ const LoadedModel = forwardRef<
           geometry: mesh.geometry,
           originalMaterial: origMat,
           position: pos.clone(),
-          rotation: rot.clone(),
+          quaternion: quat.clone(),
           scale: scl.clone(),
           origPos: pos.clone(),
-          origRot: rot.clone(),
+          origQuat: quat.clone(),
           origScale: scl.clone(),
         });
         idx++;
@@ -422,7 +422,7 @@ const LoadedModel = forwardRef<
                   (wp.y - center.y) * s,
                   (wp.z - center.z) * s
                 );
-                const rot = new THREE.Euler().setFromQuaternion(wq);
+                const quat = wq.clone();
                 const scl = ws.multiplyScalar(s);
                 const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
                 if ((origMat as any).side !== undefined) (origMat as any).side = THREE.DoubleSide;
@@ -432,10 +432,10 @@ const LoadedModel = forwardRef<
                   geometry: mesh.geometry,
                   originalMaterial: origMat,
                   position: pos.clone(),
-                  rotation: rot.clone(),
+                  quaternion: quat.clone(),
                   scale: scl.clone(),
                   origPos: pos.clone(),
-                  origRot: rot.clone(),
+                  origQuat: quat.clone(),
                   origScale: scl.clone(),
                 });
                 idx++;
@@ -500,7 +500,7 @@ const LoadedModel = forwardRef<
       return {
         ...md,
         position: obj.position.clone(),
-        rotation: obj.rotation.clone(),
+        quaternion: obj.quaternion.clone(),
         scale: obj.scale.clone(),
       };
     }));
@@ -542,7 +542,7 @@ const LoadedModel = forwardRef<
       const names = new Set(meshNames);
       setMeshDataList((prev) => prev.map((md) => {
         if (!names.has(md.name)) return md;
-        return { ...md, position: md.origPos.clone(), rotation: md.origRot.clone(), scale: md.origScale.clone() };
+        return { ...md, position: md.origPos.clone(), quaternion: md.origQuat.clone(), scale: md.origScale.clone() };
       }));
       inv();
     },
@@ -675,26 +675,25 @@ const LoadedModel = forwardRef<
       const names = new Set(meshNames);
       setMeshDataList((prev) => prev.map((md) => {
         if (!names.has(md.name)) return md;
-        // Build the object matrix: T * R * S
+        // Build the object matrix: T * Q * S
         const matrix = new THREE.Matrix4();
-        const quat = new THREE.Quaternion().setFromEuler(md.rotation);
-        matrix.compose(md.position, quat, md.scale);
+        matrix.compose(md.position, md.quaternion, md.scale);
         // Apply matrix to geometry vertices
         const newGeo = md.geometry.clone();
         newGeo.applyMatrix4(matrix);
         newGeo.computeVertexNormals();
         // Reset transform to identity
         const identityPos = new THREE.Vector3(0, 0, 0);
-        const identityRot = new THREE.Euler(0, 0, 0);
+        const identityQuat = new THREE.Quaternion();
         const identityScale = new THREE.Vector3(1, 1, 1);
         return {
           ...md,
           geometry: newGeo,
           position: identityPos,
-          rotation: identityRot,
+          quaternion: identityQuat,
           scale: identityScale,
           origPos: identityPos.clone(),
-          origRot: identityRot.clone(),
+          origQuat: identityQuat.clone(),
           origScale: identityScale.clone(),
         };
       }));
@@ -709,10 +708,10 @@ const LoadedModel = forwardRef<
       meshDataList: meshDataList.map((md) => ({
         ...md,
         position: md.position.clone(),
-        rotation: md.rotation.clone(),
+        quaternion: md.quaternion.clone(),
         scale: md.scale.clone(),
         origPos: md.origPos.clone(),
-        origRot: md.origRot.clone(),
+        origQuat: md.origQuat.clone(),
         origScale: md.origScale.clone(),
       })),
       assignedMaterials: { ...assignedMaterials },
@@ -730,9 +729,10 @@ const LoadedModel = forwardRef<
       const selected = meshDataList.find((m) => selectedMeshNames.has(m.name));
       if (!selected) return null;
       const DEG = 180 / Math.PI;
+      const euler = new THREE.Euler().setFromQuaternion(selected.quaternion, 'YXZ');
       return {
         position: [selected.position.x, selected.position.y, selected.position.z],
-        rotation: [selected.rotation.x * DEG, selected.rotation.y * DEG, selected.rotation.z * DEG],
+        rotation: [euler.x * DEG, euler.y * DEG, euler.z * DEG],
         scale: [selected.scale.x, selected.scale.y, selected.scale.z],
       };
     },
@@ -751,12 +751,14 @@ const LoadedModel = forwardRef<
           else newPos.z = value;
           return { ...md, position: newPos };
         } else if (property === 'rotation') {
-          const newRot = md.rotation.clone();
+          // Convert current quaternion to euler, modify axis, convert back
+          const euler = new THREE.Euler().setFromQuaternion(md.quaternion, 'YXZ');
           const radVal = value * RAD;
-          if (axisIdx === 0) newRot.x = radVal;
-          else if (axisIdx === 1) newRot.y = radVal;
-          else newRot.z = radVal;
-          return { ...md, rotation: newRot };
+          if (axisIdx === 0) euler.x = radVal;
+          else if (axisIdx === 1) euler.y = radVal;
+          else euler.z = radVal;
+          const newQuat = new THREE.Quaternion().setFromEuler(euler);
+          return { ...md, quaternion: newQuat };
         } else {
           const newScale = md.scale.clone();
           if (axisIdx === 0) newScale.x = value;
@@ -774,10 +776,12 @@ const LoadedModel = forwardRef<
           else if (axisIdx === 1) meshObj.position.y = value;
           else meshObj.position.z = value;
         } else if (property === 'rotation') {
+          const euler = new THREE.Euler().setFromQuaternion(meshObj.quaternion, 'YXZ');
           const radVal = value * RAD;
-          if (axisIdx === 0) meshObj.rotation.x = radVal;
-          else if (axisIdx === 1) meshObj.rotation.y = radVal;
-          else meshObj.rotation.z = radVal;
+          if (axisIdx === 0) euler.x = radVal;
+          else if (axisIdx === 1) euler.y = radVal;
+          else euler.z = radVal;
+          meshObj.quaternion.setFromEuler(euler);
         } else {
           if (axisIdx === 0) meshObj.scale.x = value;
           else if (axisIdx === 1) meshObj.scale.y = value;
@@ -842,7 +846,7 @@ const LoadedModel = forwardRef<
           geometry={md.geometry}
           material={md.material}
           position={md.position}
-          rotation={md.rotation}
+          quaternion={md.quaternion}
           scale={md.scale}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
@@ -858,7 +862,7 @@ const LoadedModel = forwardRef<
           meshName={gem.meshData.name}
           geometry={gem.meshData.geometry}
           position={gem.meshData.position}
-          rotation={gem.meshData.rotation}
+          quaternion={gem.meshData.quaternion}
           scale={gem.meshData.scale}
           refractionConfig={gem.refractionConfig}
           isSelected={gem.isSelected}
@@ -907,7 +911,7 @@ function SyncedGemOverlay({
   meshName,
   geometry,
   position,
-  rotation,
+  quaternion,
   scale,
   refractionConfig,
   isSelected,
@@ -917,7 +921,7 @@ function SyncedGemOverlay({
   meshName: string;
   geometry: THREE.BufferGeometry;
   position: THREE.Vector3;
-  rotation: THREE.Euler;
+  quaternion: THREE.Quaternion;
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
@@ -948,7 +952,7 @@ function SyncedGemOverlay({
       meshRef={meshRef}
       geometry={geometry}
       position={position}
-      rotation={rotation}
+      quaternion={quaternion}
       scale={scale}
       refractionConfig={refractionConfig}
       isSelected={isSelected}
@@ -965,7 +969,7 @@ function DiamondEnvMapConsumer({
   meshRef,
   geometry,
   position,
-  rotation,
+  quaternion,
   scale,
   refractionConfig,
   isSelected,
@@ -975,7 +979,7 @@ function DiamondEnvMapConsumer({
   meshRef: React.RefObject<THREE.Mesh>;
   geometry: THREE.BufferGeometry;
   position: THREE.Vector3;
-  rotation: THREE.Euler;
+  quaternion: THREE.Quaternion;
   scale: THREE.Vector3;
   refractionConfig: GemRefractionConfig;
   isSelected: boolean;
@@ -997,7 +1001,7 @@ function DiamondEnvMapConsumer({
       ref={meshRef}
       geometry={geometry}
       position={position}
-      rotation={rotation}
+      quaternion={quaternion}
       scale={scale}
       castShadow
       onClick={(e: ThreeEvent<MouseEvent>) => {
