@@ -144,24 +144,24 @@ export default function CADToCatalog() {
       {/* ── CENTER: Viewport ── */}
       <div className="flex-1 relative flex flex-col">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20 bg-card/60 backdrop-blur-sm z-10">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xs font-light tracking-[4px] uppercase">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20 bg-card/60 backdrop-blur-sm z-10 gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-xs font-light tracking-[4px] uppercase whitespace-nowrap">
               <span className="font-semibold text-primary">CAD</span> → Catalog
             </h1>
             {fileName && (
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/30">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/30 min-w-0">
                 <span className="text-[10px] text-foreground/70 truncate max-w-[160px]">{fileName}</span>
                 <button
                   onClick={handleRemoveModel}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <input
               type="file"
               ref={fileInputRef}
@@ -175,7 +175,7 @@ export default function CADToCatalog() {
               onClick={() => setAutoRotate(!autoRotate)}
               className={`text-xs gap-1.5 tracking-wider uppercase ${autoRotate ? 'bg-primary/10 border-primary/30' : ''}`}
             >
-              <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
+              <RotateCw className={`w-3.5 h-3.5 flex-shrink-0 ${autoRotate ? 'animate-spin' : ''}`} />
               Rotate
             </Button>
             <Button
@@ -184,7 +184,7 @@ export default function CADToCatalog() {
               onClick={() => fileInputRef.current?.click()}
               className="text-xs gap-1.5 tracking-wider uppercase"
             >
-              <Upload className="w-3.5 h-3.5" />
+              <Upload className="w-3.5 h-3.5 flex-shrink-0" />
               Upload GLB
             </Button>
             <Button
@@ -193,7 +193,7 @@ export default function CADToCatalog() {
               disabled={!modelUrl || isProcessing}
               className="text-xs gap-1.5 tracking-wider uppercase"
             >
-              <Camera className="w-3.5 h-3.5" />
+              <Camera className="w-3.5 h-3.5 flex-shrink-0" />
               Generate Photoshoot
             </Button>
           </div>

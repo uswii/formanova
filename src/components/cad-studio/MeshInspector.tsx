@@ -20,7 +20,7 @@ export default function MeshInspector({
 }: MeshInspectorProps) {
   if (meshes.length === 0) {
     return (
-      <div className="px-4 py-3">
+      <div className="px-4 py-4">
         <h2 className="text-[10px] uppercase tracking-[3px] text-muted-foreground font-semibold mb-2">
           Mesh Inspector
         </h2>
@@ -32,7 +32,7 @@ export default function MeshInspector({
   }
 
   return (
-    <div className="px-4 py-3">
+    <div className="px-4 py-4">
       <h2 className="text-[10px] uppercase tracking-[3px] text-muted-foreground font-semibold mb-1">
         Mesh Inspector
       </h2>
@@ -55,20 +55,20 @@ export default function MeshInspector({
             >
               <Box className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
               <div className="flex-1 min-w-0">
-                <p className={`text-xs font-medium truncate ${isSelected ? "text-foreground" : "text-foreground/80"}`}>
+                <p className={`text-xs font-medium truncate leading-5 ${isSelected ? "text-foreground" : "text-foreground/80"}`}>
                   {mesh.name}
                 </p>
                 {assigned && (
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div
-                      className="w-2.5 h-2.5 rounded-full border border-border/40"
+                      className="w-2.5 h-2.5 rounded-full border border-border/40 flex-shrink-0"
                       style={{ background: assigned.preview }}
                     />
-                    <span className="text-[9px] text-muted-foreground">{assigned.name}</span>
+                    <span className="text-[9px] text-muted-foreground truncate">{assigned.name}</span>
                   </div>
                 )}
               </div>
-              <ChevronRight className={`w-3 h-3 ${isSelected ? "text-primary" : "text-muted-foreground/40"}`} />
+              <ChevronRight className={`w-3 h-3 flex-shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground/40"}`} />
             </button>
           );
         })}

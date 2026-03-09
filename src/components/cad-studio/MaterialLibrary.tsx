@@ -30,7 +30,7 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <CircleDot className="w-3 h-3" />
+            <CircleDot className="w-3 h-3 flex-shrink-0" />
             Metals
           </button>
           <button
@@ -41,7 +41,7 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Gem className="w-3 h-3" />
+            <Gem className="w-3 h-3 flex-shrink-0" />
             Gems
           </button>
         </div>
@@ -65,7 +65,7 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/30 bg-card/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group"
             >
               <MaterialSphere category={mat.category} preview={mat.preview} size={40} />
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-foreground/80 group-hover:text-foreground">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-foreground/80 group-hover:text-foreground text-center leading-tight truncate w-full">
                 {mat.name}
               </span>
             </button>
