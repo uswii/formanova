@@ -773,11 +773,9 @@ const LoadedModel = forwardRef<
     getSelectedTransform: (): MeshTransformData | null => {
       const selected = meshDataList.find((m) => selectedMeshNames.has(m.name));
       if (!selected) return null;
-      const DEG = 180 / Math.PI;
-      const euler = new THREE.Euler().setFromQuaternion(selected.quaternion, 'YXZ');
       return {
         position: [selected.position.x, selected.position.y, selected.position.z],
-        rotation: [euler.x * DEG, euler.y * DEG, euler.z * DEG],
+        rotation: [...selected.rotationDeg],
         scale: [selected.scale.x, selected.scale.y, selected.scale.z],
       };
     },
@@ -785,7 +783,6 @@ const LoadedModel = forwardRef<
       const selectedName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
       if (!selectedName) return;
       const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
-      const RAD = Math.PI / 180;
 
       setMeshDataList((prev) => prev.map((md) => {
         if (md.name !== selectedName) return md;
@@ -796,14 +793,11 @@ const LoadedModel = forwardRef<
           else newPos.z = value;
           return { ...md, position: newPos };
         } else if (property === 'rotation') {
-          // Convert current quaternion to euler, modify axis, convert back
-          const euler = new THREE.Euler().setFromQuaternion(md.quaternion, 'YXZ');
-          const radVal = value * RAD;
-          if (axisIdx === 0) euler.x = radVal;
-          else if (axisIdx === 1) euler.y = radVal;
-          else euler.z = radVal;
-          const newQuat = new THREE.Quaternion().setFromEuler(euler);
-          return { ...md, quaternion: newQuat };
+          // Update the cumulative degree value and derive quaternion from ALL three axes
+          const newDeg: [number, number, number] = [...md.rotationDeg];
+          newDeg[axisIdx] = value;
+          const newQuat = degToQuat(newDeg);
+          return { ...md, rotationDeg: newDeg, quaternion: newQuat };
         } else {
           const newScale = md.scale.clone();
           if (axisIdx === 0) newScale.x = value;
@@ -821,12 +815,13 @@ const LoadedModel = forwardRef<
           else if (axisIdx === 1) meshObj.position.y = value;
           else meshObj.position.z = value;
         } else if (property === 'rotation') {
-          const euler = new THREE.Euler().setFromQuaternion(meshObj.quaternion, 'YXZ');
-          const radVal = value * RAD;
-          if (axisIdx === 0) euler.x = radVal;
-          else if (axisIdx === 1) euler.y = radVal;
-          else euler.z = radVal;
-          meshObj.quaternion.setFromEuler(euler);
+          // Read current rotationDeg, apply the change, compute quaternion
+          const md = meshDataList.find(m => m.name === selectedName);
+          if (md) {
+            const newDeg: [number, number, number] = [...md.rotationDeg];
+            newDeg[axisIdx] = value;
+            meshObj.quaternion.copy(degToQuat(newDeg));
+          }
         } else {
           if (axisIdx === 0) meshObj.scale.x = value;
           else if (axisIdx === 1) meshObj.scale.y = value;
