@@ -981,6 +981,7 @@ const LoadedModel = forwardRef<
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
           onDragEnd={handleDragEnd}
+          onRotationDelta={handleRotationDelta}
         />
       )}
     </group>
