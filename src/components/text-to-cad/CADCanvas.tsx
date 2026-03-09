@@ -957,6 +957,12 @@ function DiamondEnvMapConsumer({
 }
 
 
+export interface MeshTransformData {
+  position: [number, number, number];
+  rotation: [number, number, number]; // degrees
+  scale: [number, number, number];
+}
+
 export interface CADCanvasHandle {
   applyMaterial: (matId: string, meshNames: string[]) => void;
   resetTransform: (meshNames: string[]) => void;
@@ -971,6 +977,8 @@ export interface CADCanvasHandle {
   removeAllTextures: () => void;
   getSnapshot: () => CanvasSnapshot;
   restoreSnapshot: (snap: CanvasSnapshot) => void;
+  getSelectedTransform: () => MeshTransformData | null;
+  setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   resetCamera: () => void;
