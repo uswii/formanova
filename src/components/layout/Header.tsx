@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
+import { isCADEnabled } from '@/lib/feature-flags';
 import {
   DropdownMenu,
   DropdownMenuContent,
