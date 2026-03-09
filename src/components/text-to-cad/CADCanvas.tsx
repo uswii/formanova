@@ -21,6 +21,10 @@ const Q = getQualitySettings();
 // Module-level flag: prevents React from overwriting mesh transforms during gizmo drag
 let _isTransformDragging = false;
 
+// Stores the quaternion at the start of each gizmo drag for delta computation
+let _dragStartQuat: THREE.Quaternion | null = null;
+let _dragStartRotDeg: [number, number, number] | null = null;
+
 // ── Shared selection material (reused, never re-created) ──
 const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   color: new THREE.Color(0x3399ff),
@@ -63,14 +67,17 @@ function TransformControlsWrapper({
   object,
   mode,
   onDragEnd,
+  onRotationDelta,
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
   onDragEnd?: (obj: THREE.Object3D) => void;
+  onRotationDelta?: (obj: THREE.Object3D, deltaDeg: [number, number, number]) => void;
 }) {
   const { gl } = useThree();
   const inv = useInvalidate();
   const controlsRef = useRef<any>(null);
+  const prevQuatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -78,23 +85,51 @@ function TransformControlsWrapper({
     const handler = (e: any) => {
       const orbitControls = (gl.domElement as any).__orbitControls;
       if (orbitControls) orbitControls.enabled = !e.value;
-      // Set module-level flag so React doesn't overwrite transforms during drag
       _isTransformDragging = e.value;
       if (e.value) {
+        // Drag started — snapshot the current quaternion for delta tracking
+        prevQuatRef.current.copy(object.quaternion);
         inv();
       }
       // When drag ends, pass the object back so we can sync state
       if (!e.value && onDragEnd) onDragEnd(object);
     };
     controls.addEventListener("dragging-changed", handler);
-    const onChange = () => inv();
+    const onChange = () => {
+      // During rotate drag, compute incremental delta and report it
+      if (_isTransformDragging && mode === "rotate" && onRotationDelta) {
+        const prevInv = prevQuatRef.current.clone().invert();
+        const deltaQuat = object.quaternion.clone().multiply(prevInv);
+        // Convert delta quaternion to axis-angle, then to per-axis degrees
+        const axis = new THREE.Vector3();
+        let angle = 0;
+        deltaQuat.normalize();
+        // Decompose delta into axis-angle
+        const sinHalf = Math.sqrt(deltaQuat.x ** 2 + deltaQuat.y ** 2 + deltaQuat.z ** 2);
+        if (sinHalf > 1e-6) {
+          axis.set(deltaQuat.x / sinHalf, deltaQuat.y / sinHalf, deltaQuat.z / sinHalf);
+          angle = 2 * Math.atan2(sinHalf, deltaQuat.w);
+          // Normalize angle to [-PI, PI]
+          if (angle > Math.PI) angle -= 2 * Math.PI;
+          const D = 180 / Math.PI;
+          const deltaDeg: [number, number, number] = [
+            axis.x * angle * D,
+            axis.y * angle * D,
+            axis.z * angle * D,
+          ];
+          onRotationDelta(object, deltaDeg);
+        }
+        prevQuatRef.current.copy(object.quaternion);
+      }
+      inv();
+    };
     controls.addEventListener("objectChange", onChange);
     return () => {
       controls.removeEventListener("dragging-changed", handler);
       controls.removeEventListener("objectChange", onChange);
       _isTransformDragging = false;
     };
-  }, [gl, onDragEnd, inv, object]);
+  }, [gl, onDragEnd, onRotationDelta, inv, object, mode]);
 
   return (
     <TransformControls
@@ -528,22 +563,41 @@ const LoadedModel = forwardRef<
   }, [additionalGlbUrls, meshDataList, inv, onMeshesDetected]);
 
   // ── Sync transform from Three.js object back to React state ──
-  // After TransformControls modifies the object, read back transforms.
-  // Unwrap rotation degrees against previous value to support unlimited rotation.
+  // Position and scale are read directly. Rotation is NOT derived from quaternion
+  // (Euler decomposition is lossy/clamped). Instead rotation is tracked incrementally.
   const syncTransformFromObject = useCallback((meshName: string, obj: THREE.Object3D) => {
     setMeshDataList((prev) => prev.map((md) => {
       if (md.name !== meshName) return md;
-      const newQuat = obj.quaternion.clone();
-      const rawDeg = quatToDeg(newQuat);
-      const unwrapped = unwrapDeg(rawDeg, md.rotationDeg);
       return {
         ...md,
         position: obj.position.clone(),
-        quaternion: newQuat,
-        rotationDeg: unwrapped,
+        quaternion: obj.quaternion.clone(),
+        // rotationDeg is NOT updated here — it's updated incrementally via handleRotationDelta
         scale: obj.scale.clone(),
       };
     }));
+  }, []);
+
+  // Called during rotate gizmo drag with incremental degree deltas (no Euler decomposition)
+  const handleRotationDelta = useCallback((obj: THREE.Object3D, deltaDeg: [number, number, number]) => {
+    // Find which mesh this object is
+    for (const [name, meshObj] of meshRefs.current.entries()) {
+      if (meshObj === obj) {
+        setMeshDataList((prev) => prev.map((md) => {
+          if (md.name !== name) return md;
+          return {
+            ...md,
+            quaternion: obj.quaternion.clone(),
+            rotationDeg: [
+              md.rotationDeg[0] + deltaDeg[0],
+              md.rotationDeg[1] + deltaDeg[1],
+              md.rotationDeg[2] + deltaDeg[2],
+            ],
+          };
+        }));
+        break;
+      }
+    }
   }, []);
 
   // Called when TransformControls drag ends
@@ -927,6 +981,7 @@ const LoadedModel = forwardRef<
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
           onDragEnd={handleDragEnd}
+          onRotationDelta={handleRotationDelta}
         />
       )}
     </group>
