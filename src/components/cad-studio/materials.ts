@@ -95,52 +95,84 @@ function finishClearcoat(finish: MaterialFinish): number {
 }
 
 // Base metal colors per type + alloy
-interface MetalBase { color: number; envMapIntensity: number; reflectivity: number }
+// Roughness, clearcoat, clearcoatRoughness are per-metal reference values (polished baseline)
+// extracted from reference renderer to match exact visual output.
+interface MetalBase {
+  color: number;
+  envMapIntensity: number;
+  reflectivity: number;
+  roughness: number;
+  clearcoat: number;
+  clearcoatRoughness: number;
+}
 
 function getMetalBase(type: MaterialType, alloy: MaterialAlloy): MetalBase {
   const bases: Record<MaterialType, Partial<Record<MaterialAlloy, MetalBase>>> = {
     gold: {
-      yellow:  { color: 0xffc353, envMapIntensity: 1.5, reflectivity: 1.0 },
-      rose:    { color: 0xb76e79, envMapIntensity: 1.5, reflectivity: 1.0 },
-      white:   { color: 0xe8e8e8, envMapIntensity: 1.8, reflectivity: 1.0 },
-      natural: { color: 0xffc353, envMapIntensity: 1.5, reflectivity: 1.0 },
+      yellow:  { color: 0xFFD700, envMapIntensity: 1.5, reflectivity: 1.0, roughness: 0.15, clearcoat: 0.3, clearcoatRoughness: 0.1 },
+      rose:    { color: 0xb76e79, envMapIntensity: 1.5, reflectivity: 1.0, roughness: 0.15, clearcoat: 0.3, clearcoatRoughness: 0.1 },
+      white:   { color: 0xe8e8e8, envMapIntensity: 1.8, reflectivity: 1.0, roughness: 0.12, clearcoat: 0.4, clearcoatRoughness: 0.08 },
+      natural: { color: 0xFFD700, envMapIntensity: 1.5, reflectivity: 1.0, roughness: 0.15, clearcoat: 0.3, clearcoatRoughness: 0.1 },
     },
     silver: {
-      natural: { color: 0xc0c0c0, envMapIntensity: 1.8, reflectivity: 1.0 },
+      natural: { color: 0xC0C0C0, envMapIntensity: 1.8, reflectivity: 1.0, roughness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.05 },
     },
     platinum: {
-      natural: { color: 0xe5e4e2, envMapIntensity: 1.9, reflectivity: 1.0 },
+      natural: { color: 0xe5e4e2, envMapIntensity: 1.9, reflectivity: 1.0, roughness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.05 },
     },
     titanium: {
-      natural: { color: 0x878681, envMapIntensity: 1.6, reflectivity: 1.0 },
-      black:   { color: 0x2a2a2a, envMapIntensity: 1.8, reflectivity: 1.0 },
+      natural: { color: 0x878681, envMapIntensity: 1.6, reflectivity: 1.0, roughness: 0.15, clearcoat: 0.3, clearcoatRoughness: 0.1 },
+      black:   { color: 0x2a2a2a, envMapIntensity: 1.8, reflectivity: 1.0, roughness: 0.12, clearcoat: 0.4, clearcoatRoughness: 0.08 },
     },
     copper: {
-      natural: { color: 0xb87333, envMapIntensity: 1.5, reflectivity: 1.0 },
+      natural: { color: 0xb87333, envMapIntensity: 1.5, reflectivity: 1.0, roughness: 0.15, clearcoat: 0.3, clearcoatRoughness: 0.1 },
     },
     brass: {
-      natural: { color: 0xd4af37, envMapIntensity: 1.7, reflectivity: 1.0 },
+      natural: { color: 0xd4af37, envMapIntensity: 1.7, reflectivity: 1.0, roughness: 0.15, clearcoat: 0.3, clearcoatRoughness: 0.1 },
     },
     rhodium: {
-      natural: { color: 0xe0e0e0, envMapIntensity: 2.0, reflectivity: 1.0 },
-      black:   { color: 0x2a2a2a, envMapIntensity: 2.0, reflectivity: 1.0 },
+      natural: { color: 0xe0e0e0, envMapIntensity: 2.0, reflectivity: 1.0, roughness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.05 },
+      black:   { color: 0x2a2a2a, envMapIntensity: 2.0, reflectivity: 1.0, roughness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.05 },
     },
   };
 
   const typeMap = bases[type] ?? {};
-  return typeMap[alloy] ?? typeMap["natural"] ?? { color: 0xc0c0c0, envMapIntensity: 1.5, reflectivity: 1.0 };
+  return typeMap[alloy] ?? typeMap["natural"] ?? { color: 0xc0c0c0, envMapIntensity: 1.5, reflectivity: 1.0, roughness: 0.15, clearcoat: 0.3, clearcoatRoughness: 0.1 };
+}
+
+// Finish multipliers relative to the per-metal polished baseline
+function finishRoughnessMultiplier(finish: MaterialFinish): number {
+  switch (finish) {
+    case "polished": return 1.0;
+    case "satin": return 1.5;
+    case "brushed": return 2.5;
+    case "matte": return 3.5;
+  }
+}
+
+function finishClearcoatMultiplier(finish: MaterialFinish): number {
+  switch (finish) {
+    case "polished": return 1.0;
+    case "satin": return 0.5;
+    case "brushed": return 0.15;
+    case "matte": return 0.0;
+  }
 }
 
 // Generate a metal material from structured attributes
+// Uses per-metal base values from reference renderer, scaled by finish
 export function createMetalMaterial(type: MaterialType, alloy: MaterialAlloy, finish: MaterialFinish): THREE.MeshPhysicalMaterial {
   const base = getMetalBase(type, alloy);
+  const roughness = Math.min(base.roughness * finishRoughnessMultiplier(finish), 0.7);
+  const clearcoat = base.clearcoat * finishClearcoatMultiplier(finish);
+  const clearcoatRoughness = base.clearcoatRoughness * finishRoughnessMultiplier(finish);
   return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(base.color),
     metalness: 1.0,
-    roughness: finishRoughness(finish),
+    roughness,
     envMapIntensity: base.envMapIntensity,
-    clearcoat: finishClearcoat(finish),
-    clearcoatRoughness: finishRoughness(finish) * 0.5,
+    clearcoat,
+    clearcoatRoughness: Math.min(clearcoatRoughness, 0.5),
     reflectivity: base.reflectivity,
   });
 }
