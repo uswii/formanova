@@ -1,86 +1,88 @@
 
-## What the user is saying
 
-"Only add correct existing URLs — don't invent your own."
+## Plan: Show Users Their Generations on the Generations Page
 
-This means: in the sitemap.xml and llms.txt, only list URLs that actually exist in the app right now (plus the two new landing pages we are creating as part of this plan). Do NOT list URLs that don't exist yet.
+The data already exists in the database. Each user has deliveries in `delivery_batches` (linked by `user_email`) with images in `delivery_images`. We need:
 
-## Confirmed existing URLs from codebase
+1. A new edge function action to fetch a user's own deliveries
+2. A rebuilt Generations page that displays them in an organized gallery
 
-**Public (no auth wall):**
-- `https://formanova.ai/` — Welcome
-- `https://formanova.ai/login` — Auth
-- `https://formanova.ai/yourresults/:token` — omit (token-based, not crawlable)
+### Data Available
 
-**Auth-protected (user explicitly listed these — include in sitemap):**
-- `https://formanova.ai/dashboard`
-- `https://formanova.ai/studio`
-- `https://formanova.ai/studio/necklace`
-- `https://formanova.ai/studio/earrings`
-- `https://formanova.ai/studio/rings`
-- `https://formanova.ai/studio/bracelets`
-- `https://formanova.ai/studio/watches`
-- `https://formanova.ai/studio-cad`
-- `https://formanova.ai/text-to-cad`
-- `https://formanova.ai/pricing`
+- **delivery_batches**: has `user_email`, `category`, `token`, `created_at`, `delivery_status`
+- **delivery_images**: has `image_url`, `image_filename`, `sequence` per delivery batch
+- 464 total delivered records (291 necklace, 173 earring) across many users
 
-**New pages being created as part of this plan (valid to include):**
-- `https://formanova.ai/ai-jewelry-photoshoot`
-- `https://formanova.ai/ai-jewelry-cad`
+### Changes
 
-**Omitted (not meaningful for crawlers):**
-- `/oauth-callback` — transient auth flow
-- `/payment-success`, `/success`, `/cancel` — post-payment states
-- `/generations`, `/credits` — utility pages, low SEO value
-- `/admin/*` — intentionally unlisted
-- `/cad-to-catalog` — secondary, no SEO value right now
+#### 1. Edge Function: Add `my_deliveries` action to `delivery-manager/index.ts`
 
-## The plan (what changes)
+Add a new action that:
+- Authenticates the user via their `X-User-Token`
+- Queries `delivery_batches` where `user_email` matches the authenticated user's email
+- Joins `delivery_images` to get thumbnails with fresh SAS tokens
+- Returns deliveries grouped by date/category
+- No admin check needed — users can only see their own data
 
-### Step 1 — `public/robots.txt` (update)
-Add AI crawlers + sitemap pointer. Additive only.
+#### 2. Frontend: Rebuild `src/pages/Generations.tsx`
 
-### Step 2 — `public/sitemap.xml` (create)
-Use ONLY the verified URL list above. No invented paths.
+Replace the placeholder with a real page that:
+- Fetches the user's deliveries from the new `my_deliveries` action
+- Groups results by delivery batch (each batch = one "order" with a category and date)
+- Shows a card per batch with:
+  - Category badge (necklace/earring)
+  - Date delivered
+  - Thumbnail grid of images (2-3 preview thumbnails)
+  - "View All" link that goes to `/results/:token` (the existing gallery page)
+- Empty state if no deliveries yet
+- Loading skeleton while fetching
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://formanova.ai/</loc><priority>1.0</priority></url>
-  <url><loc>https://formanova.ai/login</loc><priority>0.5</priority></url>
-  <url><loc>https://formanova.ai/ai-jewelry-photoshoot</loc><priority>0.9</priority></url>
-  <url><loc>https://formanova.ai/ai-jewelry-cad</loc><priority>0.9</priority></url>
-  <url><loc>https://formanova.ai/pricing</loc><priority>0.8</priority></url>
-  <url><loc>https://formanova.ai/studio</loc><priority>0.7</priority></url>
-  <url><loc>https://formanova.ai/studio/necklace</loc><priority>0.6</priority></url>
-  <url><loc>https://formanova.ai/studio/earrings</loc><priority>0.6</priority></url>
-  <url><loc>https://formanova.ai/studio/rings</loc><priority>0.6</priority></url>
-  <url><loc>https://formanova.ai/studio/bracelets</loc><priority>0.6</priority></url>
-  <url><loc>https://formanova.ai/studio/watches</loc><priority>0.6</priority></url>
-  <url><loc>https://formanova.ai/studio-cad</loc><priority>0.6</priority></url>
-  <url><loc>https://formanova.ai/text-to-cad</loc><priority>0.7</priority></url>
-  <url><loc>https://formanova.ai/dashboard</loc><priority>0.5</priority></url>
-</urlset>
+### UI Layout
+
+```text
+┌──────────────────────────────────────────────┐
+│  ← Back to Home                              │
+│                                              │
+│  My Generations                              │
+│                                              │
+│  ┌─────────────────────────────────────────┐ │
+│  │ 📅 Feb 24, 2026  ·  NECKLACE           │ │
+│  │ ┌──────┐ ┌──────┐ ┌──────┐             │ │
+│  │ │ img  │ │ img  │ │ img  │  3 images   │ │
+│  │ └──────┘ └──────┘ └──────┘             │ │
+│  │                          [View Results] │ │
+│  └─────────────────────────────────────────┘ │
+│                                              │
+│  ┌─────────────────────────────────────────┐ │
+│  │ 📅 Feb 23, 2026  ·  EARRING            │ │
+│  │ ┌──────┐ ┌──────┐                      │ │
+│  │ │ img  │ │ img  │           2 images    │ │
+│  │ └──────┘ └──────┘                      │ │
+│  │                          [View Results] │ │
+│  └─────────────────────────────────────────┘ │
+└──────────────────────────────────────────────┘
 ```
 
-### Step 3 — `public/llms.txt` (create)
-Only references URLs from the verified list above. No invented endpoints, no free trial mention.
+### Files to Change
 
-### Step 4 — `public/.well-known/agent.json` (create)
-Agent card referencing only real product capabilities.
+| File | Change |
+|------|--------|
+| `supabase/functions/delivery-manager/index.ts` | Add `my_deliveries` action — authenticate user, query their deliveries + images, return with fresh SAS URLs |
+| `src/pages/Generations.tsx` | Full rebuild — fetch from `my_deliveries`, display organized cards grouped by batch with thumbnails, category badges, dates, and "View Results" links to `/results/:token` |
 
-### Step 5 — `index.html` (update)
-Add canonical, keywords meta, JSON-LD SoftwareApplication schema. Surgical — 3 new tags only.
+### Technical Details
 
-### Step 6 — `src/pages/AIJewelryPhotoshoot.tsx` (create)
-Public landing page for `/ai-jewelry-photoshoot`.
+**Edge function `my_deliveries` action:**
+- Requires `X-User-Token` header (same auth as other user actions)
+- Calls `authenticateUser()` to get user email
+- SQL: `SELECT db.*, di.* FROM delivery_batches db JOIN delivery_images di ON di.delivery_batch_id = db.id WHERE db.user_email = $email ORDER BY db.created_at DESC`
+- Generates fresh SAS tokens for thumbnail URLs (reusing existing `generateSasUrlFromHttps`)
+- Returns array of batches, each with nested images array
 
-### Step 7 — `src/pages/AIJewelryCAD.tsx` (create)
-Public landing page for `/ai-jewelry-cad`.
+**Frontend Generations page:**
+- Uses `useAuth()` to get user context and token
+- Fetches on mount via `useEffect`
+- Shows skeleton cards while loading
+- Each batch card links to `/results/:token` for the full gallery experience
+- Responsive grid: 1 column mobile, 2 columns tablet+
 
-### Step 8 — `src/App.tsx` (update)
-Add 2 lazy routes above the `*` catch-all. No other routes touched.
-
----
-
-That's the complete, corrected plan. Only real URLs used throughout. Ready to implement all 8 steps sequentially.

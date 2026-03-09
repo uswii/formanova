@@ -1,0 +1,43 @@
+# FormaNova
+> AI-powered jewelry photography and CAD generation platform
+
+## Products
+
+### AI Jewelry Photoshoot
+Upload a product image of your jewelry (ring, necklace, earring, bracelet, or watch) and receive professional model photoshoot renders. The AI preserves your product pixel-perfectly while placing it on realistic models and mannequins.
+
+- Supported categories: necklace, earring, ring, bracelet, watch
+- Studio URL: https://formanova.ai/studio
+
+### Text-to-CAD
+Describe jewelry in natural language and receive a 3D CAD model. Design rings, necklaces, earrings, and more from text prompts.
+
+- Studio URL: https://formanova.ai/text-to-cad
+
+### CAD Studio
+Upload and render 3D jewelry CAD files with professional materials and lighting.
+
+- Studio URL: https://formanova.ai/studio-cad
+
+## Intended Users
+Jewelry designers, retailers, manufacturers, CAD artists, e-commerce brands
+
+## Pricing
+Credit-based pricing. Plans start at $9 for 100 credits (~10 photos).
+
+- Basic: $9 — 100 credits
+- Standard: $39 — 500 credits
+- Pro: $99 — 1,500 credits
+
+Pricing page: https://formanova.ai/pricing
+
+## Key URLs
+- Homepage: https://formanova.ai
+- AI Photoshoot info: https://formanova.ai/ai-jewelry-photoshoot
+- AI CAD info: https://formanova.ai/ai-jewelry-cad
+- Pricing: https://formanova.ai/pricing
+- Login: https://formanova.ai/login
+- Dashboard: https://formanova.ai/dashboard
+
+## Contact
+hello@formanova.ai

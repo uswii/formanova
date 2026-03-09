@@ -1,0 +1,54 @@
+{
+  "name": "FormaNova",
+  "description": "AI platform for jewelry photoshoots and text-to-CAD generation. Upload a jewelry product image to generate professional model photoshoot renders, or describe jewelry in text to receive a 3D CAD model.",
+  "url": "https://formanova.ai",
+  "version": "1.0.0",
+  "capabilities": [
+    "jewelry-photoshoot",
+    "text-to-cad",
+    "cad-rendering"
+  ],
+  "documentationUrl": "https://formanova.ai/llms.txt",
+  "authenticationRequired": true,
+  "authUrl": "https://formanova.ai/login",
+  "provider": {
+    "organization": "FormaNova",
+    "url": "https://formanova.ai",
+    "contact": "hello@formanova.ai"
+  },
+  "tools": [
+    {
+      "name": "jewelry_photoshoot",
+      "description": "Upload a jewelry product image to generate professional AI photoshoot renders on models or mannequins. Supports rings, necklaces, earrings, bracelets, and watches.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "description": "URL of the jewelry product image"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["ring", "necklace", "earring", "bracelet", "watch"],
+            "description": "Type of jewelry"
+          }
+        },
+        "required": ["imageUrl", "category"]
+      }
+    },
+    {
+      "name": "text_to_cad",
+      "description": "Generate a 3D jewelry CAD model from a natural language description",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural language description of the jewelry piece to model"
+          }
+        },
+        "required": ["prompt"]
+      }
+    }
+  ]
+}
