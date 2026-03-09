@@ -21,6 +21,10 @@ const Q = getQualitySettings();
 // Module-level flag: prevents React from overwriting mesh transforms during gizmo drag
 let _isTransformDragging = false;
 
+// Stores the quaternion at the start of each gizmo drag for delta computation
+let _dragStartQuat: THREE.Quaternion | null = null;
+let _dragStartRotDeg: [number, number, number] | null = null;
+
 // ── Shared selection material (reused, never re-created) ──
 const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   color: new THREE.Color(0x3399ff),
