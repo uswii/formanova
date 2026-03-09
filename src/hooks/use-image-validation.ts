@@ -172,13 +172,15 @@ export function useImageValidation() {
 
         if (statusRes.ok) {
           const statusData = await statusRes.json();
+          console.log('[ImageValidation] Full status response:', JSON.stringify(statusData));
           statusState = statusData.runtime?.state || statusData.progress?.state || statusData.state || 'running';
           console.log('[ImageValidation] Poll status:', statusState);
           if (statusState === 'completed' || statusState === 'succeeded') break;
-          if (statusState === 'failed') {
-            console.warn('[ImageValidation] Workflow failed');
+          if (statusState === 'failed' || statusState === 'error') {
+            console.warn('[ImageValidation] Workflow failed. Error:', statusData.error || statusData.message || JSON.stringify(statusData));
             clearTimeout(timeoutId);
-            return { category: 'flatlay', is_worn: true, confidence: 0, reason: 'error', flagged: false, uploaded_url: uploadedUrl };
+            // On failure, still return uploaded_url but don't block — mark as unknown
+            return { category: 'unknown', is_worn: true, confidence: 0, reason: 'classification_failed', flagged: false, uploaded_url: uploadedUrl };
           }
         }
       }
