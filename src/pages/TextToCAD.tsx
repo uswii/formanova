@@ -295,9 +295,10 @@ export default function TextToCAD() {
           const lastExitNode = statusData.runtime?.last_exit_node_id || "";
           const retryCount = statusData.node_visit_seq?.generate_fix || 0;
 
-          // Update progress from active node — only when it changes
-          if (activeNode) {
-            setProgressStep(activeNode);
+          // Update progress from active node or last exited node
+          const displayNode = activeNode || lastExitNode;
+          if (displayNode) {
+            setProgressStep(displayNode);
             if (retryCount > 0) {
               setRetryAttempt(retryCount);
             }
