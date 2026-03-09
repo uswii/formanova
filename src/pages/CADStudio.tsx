@@ -90,7 +90,7 @@ export default function CADStudio() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => navigate(feature.route)}
-              className="group relative marta-frame overflow-hidden aspect-square cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
+              className="group relative marta-frame overflow-hidden aspect-[4/3] sm:aspect-square cursor-pointer text-left transition-all duration-300 hover:border-formanova-hero-accent hover:shadow-[0_0_30px_-5px_hsl(var(--formanova-hero-accent)/0.4)]"
             >
               <img
                 src={feature.image}
