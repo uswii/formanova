@@ -231,7 +231,7 @@ export function useImageValidation() {
           is_worn,
           confidence: raw.confidence || 0,
           reason,
-          flagged: raw.flagged ?? (reason === 'not_worn'),
+          flagged: !is_worn,
           uploaded_url: uploadedUrl,
         };
       }
