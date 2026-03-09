@@ -744,7 +744,7 @@ export default function TextToCAD() {
                 </div>
               )}
             </div>
-            <GenerationProgress visible={isGenerating || isModelLoading} progress={progress} currentStep={progressStep} />
+            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}
