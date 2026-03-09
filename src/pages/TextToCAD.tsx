@@ -346,7 +346,7 @@ export default function TextToCAD() {
 
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
           console.warn(`[TextToCAD] result 404, retry ${attempt}/${MAX_RESULT_RETRIES}`);
-          await new Promise((r) => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 1000));
           continue;
         }
 
