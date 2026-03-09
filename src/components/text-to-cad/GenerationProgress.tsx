@@ -28,46 +28,23 @@ function formatElapsed(seconds: number): string {
 }
 
 /** Crawling progress bar for a single stage — never reaches 100% on its own */
-function StageBar({ active, done }: { active: boolean; done: boolean }) {
-  const [width, setWidth] = useState(0);
-  const rafRef = useRef<number>(0);
-  const startRef = useRef(0);
-
-  useEffect(() => {
-    if (done) {
-      setWidth(100);
-      cancelAnimationFrame(rafRef.current);
-      return;
-    }
-    if (!active) {
-      setWidth(0);
-      return;
-    }
-    // Crawl very slowly — asymptotically approach 60% over many minutes
-    // Feels like it always has a long way to go
-    startRef.current = Date.now();
-    const tick = () => {
-      const elapsed = (Date.now() - startRef.current) / 1000;
-      // Cap at 60%, time constant 300s — reaches ~18% at 1min, ~33% at 2min, ~45% at 4min
-      const pct = 60 * (1 - Math.exp(-elapsed / 300));
-      setWidth(pct);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [active, done]);
-
-  return (
-    <div className="flex-1 h-[2px] bg-muted-foreground/10 overflow-hidden">
-      <div
-        className="h-full bg-foreground/70"
-        style={{
-          width: `${width}%`,
-          transition: done ? "width 0.3s ease-out" : "none",
-        }}
-      />
-    </div>
-  );
+/** A single step segment: shimmer when active, solid when done, dim when pending */
+function StageSegment({ active, done }: { active: boolean; done: boolean }) {
+  if (done) {
+    return <div className="flex-1 h-[2px] bg-foreground/70" />;
+  }
+  if (active) {
+    return (
+      <div className="flex-1 h-[2px] bg-muted-foreground/10 overflow-hidden relative">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/60 to-transparent"
+          animate={{ x: ["-100%", "100%"] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+    );
+  }
+  return <div className="flex-1 h-[2px] bg-muted-foreground/10" />;
 }
 
 interface GenerationProgressProps {
@@ -178,7 +155,7 @@ export default function GenerationProgress({
               const stageActive = node === currentStep && !isTerminal;
               const stageDoneTerminal = isDone && i === STAGE_ORDER.length - 1;
               return (
-                <StageBar
+                <StageSegment
                   key={node}
                   active={stageActive}
                   done={stageDone || stageDoneTerminal}
