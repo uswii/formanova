@@ -77,12 +77,13 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
                         className="flex items-center justify-between py-0.5 px-1"
                       >
                         <span className="text-[11px] text-foreground/80">{sc.desc}</span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
                           {sc.keys.map((k, i) => (
-                            <span key={i} className="flex items-center gap-1">
-                              {i > 0 && <span className="text-[9px] text-muted-foreground/50">+</span>}
-                              <Kbd>{k}</Kbd>
-                            </span>
+                            k === "/" ? (
+                              <span key={i} className="text-[9px] text-muted-foreground/50 mx-0.5">/</span>
+                            ) : (
+                              <Kbd key={i}>{k}</Kbd>
+                            )
                           ))}
                         </div>
                       </div>
