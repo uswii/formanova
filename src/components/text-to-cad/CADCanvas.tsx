@@ -422,7 +422,7 @@ const LoadedModel = forwardRef<
                   (wp.y - center.y) * s,
                   (wp.z - center.z) * s
                 );
-                const rot = new THREE.Euler().setFromQuaternion(wq);
+                const quat = wq.clone();
                 const scl = ws.multiplyScalar(s);
                 const origMat = Array.isArray(mesh.material) ? mesh.material[0].clone() : mesh.material.clone();
                 if ((origMat as any).side !== undefined) (origMat as any).side = THREE.DoubleSide;
@@ -432,10 +432,10 @@ const LoadedModel = forwardRef<
                   geometry: mesh.geometry,
                   originalMaterial: origMat,
                   position: pos.clone(),
-                  rotation: rot.clone(),
+                  quaternion: quat.clone(),
                   scale: scl.clone(),
                   origPos: pos.clone(),
-                  origRot: rot.clone(),
+                  origQuat: quat.clone(),
                   origScale: scl.clone(),
                 });
                 idx++;
