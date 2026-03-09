@@ -230,18 +230,18 @@ export default function TextToCAD() {
 
     try {
       // Step 1: Start generation
-      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
+      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: prompt.trim(), max_attempts: 3 },
+          payload: { llm, prompt: prompt.trim(), mode: 'text', max_attempts: 3 },
           return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
         }),
       });
 
       if (!startRes.ok) {
         const err = await startRes.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to start generation (${startRes.status})`);
+        throw new Error(err.error || err.detail || `Failed to start generation (${startRes.status})`);
       }
 
       const { workflow_id } = await startRes.json();
