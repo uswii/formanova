@@ -96,9 +96,14 @@ export default function GenerationProgress({
               {label}
             </span>
             {!isTerminal && (
-              <span className="font-mono text-sm text-muted-foreground/50 tabular-nums">
-                {formatElapsed(elapsed)}
-              </span>
+              <>
+                <span className="font-mono text-sm text-muted-foreground/50 tabular-nums">
+                  {formatElapsed(elapsed)}
+                </span>
+                <span className="text-[11px] italic text-muted-foreground/40">
+                  This may take several minutes
+                </span>
+              </>
             )}
           </motion.div>
         </AnimatePresence>
