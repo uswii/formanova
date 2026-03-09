@@ -325,7 +325,7 @@ export default function TextToCAD() {
 
       // Step 3: Fetch result GLB URL (retry up to 5 times on 404 with 2s delay)
       setProgressStep("_loading");
-      setProgress(98);
+      setProgressStep("_loading");
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
