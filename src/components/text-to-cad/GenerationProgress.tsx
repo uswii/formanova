@@ -16,10 +16,57 @@ const NODE_LABELS: Record<string, string> = {
 
 const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
 
+const STAGE_ORDER = [
+  "generate_initial", "build_initial", "validate_output",
+  "generate_fix", "build_retry", "build_corrected", "success_final",
+];
+
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** Crawling progress bar for a single stage — never reaches 100% on its own */
+function StageBar({ active, done }: { active: boolean; done: boolean }) {
+  const [width, setWidth] = useState(0);
+  const rafRef = useRef<number>(0);
+  const startRef = useRef(0);
+
+  useEffect(() => {
+    if (done) {
+      setWidth(100);
+      cancelAnimationFrame(rafRef.current);
+      return;
+    }
+    if (!active) {
+      setWidth(0);
+      return;
+    }
+    // Start crawling from 0 — asymptotically approach 90% over ~5 min
+    startRef.current = Date.now();
+    const tick = () => {
+      const elapsed = (Date.now() - startRef.current) / 1000;
+      // Asymptotic: 90 * (1 - e^(-t/120))  — reaches ~45% at 1min, ~75% at 3min, ~90% cap
+      const pct = 90 * (1 - Math.exp(-elapsed / 120));
+      setWidth(pct);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active, done]);
+
+  return (
+    <div className="flex-1 h-[2px] bg-muted-foreground/10 overflow-hidden">
+      <div
+        className="h-full bg-foreground/70"
+        style={{
+          width: `${width}%`,
+          transition: done ? "width 0.3s ease-out" : "none",
+        }}
+      />
+    </div>
+  );
 }
 
 interface GenerationProgressProps {
@@ -41,7 +88,6 @@ export default function GenerationProgress({
   const stageStartRef = useRef(Date.now());
   const prevStepRef = useRef(currentStep);
 
-  // Reset stage timer when node changes
   useEffect(() => {
     if (currentStep !== prevStepRef.current) {
       stageStartRef.current = Date.now();
@@ -50,7 +96,6 @@ export default function GenerationProgress({
     }
   }, [currentStep]);
 
-  // Tick elapsed every second
   useEffect(() => {
     if (!visible || TERMINAL_NODES.has(currentStep)) return;
     const interval = setInterval(() => {
@@ -59,7 +104,6 @@ export default function GenerationProgress({
     return () => clearInterval(interval);
   }, [visible, currentStep]);
 
-  // Reset on hide
   useEffect(() => {
     if (!visible) {
       setElapsed(0);
@@ -79,11 +123,6 @@ export default function GenerationProgress({
     label = `Enhancing design (attempt ${retryAttempt} of ${maxAttempts})`;
   }
 
-  // Stage ordering for dots
-  const STAGE_ORDER = [
-    "generate_initial", "build_initial", "validate_output",
-    "generate_fix", "build_retry", "build_corrected", "success_final",
-  ];
   const currentIdx = STAGE_ORDER.indexOf(currentStep);
 
   return (
@@ -91,7 +130,7 @@ export default function GenerationProgress({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-[420px] flex flex-col items-center text-center"
+        className="w-[420px] max-w-[90vw] flex flex-col items-center text-center"
       >
         {/* Stage label */}
         <AnimatePresence mode="wait">
@@ -109,7 +148,7 @@ export default function GenerationProgress({
           </motion.div>
         </AnimatePresence>
 
-        {/* Elapsed timer — not shown for terminal states */}
+        {/* Elapsed timer */}
         {!isTerminal && currentStep && (
           <p className="font-mono text-[11px] text-muted-foreground/60 mt-2 tracking-wide">
             ({formatElapsed(elapsed)})
@@ -130,42 +169,19 @@ export default function GenerationProgress({
           )}
         </AnimatePresence>
 
-        {/* Pulsing line indicator — only during active stages */}
-        {!isTerminal && currentStep && (
-          <div className="w-full h-[1px] overflow-hidden mt-6 mb-6 bg-border">
-            <motion.div
-              className="h-full bg-foreground/60 w-1/3"
-              animate={{ x: ["-100%", "420px"] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
-        )}
-
-        {/* Stage dots */}
+        {/* Crawling stage progress bars */}
         {!isFailed && (
-          <div className="flex items-center gap-1.5 mt-4">
+          <div className="flex items-center gap-1 w-full mt-6 mb-2">
             {STAGE_ORDER.map((node, i) => {
-              const isDoneStage = currentIdx >= 0 && i < currentIdx;
-              const isActive = node === currentStep || (isDone && i === STAGE_ORDER.length - 1);
+              const stageDone = currentIdx >= 0 && i < currentIdx;
+              const stageActive = node === currentStep && !isTerminal;
+              const stageDoneTerminal = isDone && i === STAGE_ORDER.length - 1;
               return (
-                <div
+                <StageBar
                   key={node}
-                  className={`transition-all duration-500 ${
-                    isDoneStage
-                      ? "w-6 h-[2px] bg-foreground"
-                      : isActive
-                        ? "w-8 h-[2px] bg-foreground"
-                        : "w-4 h-[1px] bg-muted-foreground/20"
-                  }`}
-                >
-                  {isActive && !isDone && (
-                    <motion.div
-                      className="w-full h-full bg-foreground"
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ duration: 1.8, repeat: Infinity }}
-                    />
-                  )}
-                </div>
+                  active={stageActive}
+                  done={stageDone || stageDoneTerminal}
+                />
               );
             })}
           </div>
