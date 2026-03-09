@@ -74,7 +74,7 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Marta Style */}
-          <nav className="hidden md:flex items-center gap-4 lg:gap-6 flex-nowrap">
+          <nav className="hidden lg:flex items-center gap-4 lg:gap-6 flex-nowrap">
             {navLinks.map((link) => (
               <Link 
                 key={link.path}
