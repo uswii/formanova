@@ -127,7 +127,7 @@ export function useImageValidation() {
       const authHeaders = getAuthHeaders();
       const classificationPayload = {
         payload: {
-          jewelry_image_url: uploadedUrl,
+          jewelry_image_url: { uri: uploadedUrl },
         },
       };
       console.log('[ImageValidation] Sending classification request:', JSON.stringify(classificationPayload));
