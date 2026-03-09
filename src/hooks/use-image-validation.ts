@@ -213,7 +213,7 @@ export function useImageValidation() {
       if (!resultData) {
         console.warn('[ImageValidation] Could not fetch result');
         clearTimeout(timeoutId);
-        return { category: 'flatlay', is_worn: true, confidence: 0, reason: 'no_result', flagged: false, uploaded_url: uploadedUrl };
+        return { category: 'unknown', is_worn: false, confidence: 0, reason: 'no_result', flagged: true, uploaded_url: uploadedUrl };
       }
 
       console.log('[ImageValidation] Classification result:', JSON.stringify(resultData));
