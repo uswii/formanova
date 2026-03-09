@@ -100,12 +100,15 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
 export async function startRingPipeline(prompt: string, model: string): Promise<RunResponse> {
   const llmName = MODEL_MAP[model] || 'gemini';
 
-  const res = await authenticatedFetch(`${FORMANOVA_API}/run/ring_full_pipeline`, {
+  const res = await authenticatedFetch(`${FORMANOVA_API}/run/state/ring_generate_v1`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      payload: { prompt, llm_name: llmName, max_retries: 3 },
-      return_nodes: ['ring-generate', 'ring-validate'],
+      payload: { prompt, llm: llmName, mode: 'text', max_attempts: 3 },
+      return_nodes: [
+        'build_initial', 'build_retry', 'build_corrected',
+        'validate_output', 'success_final', 'success_original_glb', 'failed_final',
+      ],
     }),
   });
 
