@@ -729,9 +729,10 @@ const LoadedModel = forwardRef<
       const selected = meshDataList.find((m) => selectedMeshNames.has(m.name));
       if (!selected) return null;
       const DEG = 180 / Math.PI;
+      const euler = new THREE.Euler().setFromQuaternion(selected.quaternion, 'YXZ');
       return {
         position: [selected.position.x, selected.position.y, selected.position.z],
-        rotation: [selected.rotation.x * DEG, selected.rotation.y * DEG, selected.rotation.z * DEG],
+        rotation: [euler.x * DEG, euler.y * DEG, euler.z * DEG],
         scale: [selected.scale.x, selected.scale.y, selected.scale.z],
       };
     },
@@ -750,12 +751,14 @@ const LoadedModel = forwardRef<
           else newPos.z = value;
           return { ...md, position: newPos };
         } else if (property === 'rotation') {
-          const newRot = md.rotation.clone();
+          // Convert current quaternion to euler, modify axis, convert back
+          const euler = new THREE.Euler().setFromQuaternion(md.quaternion, 'YXZ');
           const radVal = value * RAD;
-          if (axisIdx === 0) newRot.x = radVal;
-          else if (axisIdx === 1) newRot.y = radVal;
-          else newRot.z = radVal;
-          return { ...md, rotation: newRot };
+          if (axisIdx === 0) euler.x = radVal;
+          else if (axisIdx === 1) euler.y = radVal;
+          else euler.z = radVal;
+          const newQuat = new THREE.Quaternion().setFromEuler(euler);
+          return { ...md, quaternion: newQuat };
         } else {
           const newScale = md.scale.clone();
           if (axisIdx === 0) newScale.x = value;
@@ -773,10 +776,12 @@ const LoadedModel = forwardRef<
           else if (axisIdx === 1) meshObj.position.y = value;
           else meshObj.position.z = value;
         } else if (property === 'rotation') {
+          const euler = new THREE.Euler().setFromQuaternion(meshObj.quaternion, 'YXZ');
           const radVal = value * RAD;
-          if (axisIdx === 0) meshObj.rotation.x = radVal;
-          else if (axisIdx === 1) meshObj.rotation.y = radVal;
-          else meshObj.rotation.z = radVal;
+          if (axisIdx === 0) euler.x = radVal;
+          else if (axisIdx === 1) euler.y = radVal;
+          else euler.z = radVal;
+          meshObj.quaternion.setFromEuler(euler);
         } else {
           if (axisIdx === 0) meshObj.scale.x = value;
           else if (axisIdx === 1) meshObj.scale.y = value;
