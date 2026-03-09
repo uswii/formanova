@@ -720,10 +720,10 @@ export default function UnifiedStudio() {
         {/* ═══ Flagged Image Dialog ═══ */}
         <Dialog open={showFlaggedDialog} onOpenChange={setShowFlaggedDialog}>
           <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Image May Not Be Suitable
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="flex items-center gap-3 text-destructive text-lg">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <span>Image May Not Be Suitable</span>
               </DialogTitle>
               <DialogDescription>
                 We detected this image as <strong>{LABEL_NAMES[validationResult?.category || ''] || validationResult?.category}</strong>.
