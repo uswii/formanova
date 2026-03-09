@@ -173,22 +173,19 @@ export default function TextToCAD() {
     if (isDemo) {
       setWorkspaceActive(true);
       setIsGenerating(true);
-      setProgress(0);
       setHasModel(false);
-      setProgressStep("Demo mode — loading placeholder…");
+      setProgressStep("build_initial");
 
       // Simulate progress over ~3 seconds
       const steps = [
-        { pct: 15, label: "Queued (demo)", ms: 400 },
-        { pct: 35, label: "Generating geometry (demo)", ms: 600 },
-        { pct: 55, label: "Adding details (demo)", ms: 600 },
-        { pct: 75, label: "Optimizing structure (demo)", ms: 500 },
-        { pct: 90, label: "Preparing preview (demo)", ms: 400 },
-        { pct: 98, label: "Loading model…", ms: 300 },
+        { label: "generate_initial", ms: 400 },
+        { label: "build_initial", ms: 600 },
+        { label: "validate_output", ms: 600 },
+        { label: "build_corrected", ms: 500 },
+        { label: "_loading", ms: 400 },
       ];
       for (const step of steps) {
         await new Promise((r) => setTimeout(r, step.ms));
-        setProgress(step.pct);
         setProgressStep(step.label);
       }
 
