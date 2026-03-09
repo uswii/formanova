@@ -177,10 +177,10 @@ export default function LeftPanel({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="relative p-5 bg-muted/30 border border-border"
+              className="relative p-4 lg:p-5 bg-muted/30 border border-border min-w-0 overflow-hidden"
             >
-              <h3 className="font-display text-lg tracking-[0.15em] text-foreground uppercase mb-1">Edit Your Ring</h3>
-              <p className="font-mono text-[10px] text-muted-foreground mb-4 tracking-wide">Describe changes, rebuild parts, or add new elements</p>
+              <h3 className="font-display text-base lg:text-lg tracking-[0.12em] lg:tracking-[0.15em] text-foreground uppercase mb-1 truncate">Edit Your Ring</h3>
+              <p className="font-mono text-[9px] lg:text-[10px] text-muted-foreground mb-4 tracking-wide truncate">Describe changes, rebuild parts, or add new elements</p>
 
               {/* Text edit prompt */}
               <textarea
