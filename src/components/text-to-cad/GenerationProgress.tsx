@@ -155,7 +155,7 @@ export default function GenerationProgress({
               const stageActive = node === currentStep && !isTerminal;
               const stageDoneTerminal = isDone && i === STAGE_ORDER.length - 1;
               return (
-                <StageBar
+                <StageSegment
                   key={node}
                   active={stageActive}
                   done={stageDone || stageDoneTerminal}
