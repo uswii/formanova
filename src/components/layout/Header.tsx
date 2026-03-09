@@ -74,12 +74,12 @@ export function Header() {
           </div>
 
           {/* Desktop Navigation - Marta Style */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-4 lg:gap-6 flex-nowrap">
             {navLinks.map((link) => (
               <Link 
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-medium transition-colors whitespace-nowrap ${
                   location.pathname === link.path 
                     ? 'text-foreground' 
                     : 'text-muted-foreground hover:text-foreground'
