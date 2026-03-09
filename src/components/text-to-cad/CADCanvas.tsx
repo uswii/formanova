@@ -121,10 +121,35 @@ interface MeshData {
   originalMaterial: THREE.Material;
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
+  rotationDeg: [number, number, number]; // cumulative degrees, can exceed ±360
   scale: THREE.Vector3;
   origPos: THREE.Vector3;
   origQuat: THREE.Quaternion;
+  origRotationDeg: [number, number, number];
   origScale: THREE.Vector3;
+}
+
+/** Convert quaternion to Euler degrees (XYZ order) */
+function quatToDeg(q: THREE.Quaternion): [number, number, number] {
+  const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+  const D = 180 / Math.PI;
+  return [e.x * D, e.y * D, e.z * D];
+}
+
+/** Unwrap raw Euler degrees against a previous value so deltas < 180° stay continuous */
+function unwrapDeg(raw: [number, number, number], prev: [number, number, number]): [number, number, number] {
+  const out: [number, number, number] = [...raw];
+  for (let i = 0; i < 3; i++) {
+    while (out[i] - prev[i] > 180) out[i] -= 360;
+    while (out[i] - prev[i] < -180) out[i] += 360;
+  }
+  return out;
+}
+
+/** Convert degrees to quaternion */
+function degToQuat(deg: [number, number, number]): THREE.Quaternion {
+  const R = Math.PI / 180;
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(deg[0] * R, deg[1] * R, deg[2] * R, 'XYZ'));
 }
 
 // ── Snapshot for undo ──
