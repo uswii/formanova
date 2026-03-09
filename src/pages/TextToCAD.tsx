@@ -650,8 +650,7 @@ export default function TextToCAD() {
   return (
     <div
       className="flex h-[calc(100vh-5rem)] overflow-hidden bg-background"
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
+      tabIndex={-1}
     >
       <ResizablePanelGroup direction="horizontal" className="h-full">
         {/* Left panel */}
