@@ -281,7 +281,7 @@ export function useImageValidation() {
         return {
           index: idx,
           detected_type: detectedType,
-          is_acceptable: result.is_worn || !result.flagged,
+          is_acceptable: result.is_worn,
           flags,
           confidence: result.confidence,
           message: result.reason,
