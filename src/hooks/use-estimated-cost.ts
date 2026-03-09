@@ -47,7 +47,6 @@ export function useEstimatedCost({
           body: JSON.stringify({
             workflow_name: workflowName,
             num_variations: numVariations,
-            ...(model ? { llm: model } : {}),
           }),
           signal: controller.signal,
         });
