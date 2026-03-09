@@ -1,51 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, X } from "lucide-react";
-
-const SHORTCUT_SECTIONS = [
-  {
-    title: "Transform Modes",
-    shortcuts: [
-      { keys: ["G"], desc: "Move" },
-      { keys: ["R"], desc: "Rotate" },
-      { keys: ["S"], desc: "Scale" },
-      { keys: ["Esc"], desc: "Orbit (cancel transform)" },
-    ],
-  },
-  {
-    title: "Mesh Editing",
-    shortcuts: [
-      { keys: ["X"], desc: "Delete selected" },
-      { keys: ["Del"], desc: "Delete selected" },
-      { keys: ["Shift", "D"], desc: "Duplicate selected" },
-      { keys: ["W"], desc: "Toggle wireframe" },
-    ],
-  },
-  {
-    title: "Selection",
-    shortcuts: [
-      { keys: ["Ctrl", "A"], desc: "Select all" },
-      { keys: ["Ctrl", "Shift", "A"], desc: "Deselect all" },
-    ],
-  },
-  {
-    title: "History",
-    shortcuts: [
-      { keys: ["Ctrl", "Z"], desc: "Undo" },
-      { keys: ["Ctrl", "Shift", "Z"], desc: "Redo" },
-      { keys: ["U"], desc: "Undo (alt)" },
-    ],
-  },
-  {
-    title: "Mouse Controls",
-    shortcuts: [
-      { keys: ["Scroll"], desc: "Zoom" },
-      { keys: ["Left Drag"], desc: "Orbit" },
-      { keys: ["Right Drag"], desc: "Pan" },
-      { keys: ["Click"], desc: "Select mesh" },
-    ],
-  },
-];
+import { SHORTCUT_SECTIONS } from "@/hooks/use-cad-keyboard-shortcuts";
 
 function Kbd({ children }: { children: string }) {
   return (
