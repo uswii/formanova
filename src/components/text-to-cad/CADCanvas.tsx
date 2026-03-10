@@ -26,16 +26,14 @@ let _isTransformDragging = false;
 let _dragStartQuat: THREE.Quaternion | null = null;
 let _dragStartRotDeg: [number, number, number] | null = null;
 
-// ── Shared selection material (reused, never re-created) ──
-const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
+// ── Shared wireframe overlay material for selection feedback ──
+const SELECTION_WIREFRAME_MATERIAL = new THREE.MeshBasicMaterial({
   color: new THREE.Color(0x3399ff),
+  wireframe: true,
   transparent: true,
-  opacity: 0.35,
+  opacity: 0.5,
+  depthTest: true,
   depthWrite: false,
-  roughness: 0.4,
-  metalness: 0.1,
-  emissive: new THREE.Color(0x2277dd),
-  emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
 
@@ -154,6 +152,31 @@ function OrbitControlsWithRef(props: any) {
 }
 
 // ── Mesh data extracted from GLB ──
+/** Wireframe overlay that syncs transform from a source mesh ref every frame */
+function SelectionWireframeOverlay({
+  sourceMeshName,
+  geometry,
+  meshRefs,
+}: {
+  sourceMeshName: string;
+  geometry: THREE.BufferGeometry;
+  meshRefs: React.MutableRefObject<Map<string, THREE.Mesh>>;
+}) {
+  const overlayRef = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    const src = meshRefs.current.get(sourceMeshName);
+    const dst = overlayRef.current;
+    if (src && dst) {
+      dst.position.copy(src.position);
+      dst.quaternion.copy(src.quaternion);
+      dst.scale.copy(src.scale);
+    }
+  });
+  return (
+    <mesh ref={overlayRef} geometry={geometry} material={SELECTION_WIREFRAME_MATERIAL} renderOrder={999} />
+  );
+}
+
 interface MeshData {
   name: string;
   geometry: THREE.BufferGeometry;
@@ -937,11 +960,6 @@ const LoadedModel = forwardRef<
         return;
       }
 
-      if (isSelected) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
-        return;
-      }
-
       const cacheKey = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
       let material = materialCache.current.get(cacheKey);
       if (!material) {
@@ -985,6 +1003,16 @@ const LoadedModel = forwardRef<
             e.stopPropagation();
             onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
           }}
+        />
+      ))}
+
+      {/* Wireframe selection overlay for selected standard meshes */}
+      {standardElements.filter(md => md.isSelected).map((md) => (
+        <SelectionWireframeOverlay
+          key={`sel_wire_${md.name}`}
+          sourceMeshName={md.name}
+          geometry={md.geometry}
+          meshRefs={meshRefs}
         />
       ))}
 
