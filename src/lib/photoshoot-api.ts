@@ -102,15 +102,19 @@ export async function getPhotoshootStatus(
 
   // Treat transient 404 as "still running" — don't label as failed
   if (res.status === 404) {
+    console.log('[photoshoot-api] Status 404 (not ready yet)');
     return { state: 'running' };
   }
 
   if (!res.ok) {
     const text = await res.text();
+    console.error('[photoshoot-api] Status check failed:', res.status, text);
     throw new Error(`Status check failed: ${res.status} — ${text.substring(0, 200)}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  console.log('[photoshoot-api] Status response:', JSON.stringify(data));
+  return data;
 }
 
 // ─── Get Result (with retry for result-write lag) ───────────────────
