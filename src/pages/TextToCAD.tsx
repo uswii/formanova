@@ -822,7 +822,6 @@ export default function TextToCAD() {
   const toggleWireframe = useCallback(() => {
     wireframeRef.current = !wireframeRef.current;
     canvasRef.current?.setWireframe(wireframeRef.current);
-    toast.success(`Wireframe ${wireframeRef.current ? "ON" : "OFF"}`);
   }, []);
 
   useCADKeyboardShortcuts({
