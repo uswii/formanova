@@ -750,7 +750,7 @@ export default function TextToCAD() {
     }
     pushUndo("Apply material");
     canvasRef.current?.applyMaterial(matId, selectedNames);
-  }, [selectedNames, pushUndo]);
+  }, [selectedNames, pushUndo, showSelectionWarning]);
 
   const handleSceneAction = useCallback((action: string) => {
     const names = selectedNames;
