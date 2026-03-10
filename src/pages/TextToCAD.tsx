@@ -36,7 +36,7 @@ interface UndoEntry {
   canvasSnapshot: CanvasSnapshot | null;
 }
 
-const CAD_SESSION_KEY = "formanova_cad_session";
+
 
 export default function TextToCAD() {
   const navigate = useNavigate();
