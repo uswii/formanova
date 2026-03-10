@@ -904,13 +904,32 @@ const LoadedModel = forwardRef<
       inv();
     },
     exportSceneBlob: async (): Promise<Blob> => {
-      // Reconstruct a Three.js scene from live mesh refs (captures all imperative transforms)
+      // Reconstruct a Three.js scene from live mesh refs (captures all imperative transforms & materials)
       const exportScene = new THREE.Scene();
+      console.log('[GLB Export] Starting export. meshDataList:', meshDataList.length, 'assignedMaterials:', Object.keys(assignedMaterials), 'meshRefs:', meshRefs.current.size);
       meshDataList.forEach((md) => {
         const assigned = assignedMaterials[md.name];
-        const material = assigned ? assigned.create() : md.originalMaterial.clone();
-        if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
-        const mesh = new THREE.Mesh(md.geometry.clone(), material);
+        // Create export-safe material (MeshStandardMaterial for max GLB compatibility)
+        let material: THREE.Material;
+        if (assigned) {
+          const created = assigned.create();
+          // Convert MeshPhysicalMaterial to MeshStandardMaterial for GLB compatibility
+          material = new THREE.MeshStandardMaterial({
+            color: created.color?.clone(),
+            metalness: created.metalness ?? 0,
+            roughness: created.roughness ?? 0.5,
+            emissive: created.emissive?.clone(),
+            emissiveIntensity: created.emissiveIntensity ?? 0,
+            side: THREE.DoubleSide,
+            name: assigned.name,
+          });
+          created.dispose();
+        } else {
+          material = md.originalMaterial.clone();
+          if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+        }
+        const geo = md.geometry.clone();
+        const mesh = new THREE.Mesh(geo, material);
         mesh.name = md.name;
         // Read transforms from live Three.js mesh refs to capture all imperative changes
         const liveRef = meshRefs.current.get(md.name);
@@ -918,16 +937,21 @@ const LoadedModel = forwardRef<
           mesh.position.copy(liveRef.position);
           mesh.quaternion.copy(liveRef.quaternion);
           mesh.scale.copy(liveRef.scale);
+          console.log(`[GLB Export] ${md.name}: using LIVE ref pos=${liveRef.position.toArray()} assigned=${assigned?.name ?? 'original'}`);
         } else {
           mesh.position.copy(md.position);
           mesh.quaternion.copy(md.quaternion);
           mesh.scale.copy(md.scale);
+          console.log(`[GLB Export] ${md.name}: using STATE pos=${md.position.toArray()} (no live ref)`);
         }
         exportScene.add(mesh);
       });
+      console.log('[GLB Export] Export scene children:', exportScene.children.length);
       const exporter = new GLTFExporter();
       const result = await exporter.parseAsync(exportScene, { binary: true });
-      return new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
+      const blob = new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
+      console.log('[GLB Export] Blob size:', blob.size, 'bytes');
+      return blob;
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
