@@ -602,6 +602,11 @@ const LoadedModel = forwardRef<
     }
   }, []);
 
+  // Called when TransformControls drag starts
+  const handleDragStart = useCallback(() => {
+    onTransformStart?.();
+  }, [onTransformStart]);
+
   // Called when TransformControls drag ends
   const handleDragEnd = useCallback((obj: THREE.Object3D) => {
     // Find which mesh this object corresponds to
