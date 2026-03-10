@@ -175,6 +175,7 @@ export default function LeftPanel({
         </AnimatePresence>
 
         {/* Edit section */}
+        {CAD_EDIT_TOOLS_ENABLED && (
         <AnimatePresence>
           {hasModel && (
             <motion.section
