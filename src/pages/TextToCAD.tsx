@@ -122,7 +122,7 @@ export default function TextToCAD() {
 
   const handleUndo = useCallback(() => {
     setUndoStack((prev) => {
-      if (prev.length === 0) { toast.info("Nothing to undo"); return prev; }
+      if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
       const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
       const snap = canvasRef.current?.getSnapshot() ?? null;
@@ -131,14 +131,14 @@ export default function TextToCAD() {
       if (last.canvasSnapshot) {
         canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
       }
-      toast.success(`Undo: ${last.label}`);
+      // silent undo
       return prev.slice(0, -1);
     });
   }, []);
 
   const handleRedo = useCallback(() => {
     setRedoStack((prev) => {
-      if (prev.length === 0) { toast.info("Nothing to redo"); return prev; }
+      if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
       const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
       const snap = canvasRef.current?.getSnapshot() ?? null;
@@ -147,7 +147,7 @@ export default function TextToCAD() {
       if (last.canvasSnapshot) {
         canvasRef.current?.restoreSnapshot(last.canvasSnapshot);
       }
-      toast.success(`Redo: ${last.label}`);
+      // silent redo
       return prev.slice(0, -1);
     });
   }, []);
@@ -617,6 +617,8 @@ export default function TextToCAD() {
     setAdditionalParts([]);
 
     if (!workspaceActive) setWorkspaceActive(true);
+    setIsModelLoading(true);
+    setProgressStep("_loading");
     setGlbUrl(url);
     setHasModel(true);
     setShowPartRegen(true);
@@ -625,7 +627,6 @@ export default function TextToCAD() {
     setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
     setUndoStack([]);
     setRedoStack([]);
-    toast.success(`Loaded ${file.name}`);
   }, [glbUrl, additionalParts, workspaceActive]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
@@ -733,16 +734,23 @@ export default function TextToCAD() {
     });
   };
 
+  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
+  const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSelectionWarning = useCallback((msg: string) => {
+    setSelectionWarning(msg);
+    if (selectionWarningTimer.current) clearTimeout(selectionWarningTimer.current);
+    selectionWarningTimer.current = setTimeout(() => setSelectionWarning(null), 3000);
+  }, []);
+
   const handleApplyMaterial = useCallback((matId: string) => {
     if (selectedNames.length === 0) {
-      toast.error("Select meshes first, then apply a material");
+      showSelectionWarning("Select meshes first, then apply a material");
       return;
     }
     pushUndo("Apply material");
     canvasRef.current?.applyMaterial(matId, selectedNames);
-    const matName = matId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    toast.success(`Applied ${matName} to ${selectedNames.length} mesh(es)`);
-  }, [selectedNames, pushUndo]);
+  }, [selectedNames, pushUndo, showSelectionWarning]);
 
   const handleSceneAction = useCallback((action: string) => {
     const names = selectedNames;
@@ -753,69 +761,58 @@ export default function TextToCAD() {
       case "reset-transform":
         pushUndo("Reset transform");
         canvasRef.current?.resetTransform(names.length ? names : meshes.map((m) => m.name));
-        toast.success("Transform reset");
         break;
       case "apply-transform":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Apply transform");
         canvasRef.current?.applyTransform(names);
-        toast.success("Transform applied to geometry");
         break;
       case "delete":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Delete meshes");
         canvasRef.current?.deleteMeshes(names);
         setMeshes((prev) => prev.filter((m) => !names.includes(m.name)));
-        toast.success(`Deleted ${names.length} mesh(es)`);
         break;
       case "duplicate":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Duplicate meshes");
         canvasRef.current?.duplicateMeshes(names);
-        toast.success(`Duplicated ${names.length} mesh(es)`);
         break;
       case "flip-normals":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Flip normals");
         canvasRef.current?.flipNormals(names);
-        toast.success("Normals flipped");
         break;
       case "center-origin":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Center origin");
         canvasRef.current?.centerOrigin(names);
-        toast.success("Origin centered");
         break;
       case "recalc-normals":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Recalculate normals");
-        toast.success("Normals recalculated");
         break;
       case "wireframe-on":
         canvasRef.current?.setWireframe(true);
-        toast.success("Wireframe ON");
         break;
       case "wireframe-off":
         canvasRef.current?.setWireframe(false);
-        toast.success("Wireframe OFF");
         break;
       case "mirror-x":
       case "mirror-y":
       case "mirror-z":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo(`Mirror ${action.split("-")[1].toUpperCase()}`);
-        toast.success(`Mirrored on ${action.split("-")[1].toUpperCase()} axis`);
         break;
       default:
-        toast.info(`${action} — coming soon`);
+        break;
     }
-  }, [selectedNames, meshes, pushUndo]);
+  }, [selectedNames, meshes, pushUndo, showSelectionWarning]);
 
   // Centralized keyboard shortcuts (window-level listener)
   const toggleWireframe = useCallback(() => {
     wireframeRef.current = !wireframeRef.current;
     canvasRef.current?.setWireframe(wireframeRef.current);
-    toast.success(`Wireframe ${wireframeRef.current ? "ON" : "OFF"}`);
   }, []);
 
   useCADKeyboardShortcuts({
@@ -891,7 +888,6 @@ export default function TextToCAD() {
               onQuickEdit={handleQuickEdit}
               onMagicTexture={() => {
                 canvasRef.current?.removeAllTextures();
-                toast.success("All magic textures removed — showing original materials");
               }}
               onGlbUpload={handleGlbUpload}
               creditBlock={creditBlock ? (
@@ -988,6 +984,35 @@ export default function TextToCAD() {
                 </div>
               )}
             </div>
+
+            {/* Selection warning — centered overlay instead of toast */}
+            <AnimatePresence>
+              {selectionWarning && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
+                >
+                  <div className="pointer-events-auto bg-card border border-border shadow-2xl px-8 py-5 max-w-xs text-center">
+                    <div className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1.5">
+                      No Selection
+                    </div>
+                    <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+                      {selectionWarning}
+                    </p>
+                    <button
+                      onClick={() => setSelectionWarning(null)}
+                      className="mt-4 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+                    >
+                      OK
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
