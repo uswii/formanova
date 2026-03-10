@@ -749,8 +749,6 @@ export default function TextToCAD() {
     }
     pushUndo("Apply material");
     canvasRef.current?.applyMaterial(matId, selectedNames);
-    const matName = matId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    toast.success(`Applied ${matName} to ${selectedNames.length} mesh(es)`);
   }, [selectedNames, pushUndo]);
 
   const handleSceneAction = useCallback((action: string) => {
