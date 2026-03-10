@@ -796,7 +796,7 @@ export default function TextToCAD() {
         toast.success("Origin centered");
         break;
       case "recalc-normals":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Recalculate normals");
         toast.success("Normals recalculated");
         break;
