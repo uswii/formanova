@@ -67,11 +67,13 @@ function useInvalidate() {
 function TransformControlsWrapper({
   object,
   mode,
+  onDragStart,
   onDragEnd,
   onRotationDelta,
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
+  onDragStart?: () => void;
   onDragEnd?: (obj: THREE.Object3D) => void;
   onRotationDelta?: (obj: THREE.Object3D, deltaDeg: [number, number, number]) => void;
 }) {
@@ -90,6 +92,7 @@ function TransformControlsWrapper({
       if (e.value) {
         // Drag started — snapshot the current quaternion for delta tracking
         prevQuatRef.current.copy(object.quaternion);
+        onDragStart?.();
         inv();
       }
       // When drag ends, pass the object back so we can sync state
