@@ -67,7 +67,7 @@ export default function LeftPanel({
         <section>
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Generation Quality</h3>
           <div className="flex gap-0 border border-border min-w-0 overflow-hidden">
-            {AI_MODELS.filter(m => !m.hidden).map((m) => (
+            {AI_MODELS.map((m) => (
               <button
                 key={m.id}
                 onClick={() => !m.comingSoon && setModel(m.id)}

@@ -4,9 +4,9 @@ export { MATERIAL_LIBRARY, MATERIAL_TYPES, MATERIAL_ALLOYS, MATERIAL_FINISHES } 
 export type { MaterialDef, MaterialType, MaterialAlloy, MaterialFinish } from "@/components/cad-studio/materials";
 
 export const AI_MODELS = [
-  { id: "gemini", label: "Cheaper", tier: "", comingSoon: false, hidden: false },
-  { id: "claude-sonnet", label: "Standard", tier: "Mid-tier", comingSoon: false, hidden: true },
-  { id: "claude-opus", label: "Expensive", tier: "", comingSoon: false, hidden: false },
+  { id: "gemini", label: "Lite", tier: "Cheapest", comingSoon: false },
+  { id: "claude-sonnet", label: "Standard", tier: "Mid-tier", comingSoon: false },
+  { id: "claude-opus", label: "Premium", tier: "Top tier", comingSoon: false },
 ] as const;
 
 export const QUICK_EDITS = [
