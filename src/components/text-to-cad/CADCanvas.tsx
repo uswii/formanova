@@ -295,10 +295,6 @@ const LoadedModel = forwardRef<
   const meshDataListRef = useRef<MeshData[]>([]);
   meshDataListRef.current = meshDataList;
   const assignedMaterialsRef = useRef<Record<string, MaterialDef>>({});
-  // Sync inline — exactly like meshDataListRef on the line above.
-  // This guarantees the ref is current by the time render completes.
-  // The previous useEffect approach was the bug: it deferred the update,
-  // so exports triggered before the effect ran would read stale state.
   assignedMaterialsRef.current = assignedMaterials;
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
