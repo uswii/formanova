@@ -23,6 +23,8 @@ interface LeftPanelProps {
   onQuickEdit: (preset: string) => void;
   onMagicTexture: () => void;
   onGlbUpload: (file: File) => void;
+  onRebuildPart?: (partId: string, description: string) => void;
+  onAddPart?: (description: string) => void;
   creditBlock?: React.ReactNode;
 }
 
