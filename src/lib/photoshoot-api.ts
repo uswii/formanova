@@ -70,6 +70,9 @@ export async function startPhotoshoot(
     throw new Error('A valid model image URL must be provided.');
   }
 
+  console.log('[photoshoot-api] Sending request to /run/state/jewelry_photoshoots_generator');
+  console.log('[photoshoot-api] Payload:', JSON.stringify({ payload: request }));
+
   const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -78,10 +81,13 @@ export async function startPhotoshoot(
 
   if (!res.ok) {
     const text = await res.text();
+    console.error('[photoshoot-api] Start failed:', res.status, text);
     throw new Error(`Failed to start photoshoot: ${res.status} — ${text.substring(0, 200)}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  console.log('[photoshoot-api] Start response:', JSON.stringify(data));
+  return data;
 }
 
 // ─── Poll Status ────────────────────────────────────────────────────
