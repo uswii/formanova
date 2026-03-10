@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Gem, CircleDot } from "lucide-react";
 import { MATERIAL_LIBRARY, type MaterialDef } from "./materials";
 import MaterialSphere from "./MaterialSphere";
 
@@ -24,24 +23,22 @@ export default function MaterialLibrary({ selectedMesh, onApplyMaterial }: Mater
         <div className="flex gap-1 bg-muted/50 rounded-lg p-0.5">
           <button
             onClick={() => setTab("metal")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] uppercase tracking-wider font-semibold transition-colors ${
+            className={`flex-1 py-1.5 rounded-md text-[10px] uppercase tracking-wider font-semibold transition-colors ${
               tab === "metal"
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <CircleDot className="w-3 h-3 flex-shrink-0" />
             Metals
           </button>
           <button
             onClick={() => setTab("gemstone")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] uppercase tracking-wider font-semibold transition-colors ${
+            className={`flex-1 py-1.5 rounded-md text-[10px] uppercase tracking-wider font-semibold transition-colors ${
               tab === "gemstone"
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Gem className="w-3 h-3 flex-shrink-0" />
             Gems
           </button>
         </div>
