@@ -4,6 +4,7 @@ import { Diamond, ChevronDown, ChevronRight } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
+import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
 
 interface LeftPanelProps {
   model: string;
