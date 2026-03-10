@@ -1042,7 +1042,7 @@ export default function TextToCAD() {
           )}
         </ResizablePanel>
       </ResizablePanelGroup>
-      {DownloadDialog}
+      
     </div>
   );
 }
