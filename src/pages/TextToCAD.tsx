@@ -379,9 +379,9 @@ export default function TextToCAD() {
     }
   }, [prompt, model, isGenerating]);
 
-  const simulateEdit = useCallback(async () => {
-    if (!editPrompt.trim()) { toast.error("Please describe the edit"); return; }
-    pushUndo("AI edit");
+  const runEditWithPrompt = useCallback(async (promptText: string, label: string) => {
+    if (!promptText.trim()) { toast.error("Please describe the edit"); return; }
+    pushUndo(label);
     setIsEditing(true);
     setIsGenerating(true);
     setProgressStep("build_initial");
@@ -390,9 +390,21 @@ export default function TextToCAD() {
     setIsGenerating(false);
     refreshCredits().catch(() => {});
     setIsEditing(false);
+    toast.success(`${label} applied`);
+  }, [pushUndo]);
+
+  const simulateEdit = useCallback(async () => {
+    await runEditWithPrompt(editPrompt, "AI edit");
     setEditPrompt("");
-    toast.success("Edit applied");
-  }, [editPrompt, pushUndo]);
+  }, [editPrompt, runEditWithPrompt]);
+
+  const handleRebuildPart = useCallback((partId: string, description: string) => {
+    runEditWithPrompt(`Rebuild ${partId}: ${description}`, `Rebuild ${partId}`);
+  }, [runEditWithPrompt]);
+
+  const handleAddPart = useCallback((description: string) => {
+    runEditWithPrompt(`Add new part: ${description}`, "Add part");
+  }, [runEditWithPrompt]);
 
   const handleQuickEdit = useCallback((preset: string) => {
     setEditPrompt(preset);
