@@ -77,26 +77,20 @@ export default function ViewportDisplayMenu({ visible, onSceneAction }: Viewport
                 Display
               </span>
             </div>
-            {DISPLAY_OPTIONS.map((opt) => {
+            {DISPLAY_OPTIONS.filter((opt) => opt.available).map((opt) => {
               const isActive = activeToggles.has(opt.label);
               return (
                 <button
                   key={opt.label}
                   onClick={() => toggle(opt)}
-                  disabled={!opt.available}
                   className={`w-full px-3 py-2 text-left text-[12px] font-medium transition-all duration-150 flex items-center justify-between ${
-                    !opt.available
-                      ? "text-muted-foreground/40 cursor-default"
-                      : isActive
-                        ? "text-foreground bg-accent"
-                        : "text-foreground/80 hover:bg-accent/50 cursor-pointer"
+                    isActive
+                      ? "text-foreground bg-accent"
+                      : "text-foreground/80 hover:bg-accent/50 cursor-pointer"
                   }`}
                 >
                   <span>{opt.label}</span>
-                  {!opt.available && (
-                    <span className="font-mono text-[9px] text-muted-foreground/50 italic">soon</span>
-                  )}
-                  {opt.available && isActive && (
+                  {isActive && (
                     <span className="text-primary text-[10px]">●</span>
                   )}
                 </button>
