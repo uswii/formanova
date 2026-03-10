@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+
 import { Eye, EyeOff, Focus, Shuffle, Layers, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "./types";
