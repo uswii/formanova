@@ -931,10 +931,18 @@ const LoadedModel = forwardRef<
 
   const { standardElements, gemElements } = useMemo(() => {
     // ── Clear "material applied after select" when selection changes (synchronous) ──
-    const prev = prevSelectedRef.current;
-    const selectionChanged = selectedMeshNames.size !== prev.size ||
-      [...selectedMeshNames].some(n => !prev.has(n));
+    const prevSel = prevSelectedRef.current;
+    const selectionChanged = selectedMeshNames.size !== prevSel.size ||
+      [...selectedMeshNames].some(n => !prevSel.has(n));
     if (selectionChanged) {
+      materialAppliedAfterSelect.current.clear();
+      prevSelectedRef.current = new Set(selectedMeshNames);
+      // Ensure canvas re-renders with demand frameloop
+      requestAnimationFrame(() => inv());
+    }
+
+    // Clear cache entries for meshes whose assigned material changed since last render
+    const prevAssigned = prevAssignedRef.current;
       materialAppliedAfterSelect.current.clear();
       prevSelectedRef.current = new Set(selectedMeshNames);
     }
