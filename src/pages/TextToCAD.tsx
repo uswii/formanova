@@ -762,43 +762,36 @@ export default function TextToCAD() {
       case "reset-transform":
         pushUndo("Reset transform");
         canvasRef.current?.resetTransform(names.length ? names : meshes.map((m) => m.name));
-        toast.success("Transform reset");
         break;
       case "apply-transform":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Apply transform");
         canvasRef.current?.applyTransform(names);
-        toast.success("Transform applied to geometry");
         break;
       case "delete":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Delete meshes");
         canvasRef.current?.deleteMeshes(names);
         setMeshes((prev) => prev.filter((m) => !names.includes(m.name)));
-        toast.success(`Deleted ${names.length} mesh(es)`);
         break;
       case "duplicate":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Duplicate meshes");
         canvasRef.current?.duplicateMeshes(names);
-        toast.success(`Duplicated ${names.length} mesh(es)`);
         break;
       case "flip-normals":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Flip normals");
         canvasRef.current?.flipNormals(names);
-        toast.success("Normals flipped");
         break;
       case "center-origin":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Center origin");
         canvasRef.current?.centerOrigin(names);
-        toast.success("Origin centered");
         break;
       case "recalc-normals":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Recalculate normals");
-        toast.success("Normals recalculated");
         break;
       case "wireframe-on":
         canvasRef.current?.setWireframe(true);
@@ -811,10 +804,9 @@ export default function TextToCAD() {
       case "mirror-z":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo(`Mirror ${action.split("-")[1].toUpperCase()}`);
-        toast.success(`Mirrored on ${action.split("-")[1].toUpperCase()} axis`);
         break;
       default:
-        toast.info(`${action} — coming soon`);
+        break;
     }
   }, [selectedNames, meshes, pushUndo]);
 
