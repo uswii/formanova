@@ -3,8 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Eye, EyeOff, Focus, Shuffle, Layers, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "./types";
-import { MATERIAL_LIBRARY, MATERIAL_TYPES, MATERIAL_ALLOYS, MATERIAL_FINISHES } from "@/components/cad-studio/materials";
-import type { MaterialType, MaterialAlloy, MaterialFinish } from "@/components/cad-studio/materials";
+import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import MaterialSphere from "@/components/cad-studio/MaterialSphere";
 
 interface MeshPanelProps {
