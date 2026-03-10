@@ -887,7 +887,6 @@ export default function TextToCAD() {
               onQuickEdit={handleQuickEdit}
               onMagicTexture={() => {
                 canvasRef.current?.removeAllTextures();
-                toast.success("All magic textures removed — showing original materials");
               }}
               onGlbUpload={handleGlbUpload}
               creditBlock={creditBlock ? (
