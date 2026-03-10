@@ -63,6 +63,10 @@ function getAuthHeaders(): Record<string, string> {
 export async function startPhotoshoot(
   request: PhotoshootStartRequest,
 ): Promise<PhotoshootStartResponse> {
+  if (!request.jewelry_image_url || !request.model_image_url) {
+    throw new Error('Both a jewelry image and a model image must be selected before generating.');
+  }
+
   const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
     headers: getAuthHeaders(),
