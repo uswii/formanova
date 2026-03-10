@@ -1,10 +1,9 @@
 import { useState, useMemo, useRef } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Eye, EyeOff, Focus, Shuffle, Layers, Filter, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
+
+import { Eye, EyeOff, Focus, Shuffle, Layers, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "./types";
-import { MATERIAL_LIBRARY, MATERIAL_TYPES, MATERIAL_ALLOYS, MATERIAL_FINISHES } from "@/components/cad-studio/materials";
-import type { MaterialType, MaterialAlloy, MaterialFinish } from "@/components/cad-studio/materials";
+import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
 import MaterialSphere from "@/components/cad-studio/MaterialSphere";
 
 interface MeshPanelProps {
@@ -17,20 +16,12 @@ interface MeshPanelProps {
 
 const ACTION_BTN = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.97] bg-muted/40 border border-border text-foreground/80";
 
-const CHIP = "px-2.5 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-[0.1em] cursor-pointer transition-all duration-150 border";
-const CHIP_DEFAULT = `${CHIP} text-muted-foreground border-border/50 hover:text-foreground hover:bg-accent/30`;
-const CHIP_ACTIVE = `${CHIP} text-foreground bg-accent border-border`;
-
 export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial, onSceneAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filterType, setFilterType] = useState<MaterialType | null>(null);
-  const [filterAlloy, setFilterAlloy] = useState<MaterialAlloy | null>(null);
-  const [filterFinish, setFilterFinish] = useState<MaterialFinish | null>(null);
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
   const [meshTab, setMeshTab] = useState<"list" | "actions">("list");
-  const [materialCollapsed, setMaterialCollapsed] = useState(false);
   const [meshCollapsed, setMeshCollapsed] = useState(false);
+  const [materialCollapsed, setMaterialCollapsed] = useState(false);
   const lastClickedIdx = useRef<number>(-1);
 
   const selectedMeshes = useMemo(() => meshes.filter(m => m.selected), [meshes]);
@@ -42,24 +33,9 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
     [meshes, search]
   );
 
-  const hasActiveFilters = filterType !== null || filterAlloy !== null || filterFinish !== null;
-
   const filteredMaterials = useMemo(() => {
-    return MATERIAL_LIBRARY.filter(m => {
-      if (m.category !== matTab) return false;
-      if (matTab === "gemstone") return true;
-      if (filterType && m.type !== filterType) return false;
-      if (filterAlloy && m.alloy !== filterAlloy) return false;
-      if (filterFinish && m.finish !== filterFinish) return false;
-      return true;
-    });
-  }, [matTab, filterType, filterAlloy, filterFinish]);
-
-  const clearFilters = () => {
-    setFilterType(null);
-    setFilterAlloy(null);
-    setFilterFinish(null);
-  };
+    return MATERIAL_LIBRARY.filter(m => m.category === matTab);
+  }, [matTab]);
 
   const handleMeshClick = (mesh: MeshItemData, e: React.MouseEvent) => {
     const currentIdx = meshes.findIndex((m) => m.name === mesh.name);
@@ -146,16 +122,6 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
             hasSelection={hasSelection}
             matTab={matTab}
             setMatTab={setMatTab}
-            filtersOpen={filtersOpen}
-            setFiltersOpen={setFiltersOpen}
-            hasActiveFilters={hasActiveFilters}
-            filterType={filterType}
-            setFilterType={setFilterType}
-            filterAlloy={filterAlloy}
-            setFilterAlloy={setFilterAlloy}
-            filterFinish={filterFinish}
-            setFilterFinish={setFilterFinish}
-            clearFilters={clearFilters}
             filteredMaterials={filteredMaterials}
             onApplyMaterial={onApplyMaterial}
           />
@@ -187,16 +153,6 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
               hasSelection={hasSelection}
               matTab={matTab}
               setMatTab={setMatTab}
-              filtersOpen={filtersOpen}
-              setFiltersOpen={setFiltersOpen}
-              hasActiveFilters={hasActiveFilters}
-              filterType={filterType}
-              setFilterType={setFilterType}
-              filterAlloy={filterAlloy}
-              setFilterAlloy={setFilterAlloy}
-              filterFinish={filterFinish}
-              setFilterFinish={setFilterFinish}
-              clearFilters={clearFilters}
               filteredMaterials={filteredMaterials}
               onApplyMaterial={onApplyMaterial}
             />
@@ -274,15 +230,9 @@ function MaterialSectionHeader({ collapsed, onToggle, hasSelection, selectedMesh
 }
 
 // ── Material content (scrollable) ──
-function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFiltersOpen, hasActiveFilters, filterType, setFilterType, filterAlloy, setFilterAlloy, filterFinish, setFilterFinish, clearFilters, filteredMaterials, onApplyMaterial }: {
+function MaterialContent({ hasSelection, matTab, setMatTab, filteredMaterials, onApplyMaterial }: {
   hasSelection: boolean;
   matTab: "metal" | "gemstone"; setMatTab: (t: "metal" | "gemstone") => void;
-  filtersOpen: boolean; setFiltersOpen: (v: boolean) => void;
-  hasActiveFilters: boolean;
-  filterType: MaterialType | null; setFilterType: (v: MaterialType | null) => void;
-  filterAlloy: MaterialAlloy | null; setFilterAlloy: (v: MaterialAlloy | null) => void;
-  filterFinish: MaterialFinish | null; setFilterFinish: (v: MaterialFinish | null) => void;
-  clearFilters: () => void;
   filteredMaterials: typeof MATERIAL_LIBRARY;
   onApplyMaterial: (matId: string) => void;
 }) {
@@ -294,86 +244,20 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFilt
         </div>
       )}
 
-      {/* Category tabs + filter toggle */}
-      <div className="flex items-center gap-2">
-        <div className="flex gap-0 border border-border flex-1">
-          {(["metal", "gemstone"] as const).map(cat => (
-            <button
-              key={cat}
-              onClick={() => { setMatTab(cat); clearFilters(); }}
-              className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 ${
-                matTab === cat ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {cat === "metal" ? "Metals" : "Gems"}
-            </button>
-          ))}
-        </div>
-        {matTab === "metal" && (
+      {/* Category tabs */}
+      <div className="flex gap-0 border border-border">
+        {(["metal", "gemstone"] as const).map(cat => (
           <button
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`flex items-center gap-1 px-2.5 py-2 text-[9px] font-bold uppercase tracking-wide border transition-colors duration-150 cursor-pointer ${
-              filtersOpen || hasActiveFilters
-                ? "text-foreground bg-accent border-border"
-                : "text-muted-foreground hover:text-foreground border-border/50"
+            key={cat}
+            onClick={() => setMatTab(cat)}
+            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 ${
+              matTab === cat ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Filter className="w-3 h-3" />
-            {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+            {cat === "metal" ? "Metals" : "Gems"}
           </button>
-        )}
+        ))}
       </div>
-
-      {/* Collapsible filters */}
-      <AnimatePresence>
-        {filtersOpen && matTab === "metal" && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-2 pb-1">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60">Filters</span>
-                {hasActiveFilters && (
-                  <button onClick={clearFilters} className="font-mono text-[8px] text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wide">
-                    Clear
-                  </button>
-                )}
-              </div>
-              <div>
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Type</span>
-                <div className="flex flex-wrap gap-1">
-                  <button onClick={() => setFilterType(null)} className={filterType === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                  {MATERIAL_TYPES.map(t => (
-                    <button key={t.id} onClick={() => setFilterType(t.id)} className={filterType === t.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{t.label}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Color</span>
-                <div className="flex flex-wrap gap-1">
-                  <button onClick={() => setFilterAlloy(null)} className={filterAlloy === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                  {MATERIAL_ALLOYS.map(a => (
-                    <button key={a.id} onClick={() => setFilterAlloy(a.id)} className={filterAlloy === a.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{a.label}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Finish</span>
-                <div className="flex flex-wrap gap-1">
-                  <button onClick={() => setFilterFinish(null)} className={filterFinish === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                  {MATERIAL_FINISHES.map(f => (
-                    <button key={f.id} onClick={() => setFilterFinish(f.id)} className={filterFinish === f.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{f.label}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Material swatch grid */}
       <div className="grid grid-cols-3 gap-1.5">
