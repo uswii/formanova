@@ -944,7 +944,6 @@ const LoadedModel = forwardRef<
     // Clear cache entries for meshes whose assigned material changed since last render
     const prevAssigned = prevAssignedRef.current;
     for (const name of Object.keys(assignedMaterials)) {
-    for (const name of Object.keys(assignedMaterials)) {
       if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
         // Material changed — purge old and new cache keys so fresh material is created
         for (const [key] of materialCache.current) {
