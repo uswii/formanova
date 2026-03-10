@@ -80,7 +80,7 @@ export default function InitialPromptScreen({
             Generation Quality
           </h3>
           <div className="flex gap-0 border border-border">
-            {AI_MODELS.map((m) => (
+            {AI_MODELS.filter((m) => !m.hidden).map((m) => (
               <button
                 key={m.id}
                 onClick={() => !m.comingSoon && setModel(m.id)}
