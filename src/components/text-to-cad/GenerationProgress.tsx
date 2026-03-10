@@ -100,7 +100,7 @@ export default function GenerationProgress({
                 <span className="font-mono text-sm text-muted-foreground/50 tabular-nums">
                   {formatElapsed(elapsed)}
                 </span>
-                <span className="text-[11px] italic text-muted-foreground/40">
+                <span className="text-[11px] italic text-muted-foreground/40 text-center w-full">
                   This may take several minutes
                 </span>
               </>
