@@ -113,8 +113,8 @@ function LoadedModel({
         matCache.set(cacheKey, material);
       }
 
-      // Selection highlight
-      if (selectedMeshes.has(md.name)) {
+      // Selection highlight — skip if a material has been applied so it's visible immediately
+      if (selectedMeshes.has(md.name) && !assigned) {
         const mat = material as THREE.MeshPhysicalMaterial;
         if (mat?.emissive) {
           mat.emissive = new THREE.Color(0x334455);
