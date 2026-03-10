@@ -909,67 +909,74 @@ const LoadedModel = forwardRef<
       inv();
     },
     exportSceneBlob: async (): Promise<Blob> => {
-      // Read materials directly from the live rendered meshes — the single source of truth
+      // ── React state is the single source of truth ──
+      // meshDataListRef  → geometry + transforms (position, quaternion, scale)
+      // assignedMaterialsRef → user-applied MaterialDef per mesh
+      // We never read from meshRefs here — those contain runtime artefacts
+      // (selection overlays, hidden gem placeholders, refraction materials).
       const exportScene = new THREE.Scene();
       const currentMeshData = meshDataListRef.current;
-      console.log('[GLB Export] Starting. meshRefs size:', meshRefs.current.size, 'meshDataList:', currentMeshData.length);
+      const currentAssigned = assignedMaterialsRef.current;
+
+      console.log('[GLB Export] Starting from React state. meshDataList:', currentMeshData.length,
+        'assignedMaterials:', Object.keys(currentAssigned).length);
 
       currentMeshData.forEach((md) => {
-        const liveRef = meshRefs.current.get(md.name);
+        const assigned = currentAssigned[md.name];
         let material: THREE.Material;
 
-        if (liveRef && liveRef.material) {
-          // Clone the ACTUAL material from the rendered mesh — exactly what user sees
-          const liveMat = Array.isArray(liveRef.material) ? liveRef.material[0] : liveRef.material;
-          // Skip selection overlay material
-          if (liveMat === SELECTION_MATERIAL) {
-            material = md.originalMaterial.clone();
-            console.log(`[GLB Export] ${md.name}: selection material detected, using original`);
+        if (assigned) {
+          if (assigned.category === "gemstone" && assigned.refractionConfig) {
+            // Gemstones use MeshRefractionMaterial at runtime (non-exportable).
+            // Export a MeshPhysicalMaterial with transmission/IOR as a faithful PBR approximation.
+            const cfg = assigned.refractionConfig;
+            const gemMat = new THREE.MeshPhysicalMaterial({
+              color: new THREE.Color(cfg.color),
+              metalness: 0.0,
+              roughness: 0.05,
+              transmission: 1.0,
+              ior: cfg.ior,
+              thickness: 2.5,
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.0,
+              envMapIntensity: cfg.brightness,
+              transparent: true,
+              side: THREE.DoubleSide,
+            });
+            gemMat.name = assigned.name;
+            material = gemMat;
+            console.log(`[GLB Export] ${md.name}: gemstone "${assigned.name}" → MeshPhysicalMaterial (color: ${cfg.color}, ior: ${cfg.ior})`);
           } else {
-            // Convert MeshPhysicalMaterial to MeshStandardMaterial for max GLB compatibility
-            const std = new THREE.MeshStandardMaterial();
-            const src = liveMat as THREE.MeshPhysicalMaterial;
-            if (src.color) std.color.copy(src.color);
-            std.metalness = src.metalness ?? 0;
-            std.roughness = src.roughness ?? 1;
-            if (src.map) std.map = src.map;
-            if (src.normalMap) std.normalMap = src.normalMap;
-            if (src.emissive) std.emissive.copy(src.emissive);
-            std.emissiveIntensity = src.emissiveIntensity ?? 0;
-            std.opacity = src.opacity ?? 1;
-            std.transparent = src.transparent ?? false;
-            std.side = THREE.DoubleSide;
-            std.name = liveMat.name || md.name;
-            material = std;
-            console.log(`[GLB Export] ${md.name}: converted live material → MeshStandardMaterial (color: #${std.color.getHexString()}, metalness: ${std.metalness}, roughness: ${std.roughness})`);
+            // Metal / standard material — create fresh from the MaterialDef
+            const physMat = assigned.create();
+            physMat.side = THREE.DoubleSide;
+            physMat.name = assigned.name;
+            material = physMat;
+            console.log(`[GLB Export] ${md.name}: assigned "${assigned.name}" → MeshPhysicalMaterial (color: #${physMat.color.getHexString()}, metalness: ${physMat.metalness}, roughness: ${physMat.roughness})`);
           }
         } else {
+          // No user assignment — export the original GLB material
           material = md.originalMaterial.clone();
-          console.log(`[GLB Export] ${md.name}: no live ref, using original material`);
+          console.log(`[GLB Export] ${md.name}: no assignment, using original material`);
         }
 
         const geo = md.geometry.clone();
         const mesh = new THREE.Mesh(geo, material);
         mesh.name = md.name;
 
-        // Copy transforms from live mesh refs
-        if (liveRef) {
-          mesh.position.copy(liveRef.position);
-          mesh.quaternion.copy(liveRef.quaternion);
-          mesh.scale.copy(liveRef.scale);
-        } else {
-          mesh.position.copy(md.position);
-          mesh.quaternion.copy(md.quaternion);
-          mesh.scale.copy(md.scale);
-        }
+        // Transforms from React state — always up-to-date
+        mesh.position.copy(md.position);
+        mesh.quaternion.copy(md.quaternion);
+        mesh.scale.copy(md.scale);
+
         exportScene.add(mesh);
       });
 
-      console.log('[GLB Export] Export scene children:', exportScene.children.length);
+      console.log('[GLB Export] Export scene built:', exportScene.children.length, 'meshes');
       const exporter = new GLTFExporter();
       const result = await exporter.parseAsync(exportScene, { binary: true });
       const blob = new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
-      console.log('[GLB Export] Blob size:', blob.size, 'bytes');
+      console.log('[GLB Export] Done. Blob size:', blob.size, 'bytes');
       return blob;
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
