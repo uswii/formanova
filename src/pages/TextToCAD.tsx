@@ -609,30 +609,24 @@ export default function TextToCAD() {
 
   const handleGlbUpload = useCallback((file: File) => {
     const url = URL.createObjectURL(file);
-    if (!hasModel && !workspaceActive) {
-      setWorkspaceActive(true);
-      setGlbUrl(url);
-      setHasModel(true);
-      setShowPartRegen(true);
-      setMeshes([]);
-      setModules([]);
-      setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
-      setUndoStack([]);
-      setRedoStack([]);
-    } else if (!hasModel) {
-      setGlbUrl(url);
-      setHasModel(true);
-      setShowPartRegen(true);
-      setMeshes([]);
-      setModules([]);
-      setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
-      setUndoStack([]);
-      setRedoStack([]);
-    } else {
-      setAdditionalParts((prev) => [...prev, url]);
-    }
-    toast.success(`Added ${file.name}`);
-  }, [hasModel, workspaceActive]);
+    // Always replace the current model so magic texturing (name-based
+    // material recognition) runs via the main decompose path.
+    // Revoke old blob URLs to prevent memory leaks.
+    if (glbUrl?.startsWith("blob:")) URL.revokeObjectURL(glbUrl);
+    additionalParts.forEach((u) => URL.revokeObjectURL(u));
+    setAdditionalParts([]);
+
+    if (!workspaceActive) setWorkspaceActive(true);
+    setGlbUrl(url);
+    setHasModel(true);
+    setShowPartRegen(true);
+    setMeshes([]);
+    setModules([]);
+    setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
+    setUndoStack([]);
+    setRedoStack([]);
+    toast.success(`Loaded ${file.name}`);
+  }, [glbUrl, additionalParts, workspaceActive]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes((prev) => {
