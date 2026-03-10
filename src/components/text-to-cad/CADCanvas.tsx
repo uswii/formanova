@@ -1218,6 +1218,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       restoreSnapshot: (snap) => modelRef.current?.restoreSnapshot(snap),
       getSelectedTransform: () => modelRef.current?.getSelectedTransform() ?? null,
       setMeshTransform: (axis, property, value) => modelRef.current?.setMeshTransform(axis, property, value),
+      exportSceneBlob: () => modelRef.current!.exportSceneBlob(),
       zoomIn: () => {
         const controls = getOrbitControls();
         if (!controls) return;
