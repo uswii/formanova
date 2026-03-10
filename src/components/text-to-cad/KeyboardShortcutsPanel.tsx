@@ -5,7 +5,7 @@ import { SHORTCUT_SECTIONS } from "@/hooks/use-cad-keyboard-shortcuts";
 
 function Kbd({ children }: { children: string }) {
   return (
-    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 font-mono text-[10px] font-semibold bg-background border border-border rounded text-foreground shadow-sm">
+    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 font-mono text-[10px] font-semibold bg-background border border-border rounded text-foreground shadow-sm whitespace-nowrap flex-shrink-0">
       {children}
     </kbd>
   );
@@ -45,7 +45,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute bottom-full left-0 mb-2 z-[201] w-[340px] max-h-[70vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
+            className="absolute bottom-full left-0 mb-2 z-[201] w-[380px] max-h-[70vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
@@ -74,7 +74,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
                     {section.shortcuts.map((sc) => (
                       <React.Fragment key={sc.desc}>
                         <span className="text-[11px] text-foreground/80 leading-tight">{sc.desc}</span>
-                        <div className="flex items-center gap-1 justify-end whitespace-nowrap">
+                        <div className="flex items-center gap-1 justify-end whitespace-nowrap flex-shrink-0 overflow-visible">
                           {sc.keys.map((k, i) => (
                             k === "/" ? (
                               <span key={i} className="text-[9px] text-muted-foreground/50 mx-0.5">/</span>
