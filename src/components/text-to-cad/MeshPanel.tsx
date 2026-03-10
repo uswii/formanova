@@ -239,7 +239,7 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filteredMaterials, o
   return (
     <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-3 pt-3 space-y-3 scrollbar-thin">
       {!hasSelection && (
-        <div className="px-3 py-2 font-mono text-[10px] text-amber-500 bg-amber-500/10 border border-amber-500/20">
+        <div className="px-3 py-2 font-mono text-[10px] text-muted-foreground bg-muted/40 border border-border">
           Select a mesh to assign material
         </div>
       )}
