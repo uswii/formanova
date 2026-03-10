@@ -138,7 +138,7 @@ export default function TextToCAD() {
 
   const handleRedo = useCallback(() => {
     setRedoStack((prev) => {
-      if (prev.length === 0) { toast.info("Nothing to redo"); return prev; }
+      if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
       const currentMeshes = meshesRef.current.map((m) => ({ ...m }));
       const snap = canvasRef.current?.getSnapshot() ?? null;
