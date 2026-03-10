@@ -86,10 +86,10 @@ export default function GenerationProgress({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.25 }}
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-2 text-center"
           >
             <span
-              className={`font-display text-lg tracking-[0.12em] uppercase ${
+              className={`font-display text-lg tracking-[0.12em] uppercase text-center ${
                 isFailed ? "text-destructive" : "text-foreground/80"
               }`}
             >
@@ -97,10 +97,10 @@ export default function GenerationProgress({
             </span>
             {!isTerminal && (
               <>
-                <span className="font-mono text-sm text-muted-foreground/50 tabular-nums">
+                <span className="font-mono text-sm text-muted-foreground/50 tabular-nums text-center">
                   {formatElapsed(elapsed)}
                 </span>
-                <span className="text-[11px] italic text-muted-foreground/40 text-center w-full">
+                <span className="text-[11px] italic text-muted-foreground/40 text-center">
                   This may take several minutes
                 </span>
               </>
