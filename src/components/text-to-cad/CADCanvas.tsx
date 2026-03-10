@@ -915,15 +915,36 @@ const LoadedModel = forwardRef<
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // ── Separate gemstone meshes from standard meshes ──
-  // Gemstones get hidden and rendered via MeshRefractionMaterial overlay
-  // Clear material cache when assigned materials change so new assignments render immediately
-  useEffect(() => {
-    materialCache.current.forEach((m) => m.dispose());
-    materialCache.current.clear();
-    inv();
-  }, [assignedMaterials, inv]);
+  // Track previous assignedMaterials to detect changes and clear stale cache entries synchronously
+  const prevAssignedRef = useRef<Record<string, MaterialDef>>({});
 
   const { standardElements, gemElements } = useMemo(() => {
+    // Clear cache entries for meshes whose assigned material changed since last render
+    const prevAssigned = prevAssignedRef.current;
+    for (const name of Object.keys(assignedMaterials)) {
+      if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
+        // Material changed — purge old and new cache keys so fresh material is created
+        for (const [key] of materialCache.current) {
+          if (key.includes(`_${name}_`)) {
+            materialCache.current.get(key)?.dispose();
+            materialCache.current.delete(key);
+          }
+        }
+      }
+    }
+    // Also handle meshes that had materials removed (undo)
+    for (const name of Object.keys(prevAssigned)) {
+      if (!assignedMaterials[name] && prevAssigned[name]) {
+        for (const [key] of materialCache.current) {
+          if (key.includes(`_${name}_`)) {
+            materialCache.current.get(key)?.dispose();
+            materialCache.current.delete(key);
+          }
+        }
+      }
+    }
+    prevAssignedRef.current = { ...assignedMaterials };
+
     const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
 
@@ -936,9 +957,7 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        // Gem mesh: hidden in standard render, rendered via overlay
         gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-        // Still need a hidden placeholder mesh for TransformControls to work on
         const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
         standard.push({ ...md, material: hiddenMat, isSelected });
         return;
