@@ -23,6 +23,8 @@ interface LeftPanelProps {
   onQuickEdit: (preset: string) => void;
   onMagicTexture: () => void;
   onGlbUpload: (file: File) => void;
+  onRebuildPart?: (partId: string, description: string) => void;
+  onAddPart?: (description: string) => void;
   creditBlock?: React.ReactNode;
 }
 
@@ -31,6 +33,7 @@ export default function LeftPanel({
   selectedModules, toggleModule,
   isGenerating, isEditing, hasModel, modules,
   onGenerate, onEdit, onQuickEdit, onMagicTexture, onGlbUpload,
+  onRebuildPart, onAddPart,
   creditBlock,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
@@ -255,7 +258,8 @@ export default function LeftPanel({
                             className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
                           />
                           <button
-                            disabled={!selectedPart}
+                            disabled={!selectedPart || isGenerating}
+                            onClick={() => selectedPart && onRebuildPart?.(selectedPart, rebuildDesc)}
                             className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
                           >
                             <span className="truncate">Rebuild Part</span>
@@ -302,7 +306,9 @@ export default function LeftPanel({
                             className="w-full px-4 py-3 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
                           />
                           <button
-                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
+                            disabled={isGenerating || !newPartDesc.trim()}
+                            onClick={() => onAddPart?.(newPartDesc)}
+                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 min-w-0 overflow-hidden"
                           >
                             <span className="truncate">Add to Ring</span>
                             <span className="inline-flex items-center gap-1 ml-1 opacity-80 flex-shrink-0">
