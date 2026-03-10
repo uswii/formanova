@@ -918,7 +918,7 @@ export default function TextToCAD() {
             <button
               onClick={() => {
                 const panel = leftPanelRef.current;
-                if (panel) { leftCollapsed ? panel.expand() : panel.collapse(); }
+                if (panel) { leftCollapsed ? panel.expand(22) : panel.collapse(); }
               }}
               className="absolute top-2 left-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
               title={leftCollapsed ? "Show left panel" : "Hide left panel"}
