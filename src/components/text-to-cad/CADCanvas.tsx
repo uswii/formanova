@@ -972,8 +972,9 @@ const LoadedModel = forwardRef<
         return;
       }
 
-      // Selection highlight — only show blue overlay if no material has been assigned
-      if (isSelected && !assigned) {
+      // Selection highlight — show blue overlay when selected, UNLESS the user
+      // explicitly applied a material after selecting (materialAppliedAfterSelect).
+      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
         standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
         return;
       }
