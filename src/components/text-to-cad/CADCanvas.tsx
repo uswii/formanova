@@ -916,6 +916,13 @@ const LoadedModel = forwardRef<
 
   // ── Separate gemstone meshes from standard meshes ──
   // Gemstones get hidden and rendered via MeshRefractionMaterial overlay
+  // Clear material cache when assigned materials change so new assignments render immediately
+  useEffect(() => {
+    materialCache.current.forEach((m) => m.dispose());
+    materialCache.current.clear();
+    inv();
+  }, [assignedMaterials, inv]);
+
   const { standardElements, gemElements } = useMemo(() => {
     const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
