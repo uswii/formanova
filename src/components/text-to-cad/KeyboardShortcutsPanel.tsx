@@ -5,7 +5,7 @@ import { SHORTCUT_SECTIONS } from "@/hooks/use-cad-keyboard-shortcuts";
 
 function Kbd({ children }: { children: string }) {
   return (
-    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 font-mono text-[10px] font-semibold bg-background border border-border rounded text-foreground shadow-sm">
+    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 font-mono text-[10px] font-semibold bg-background border border-border rounded text-foreground shadow-sm whitespace-nowrap flex-shrink-0">
       {children}
     </kbd>
   );
