@@ -835,6 +835,8 @@ const LoadedModel = forwardRef<
     restoreSnapshot: (snap: CanvasSnapshot) => {
       setMeshDataList(snap.meshDataList);
       setAssignedMaterials(snap.assignedMaterials);
+      // Clear the "material applied after select" tracking so overlay reappears on undo
+      materialAppliedAfterSelect.current.clear();
       flatGeoCache.current.forEach((g) => g.dispose());
       flatGeoCache.current.clear();
       materialCache.current.forEach((m) => m.dispose());
