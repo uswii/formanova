@@ -854,39 +854,44 @@ export default function TextToCAD() {
       tabIndex={-1}
     >
       <ResizablePanelGroup direction="horizontal" className="h-full">
-        {/* Left panel */}
-        {!leftCollapsed && (
-          <>
-            <ResizablePanel defaultSize={22} minSize={15} maxSize={35} className="relative">
-              <LeftPanel
-                model={model} setModel={setModel}
-                prompt={prompt} setPrompt={setPrompt}
-                editPrompt={editPrompt} setEditPrompt={setEditPrompt}
-                selectedModules={selectedModules} toggleModule={toggleModule}
-                isGenerating={isGenerating} isEditing={isEditing}
-                hasModel={hasModel} modules={modules}
-                onGenerate={simulateGeneration}
-                onEdit={simulateEdit}
-                onRebuildPart={handleRebuildPart}
-                onAddPart={handleAddPart}
-                onQuickEdit={handleQuickEdit}
-                onMagicTexture={() => {
-                  canvasRef.current?.removeAllTextures();
-                  toast.success("All magic textures removed — showing original materials");
-                }}
-                onGlbUpload={handleGlbUpload}
-                creditBlock={creditBlock ? (
-                  <InsufficientCreditsInline
-                    currentBalance={creditBlock.currentBalance}
-                    requiredCredits={creditBlock.estimatedCredits}
-                    onDismiss={() => setCreditBlock(null)}
-                  />
-                ) : undefined}
+        {/* Left panel — always mounted, collapsed via size */}
+        <ResizablePanel
+          defaultSize={leftCollapsed ? 0 : 22}
+          minSize={leftCollapsed ? 0 : 15}
+          maxSize={leftCollapsed ? 0 : 35}
+          collapsible
+          collapsedSize={0}
+          onCollapse={() => setLeftCollapsed(true)}
+          onExpand={() => setLeftCollapsed(false)}
+          className={leftCollapsed ? "hidden" : "relative"}
+        >
+          <LeftPanel
+            model={model} setModel={setModel}
+            prompt={prompt} setPrompt={setPrompt}
+            editPrompt={editPrompt} setEditPrompt={setEditPrompt}
+            selectedModules={selectedModules} toggleModule={toggleModule}
+            isGenerating={isGenerating} isEditing={isEditing}
+            hasModel={hasModel} modules={modules}
+            onGenerate={simulateGeneration}
+            onEdit={simulateEdit}
+            onRebuildPart={handleRebuildPart}
+            onAddPart={handleAddPart}
+            onQuickEdit={handleQuickEdit}
+            onMagicTexture={() => {
+              canvasRef.current?.removeAllTextures();
+              toast.success("All magic textures removed — showing original materials");
+            }}
+            onGlbUpload={handleGlbUpload}
+            creditBlock={creditBlock ? (
+              <InsufficientCreditsInline
+                currentBalance={creditBlock.currentBalance}
+                requiredCredits={creditBlock.estimatedCredits}
+                onDismiss={() => setCreditBlock(null)}
               />
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-          </>
-        )}
+            ) : undefined}
+          />
+        </ResizablePanel>
+        <ResizableHandle withHandle className={leftCollapsed ? "hidden" : ""} />
 
         {/* Viewport */}
         <ResizablePanel defaultSize={hasModel ? 56 : 78} minSize={30}>
@@ -987,21 +992,26 @@ export default function TextToCAD() {
           </div>
         </ResizablePanel>
 
-        {/* Right panel */}
-        {hasModel && !rightCollapsed && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={22} minSize={15} maxSize={35}>
-              <MeshPanel
-                meshes={meshes}
-                onSelectMesh={handleSelectMesh}
-                onAction={handleMeshAction}
-                onApplyMaterial={handleApplyMaterial}
-                onSceneAction={handleSceneAction}
-              />
-            </ResizablePanel>
-          </>
-        )}
+        {/* Right panel — always mounted, collapsed via size */}
+        <ResizableHandle withHandle className={!hasModel || rightCollapsed ? "hidden" : ""} />
+        <ResizablePanel
+          defaultSize={hasModel && !rightCollapsed ? 22 : 0}
+          minSize={!hasModel || rightCollapsed ? 0 : 15}
+          maxSize={!hasModel || rightCollapsed ? 0 : 35}
+          collapsible
+          collapsedSize={0}
+          onCollapse={() => setRightCollapsed(true)}
+          onExpand={() => setRightCollapsed(false)}
+          className={!hasModel || rightCollapsed ? "hidden" : ""}
+        >
+          <MeshPanel
+            meshes={meshes}
+            onSelectMesh={handleSelectMesh}
+            onAction={handleMeshAction}
+            onApplyMaterial={handleApplyMaterial}
+            onSceneAction={handleSceneAction}
+          />
+        </ResizablePanel>
       </ResizablePanelGroup>
       {DownloadDialog}
     </div>
