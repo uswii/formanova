@@ -938,7 +938,20 @@ const LoadedModel = forwardRef<
       }
 
       if (isSelected) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        // If a material has been explicitly assigned, show it even while selected
+        // so the user can immediately see the applied material
+        if (assigned) {
+          const cacheKey = `assigned_${md.name}_${assigned.id}`;
+          let material = materialCache.current.get(cacheKey);
+          if (!material) {
+            material = assigned.create();
+            if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+            materialCache.current.set(cacheKey, material);
+          }
+          standard.push({ ...md, material, isSelected });
+        } else {
+          standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        }
         return;
       }
 
