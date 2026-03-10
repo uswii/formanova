@@ -647,9 +647,11 @@ const LoadedModel = forwardRef<
         // Mark: user explicitly applied material after selecting this mesh
         materialAppliedAfterSelect.current.add(n);
       });
+      console.log('[Material Apply] Applying', matDef.id, 'to meshes:', meshNames);
       setAssignedMaterials((prev) => {
         const next = { ...prev };
         meshNames.forEach((n) => { next[n] = matDef; });
+        console.log('[Material Apply] Updated assignedMaterials keys:', Object.keys(next));
         return next;
       });
       inv();
