@@ -977,18 +977,18 @@ const LoadedModel = forwardRef<
       const isSelected = selectedMeshNames.has(md.name);
       const assigned = assignedMaterials[md.name];
 
+      // Selection highlight — show blue overlay when selected, UNLESS the user
+      // explicitly applied a material after selecting (materialAppliedAfterSelect).
+      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
+        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
+        return;
+      }
+
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
         gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
         const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
         standard.push({ ...md, material: hiddenMat, isSelected });
-        return;
-      }
-
-      // Selection highlight — show blue overlay when selected, UNLESS the user
-      // explicitly applied a material after selecting (materialAppliedAfterSelect).
-      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
         return;
       }
 
