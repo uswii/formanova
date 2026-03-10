@@ -608,21 +608,32 @@ export default function TextToCAD() {
   };
 
   const handleDownloadGlb = useCallback(async () => {
-    if (!glbUrl) return;
     try {
-      const isBlobUrl = glbUrl.startsWith("blob:");
-      const response = await fetch(
-        isBlobUrl ? glbUrl : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`,
-        isBlobUrl ? {} : {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: glbUrl }),
-        },
-      );
-      const blob = await response.blob();
+      const filename = await promptRename("ring", "glb");
+      if (!filename) return; // user cancelled
+
+      // Export the current scene with all modifications (textures, transforms, etc.)
+      let blob: Blob;
+      if (canvasRef.current) {
+        blob = await canvasRef.current.exportSceneBlob();
+      } else if (glbUrl) {
+        // Fallback: download original if canvas not available
+        const isBlobUrl = glbUrl.startsWith("blob:");
+        const response = await fetch(
+          isBlobUrl ? glbUrl : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`,
+          isBlobUrl ? {} : {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: glbUrl }),
+          },
+        );
+        blob = await response.blob();
+      } else {
+        return;
+      }
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "ring.glb";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -630,7 +641,7 @@ export default function TextToCAD() {
     } catch {
       toast.error("Failed to download model");
     }
-  }, [glbUrl]);
+  }, [glbUrl, promptRename]);
 
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
