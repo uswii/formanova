@@ -90,12 +90,6 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
               ))}
             </div>
 
-            {/* Footer */}
-            <div className="px-4 py-2 border-t border-border shrink-0">
-              <p className="font-mono text-[9px] text-muted-foreground/50 text-center tracking-wider">
-                Press <Kbd>?</Kbd> to toggle this panel
-              </p>
-            </div>
           </motion.div>
         </>
       )}
