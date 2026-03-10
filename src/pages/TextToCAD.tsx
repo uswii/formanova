@@ -69,8 +69,9 @@ export default function TextToCAD() {
   const [workspaceActive, setWorkspaceActive] = useState(false);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
+  const leftPanelRef = useRef<ImperativePanelHandle>(null);
+  const rightPanelRef = useRef<ImperativePanelHandle>(null);
   const wireframeRef = useRef(false);
-  const meshesRef = useRef<MeshItemData[]>(meshes);
   const pollAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
