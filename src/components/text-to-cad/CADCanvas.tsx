@@ -926,34 +926,37 @@ const LoadedModel = forwardRef<
         let material: THREE.Material;
 
         if (assigned) {
-          if (assigned.category === "gemstone" && assigned.refractionConfig) {
-            // Gemstones use MeshRefractionMaterial at runtime (non-exportable).
-            // Export a MeshPhysicalMaterial with transmission/IOR as a faithful PBR approximation.
-            const cfg = assigned.refractionConfig;
-            const gemMat = new THREE.MeshPhysicalMaterial({
-              color: new THREE.Color(cfg.color),
-              metalness: 0.0,
-              roughness: 0.05,
-              transmission: 1.0,
-              ior: cfg.ior,
-              thickness: 2.5,
-              clearcoat: 1.0,
-              clearcoatRoughness: 0.0,
-              envMapIntensity: cfg.brightness,
-              transparent: true,
-              side: THREE.DoubleSide,
-            });
-            gemMat.name = assigned.name;
-            material = gemMat;
-            console.log(`[GLB Export] ${md.name}: gemstone "${assigned.name}" → MeshPhysicalMaterial (color: ${cfg.color}, ior: ${cfg.ior})`);
-          } else {
-            // Metal / standard material — create fresh from the MaterialDef
-            const physMat = assigned.create();
-            physMat.side = THREE.DoubleSide;
-            physMat.name = assigned.name;
-            material = physMat;
-            console.log(`[GLB Export] ${md.name}: assigned "${assigned.name}" → MeshPhysicalMaterial (color: #${physMat.color.getHexString()}, metalness: ${physMat.metalness}, roughness: ${physMat.roughness})`);
-          }
+          // Generate the runtime material from the MaterialDef, then copy only
+          // GLTF-serialisable properties into a clean MeshPhysicalMaterial so the
+          // exporter never encounters custom shaders or leftover internal state.
+          const src = assigned.create() as THREE.MeshPhysicalMaterial;
+          const exportMat = new THREE.MeshPhysicalMaterial({
+            color: src.color.clone(),
+            metalness: src.metalness,
+            roughness: src.roughness,
+            emissive: src.emissive?.clone() ?? new THREE.Color(0x000000),
+            emissiveIntensity: src.emissiveIntensity ?? 0,
+            opacity: src.opacity ?? 1,
+            transparent: src.transparent ?? false,
+            side: THREE.DoubleSide,
+            // Physical extensions (KHR_materials_*)
+            clearcoat: src.clearcoat ?? 0,
+            clearcoatRoughness: src.clearcoatRoughness ?? 0,
+            transmission: src.transmission ?? 0,
+            ior: src.ior ?? 1.5,
+            thickness: src.thickness ?? 0,
+            // Maps (if any were set by create())
+            ...(src.map && { map: src.map }),
+            ...(src.normalMap && { normalMap: src.normalMap }),
+            ...(src.roughnessMap && { roughnessMap: src.roughnessMap }),
+            ...(src.metalnessMap && { metalnessMap: src.metalnessMap }),
+            ...(src.emissiveMap && { emissiveMap: src.emissiveMap }),
+          });
+          exportMat.name = assigned.name;
+          // Dispose the intermediate source material — we only need the clean copy
+          src.dispose();
+          material = exportMat;
+          console.log(`[GLB Export] ${md.name}: "${assigned.name}" (${assigned.category}) → color:#${exportMat.color.getHexString()} metal:${exportMat.metalness} rough:${exportMat.roughness} transmission:${exportMat.transmission} ior:${exportMat.ior} clearcoat:${exportMat.clearcoat}`);
         } else {
           // No user assignment — export the original GLB material
           material = md.originalMaterial.clone();
