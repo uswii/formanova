@@ -811,7 +811,7 @@ export default function TextToCAD() {
       case "mirror-x":
       case "mirror-y":
       case "mirror-z":
-        if (!names.length) { toast.error("Select meshes first"); return; }
+        if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo(`Mirror ${action.split("-")[1].toUpperCase()}`);
         toast.success(`Mirrored on ${action.split("-")[1].toUpperCase()} axis`);
         break;
