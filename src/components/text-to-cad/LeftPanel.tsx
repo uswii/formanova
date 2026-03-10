@@ -138,9 +138,9 @@ export default function LeftPanel({
             <button
               onClick={onMagicTexture}
               disabled={isGenerating}
-              className="w-full py-3.5 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.15em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground bg-muted/30 border border-border min-w-0 overflow-hidden"
+              className="w-full py-3.5 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground bg-muted/30 border border-border"
             >
-              <span className="truncate">✕ Remove Magic Textures</span>
+              ✕ Remove Magic Textures
             </button>
           )}
         </section>
