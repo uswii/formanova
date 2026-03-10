@@ -1154,6 +1154,7 @@ export interface CADCanvasHandle {
   zoomIn: () => void;
   zoomOut: () => void;
   resetCamera: () => void;
+  exportSceneBlob: () => Promise<Blob>;
 }
 
 interface CADCanvasProps {
