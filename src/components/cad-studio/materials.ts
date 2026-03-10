@@ -356,3 +356,12 @@ export function findMaterial(id: string): MaterialDef | undefined {
   const resolved = resolveMaterialId(id);
   return MATERIAL_LIBRARY.find((m) => m.id === resolved);
 }
+
+/** Find a material by its display name (e.g. "Rose Gold", "Diamond") — used to
+ *  recover user-applied materials from re-imported GLBs where the material name
+ *  was baked into the file by our exporter. */
+export function findMaterialByName(name: string): MaterialDef | undefined {
+  if (!name) return undefined;
+  const lower = name.toLowerCase().trim();
+  return MATERIAL_LIBRARY.find((m) => m.name.toLowerCase() === lower);
+}
