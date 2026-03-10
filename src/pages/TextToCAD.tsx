@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useCredits } from "@/contexts/CreditsContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
@@ -36,6 +37,7 @@ interface UndoEntry {
 
 export default function TextToCAD() {
   const navigate = useNavigate();
+  const { refreshCredits } = useCredits();
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
@@ -364,6 +366,7 @@ export default function TextToCAD() {
       setProgressStep("_loading");
       setIsModelLoading(true);
       setIsGenerating(false);
+      refreshCredits().catch(() => {});
       setHasModel(true);
       setShowPartRegen(true);
 
@@ -385,6 +388,7 @@ export default function TextToCAD() {
     await new Promise((r) => setTimeout(r, 1500));
     setProgressStep("success_final");
     setIsGenerating(false);
+    refreshCredits().catch(() => {});
     setIsEditing(false);
     setEditPrompt("");
     toast.success("Edit applied");
