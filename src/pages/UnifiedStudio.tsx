@@ -306,10 +306,25 @@ export default function UnifiedStudio() {
       setGenerationProgress(35);
       setGenerationStep('Starting AI photoshoot...');
 
+      // Unwrap potential { uri: '...' } objects to plain strings
+      const resolvedJewelryUrl = typeof jewelryUrl === 'object' && jewelryUrl !== null && 'uri' in (jewelryUrl as any)
+        ? (jewelryUrl as any).uri as string
+        : jewelryUrl;
+      const resolvedModelUrl = typeof modelUrl === 'object' && modelUrl !== null && 'uri' in (modelUrl as any)
+        ? (modelUrl as any).uri as string
+        : modelUrl;
+
+      if (!resolvedJewelryUrl || !resolvedModelUrl) {
+        toast({ variant: 'destructive', title: 'Missing images', description: 'Please select both a jewelry image and a model before generating.' });
+        setIsGenerating(false);
+        setCurrentStep('model');
+        return;
+      }
+
       const idempotencyKey = `${Date.now()}-${jewelryType}-${selectedModel?.id || 'custom'}`;
       const startResponse = await startPhotoshoot({
-        jewelry_image_url: jewelryUrl,
-        model_image_url: modelUrl,
+        jewelry_image_url: resolvedJewelryUrl,
+        model_image_url: resolvedModelUrl,
         category: TO_SINGULAR[jewelryType] ?? jewelryType,
         idempotency_key: idempotencyKey,
       });
