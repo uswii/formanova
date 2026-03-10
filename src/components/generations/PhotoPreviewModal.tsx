@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
+import { useDownloadRename } from '@/components/DownloadRenameDialog';
 
 interface PhotoPreviewModalProps {
   imageUrl: string;
@@ -16,13 +17,22 @@ interface PhotoPreviewModalProps {
 }
 
 export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalProps) {
-  const handleDownload = () => {
-    const a = document.createElement('a');
-    a.href = imageUrl;
-    // Derive a filename from the URL or use a fallback
+  const { promptRename, DownloadDialog } = useDownloadRename();
+
+  const handleDownload = async () => {
     const urlParts = imageUrl.split('/');
     const lastPart = urlParts[urlParts.length - 1].split('?')[0];
-    a.download = lastPart || 'generation.jpg';
+    const nameWithExt = lastPart || 'generation.jpg';
+    const dotIdx = nameWithExt.lastIndexOf('.');
+    const baseName = dotIdx > 0 ? nameWithExt.slice(0, dotIdx) : nameWithExt;
+    const ext = dotIdx > 0 ? nameWithExt.slice(dotIdx + 1) : 'jpg';
+
+    const filename = await promptRename(baseName, ext);
+    if (!filename) return;
+
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    a.download = filename;
     a.target = '_blank';
     a.click();
   };
@@ -59,6 +69,7 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
           </div>
         </div>
       </DialogContent>
+      {DownloadDialog}
     </Dialog>
   );
 }
