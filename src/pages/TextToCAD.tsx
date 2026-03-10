@@ -174,15 +174,17 @@ export default function TextToCAD() {
       setWorkspaceActive(true);
       setIsGenerating(true);
       setHasModel(false);
-      setProgressStep("build_initial");
+      setProgressStep("generate_initial");
 
-      // Simulate progress over ~3 seconds
+      // Simulate realistic progress (~35s total to match real generation feel)
       const steps = [
-        { label: "generate_initial", ms: 400 },
-        { label: "build_initial", ms: 600 },
-        { label: "validate_output", ms: 600 },
-        { label: "build_corrected", ms: 500 },
-        { label: "_loading", ms: 400 },
+        { label: "generate_initial", ms: 6000 },
+        { label: "build_initial",    ms: 8000 },
+        { label: "validate_output",  ms: 5000 },
+        { label: "generate_fix",     ms: 4000 },
+        { label: "build_retry",      ms: 6000 },
+        { label: "build_corrected",  ms: 4000 },
+        { label: "success_final",    ms: 1000 },
       ];
       for (const step of steps) {
         await new Promise((r) => setTimeout(r, step.ms));
