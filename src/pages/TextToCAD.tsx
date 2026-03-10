@@ -36,18 +36,43 @@ interface UndoEntry {
   canvasSnapshot: CanvasSnapshot | null;
 }
 
+const CAD_SESSION_KEY = "formanova_cad_session";
+
+interface CadSessionState {
+  glbUrl?: string;
+  prompt: string;
+  model: string;
+  workspaceActive: boolean;
+  hasModel: boolean;
+}
+
+function loadCadSession(): Partial<CadSessionState> {
+  try {
+    const raw = sessionStorage.getItem(CAD_SESSION_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveCadSession(state: CadSessionState) {
+  try { sessionStorage.setItem(CAD_SESSION_KEY, JSON.stringify(state)); } catch {}
+}
+
 export default function TextToCAD() {
   const navigate = useNavigate();
   const { refreshCredits } = useCredits();
   const { promptRename, DownloadDialog } = useDownloadRename();
-  const [model, setModel] = useState("gemini");
-  const [prompt, setPrompt] = useState("");
+
+  // Restore from session
+  const savedSession = useRef(loadCadSession()).current;
+
+  const [model, setModel] = useState(savedSession.model || "gemini");
+  const [prompt, setPrompt] = useState(savedSession.prompt || "");
   const [editPrompt, setEditPrompt] = useState("");
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [hasModel, setHasModel] = useState(false);
+  const [hasModel, setHasModel] = useState(savedSession.hasModel || false);
   const [progressStep, setProgressStep] = useState("");
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [transformMode, setTransformMode] = useState("orbit");
@@ -55,7 +80,7 @@ export default function TextToCAD() {
   const [meshes, setMeshes] = useState<MeshItemData[]>([]);
   const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
-  const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
+  const [glbUrl, setGlbUrl] = useState<string | undefined>(savedSession.glbUrl);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
   const [creditBlock, setCreditBlock] = useState<PreflightResult | null>(null);
@@ -65,7 +90,12 @@ export default function TextToCAD() {
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
-  const [workspaceActive, setWorkspaceActive] = useState(false);
+  const [workspaceActive, setWorkspaceActive] = useState(savedSession.workspaceActive || false);
+
+  // Persist session state on changes
+  useEffect(() => {
+    saveCadSession({ glbUrl, prompt, model, workspaceActive, hasModel });
+  }, [glbUrl, prompt, model, workspaceActive, hasModel]);
 
   const canvasRef = useRef<CADCanvasHandle>(null);
   const wireframeRef = useRef(false);
