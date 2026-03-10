@@ -904,7 +904,7 @@ const LoadedModel = forwardRef<
       inv();
     },
     exportSceneBlob: async (): Promise<Blob> => {
-      // Reconstruct a Three.js scene from current meshDataList with materials
+      // Reconstruct a Three.js scene from live mesh refs (captures all imperative transforms)
       const exportScene = new THREE.Scene();
       meshDataList.forEach((md) => {
         const assigned = assignedMaterials[md.name];
@@ -912,9 +912,17 @@ const LoadedModel = forwardRef<
         if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
         const mesh = new THREE.Mesh(md.geometry.clone(), material);
         mesh.name = md.name;
-        mesh.position.copy(md.position);
-        mesh.quaternion.copy(md.quaternion);
-        mesh.scale.copy(md.scale);
+        // Read transforms from live Three.js mesh refs to capture all imperative changes
+        const liveRef = meshRefs.current.get(md.name);
+        if (liveRef) {
+          mesh.position.copy(liveRef.position);
+          mesh.quaternion.copy(liveRef.quaternion);
+          mesh.scale.copy(liveRef.scale);
+        } else {
+          mesh.position.copy(md.position);
+          mesh.quaternion.copy(md.quaternion);
+          mesh.scale.copy(md.scale);
+        }
         exportScene.add(mesh);
       });
       const exporter = new GLTFExporter();
