@@ -1008,6 +1008,7 @@ const LoadedModel = forwardRef<
         <TransformControlsWrapper
           object={selectedMeshRef}
           mode={transformMode as "translate" | "rotate" | "scale"}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onRotationDelta={handleRotationDelta}
         />
