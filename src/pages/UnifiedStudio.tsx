@@ -377,7 +377,6 @@ export default function UnifiedStudio() {
           }
 
           if (state === 'failed') {
-            console.error('[UnifiedStudio] Workflow failed. Full status:', JSON.stringify(status));
             throw new Error(status.error || 'Photoshoot generation failed');
           }
         }
