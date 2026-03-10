@@ -617,6 +617,8 @@ export default function TextToCAD() {
     setAdditionalParts([]);
 
     if (!workspaceActive) setWorkspaceActive(true);
+    setIsModelLoading(true);
+    setProgressStep("_loading");
     setGlbUrl(url);
     setHasModel(true);
     setShowPartRegen(true);
@@ -625,7 +627,6 @@ export default function TextToCAD() {
     setStats({ meshes: 0, sizeKB: Math.round(file.size / 1024), timeSec: 0 });
     setUndoStack([]);
     setRedoStack([]);
-    toast.success(`Loaded ${file.name}`);
   }, [glbUrl, additionalParts, workspaceActive]);
 
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
