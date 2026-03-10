@@ -1449,6 +1449,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
 
             {hasModel && (
               <LoadedModel
+                key={modelUrl}
                 ref={modelRef}
                 url={modelUrl}
                 additionalGlbUrls={additionalGlbUrls}
