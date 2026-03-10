@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Gem, CircleDot } from "lucide-react";
 import { MATERIAL_LIBRARY, type MaterialDef } from "./materials";
 import MaterialSphere from "./MaterialSphere";
 
