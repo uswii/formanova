@@ -911,49 +911,56 @@ const LoadedModel = forwardRef<
     exportSceneBlob: async (): Promise<Blob> => {
       // Reconstruct a Three.js scene from live mesh refs (captures all imperative transforms & materials)
       const exportScene = new THREE.Scene();
-      // Read from refs to guarantee latest state (avoids stale R3F reconciler closures)
       const currentMeshData = meshDataListRef.current;
       const currentMaterials = assignedMaterialsRef.current;
-      console.log('[GLB Export] Starting export. meshDataList:', currentMeshData.length, 'assignedMaterials:', Object.keys(currentMaterials), 'meshRefs:', meshRefs.current.size);
+      console.log('[GLB Export] Starting export. meshDataList:', currentMeshData.length, 'assignedMaterials keys:', Object.keys(currentMaterials), 'meshRefs size:', meshRefs.current.size);
+
       currentMeshData.forEach((md) => {
         const assigned = currentMaterials[md.name];
-        // Create export-safe material (MeshStandardMaterial for max GLB compatibility)
         let material: THREE.Material;
+
         if (assigned) {
-          const created = assigned.create();
-          // Convert MeshPhysicalMaterial to MeshStandardMaterial for GLB compatibility
-          material = new THREE.MeshStandardMaterial({
-            color: created.color?.clone(),
-            metalness: created.metalness ?? 0,
-            roughness: created.roughness ?? 0.5,
-            emissive: created.emissive?.clone(),
-            emissiveIntensity: created.emissiveIntensity ?? 0,
-            side: THREE.DoubleSide,
-            name: assigned.name,
-          });
-          created.dispose();
+          // Try to grab the cached material that's actually rendering in the viewport
+          const cacheKey = `assigned_${md.name}_${assigned.id}`;
+          const cachedMat = materialCache.current.get(cacheKey);
+
+          if (cachedMat) {
+            // Clone the live viewport material — this is exactly what the user sees
+            material = cachedMat.clone();
+            material.name = assigned.name;
+            console.log(`[GLB Export] ${md.name}: cloned CACHED material "${assigned.name}" (type: ${cachedMat.type}, color: ${(cachedMat as any).color?.getHexString?.()})`);
+          } else {
+            // Fallback: create fresh from definition
+            material = assigned.create();
+            material.name = assigned.name;
+            console.log(`[GLB Export] ${md.name}: created FRESH material "${assigned.name}" (type: ${material.type}, color: ${(material as any).color?.getHexString?.()})`);
+          }
         } else {
           material = md.originalMaterial.clone();
-          if ('side' in material) (material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+          console.log(`[GLB Export] ${md.name}: using ORIGINAL material (type: ${material.type})`);
         }
+
+        // Ensure double-sided for maximum compatibility
+        if ('side' in material) (material as any).side = THREE.DoubleSide;
+
         const geo = md.geometry.clone();
         const mesh = new THREE.Mesh(geo, material);
         mesh.name = md.name;
+
         // Read transforms from live Three.js mesh refs to capture all imperative changes
         const liveRef = meshRefs.current.get(md.name);
         if (liveRef) {
           mesh.position.copy(liveRef.position);
           mesh.quaternion.copy(liveRef.quaternion);
           mesh.scale.copy(liveRef.scale);
-          console.log(`[GLB Export] ${md.name}: using LIVE ref pos=${liveRef.position.toArray()} assigned=${assigned?.name ?? 'original'}`);
         } else {
           mesh.position.copy(md.position);
           mesh.quaternion.copy(md.quaternion);
           mesh.scale.copy(md.scale);
-          console.log(`[GLB Export] ${md.name}: using STATE pos=${md.position.toArray()} (no live ref)`);
         }
         exportScene.add(mesh);
       });
+
       console.log('[GLB Export] Export scene children:', exportScene.children.length);
       const exporter = new GLTFExporter();
       const result = await exporter.parseAsync(exportScene, { binary: true });
