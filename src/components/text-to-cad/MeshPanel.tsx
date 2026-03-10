@@ -22,43 +22,11 @@ const CHIP_ACTIVE = `${CHIP} text-foreground bg-accent border-border`;
 
 export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial, onSceneAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filterType, setFilterType] = useState<MaterialType | null>(null);
-  const [filterAlloy, setFilterAlloy] = useState<MaterialAlloy | null>(null);
-  const [filterFinish, setFilterFinish] = useState<MaterialFinish | null>(null);
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
-  const [meshTab, setMeshTab] = useState<"list" | "actions">("list");
-  const [materialCollapsed, setMaterialCollapsed] = useState(false);
-  const [meshCollapsed, setMeshCollapsed] = useState(false);
-  const lastClickedIdx = useRef<number>(-1);
-
-  const selectedMeshes = useMemo(() => meshes.filter(m => m.selected), [meshes]);
-  const hasSelection = selectedMeshes.length > 0;
-
-  const totalVerts = useMemo(() => meshes.reduce((s, m) => s + m.verts, 0), [meshes]);
-  const filtered = useMemo(
-    () => meshes.filter((m) => m.name.toLowerCase().includes(search.toLowerCase())),
-    [meshes, search]
-  );
-
-  const hasActiveFilters = filterType !== null || filterAlloy !== null || filterFinish !== null;
 
   const filteredMaterials = useMemo(() => {
-    return MATERIAL_LIBRARY.filter(m => {
-      if (m.category !== matTab) return false;
-      if (matTab === "gemstone") return true;
-      if (filterType && m.type !== filterType) return false;
-      if (filterAlloy && m.alloy !== filterAlloy) return false;
-      if (filterFinish && m.finish !== filterFinish) return false;
-      return true;
-    });
-  }, [matTab, filterType, filterAlloy, filterFinish]);
-
-  const clearFilters = () => {
-    setFilterType(null);
-    setFilterAlloy(null);
-    setFilterFinish(null);
-  };
+    return MATERIAL_LIBRARY.filter(m => m.category === matTab);
+  }, [matTab]);
 
   const handleMeshClick = (mesh: MeshItemData, e: React.MouseEvent) => {
     const currentIdx = meshes.findIndex((m) => m.name === mesh.name);
