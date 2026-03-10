@@ -733,9 +733,18 @@ export default function TextToCAD() {
     });
   };
 
+  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
+  const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSelectionWarning = useCallback((msg: string) => {
+    setSelectionWarning(msg);
+    if (selectionWarningTimer.current) clearTimeout(selectionWarningTimer.current);
+    selectionWarningTimer.current = setTimeout(() => setSelectionWarning(null), 3000);
+  }, []);
+
   const handleApplyMaterial = useCallback((matId: string) => {
     if (selectedNames.length === 0) {
-      toast.error("Select meshes first, then apply a material");
+      showSelectionWarning("Select meshes first, then apply a material");
       return;
     }
     pushUndo("Apply material");
