@@ -95,7 +95,7 @@ export default function GenerationProgress({
             >
               {label}
             </span>
-            {!isTerminal && (
+            {!isTerminal && currentStep !== "_loading" && (
               <>
                 <span className="font-mono text-sm text-muted-foreground/50 tabular-nums text-center">
                   {formatElapsed(elapsed)}
