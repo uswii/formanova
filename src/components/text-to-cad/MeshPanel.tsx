@@ -16,10 +16,6 @@ interface MeshPanelProps {
 
 const ACTION_BTN = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.97] bg-muted/40 border border-border text-foreground/80";
 
-const CHIP = "px-2.5 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-[0.1em] cursor-pointer transition-all duration-150 border";
-const CHIP_DEFAULT = `${CHIP} text-muted-foreground border-border/50 hover:text-foreground hover:bg-accent/30`;
-const CHIP_ACTIVE = `${CHIP} text-foreground bg-accent border-border`;
-
 export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial, onSceneAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
