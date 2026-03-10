@@ -328,6 +328,7 @@ export default function LeftPanel({
             </motion.section>
           )}
         </AnimatePresence>
+        )}
       </div>
 
       {/* Status bar */}
