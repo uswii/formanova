@@ -937,10 +937,16 @@ const LoadedModel = forwardRef<
         return;
       }
 
-      if (isSelected) {
-        standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
-        return;
+      // Selected meshes: show actual material (not selection override) so material changes are visible immediately
+      const cacheKeySelected = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
+      let matSelected = materialCache.current.get(cacheKeySelected);
+      if (!matSelected) {
+        matSelected = assigned ? assigned.create() : md.originalMaterial.clone();
+        if ('side' in matSelected) (matSelected as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+        materialCache.current.set(cacheKeySelected, matSelected);
       }
+      standard.push({ ...md, material: matSelected, isSelected });
+      return;
 
       const cacheKey = assigned ? `assigned_${md.name}_${assigned.id}` : `orig_${md.name}`;
       let material = materialCache.current.get(cacheKey);
