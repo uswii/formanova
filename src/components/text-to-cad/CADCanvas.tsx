@@ -1316,6 +1316,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onMeshClick={onMeshClick}
                 transformMode={transformMode}
                 onMeshesDetected={onMeshesDetected}
+                onTransformStart={onTransformStart}
                 onTransformEnd={onTransformEnd}
                 onLoadStart={handleLoadStart}
                 onLoadEnd={handleLoadEnd}
