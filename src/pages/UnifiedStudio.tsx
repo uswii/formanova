@@ -386,10 +386,8 @@ export default function UnifiedStudio() {
         clearInterval(ticker);
       }
     } catch (error) {
-      console.error('[UnifiedStudio] Generation error:', error);
-      setGenerationError(error instanceof Error ? error.message : 'Unknown error');
+      setGenerationError('unavailable');
       setIsGenerating(false);
-      toast({ variant: 'destructive', title: 'Generation failed', description: error instanceof Error ? error.message : 'Unknown error' });
     }
   };
 
@@ -964,13 +962,44 @@ export default function UnifiedStudio() {
               </div>
 
               {generationError && (
-                <div className="mt-6 border border-destructive/20 bg-destructive/5 p-4 w-full text-center">
-                  <p className="text-sm text-destructive mb-3">{generationError}</p>
-                  <Button variant="outline" size="sm" onClick={handleStartOver} className="gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Try Again
-                  </Button>
-                </div>
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      className="bg-card border border-border shadow-2xl max-w-md w-full mx-6 p-8 text-center"
+                    >
+                      <div className="mx-auto w-12 h-12 border border-border flex items-center justify-center mb-5">
+                        <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <h3 className="font-display text-lg uppercase tracking-[0.15em] text-foreground mb-3">
+                        Generation Unavailable
+                      </h3>
+                      <p className="font-mono text-[11px] leading-relaxed tracking-wide text-muted-foreground mb-6">
+                        We're sorry — our AI servers are currently experiencing technical difficulties.
+                        Please try again in a few hours. If the issue persists, reach out to us at{' '}
+                        <a
+                          href="mailto:studio@formanova.ai"
+                          className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                        >
+                          studio@formanova.ai
+                        </a>
+                      </p>
+                      <Button
+                        onClick={handleStartOver}
+                        className="w-full font-mono text-[11px] tracking-[0.2em] uppercase"
+                      >
+                        Got It
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                </AnimatePresence>
               )}
             </div>
           </motion.div>
