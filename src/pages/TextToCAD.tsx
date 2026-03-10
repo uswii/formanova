@@ -381,17 +381,149 @@ export default function TextToCAD() {
 
   const runEditWithPrompt = useCallback(async (promptText: string, label: string) => {
     if (!promptText.trim()) { toast.error("Please describe the edit"); return; }
+    if (isGenerating || isEditing) return;
+
+    const LLM_MAP: Record<string, string> = { "gemini": "gemini", "claude-sonnet": "claude-sonnet", "claude-opus": "claude-opus" };
+    const llm = LLM_MAP[model] ?? "gemini";
+
+    // Credit preflight
+    const modelKey = `ring_generate_v1:${model}`;
+    const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
+    try {
+      const result = await performCreditPreflight('ring_generate_v1', 1, { model });
+      const balance = result.currentBalance;
+      const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
+      if (balance < cost) {
+        setCreditBlock({ approved: false, estimatedCredits: cost, currentBalance: balance });
+        return;
+      }
+      setCreditBlock(null);
+    } catch (err) {
+      if (err instanceof AuthExpiredError) return;
+      console.error('[CAD Edit Preflight] failed, skipping block:', err);
+      setCreditBlock(null);
+    }
+
     pushUndo(label);
     setIsEditing(true);
     setIsGenerating(true);
-    setProgressStep("build_initial");
-    await new Promise((r) => setTimeout(r, 1500));
-    setProgressStep("success_final");
-    setIsGenerating(false);
-    refreshCredits().catch(() => {});
-    setIsEditing(false);
-    toast.success(`${label} applied`);
-  }, [pushUndo]);
+    setRetryAttempt(0);
+    setProgressStep("generate_initial");
+
+    try {
+      // Step 1: Start generation with edit prompt
+      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payload: { llm, prompt: promptText.trim(), max_attempts: 3 },
+          return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
+        }),
+      });
+
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
+        throw new Error(err.error || err.detail || `Failed to start edit (${startRes.status})`);
+      }
+
+      const { workflow_id } = await startRes.json();
+      if (!workflow_id) throw new Error("No workflow_id returned");
+      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflow_id);
+
+      // Step 2: Poll status
+      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
+      pollAbortRef.current?.abort();
+      const pollAbort = new AbortController();
+      pollAbortRef.current = pollAbort;
+      let pollErrors = 0;
+      let consecutive404s = 0;
+      const MAX_404_RETRIES = 3;
+      const POLL_TIMEOUT_MS = 12 * 60 * 1000;
+      const pollStart = Date.now();
+
+      while (true) {
+        if (Date.now() - pollStart > POLL_TIMEOUT_MS) throw new Error("Edit timed out");
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          const statusRes = await authenticatedFetch(
+            `/api/status/${encodeURIComponent(workflow_id)}`,
+            { signal: pollAbort.signal }
+          );
+          if (statusRes.status === 404) {
+            consecutive404s++;
+            if (consecutive404s >= MAX_404_RETRIES) throw new Error("Workflow not found");
+            continue;
+          }
+          consecutive404s = 0;
+          if (!statusRes.ok) { pollErrors++; if (pollErrors >= 10) throw new Error("Status polling failed"); continue; }
+
+          const statusData = await statusRes.json();
+          pollErrors = 0;
+          const state = (statusData.runtime?.state || "unknown").toLowerCase();
+          const activeNode = statusData.runtime?.active_nodes?.[0] || "";
+          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
+          const retryCount = statusData.node_visit_seq?.generate_fix || 0;
+          const displayNode = activeNode || lastExitNode;
+          if (displayNode) { setProgressStep(displayNode); if (retryCount > 0) setRetryAttempt(retryCount); }
+
+          if (state === "completed") break;
+          if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
+          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
+            if (activeNode === "failed_final" || lastExitNode === "failed_final") { setProgressStep("failed_final"); throw new Error("Edit failed"); }
+            break;
+          }
+        } catch (err) {
+          if (err instanceof AuthExpiredError) return;
+          if (err instanceof Error && err.name === "AbortError") return;
+          pollErrors++;
+          if (pollErrors >= 10) throw err;
+        }
+      }
+
+      // Step 3: Fetch result GLB
+      setProgressStep("_loading");
+      let glb_url: string | null = null;
+      const MAX_RESULT_RETRIES = 5;
+      for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
+        const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
+        if (resultRes.ok) {
+          const result = await resultRes.json();
+          const toUrl = (uri: string) => uri.startsWith("azure://")
+            ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
+            : uri;
+          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri;
+          const successOriginal = result["success_original_glb"]?.[0]?.glb_artifact?.uri;
+          const rawUri = successFinal || successOriginal;
+          if (rawUri) { glb_url = toUrl(rawUri); break; }
+          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
+          throw new Error(hasFailed ? "Edit failed — no valid model produced" : "No GLB model found");
+        }
+        if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
+        const err = await resultRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to fetch edit result");
+      }
+      if (!glb_url) throw new Error("No GLB model found in edit results");
+
+      setGlbUrl(glb_url);
+      setProgressStep("_loading");
+      setIsModelLoading(true);
+      setIsGenerating(false);
+      setIsEditing(false);
+      refreshCredits().catch(() => {});
+      setHasModel(true);
+      toast.success(`${label} applied`);
+
+    } catch (err) {
+      console.error(`Edit "${label}" failed:`, err);
+      toast.error(err instanceof Error ? err.message : "Edit failed");
+      setIsGenerating(false);
+      setIsEditing(false);
+      setProgressStep("");
+    }
+  }, [model, isGenerating, isEditing, pushUndo]);
 
   const simulateEdit = useCallback(async () => {
     await runEditWithPrompt(editPrompt, "AI edit");
