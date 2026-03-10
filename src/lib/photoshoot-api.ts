@@ -70,9 +70,6 @@ export async function startPhotoshoot(
     throw new Error('A valid model image URL must be provided.');
   }
 
-  console.log('[photoshoot-api] Sending request to /run/state/jewelry_photoshoots_generator');
-  console.log('[photoshoot-api] Payload:', JSON.stringify({ payload: request }));
-
   const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -81,13 +78,10 @@ export async function startPhotoshoot(
 
   if (!res.ok) {
     const text = await res.text();
-    console.error('[photoshoot-api] Start failed:', res.status, text);
     throw new Error(`Failed to start photoshoot: ${res.status} — ${text.substring(0, 200)}`);
   }
 
-  const data = await res.json();
-  console.log('[photoshoot-api] Start response:', JSON.stringify(data));
-  return data;
+  return res.json();
 }
 
 // ─── Poll Status ────────────────────────────────────────────────────
@@ -100,21 +94,16 @@ export async function getPhotoshootStatus(
     headers: getAuthHeaders(),
   });
 
-  // Treat transient 404 as "still running" — don't label as failed
   if (res.status === 404) {
-    console.log('[photoshoot-api] Status 404 (not ready yet)');
     return { state: 'running' };
   }
 
   if (!res.ok) {
     const text = await res.text();
-    console.error('[photoshoot-api] Status check failed:', res.status, text);
     throw new Error(`Status check failed: ${res.status} — ${text.substring(0, 200)}`);
   }
 
-  const data = await res.json();
-  console.log('[photoshoot-api] Status response:', JSON.stringify(data));
-  return data;
+  return res.json();
 }
 
 // ─── Get Result (with retry for result-write lag) ───────────────────
