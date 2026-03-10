@@ -221,15 +221,9 @@ function MaterialSectionHeader({ collapsed, onToggle, hasSelection, selectedMesh
 }
 
 // ── Material content (scrollable) ──
-function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFiltersOpen, hasActiveFilters, filterType, setFilterType, filterAlloy, setFilterAlloy, filterFinish, setFilterFinish, clearFilters, filteredMaterials, onApplyMaterial }: {
+function MaterialContent({ hasSelection, matTab, setMatTab, filteredMaterials, onApplyMaterial }: {
   hasSelection: boolean;
   matTab: "metal" | "gemstone"; setMatTab: (t: "metal" | "gemstone") => void;
-  filtersOpen: boolean; setFiltersOpen: (v: boolean) => void;
-  hasActiveFilters: boolean;
-  filterType: MaterialType | null; setFilterType: (v: MaterialType | null) => void;
-  filterAlloy: MaterialAlloy | null; setFilterAlloy: (v: MaterialAlloy | null) => void;
-  filterFinish: MaterialFinish | null; setFilterFinish: (v: MaterialFinish | null) => void;
-  clearFilters: () => void;
   filteredMaterials: typeof MATERIAL_LIBRARY;
   onApplyMaterial: (matId: string) => void;
 }) {
@@ -241,86 +235,20 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filtersOpen, setFilt
         </div>
       )}
 
-      {/* Category tabs + filter toggle */}
-      <div className="flex items-center gap-2">
-        <div className="flex gap-0 border border-border flex-1">
-          {(["metal", "gemstone"] as const).map(cat => (
-            <button
-              key={cat}
-              onClick={() => { setMatTab(cat); clearFilters(); }}
-              className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 ${
-                matTab === cat ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {cat === "metal" ? "Metals" : "Gems"}
-            </button>
-          ))}
-        </div>
-        {matTab === "metal" && (
+      {/* Category tabs */}
+      <div className="flex gap-0 border border-border">
+        {(["metal", "gemstone"] as const).map(cat => (
           <button
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`flex items-center gap-1 px-2.5 py-2 text-[9px] font-bold uppercase tracking-wide border transition-colors duration-150 cursor-pointer ${
-              filtersOpen || hasActiveFilters
-                ? "text-foreground bg-accent border-border"
-                : "text-muted-foreground hover:text-foreground border-border/50"
+            key={cat}
+            onClick={() => setMatTab(cat)}
+            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 ${
+              matTab === cat ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Filter className="w-3 h-3" />
-            {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+            {cat === "metal" ? "Metals" : "Gems"}
           </button>
-        )}
+        ))}
       </div>
-
-      {/* Collapsible filters */}
-      <AnimatePresence>
-        {filtersOpen && matTab === "metal" && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-2 pb-1">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60">Filters</span>
-                {hasActiveFilters && (
-                  <button onClick={clearFilters} className="font-mono text-[8px] text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wide">
-                    Clear
-                  </button>
-                )}
-              </div>
-              <div>
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Type</span>
-                <div className="flex flex-wrap gap-1">
-                  <button onClick={() => setFilterType(null)} className={filterType === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                  {MATERIAL_TYPES.map(t => (
-                    <button key={t.id} onClick={() => setFilterType(t.id)} className={filterType === t.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{t.label}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Color</span>
-                <div className="flex flex-wrap gap-1">
-                  <button onClick={() => setFilterAlloy(null)} className={filterAlloy === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                  {MATERIAL_ALLOYS.map(a => (
-                    <button key={a.id} onClick={() => setFilterAlloy(a.id)} className={filterAlloy === a.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{a.label}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1 block">Finish</span>
-                <div className="flex flex-wrap gap-1">
-                  <button onClick={() => setFilterFinish(null)} className={filterFinish === null ? CHIP_ACTIVE : CHIP_DEFAULT}>All</button>
-                  {MATERIAL_FINISHES.map(f => (
-                    <button key={f.id} onClick={() => setFilterFinish(f.id)} className={filterFinish === f.id ? CHIP_ACTIVE : CHIP_DEFAULT}>{f.label}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Material swatch grid */}
       <div className="grid grid-cols-3 gap-1.5">
