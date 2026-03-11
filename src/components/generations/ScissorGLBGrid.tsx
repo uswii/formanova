@@ -503,7 +503,7 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
       )}
       {/* Error fallback */}
       {state.error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#111] rounded-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-sm">
           <div className="flex flex-col items-center gap-1.5">
             <Box className="h-5 w-5 text-muted-foreground/40" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/60 uppercase">
