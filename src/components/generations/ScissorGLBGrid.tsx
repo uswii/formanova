@@ -96,6 +96,7 @@ interface GridContextValue {
   unregisterCard: (id: string) => void;
   isLoading: (id: string) => boolean;
   isLoaded: (id: string) => boolean;
+  hasError: (id: string) => boolean;
 }
 
 const GridContext = createContext<GridContextValue | null>(null);
