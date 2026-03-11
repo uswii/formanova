@@ -1483,7 +1483,7 @@ function DiamondEnvMapConsumer({
         color={new THREE.Color(refractionConfig.color)}
         ior={refractionConfig.ior}
         aberrationStrength={refractionConfig.sparkle}
-        bounces={refractionConfig.bounces}
+        bounces={Math.min(refractionConfig.bounces, Q.gemBounces)}
         fresnel={refractionConfig.fresnel}
         toneMapped={false}
       />
