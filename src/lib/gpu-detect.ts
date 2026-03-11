@@ -29,6 +29,8 @@ const TIER_SETTINGS: Record<QualityTier, QualitySettings> = {
     maxLights: 3,
     antialias: false,
     envMapMipmaps: false,
+    maxGemRefraction: 30,
+    vertexBudget: 500_000,
   },
   medium: {
     tier: "medium",
@@ -39,6 +41,8 @@ const TIER_SETTINGS: Record<QualityTier, QualitySettings> = {
     maxLights: 5,
     antialias: true,
     envMapMipmaps: false,
+    maxGemRefraction: 100,
+    vertexBudget: 1_500_000,
   },
   high: {
     tier: "high",
@@ -49,6 +53,8 @@ const TIER_SETTINGS: Record<QualityTier, QualitySettings> = {
     maxLights: 5,
     antialias: true,
     envMapMipmaps: true,
+    maxGemRefraction: 500,
+    vertexBudget: 5_000_000,
   },
 };
 
