@@ -461,12 +461,17 @@ const LoadedModel = forwardRef<
       })));
     }
 
-    // Signal model is fully processed and ready to render after next frame
-    requestAnimationFrame(() => {
+    // Signal model is fully processed and ready to render.
+    // We need enough delay for: React commit (setMeshDataList) → R3F reconcile → GPU draw.
+    // A short timeout ensures the React re-render + canvas paint have both completed
+    // before we dismiss the loading overlay.
+    setTimeout(() => {
       requestAnimationFrame(() => {
-        onModelReady?.();
+        requestAnimationFrame(() => {
+          onModelReady?.();
+        });
       });
-    });
+    }, 150);
   }, [scene, onMeshesDetected, inv, onModelReady]);
 
   // ── Merge additional GLB parts into the existing scene ──

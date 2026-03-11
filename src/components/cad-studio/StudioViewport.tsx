@@ -247,7 +247,15 @@ export default function StudioViewport({
   }, [modelUrl]);
 
   const handleMeshesDetected = useCallback((meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => {
-    setIsModelLoading(false);
+    // Delay dismissing the loading overlay until React has committed the mesh JSX
+    // and the canvas has had time to paint at least one frame.
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsModelLoading(false);
+        });
+      });
+    }, 150);
     onMeshesDetected(meshes);
   }, [onMeshesDetected]);
 
