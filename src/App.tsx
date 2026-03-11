@@ -26,6 +26,7 @@ import Auth from "./pages/Auth";
 // Lazy-loaded pages (split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Tutorial = lazy(() => import("./pages/Tutorial"));
+const FeedbackRedirect = lazy(() => import("./pages/FeedbackRedirect"));
 const PhotographyStudioCategories = lazy(() => import("./pages/PhotographyStudioCategories"));
 const UnifiedStudio = lazy(() => import("./pages/UnifiedStudio"));
 // PRESERVED: Old single-upload studio - uncomment to restore
