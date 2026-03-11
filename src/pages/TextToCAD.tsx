@@ -566,12 +566,15 @@ export default function TextToCAD() {
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
-          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri;
-          const successOriginal = result["success_original_glb"]?.[0]?.glb_artifact?.uri;
+          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
+          if (hasFailed) throw new Error("Edit failed — no valid model produced");
+
+          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri
+            || result["success_final"]?.[0]?.original_glb_artifact?.uri;
+          const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
           const rawUri = successFinal || successOriginal;
           if (rawUri) { glb_url = toUrl(rawUri); break; }
-          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-          throw new Error(hasFailed ? "Edit failed — no valid model produced" : "No GLB model found");
+          throw new Error("No GLB model found");
         }
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
           await new Promise((r) => setTimeout(r, 1000));
