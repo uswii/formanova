@@ -136,7 +136,7 @@ export default function LeftPanel({
             </button>
           )}
 
-          {/* Magic Texturing checkbox */}
+          {/* Magic Texturing checkbox — hidden, keep for future re-enable
           {hasModel && (
             <label className="w-full mt-3 flex items-center gap-2.5 py-3 px-1 cursor-pointer select-none group">
               <input
@@ -151,6 +151,7 @@ export default function LeftPanel({
               </span>
             </label>
           )}
+          */}
         </section>
 
         {/* Modules */}
