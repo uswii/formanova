@@ -15,3 +15,10 @@ export function isCADEnabled(userEmail: string | undefined | null): boolean {
  * in the Text-to-CAD left panel. Set to true to re-enable.
  */
 export const CAD_EDIT_TOOLS_ENABLED = false;
+
+/**
+ * Toggle to show/hide the AI model quality selector
+ * in the Text-to-CAD studio. When false, defaults to 'gemini' (Lite).
+ * Set to true to re-enable model selection.
+ */
+export const CAD_MODEL_SELECTOR_ENABLED = false;

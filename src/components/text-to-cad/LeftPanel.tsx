@@ -64,7 +64,7 @@ export default function LeftPanel({
       <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-6 space-y-6 scrollbar-thin min-w-0"
         style={{ scrollbarWidth: "thin" }}
       >
-        {/* AI Model */}
+        {/* AI Model — hidden, keep for future re-enable (set CAD_MODEL_SELECTOR_ENABLED = true)
         <section>
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">Generation Quality</h3>
           <div className="flex gap-0 border border-border min-w-0">
@@ -88,6 +88,7 @@ export default function LeftPanel({
             ))}
           </div>
         </section>
+        */}
 
         {/* Prompt */}
         <section>

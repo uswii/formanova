@@ -74,7 +74,7 @@ export default function InitialPromptScreen({
           </p>
         </div>
 
-        {/* Generation Quality */}
+        {/* Generation Quality — hidden, keep for future re-enable (set CAD_MODEL_SELECTOR_ENABLED = true in feature-flags.ts)
         <div className="mb-4 max-w-[680px] mx-auto">
           <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
             Generation Quality
@@ -100,6 +100,7 @@ export default function InitialPromptScreen({
             ))}
           </div>
         </div>
+        */}
 
         {/* Prompt */}
         <div className="mb-3 relative max-w-[680px] mx-auto">
