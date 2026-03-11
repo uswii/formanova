@@ -84,7 +84,7 @@ export function WorkflowSection({
             {icon}
           </div>
           <p className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
-            No workflows yet
+            No generation history yet
           </p>
         </div>
       )}

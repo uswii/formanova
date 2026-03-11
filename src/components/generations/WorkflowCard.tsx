@@ -82,7 +82,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </span>
         </div>
 
-        {/* ── Snapshot strip ── */}
+        {/* ── Snapshot strip — hidden, keep for future re-enable
         <div className="px-4 pb-3">
           {hasShots ? (
             <div className="flex gap-1 overflow-x-auto pb-0.5">
@@ -102,7 +102,6 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
               ))}
             </div>
           ) : isEnriching ? (
-            /* Pulse placeholders while enrichment loads */
             <div className="flex gap-1">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
@@ -112,7 +111,6 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
               ))}
             </div>
           ) : (
-            /* Enriched but no renders found */
             <div className="flex items-center justify-center h-14 w-full">
               <span className="font-mono text-[9px] tracking-wider text-muted-foreground/50 uppercase">
                 No renders available
@@ -120,6 +118,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             </div>
           )}
         </div>
+        */}
 
         {/* ── File box ── */}
         <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
