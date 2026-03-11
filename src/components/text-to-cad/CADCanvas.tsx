@@ -672,25 +672,22 @@ const LoadedModel = forwardRef<
 
   // Called during rotate gizmo drag with incremental degree deltas (no Euler decomposition)
   const handleRotationDelta = useCallback((obj: THREE.Object3D, deltaDeg: [number, number, number]) => {
-    // Find which mesh this object is
-    for (const [name, meshObj] of meshRefs.current.entries()) {
-      if (meshObj === obj) {
-        setMeshDataList((prev) => prev.map((md) => {
-          if (md.name !== name) return md;
-          return {
-            ...md,
-            quaternion: obj.quaternion.clone(),
-            rotationDeg: [
-              md.rotationDeg[0] + deltaDeg[0],
-              md.rotationDeg[1] + deltaDeg[1],
-              md.rotationDeg[2] + deltaDeg[2],
-            ],
-          };
-        }));
-        break;
-      }
-    }
-  }, []);
+    // Apply rotation delta to ALL selected meshes (primary + siblings)
+    setMeshDataList((prev) => prev.map((md) => {
+      if (!selectedMeshNames.has(md.name)) return md;
+      const meshObj = meshRefs.current.get(md.name);
+      if (!meshObj) return md;
+      return {
+        ...md,
+        quaternion: meshObj.quaternion.clone(),
+        rotationDeg: [
+          md.rotationDeg[0] + deltaDeg[0],
+          md.rotationDeg[1] + deltaDeg[1],
+          md.rotationDeg[2] + deltaDeg[2],
+        ],
+      };
+    }));
+  }, [selectedMeshNames]);
 
   // Called when TransformControls drag starts
   const handleDragStart = useCallback(() => {
@@ -699,16 +696,15 @@ const LoadedModel = forwardRef<
 
   // Called when TransformControls drag ends
   const handleDragEnd = useCallback((obj: THREE.Object3D) => {
-    // Find which mesh this object corresponds to
+    // Sync ALL selected meshes (primary was moved by gizmo, siblings by our delta logic)
     for (const [name, meshObj] of meshRefs.current.entries()) {
-      if (meshObj === obj) {
-        syncTransformFromObject(name, obj);
-        break;
+      if (selectedMeshNames.has(name)) {
+        syncTransformFromObject(name, meshObj);
       }
     }
     onTransformEnd?.();
     inv();
-  }, [syncTransformFromObject, onTransformEnd, inv]);
+  }, [syncTransformFromObject, onTransformEnd, inv, selectedMeshNames]);
 
   // ── Imperative API ──
   useImperativeHandle(ref, () => ({
