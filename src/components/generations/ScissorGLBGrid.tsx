@@ -201,7 +201,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       }
 
       renderer.setScissorTest(true);
-      renderer.setClearColor(0x111111, 1);
+      renderer.setClearColor(0x000000, 0);
 
       // Clear entire canvas
       renderer.setViewport(0, 0, width, height);
