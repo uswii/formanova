@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
-import { GlbPreviewCard } from './GlbPreviewCard';
+import { Glb3DModal } from './Glb3DModal';
 import { format } from 'date-fns';
 
 interface WorkflowCardProps {
@@ -20,9 +20,8 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-// ─── Text-to-CAD card ──────────────────────────────────────────────────────
+// ─── Text-to-CAD card (static thumbnail — NO WebGL Canvas per card) ────────
 
-// Model ID → display label mapping
 const MODEL_LABELS: Record<string, string> = {
   gemini: 'Lite',
   'claude-sonnet': 'Standard',
@@ -34,6 +33,7 @@ const MODEL_LABELS: Record<string, string> = {
 
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [show3D, setShow3D] = useState(false);
 
   const dateStr = workflow.created_at
     ? format(new Date(workflow.created_at), 'MMM d, yyyy · HH:mm')
@@ -41,8 +41,8 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
-  // undefined = enrichment not started yet; [] = enriched but no shots found
   const isEnriching = workflow.screenshots === undefined;
+  const heroShot = shots[0] ?? null;
 
   const modelLabel = workflow.mode
     ? MODEL_LABELS[workflow.mode.toLowerCase()] ?? workflow.mode
@@ -62,11 +62,8 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
   return (
     <>
-      <motion.div
-        variants={itemVariants}
-        className="marta-frame overflow-hidden"
-      >
-        {/* Card header: number + model tier + date */}
+      <motion.div variants={itemVariants} className="marta-frame overflow-hidden">
+        {/* Card header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
@@ -83,45 +80,42 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </span>
         </div>
 
-        {/* ── Snapshot strip — hidden, keep for future re-enable
-        <div className="px-4 pb-3">
-          {hasShots ? (
-            <div className="flex gap-1 overflow-x-auto pb-0.5">
-              {shots.map((shot, i) => (
-                <button
-                  key={shot.angle}
-                  onClick={() => setPreviewIndex(i)}
-                  title={shot.angle.replace(/_/g, ' ')}
-                  className="group/thumb flex-shrink-0 w-14 h-14 bg-black overflow-hidden rounded-sm border border-border/30 hover:border-foreground/50 transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
-                >
-                  <OptimizedImage
-                    src={shot.url}
-                    alt={shot.angle}
-                    className="w-full h-full object-contain transition-transform duration-300 group-hover/thumb:scale-110"
-                  />
-                </button>
-              ))}
-            </div>
-          ) : isEnriching ? (
-            <div className="flex gap-1">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-shrink-0 w-14 h-14 bg-muted/50 rounded-sm animate-pulse"
+        {/* Static thumbnail — first screenshot, NO WebGL */}
+        <div className="mx-4 mb-3">
+          <div
+            className="w-full bg-black border border-border/50 rounded-sm overflow-hidden"
+            style={{ aspectRatio: '1 / 1', maxWidth: 512, maxHeight: 512 }}
+          >
+            {heroShot ? (
+              <button
+                onClick={() => setPreviewIndex(0)}
+                className="group relative w-full h-full block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+                aria-label="View snapshots"
+              >
+                <OptimizedImage
+                  src={heroShot.url}
+                  alt="Ring preview"
+                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                 />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-14 w-full">
-              <span className="font-mono text-[9px] tracking-wider text-muted-foreground/50 uppercase">
-                No renders available
-              </span>
-            </div>
-          )}
+                <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/20 transition-colors duration-200">
+                  <div className="bg-background/80 backdrop-blur-sm p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <Maximize2 className="h-5 w-5 text-foreground" />
+                  </div>
+                </div>
+              </button>
+            ) : isEnriching ? (
+              <div className="w-full h-full animate-pulse bg-muted/50" style={{ aspectRatio: '1 / 1' }} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center" style={{ aspectRatio: '1 / 1' }}>
+                <span className="font-mono text-[9px] tracking-wider text-muted-foreground/50 uppercase">
+                  No renders available
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-        */}
 
-        {/* ── File box ── */}
+        {/* Action bar: View 3D + Download GLB */}
         <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
@@ -130,20 +124,34 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             </span>
           </div>
 
-          {workflow.glb_url ? (
-            <Button
-              size="sm"
-              onClick={handleDownloadGlb}
-              className="h-7 px-3 font-mono text-[10px] tracking-wider uppercase gap-1.5 flex-shrink-0"
-            >
-              <Download className="h-3 w-3" />
-              Download GLB
-            </Button>
-          ) : (
-            <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase flex-shrink-0">
-              {workflow.glb_url === undefined && isEnriching ? 'Loading…' : 'Unavailable'}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {workflow.glb_url && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); setShow3D(true); }}
+                className="h-7 px-2.5 font-mono text-[10px] tracking-wider uppercase gap-1"
+                title="Open interactive 3D preview"
+              >
+                <Box className="h-3 w-3" />
+                3D
+              </Button>
+            )}
+            {workflow.glb_url ? (
+              <Button
+                size="sm"
+                onClick={handleDownloadGlb}
+                className="h-7 px-3 font-mono text-[10px] tracking-wider uppercase gap-1.5"
+              >
+                <Download className="h-3 w-3" />
+                GLB
+              </Button>
+            ) : (
+              <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
+                {workflow.glb_url === undefined && isEnriching ? 'Loading…' : 'Unavailable'}
+              </span>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -157,12 +165,20 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           onClose={() => setPreviewIndex(null)}
         />
       )}
+
+      {/* 3D preview modal — SINGLE Canvas, only when explicitly opened */}
+      {show3D && workflow.glb_url && (
+        <Glb3DModal
+          glbUrl={workflow.glb_url}
+          glbFilename={workflow.glb_filename}
+          onClose={() => setShow3D(false)}
+        />
+      )}
     </>
   );
 }
 
 // ─── Photo / CAD-render card ────────────────────────────────────────────────
-// Matches the "From Text to CAD" card style: image-first, minimal metadata.
 
 function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -180,14 +196,12 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         )
       : null;
 
-  // undefined = enrichment not started; '' = enriched but no thumbnail found
   const isEnriching = workflow.thumbnail_url === undefined;
   const hasThumbnail = !!workflow.thumbnail_url;
 
   return (
     <>
       <motion.div variants={itemVariants} className="marta-frame overflow-hidden">
-        {/* Thumbnail — sharp rectangle, image-first */}
         {hasThumbnail ? (
           <button
             onClick={() => setPreviewOpen(true)}
@@ -200,7 +214,6 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
               priority
               className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
             />
-            {/* View / enlarge icon overlay */}
             <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/20 transition-colors duration-200">
               <div className="bg-background/80 backdrop-blur-sm p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <Maximize2 className="h-5 w-5 text-foreground" />
@@ -208,10 +221,8 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             </div>
           </button>
         ) : isEnriching ? (
-          /* Pulsing placeholder while enrichment is in progress */
           <div className="w-full aspect-square bg-muted/50 animate-pulse" />
         ) : (
-          /* Enriched but no image found */
           <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
             <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
               No preview
@@ -219,7 +230,6 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           </div>
         )}
 
-        {/* Card footer: index · date · duration */}
         <div className="flex items-center justify-between px-2.5 py-2">
           <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none">
             #{index}
@@ -237,7 +247,6 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         </div>
       </motion.div>
 
-      {/* Enlarged preview modal */}
       {previewOpen && hasThumbnail && (
         <PhotoPreviewModal
           imageUrl={workflow.thumbnail_url!}
@@ -253,9 +262,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
 
 export function WorkflowCard({ workflow, index = 0, onClick: _onClick }: WorkflowCardProps) {
   if (workflow.source_type === 'cad_text') {
-    return <GlbPreviewCard workflow={workflow} index={index} />;
+    return <CadTextCard workflow={workflow} index={index} />;
   }
-
-  // photo and cad_render both use the image-first card
   return <PhotoCard workflow={workflow} index={index} />;
 }
