@@ -239,7 +239,7 @@ export default function Generations() {
         if (e.thumbnail_url) preloadImage(e.thumbnail_url);
       });
       setGlobalLoading(false);
-      console.log('[Generations] loaded from cache:', cached.workflows.length, 'workflows');
+      if (import.meta.env.DEV) console.log('[Generations] loaded from cache:', cached.workflows.length, 'workflows');
     }
 
     // Always fetch fresh in background
