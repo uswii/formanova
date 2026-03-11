@@ -671,7 +671,7 @@ export default function TextToCAD() {
   }, []);
 
   const handleReset = () => {
-    setPrompt("");
+    // Keep prompt populated for quick iteration; clear everything else
     setEditPrompt("");
     setSelectedModules([]);
     setHasModel(false);
@@ -682,7 +682,7 @@ export default function TextToCAD() {
     setModules([]);
     setUndoStack([]);
     setRedoStack([]);
-    setWorkspaceActive(false);
+    // Stay in workspace — do NOT reset workspaceActive
     if (glbUrl) URL.revokeObjectURL(glbUrl);
     additionalParts.forEach((u) => URL.revokeObjectURL(u));
     setAdditionalParts([]);
