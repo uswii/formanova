@@ -107,7 +107,7 @@ export default function LeftPanel({
             <button
               onClick={onGenerate}
               disabled={isGenerating || !prompt.trim()}
-              className="w-full py-4 mt-4 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
+              className="w-full py-3 lg:py-4 px-3 lg:px-4 mt-4 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
             >
               {isGenerating ? "Generating…" : (
                 <>
@@ -127,7 +127,7 @@ export default function LeftPanel({
             <button
               onClick={() => glbInputRef.current?.click()}
               disabled={isGenerating}
-              className="w-full py-3.5 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground flex items-center justify-center gap-2 bg-muted/30 border border-border flex-wrap"
+              className="w-full py-2.5 lg:py-3.5 px-3 lg:px-4 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground flex items-center justify-center gap-2 bg-muted/30 border border-border flex-wrap"
             >
               <span className="w-6 h-6 rounded-full border border-primary/60 flex items-center justify-center shrink-0 shadow-[0_0_8px_hsl(var(--primary)/0.4)] text-primary">
                 <Diamond className="w-3 h-3" />
@@ -206,7 +206,7 @@ export default function LeftPanel({
               <button
                 onClick={onEdit}
                 disabled={isGenerating || !editPrompt.trim()}
-                className="w-full py-4 mt-3 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
+                className="w-full py-3 lg:py-4 px-3 lg:px-4 mt-3 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
               >
                 <span>Apply Edit</span>
                 <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
@@ -270,7 +270,7 @@ export default function LeftPanel({
                           <button
                             disabled={!selectedPart || isGenerating}
                             onClick={() => selectedPart && onRebuildPart?.(selectedPart, rebuildDesc)}
-                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
+                            className="w-full py-2.5 lg:py-3.5 px-3 lg:px-4 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
                           >
                             <span>Rebuild Part</span>
                             <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
@@ -318,7 +318,7 @@ export default function LeftPanel({
                           <button
                             disabled={isGenerating || !newPartDesc.trim()}
                             onClick={() => onAddPart?.(newPartDesc)}
-                            className="w-full py-3.5 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
+                            className="w-full py-2.5 lg:py-3.5 px-3 lg:px-4 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
                           >
                             <span>Import Custom 3D Component</span>
                             <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
