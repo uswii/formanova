@@ -1217,6 +1217,13 @@ const LoadedModel = forwardRef<
     // Use cheap PBR fallback for gems when scene is heavy or device is low-tier
     const useRefractionGems = !sceneHeavyRef.current && Q.tier !== "low";
 
+    // Shared invisible material for hidden gem source meshes (avoids creating new material per gem per render)
+    const HIDDEN_MAT_KEY = "__gem_hidden__";
+    if (!materialCache.current.has(HIDDEN_MAT_KEY)) {
+      materialCache.current.set(HIDDEN_MAT_KEY, new THREE.MeshBasicMaterial({ visible: false }));
+    }
+    const hiddenMat = materialCache.current.get(HIDDEN_MAT_KEY)!;
+
     meshDataList.forEach((md) => {
       // Skip hidden meshes entirely
       if (hiddenMeshNames.has(md.name)) return;
@@ -1236,24 +1243,21 @@ const LoadedModel = forwardRef<
         if (useRefractionGems) {
           // Full refraction path (current behavior)
           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-          const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
           standard.push({ ...md, material: hiddenMat, isSelected });
         } else {
-          // Cheap PBR fallback — glass-like appearance, no per-gem useFrame
+          // Cheap PBR fallback — shiny opaque gem, NO transmission (avoids per-gem scene re-render)
           const rc = assigned.refractionConfig;
           const fallbackKey = `gem_fallback_${md.name}_${assigned.id}`;
           let fallback = materialCache.current.get(fallbackKey);
           if (!fallback) {
             fallback = new THREE.MeshPhysicalMaterial({
               color: new THREE.Color(rc.color),
-              transmission: 0.85,
-              ior: rc.ior,
-              roughness: 0.05,
-              metalness: 0,
-              thickness: 0.5,
-              envMapIntensity: 1.5,
+              metalness: 0.1,
+              roughness: 0.02,
+              envMapIntensity: 2.5,
               clearcoat: 1.0,
-              clearcoatRoughness: 0.05,
+              clearcoatRoughness: 0.03,
+              reflectivity: 1.0,
               side: THREE.DoubleSide,
             });
             materialCache.current.set(fallbackKey, fallback);
