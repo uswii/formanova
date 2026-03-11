@@ -706,16 +706,37 @@ export default function TextToCAD() {
       } else {
         return;
       }
-      // Use browser's native download with a generated default name
+      // Use browser's native Save As dialog so the user can rename the file
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
       const defaultName = `model-${timestamp}.glb`;
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = defaultName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(a.href);
+
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: defaultName,
+            types: [{
+              description: 'GLB 3D Model',
+              accept: { 'model/gltf-binary': ['.glb'] },
+            }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } catch (e: any) {
+          // User cancelled the dialog — not an error
+          if (e?.name === 'AbortError') return;
+          throw e;
+        }
+      } else {
+        // Fallback for browsers without File System Access API
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = defaultName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+      }
     } catch {
       toast.error("Failed to download model");
     }
