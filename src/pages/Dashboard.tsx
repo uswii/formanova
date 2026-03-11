@@ -32,6 +32,9 @@ export default function Dashboard() {
   const userName = user?.email ? user.email.split('@')[0] : '';
   const cadEnabled = isCADEnabled(user?.email);
 
+  // Prefetch generation history in background so it's instant when user opens Generations
+  usePrefetchGenerations();
+
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
       {/* Header — matches Studio page */}
