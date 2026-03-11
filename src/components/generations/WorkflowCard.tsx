@@ -13,7 +13,12 @@ const localDateFmt = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short',
 });
 function formatLocal(ts: string): string {
-  return localDateFmt.format(new Date(ts));
+  // Ensure the timestamp is treated as UTC if it lacks a timezone indicator
+  let normalized = ts.trim();
+  if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
+    normalized += 'Z';
+  }
+  return localDateFmt.format(new Date(normalized));
 }
 
 interface WorkflowCardProps {
@@ -101,30 +106,32 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           <div className="mx-4 mb-3 w-[calc(100%-2rem)] aspect-square bg-muted/30 animate-pulse" />
         )}
 
-        {/* ── File box ── */}
-        <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-            <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
-              {workflow.glb_filename || (isEnriching ? '—' : 'model.glb')}
-            </span>
-          </div>
+        {/* ── File box — only shown when GLB is available or still loading ── */}
+        {(workflow.glb_url || isEnriching) && (
+          <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+              <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
+                {workflow.glb_filename || (isEnriching ? '—' : 'model.glb')}
+              </span>
+            </div>
 
-          {workflow.glb_url ? (
-            <Button
-              size="sm"
-              onClick={handleDownloadGlb}
-              className="h-7 px-3 font-mono text-[10px] tracking-wider uppercase gap-1.5 flex-shrink-0"
-            >
-              <Download className="h-3 w-3" />
-              Download GLB
-            </Button>
-          ) : (
-            <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase flex-shrink-0">
-              {workflow.glb_url === undefined && isEnriching ? 'Loading…' : 'Unavailable'}
-            </span>
-          )}
-        </div>
+            {workflow.glb_url ? (
+              <Button
+                size="sm"
+                onClick={handleDownloadGlb}
+                className="h-7 px-3 font-mono text-[10px] tracking-wider uppercase gap-1.5 flex-shrink-0"
+              >
+                <Download className="h-3 w-3" />
+                Download GLB
+              </Button>
+            ) : (
+              <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase flex-shrink-0">
+                Loading…
+              </span>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* Snapshot preview modal */}
@@ -187,14 +194,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         ) : isEnriching ? (
           /* Pulsing placeholder while enrichment is in progress */
           <div className="w-full aspect-square bg-muted/50 animate-pulse" />
-        ) : (
-          /* Enriched but no image found */
-          <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
-            <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
-              No preview
-            </span>
-          </div>
-        )}
+        ) : null}
 
         {/* Card footer: index · date · duration */}
         <div className="flex items-center justify-between px-2.5 py-2">
