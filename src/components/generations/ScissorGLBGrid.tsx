@@ -149,7 +149,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: false,
+      alpha: true,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
