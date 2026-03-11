@@ -667,8 +667,7 @@ export default function TextToCAD() {
   }, []);
 
   const handleReset = () => {
-    // Keep workspace active & auto-populate prompt with previous text (Steve Krug: don't make me think)
-    const previousPrompt = prompt;
+    setPrompt("");
     setEditPrompt("");
     setSelectedModules([]);
     setHasModel(false);
@@ -679,8 +678,7 @@ export default function TextToCAD() {
     setModules([]);
     setUndoStack([]);
     setRedoStack([]);
-    // Stay in studio — don't reset workspaceActive
-    setPrompt(previousPrompt);
+    setWorkspaceActive(false);
     if (glbUrl) URL.revokeObjectURL(glbUrl);
     additionalParts.forEach((u) => URL.revokeObjectURL(u));
     setAdditionalParts([]);
