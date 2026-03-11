@@ -306,7 +306,7 @@ export default function TextToCAD() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: prompt.trim(), max_attempts: 3 },
+          payload: { llm, prompt: prompt.trim(), max_attempts: 3, skip_validation: false },
           return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
         }),
       });
