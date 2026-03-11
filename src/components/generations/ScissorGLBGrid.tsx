@@ -26,6 +26,8 @@ import { RGBELoader } from 'three-stdlib';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Box } from 'lucide-react';
 
+const __DEV__ = import.meta.env.DEV;
+
 // ── LRU GLB Cache ────────────────────────────────────────────────────
 const MAX_CACHE = 20;
 
@@ -36,7 +38,7 @@ interface CachedModel {
 
 const glbCache = new Map<string, CachedModel>();
 const glbLoading = new Map<string, Promise<THREE.Group>>();
-const glbErrors = new Set<string>(); // Track permanently failed URLs
+const glbErrors = new Set<string>();
 
 function getCachedScene(url: string): THREE.Group | null {
   const entry = glbCache.get(url);
@@ -49,7 +51,6 @@ function getCachedScene(url: string): THREE.Group | null {
 
 function cacheScene(url: string, scene: THREE.Group) {
   if (glbCache.size >= MAX_CACHE) {
-    // Evict least recently used
     let oldestKey = '';
     let oldestTime = Infinity;
     for (const [key, val] of glbCache) {
@@ -92,12 +93,16 @@ interface CardEntry {
   error: boolean;
 }
 
+/** Listeners that slots register to be notified when their card state changes */
+type CardStateListener = (loaded: boolean, error: boolean) => void;
+
 interface GridContextValue {
   registerCard: (id: string, glbUrl: string, div: HTMLDivElement) => void;
   unregisterCard: (id: string) => void;
-  isLoading: (id: string) => boolean;
-  isLoaded: (id: string) => boolean;
-  hasError: (id: string) => boolean;
+  /** Subscribe to state changes for a specific card id. Returns unsubscribe fn. */
+  subscribe: (id: string, listener: CardStateListener) => () => void;
+  /** Get current snapshot of card state */
+  getCardState: (id: string) => { loaded: boolean; loading: boolean; error: boolean };
 }
 
 const GridContext = createContext<GridContextValue | null>(null);
@@ -114,15 +119,27 @@ interface ScissorGLBGridProps {
   children: React.ReactNode;
 }
 
+const DARK_BG = new THREE.Color(0x111111);
+
 export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cardsRef = useRef<Map<string, CardEntry>>(new Map());
+  const listenersRef = useRef<Map<string, Set<CardStateListener>>>(new Map());
   const rafRef = useRef<number>(0);
   const envMapRef = useRef<THREE.Texture | null>(null);
   const gltfLoaderRef = useRef(new GLTFLoader());
-  const [tick, forceUpdate] = useState(0);
+
+  /** Notify all listeners for a given card id */
+  const notifyListeners = useCallback((id: string) => {
+    const card = cardsRef.current.get(id);
+    const listeners = listenersRef.current.get(id);
+    if (!card || !listeners) return;
+    for (const fn of listeners) {
+      fn(card.loaded, card.error);
+    }
+  }, []);
 
   // Initialize renderer
   useEffect(() => {
@@ -132,12 +149,13 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: true,
+      alpha: false,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.8;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setClearColor(0x111111, 1);
     rendererRef.current = renderer;
 
     // Preload HDRI environment
@@ -145,7 +163,6 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     rgbeLoader.load('/hdri/jewelry-studio-v2.hdr', (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       envMapRef.current = texture;
-      // Apply to all existing card scenes
       for (const card of cardsRef.current.values()) {
         card.scene.environment = texture;
       }
@@ -176,7 +193,6 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       const canvas = renderer.domElement;
       const containerRect = container.getBoundingClientRect();
 
-      // Resize canvas to match container
       const width = containerRect.width;
       const height = containerRect.height;
       if (canvas.width !== Math.floor(width * renderer.getPixelRatio()) ||
@@ -185,7 +201,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       }
 
       renderer.setScissorTest(true);
-      renderer.setClearColor(0x000000, 0);
+      renderer.setClearColor(0x111111, 1);
 
       // Clear entire canvas
       renderer.setViewport(0, 0, width, height);
@@ -197,7 +213,6 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
 
         const rect = card.divRef.getBoundingClientRect();
 
-        // Skip if not visible
         if (
           rect.bottom < containerRect.top ||
           rect.top > containerRect.bottom ||
@@ -207,7 +222,6 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
           rect.height <= 0
         ) continue;
 
-        // Compute position relative to container
         const x = rect.left - containerRect.left;
         const y = containerRect.height - (rect.top - containerRect.top) - rect.height;
         const w = rect.width;
@@ -231,28 +245,27 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     return () => { running = false; };
   }, []);
 
-  // Load a GLB for a card — route through blob-proxy to avoid CORS
+  // Load a GLB for a card
   const loadGlb = useCallback((card: CardEntry) => {
     if (card.loading || card.loaded || card.error) return;
     if (glbErrors.has(card.glbUrl)) {
       card.error = true;
-      forceUpdate((n) => n + 1);
+      notifyListeners(card.id);
       return;
     }
     card.loading = true;
-    console.log('[ScissorGLBGrid] Starting GLB load:', card.glbUrl);
-    forceUpdate((n) => n + 1);
+    if (__DEV__) console.log('[ScissorGLBGrid] Starting GLB load:', card.glbUrl);
+    notifyListeners(card.id);
+
     const cached = getCachedScene(card.glbUrl);
     if (cached) {
       setupCardScene(card, cached);
       return;
     }
 
-    // Deduplicate in-flight requests
     let promise = glbLoading.get(card.glbUrl);
     if (!promise) {
       promise = (async () => {
-        // Fetch GLB binary via blob-proxy edge function to bypass CORS
         const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
         const resp = await fetch(proxyUrl, {
           method: 'POST',
@@ -265,7 +278,6 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
         if (!resp.ok) throw new Error(`Proxy returned ${resp.status}`);
         const arrayBuffer = await resp.arrayBuffer();
 
-        // Parse GLB from arraybuffer
         return new Promise<THREE.Group>((resolve, reject) => {
           gltfLoaderRef.current.parse(
             arrayBuffer,
@@ -283,19 +295,18 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     }
 
     promise.then((scene) => {
-      console.log('[ScissorGLBGrid] GLB loaded successfully:', card.glbUrl);
+      if (__DEV__) console.log('[ScissorGLBGrid] GLB loaded successfully:', card.glbUrl);
       setupCardScene(card, scene.clone(true));
     }).catch((err) => {
-      console.error('[ScissorGLBGrid] GLB load failed:', card.glbUrl, err);
+      if (__DEV__) console.error('[ScissorGLBGrid] GLB load failed:', card.glbUrl, err);
       card.loading = false;
       card.error = true;
       glbErrors.add(card.glbUrl);
-      forceUpdate((n) => n + 1);
+      notifyListeners(card.id);
     });
-  }, []);
+  }, [notifyListeners]);
 
   const setupCardScene = useCallback((card: CardEntry, model: THREE.Group) => {
-    // Normalize scale — fit model in a 3-unit bounding sphere
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
@@ -305,11 +316,9 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
     model.scale.setScalar(scale);
 
-    // Apply default metallic material for nice preview
     model.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        // Keep original materials — they usually look good
         if (mesh.material) {
           const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
           mats.forEach((m) => {
@@ -329,8 +338,8 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
 
     card.loaded = true;
     card.loading = false;
-    forceUpdate((n) => n + 1);
-  }, []);
+    notifyListeners(card.id);
+  }, [notifyListeners]);
 
   const registerCard = useCallback((id: string, glbUrl: string, div: HTMLDivElement) => {
     if (cardsRef.current.has(id)) return;
@@ -339,8 +348,8 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     if (!renderer) return;
 
     const scene = new THREE.Scene();
+    scene.background = DARK_BG;
 
-    // Add ambient + directional light
     const ambient = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambient);
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -388,41 +397,48 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       disposeScene(card.scene);
       cardsRef.current.delete(id);
     }
+    listenersRef.current.delete(id);
   }, []);
 
-  const isLoading = useCallback((id: string) => {
+  const subscribe = useCallback((id: string, listener: CardStateListener) => {
+    if (!listenersRef.current.has(id)) {
+      listenersRef.current.set(id, new Set());
+    }
+    listenersRef.current.get(id)!.add(listener);
+
+    // Immediately notify with current state if card exists
     const card = cardsRef.current.get(id);
-    return card ? card.loading : false;
+    if (card && (card.loaded || card.error)) {
+      listener(card.loaded, card.error);
+    }
+
+    return () => {
+      listenersRef.current.get(id)?.delete(listener);
+    };
   }, []);
 
-  const isLoaded = useCallback((id: string) => {
+  const getCardState = useCallback((id: string) => {
     const card = cardsRef.current.get(id);
-    return card ? card.loaded : false;
-  }, []);
-
-  const hasError = useCallback((id: string) => {
-    const card = cardsRef.current.get(id);
-    return card ? card.error : false;
+    return card
+      ? { loaded: card.loaded, loading: card.loading, error: card.error }
+      : { loaded: false, loading: false, error: false };
   }, []);
 
   const ctxValue = useMemo<GridContextValue>(() => ({
     registerCard,
     unregisterCard,
-    isLoading,
-    isLoaded,
-    hasError,
-  }), [registerCard, unregisterCard, isLoading, isLoaded, hasError, tick]);
+    subscribe,
+    getCardState,
+  }), [registerCard, unregisterCard, subscribe, getCardState]);
 
   return (
     <GridContext.Provider value={ctxValue}>
       <div ref={containerRef} className="relative">
-        {/* Shared WebGL canvas — sits behind all cards */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full pointer-events-none"
           style={{ zIndex: 0 }}
         />
-        {/* Card placeholders rendered on top */}
         <div className="relative" style={{ zIndex: 1 }}>
           {children}
         </div>
@@ -432,8 +448,6 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
 }
 
 // ── GLB Preview Placeholder ──────────────────────────────────────────
-// This is the div each card renders. It registers with the grid context
-// so the shared canvas can render into its bounds.
 
 interface GLBPreviewSlotProps {
   id: string;
@@ -443,24 +457,32 @@ interface GLBPreviewSlotProps {
 
 export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotProps) {
   const divRef = useRef<HTMLDivElement>(null);
-  const { registerCard, unregisterCard, isLoaded, hasError } = useScissorGrid();
-  const [registered, setRegistered] = useState(false);
+  const { registerCard, unregisterCard, subscribe, getCardState } = useScissorGrid();
+  const [state, setState] = useState<{ loaded: boolean; error: boolean }>({ loaded: false, error: false });
 
   useEffect(() => {
     const div = divRef.current;
     if (!div || !glbUrl) return;
 
     registerCard(id, glbUrl, div);
-    setRegistered(true);
+
+    // Subscribe to state changes — this is the reliable notification path
+    const unsub = subscribe(id, (loaded, error) => {
+      setState({ loaded, error });
+    });
+
+    // Also read initial state in case card loaded before subscription
+    const initial = getCardState(id);
+    if (initial.loaded || initial.error) {
+      setState({ loaded: initial.loaded, error: initial.error });
+    }
 
     return () => {
+      unsub();
       unregisterCard(id);
-      setRegistered(false);
+      setState({ loaded: false, error: false });
     };
-  }, [id, glbUrl, registerCard, unregisterCard]);
-
-  const loaded = registered && isLoaded(id);
-  const errored = registered && hasError(id);
+  }, [id, glbUrl, registerCard, unregisterCard, subscribe, getCardState]);
 
   return (
     <div
@@ -469,8 +491,8 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
       style={{ touchAction: 'none' }}
     >
       {/* Loading state */}
-      {!loaded && !errored && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+      {!state.loaded && !state.error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#111] rounded-sm">
           <div className="flex flex-col items-center gap-2">
             <div className="w-5 h-5 border-2 border-foreground/20 border-t-foreground/60 rounded-full animate-spin" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground uppercase">
@@ -480,8 +502,8 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
         </div>
       )}
       {/* Error fallback */}
-      {errored && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+      {state.error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#111] rounded-sm">
           <div className="flex flex-col items-center gap-1.5">
             <Box className="h-5 w-5 text-muted-foreground/40" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/60 uppercase">
