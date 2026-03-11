@@ -284,7 +284,7 @@ export default function StudioViewport({
           alpha: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.2,
-          powerPreference: "high-performance",
+          powerPreference: Q.tier === "low" ? "low-power" : "high-performance",
         }}
         dpr={Q.dpr}
         style={{ background: "transparent" }}

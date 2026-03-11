@@ -1621,7 +1621,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
             toneMappingExposure: 0.45 * lightIntensity,
-            powerPreference: "high-performance",
+            powerPreference: Q.tier === "low" ? "low-power" : "high-performance",
           }}
           dpr={Q.dpr}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
