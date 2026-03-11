@@ -65,6 +65,7 @@ export default function TextToCAD() {
   const [rightCollapsed, setRightCollapsed] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
+  const [magicTexturing, setMagicTexturing] = useState(false);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
