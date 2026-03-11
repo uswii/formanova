@@ -230,9 +230,14 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     return () => { running = false; };
   }, []);
 
-  // Load a GLB for a card
+  // Load a GLB for a card — route through blob-proxy to avoid CORS
   const loadGlb = useCallback((card: CardEntry) => {
-    if (card.loading || card.loaded) return;
+    if (card.loading || card.loaded || card.error) return;
+    if (glbErrors.has(card.glbUrl)) {
+      card.error = true;
+      forceUpdate((n) => n + 1);
+      return;
+    }
     card.loading = true;
 
     const cached = getCachedScene(card.glbUrl);
@@ -244,17 +249,33 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     // Deduplicate in-flight requests
     let promise = glbLoading.get(card.glbUrl);
     if (!promise) {
-      promise = new Promise<THREE.Group>((resolve, reject) => {
-        gltfLoaderRef.current.load(
-          card.glbUrl,
-          (gltf) => {
-            cacheScene(card.glbUrl, gltf.scene);
-            resolve(gltf.scene.clone(true));
+      promise = (async () => {
+        // Fetch GLB binary via blob-proxy edge function to bypass CORS
+        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
+        const resp = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          undefined,
-          reject,
-        );
-      });
+          body: JSON.stringify({ url: card.glbUrl }),
+        });
+        if (!resp.ok) throw new Error(`Proxy returned ${resp.status}`);
+        const arrayBuffer = await resp.arrayBuffer();
+
+        // Parse GLB from arraybuffer
+        return new Promise<THREE.Group>((resolve, reject) => {
+          gltfLoaderRef.current.parse(
+            arrayBuffer,
+            '',
+            (gltf) => {
+              cacheScene(card.glbUrl, gltf.scene);
+              resolve(gltf.scene.clone(true));
+            },
+            reject,
+          );
+        });
+      })();
       glbLoading.set(card.glbUrl, promise);
       promise.finally(() => glbLoading.delete(card.glbUrl));
     }
@@ -264,6 +285,9 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     }).catch((err) => {
       console.warn('[ScissorGLBGrid] Failed to load GLB:', card.glbUrl, err);
       card.loading = false;
+      card.error = true;
+      glbErrors.add(card.glbUrl);
+      forceUpdate((n) => n + 1);
     });
   }, []);
 
