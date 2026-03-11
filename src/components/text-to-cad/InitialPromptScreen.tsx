@@ -120,7 +120,7 @@ export default function InitialPromptScreen({
                 setPrompt("");
                 textareaRef.current?.focus();
               }}
-              className="absolute bottom-2.5 right-3 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors duration-150 cursor-pointer"
+              className="absolute bottom-2.5 right-5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors duration-150 cursor-pointer z-10"
               aria-label="Clear prompt"
             >
               Clear
