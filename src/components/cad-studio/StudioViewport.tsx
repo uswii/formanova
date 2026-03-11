@@ -1,4 +1,4 @@
-import { useRef, useCallback, Suspense, useEffect, useMemo } from "react";
+import { useRef, useCallback, Suspense, useEffect, useMemo, useState } from "react";
 import { Canvas, useThree, useFrame, ThreeEvent, useLoader } from "@react-three/fiber";
 import {
   Environment,
@@ -232,6 +232,25 @@ export default function StudioViewport({
   progressStep,
   autoRotate = false,
 }: StudioViewportProps) {
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const prevModelUrl = useRef<string | null>(null);
+
+  // Track when a new model URL is set → show loading overlay until meshes are detected
+  useEffect(() => {
+    if (modelUrl && modelUrl !== prevModelUrl.current) {
+      setIsModelLoading(true);
+      prevModelUrl.current = modelUrl;
+    } else if (!modelUrl) {
+      setIsModelLoading(false);
+      prevModelUrl.current = null;
+    }
+  }, [modelUrl]);
+
+  const handleMeshesDetected = useCallback((meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => {
+    setIsModelLoading(false);
+    onMeshesDetected(meshes);
+  }, [onMeshesDetected]);
+
   const handleMeshClick = useCallback((name: string, e?: ThreeEvent<MouseEvent>) => {
     onMeshClick?.(name, e?.shiftKey || e?.ctrlKey || e?.metaKey);
   }, [onMeshClick]);
@@ -272,7 +291,7 @@ export default function StudioViewport({
             <LoadedModel
               url={modelUrl}
               meshMaterials={meshMaterials}
-              onMeshesDetected={onMeshesDetected}
+              onMeshesDetected={handleMeshesDetected}
               selectedMeshes={selectedMeshes}
               onMeshClick={handleMeshClick}
             />
@@ -290,6 +309,20 @@ export default function StudioViewport({
           />
         </Suspense>
       </Canvas>
+
+      {/* Model loading overlay — covers black canvas gap */}
+      {isModelLoading && !isProcessing && (
+        <div className="absolute inset-0 bg-background flex items-center justify-center z-20">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            </div>
+            <span className="text-xs text-muted-foreground uppercase tracking-[3px]">
+              Loading model…
+            </span>
+          </div>
+        </div>
+      )}
 
       {isProcessing && (
         <div className="absolute inset-0 bg-background/90 backdrop-blur-xl flex items-center justify-center z-20">

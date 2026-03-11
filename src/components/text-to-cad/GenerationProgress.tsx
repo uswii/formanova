@@ -68,7 +68,7 @@ export default function GenerationProgress({
   }
 
   return (
-    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm">
+    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-background backdrop-blur-sm">
       <div className="flex flex-col items-center gap-6 w-full max-w-sm mx-auto">
         {/* Diamond spinner — same as photo studio */}
         {!isTerminal && (
