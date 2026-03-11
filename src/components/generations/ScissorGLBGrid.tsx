@@ -35,6 +35,7 @@ interface CachedModel {
 
 const glbCache = new Map<string, CachedModel>();
 const glbLoading = new Map<string, Promise<THREE.Group>>();
+const glbErrors = new Set<string>(); // Track permanently failed URLs
 
 function getCachedScene(url: string): THREE.Group | null {
   const entry = glbCache.get(url);
