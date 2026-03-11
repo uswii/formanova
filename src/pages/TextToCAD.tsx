@@ -329,7 +329,7 @@ export default function TextToCAD() {
       let pollErrors = 0;
       let consecutive404s = 0;
       const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 30 * 60 * 1000; // 30 min — backend retries can be long
+      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 60 min
       const pollStart = Date.now();
 
       const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
@@ -513,7 +513,7 @@ export default function TextToCAD() {
       let pollErrors = 0;
       let consecutive404s = 0;
       const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
+      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 60 min
       const pollStart = Date.now();
 
       while (true) {
