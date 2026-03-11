@@ -1,7 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { View } from '@react-three/drei';
+import * as THREE from 'three';
+import { getQualitySettings } from '@/lib/gpu-detect';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -381,8 +385,12 @@ export default function Generations() {
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
   const cadTextSection = getSection('cad_text', cadTextPage);
 
+  const q = useMemo(() => getQualitySettings(), []);
+  const pageRef = useRef<HTMLDivElement>(null!);
+  const hasCadModels = allWorkflows.some(w => w.source_type === 'cad_text' && w.glb_url);
+
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
+    <div ref={pageRef} className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -462,6 +470,41 @@ export default function Generations() {
           </>
         )}
       </div>
+
+      {/* ── Single shared WebGL canvas — scissor pattern ──
+           One fixed Canvas covers the viewport. drei <View> components
+           inside each CadTextCard register scissor regions. View.Port
+           iterates them and renders each model clipped to its div. */}
+      {hasCadModels && (
+        <Canvas
+          frameloop="always"
+          eventSource={pageRef}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+          gl={{
+            antialias: q.antialias,
+            alpha: true,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.2,
+            powerPreference: q.tier === 'low' ? 'low-power' : 'default',
+            ...(q.tier === 'low' ? { precision: 'mediump' as const } : {}),
+          }}
+          dpr={q.dpr}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 0);
+            gl.outputColorSpace = THREE.SRGBColorSpace;
+          }}
+        >
+          <View.Port />
+        </Canvas>
+      )}
     </div>
   );
 }

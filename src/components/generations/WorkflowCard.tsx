@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Maximize2, Box, Download } from 'lucide-react';
+import { Maximize2, Box, Download, Camera } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { Glb3DModal } from './Glb3DModal';
+import { InlineGlbPreview } from './InlineGlbPreview';
 import { format } from 'date-fns';
 
 interface WorkflowCardProps {
@@ -20,7 +21,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-// ─── Text-to-CAD card (static thumbnail — NO WebGL Canvas per card) ────────
+// ─── Text-to-CAD card — inline 3D via scissor canvas ───────────────
 
 const MODEL_LABELS: Record<string, string> = {
   gemini: 'Lite',
@@ -80,17 +81,32 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </span>
         </div>
 
-        {/* Static thumbnail — first screenshot, NO WebGL */}
+        {/* 3D / thumbnail preview area */}
         <div className="mx-4 mb-3">
           <div
-            className="w-full bg-black border border-border/50 rounded-sm overflow-hidden"
+            className="w-full border border-border/50 rounded-sm overflow-hidden"
             style={{ aspectRatio: '1 / 1', maxWidth: 512, maxHeight: 512 }}
           >
-            {heroShot ? (
+            {workflow.glb_url ? (
+              /* ── Inline 3D preview via scissor canvas ── */
+              <button
+                onClick={() => setShow3D(true)}
+                className="group relative w-full h-full block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+                aria-label="Open interactive 3D view"
+              >
+                <InlineGlbPreview glbUrl={workflow.glb_url} />
+                {/* Hover overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-background/0 group-hover:bg-background/20 transition-colors duration-200 pointer-events-none z-20">
+                  <div className="bg-background/80 backdrop-blur-sm p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <Box className="h-5 w-5 text-foreground" />
+                  </div>
+                </div>
+              </button>
+            ) : heroShot ? (
+              /* ── Fallback: static screenshot ── */
               <button
                 onClick={() => setPreviewIndex(0)}
-                className="group relative w-full h-full block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
-                aria-label="View snapshots"
+                className="group relative w-full h-full block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground bg-black"
               >
                 <OptimizedImage
                   src={heroShot.url}
@@ -106,7 +122,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             ) : isEnriching ? (
               <div className="w-full h-full animate-pulse bg-muted/50" style={{ aspectRatio: '1 / 1' }} />
             ) : (
-              <div className="w-full h-full flex items-center justify-center" style={{ aspectRatio: '1 / 1' }}>
+              <div className="w-full h-full flex items-center justify-center bg-muted/30" style={{ aspectRatio: '1 / 1' }}>
                 <span className="font-mono text-[9px] tracking-wider text-muted-foreground/50 uppercase">
                   No renders available
                 </span>
@@ -115,7 +131,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </div>
         </div>
 
-        {/* Action bar: View 3D + Download GLB */}
+        {/* Action bar */}
         <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
@@ -125,16 +141,16 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {workflow.glb_url && (
+            {/* Screenshots button — when we have shots but 3D is the main preview */}
+            {hasShots && workflow.glb_url && (
               <Button
                 size="sm"
-                variant="outline"
-                onClick={(e) => { e.stopPropagation(); setShow3D(true); }}
-                className="h-7 px-2.5 font-mono text-[10px] tracking-wider uppercase gap-1"
-                title="Open interactive 3D preview"
+                variant="ghost"
+                onClick={(e) => { e.stopPropagation(); setPreviewIndex(0); }}
+                className="h-7 px-2 font-mono text-[10px] tracking-wider uppercase gap-1"
+                title="View screenshots"
               >
-                <Box className="h-3 w-3" />
-                3D
+                <Camera className="h-3 w-3" />
               </Button>
             )}
             {workflow.glb_url ? (
@@ -166,7 +182,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         />
       )}
 
-      {/* 3D preview modal — SINGLE Canvas, only when explicitly opened */}
+      {/* Interactive 3D modal — own Canvas, only when explicitly opened */}
       {show3D && workflow.glb_url && (
         <Glb3DModal
           glbUrl={workflow.glb_url}
