@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isCADEnabled } from '@/lib/feature-flags';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
+import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
 
 // Reuse the same hero imagery
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
@@ -31,6 +32,9 @@ export default function Dashboard() {
   const { user } = useAuth();
   const userName = user?.email ? user.email.split('@')[0] : '';
   const cadEnabled = isCADEnabled(user?.email);
+
+  // Prefetch generation history in background so it's instant when user opens Generations
+  usePrefetchGenerations();
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background py-6 px-6 md:px-12 lg:px-16">
