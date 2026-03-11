@@ -15,6 +15,8 @@ export interface QualitySettings {
   maxLights: number; // 3 = ambient+dir+hemi, 5 = all
   antialias: boolean;
   envMapMipmaps: boolean;
+  maxGemRefraction: number; // max gems rendered with expensive MeshRefractionMaterial
+  vertexBudget: number; // total vertex count warning threshold
 }
 
 const TIER_SETTINGS: Record<QualityTier, QualitySettings> = {
