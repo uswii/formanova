@@ -1,7 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { View } from '@react-three/drei';
+import * as THREE from 'three';
+import { getQualitySettings } from '@/lib/gpu-detect';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
