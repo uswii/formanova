@@ -20,6 +20,11 @@ import { toast } from "sonner";
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
 
+// ── Scene complexity budgets ──
+const MAX_TOTAL_VERTICES = 2_000_000;
+const MAX_TOTAL_FACES    = 1_000_000;
+const MAX_GEM_MESHES     = 100;
+
 // Module-level flag: prevents React from overwriting mesh transforms during gizmo drag
 let _isTransformDragging = false;
 
