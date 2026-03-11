@@ -928,8 +928,14 @@ export default function TextToCAD() {
               onRebuildPart={handleRebuildPart}
               onAddPart={handleAddPart}
               onQuickEdit={handleQuickEdit}
-              onMagicTexture={() => {
-                canvasRef.current?.removeAllTextures();
+              magicTexturing={magicTexturing}
+              onMagicTexturingChange={(on) => {
+                setMagicTexturing(on);
+                if (on) {
+                  canvasRef.current?.applyMagicTextures();
+                } else {
+                  canvasRef.current?.removeAllTextures();
+                }
               }}
               onGlbUpload={handleGlbUpload}
               creditBlock={creditBlock ? (
