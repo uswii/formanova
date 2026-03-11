@@ -7,7 +7,14 @@ import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
-import { format } from 'date-fns';
+
+const localDateFmt = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+function formatLocal(ts: string): string {
+  return localDateFmt.format(new Date(ts));
+}
 
 interface WorkflowCardProps {
   workflow: WorkflowSummary;
