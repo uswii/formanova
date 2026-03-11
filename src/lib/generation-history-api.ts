@@ -7,6 +7,7 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const BASE_URL = 'https://formanova.ai';
+const __DEV__ = import.meta.env.DEV;
 
 // ─── Types ──────────────────────────────────────────────────────────
 
