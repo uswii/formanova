@@ -115,8 +115,10 @@ export default function Generations() {
     (async () => {
       try {
         if (!cached) setGlobalLoading(true);
-        const workflows = await listMyWorkflows(100, 0);
-        if (import.meta.env.DEV) console.log('[Generations] fetched:', workflows.length, 'workflows');
+        const rawWorkflows = await listMyWorkflows(100, 0);
+        // Filter out unknown source types — these are not meaningful to the user
+        const workflows = rawWorkflows.filter(w => w.source_type !== 'unknown');
+        if (import.meta.env.DEV) console.log('[Generations] fetched:', rawWorkflows.length, '→ valid:', workflows.length);
 
         // Re-apply any previously enriched data so thumbnails don't flash
         const merged = workflows.map(w => {
@@ -124,7 +126,6 @@ export default function Generations() {
           return e ? { ...w, ...e } : w;
         });
         setAllWorkflows(merged);
-        // Save list to cache (enrichment data will be added as it arrives)
         saveCache(workflows, enrichedRef.current);
       } catch (err: any) {
         console.error('[Generations] fetch error:', err);
