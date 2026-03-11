@@ -942,6 +942,7 @@ export default function TextToCAD() {
                 }
               }}
               onGlbUpload={handleGlbUpload}
+              onReset={hasModel ? handleReset : undefined}
               creditBlock={creditBlock ? (
                 <InsufficientCreditsInline
                   currentBalance={creditBlock.currentBalance}
