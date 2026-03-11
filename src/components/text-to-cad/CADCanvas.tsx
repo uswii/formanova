@@ -1214,6 +1214,9 @@ const LoadedModel = forwardRef<
     const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
 
+    // Use cheap PBR fallback for gems when scene is heavy or device is low-tier
+    const useRefractionGems = !sceneHeavyRef.current && Q.tier !== "low";
+
     meshDataList.forEach((md) => {
       // Skip hidden meshes entirely
       if (hiddenMeshNames.has(md.name)) return;
@@ -1230,9 +1233,33 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-        const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-        standard.push({ ...md, material: hiddenMat, isSelected });
+        if (useRefractionGems) {
+          // Full refraction path (current behavior)
+          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
+          const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+          standard.push({ ...md, material: hiddenMat, isSelected });
+        } else {
+          // Cheap PBR fallback — glass-like appearance, no per-gem useFrame
+          const rc = assigned.refractionConfig;
+          const fallbackKey = `gem_fallback_${md.name}_${assigned.id}`;
+          let fallback = materialCache.current.get(fallbackKey);
+          if (!fallback) {
+            fallback = new THREE.MeshPhysicalMaterial({
+              color: new THREE.Color(rc.color),
+              transmission: 0.85,
+              ior: rc.ior,
+              roughness: 0.05,
+              metalness: 0,
+              thickness: 0.5,
+              envMapIntensity: 1.5,
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.05,
+              side: THREE.DoubleSide,
+            });
+            materialCache.current.set(fallbackKey, fallback);
+          }
+          standard.push({ ...md, material: fallback, isSelected });
+        }
         return;
       }
 
