@@ -1,133 +1,88 @@
 
 
-# Performance Hardening: Text-to-CAD 3D Viewer
+## Plan: Show Users Their Generations on the Generations Page
 
-## What we're fixing
+The data already exists in the database. Each user has deliveries in `delivery_batches` (linked by `user_email`) with images in `delivery_images`. We need:
 
-Complex CAD models with hundreds of gem meshes crash Chrome on Mac. Each gem gets an expensive `MeshRefractionMaterial` (ray-marched refraction, 5 bounces) plus a per-gem `useFrame` callback syncing transforms every frame. This is the primary crash vector.
+1. A new edge function action to fetch a user's own deliveries
+2. A rebuilt Generations page that displays them in an organized gallery
 
-## Plan — 3 changes, 2 files
+### Data Available
 
-### Change 1: Scene Complexity Guardrail
+- **delivery_batches**: has `user_email`, `category`, `token`, `created_at`, `delivery_status`
+- **delivery_images**: has `image_url`, `image_filename`, `sequence` per delivery batch
+- 464 total delivered records (291 necklace, 173 earring) across many users
 
-**File:** `src/components/text-to-cad/CADCanvas.tsx` — after line 500 (after `setMeshDataList` / `setAssignedMaterials`)
+### Changes
 
-Add budget constants at module level:
+#### 1. Edge Function: Add `my_deliveries` action to `delivery-manager/index.ts`
 
-```ts
-const MAX_TOTAL_VERTICES = 2_000_000;
-const MAX_TOTAL_FACES    = 1_000_000;
-const MAX_GEM_MESHES     = 100;
+Add a new action that:
+- Authenticates the user via their `X-User-Token`
+- Queries `delivery_batches` where `user_email` matches the authenticated user's email
+- Joins `delivery_images` to get thumbnails with fresh SAS tokens
+- Returns deliveries grouped by date/category
+- No admin check needed — users can only see their own data
+
+#### 2. Frontend: Rebuild `src/pages/Generations.tsx`
+
+Replace the placeholder with a real page that:
+- Fetches the user's deliveries from the new `my_deliveries` action
+- Groups results by delivery batch (each batch = one "order" with a category and date)
+- Shows a card per batch with:
+  - Category badge (necklace/earring)
+  - Date delivered
+  - Thumbnail grid of images (2-3 preview thumbnails)
+  - "View All" link that goes to `/results/:token` (the existing gallery page)
+- Empty state if no deliveries yet
+- Loading skeleton while fetching
+
+### UI Layout
+
+```text
+┌──────────────────────────────────────────────┐
+│  ← Back to Home                              │
+│                                              │
+│  My Generations                              │
+│                                              │
+│  ┌─────────────────────────────────────────┐ │
+│  │ 📅 Feb 24, 2026  ·  NECKLACE           │ │
+│  │ ┌──────┐ ┌──────┐ ┌──────┐             │ │
+│  │ │ img  │ │ img  │ │ img  │  3 images   │ │
+│  │ └──────┘ └──────┘ └──────┘             │ │
+│  │                          [View Results] │ │
+│  └─────────────────────────────────────────┘ │
+│                                              │
+│  ┌─────────────────────────────────────────┐ │
+│  │ 📅 Feb 23, 2026  ·  EARRING            │ │
+│  │ ┌──────┐ ┌──────┐                      │ │
+│  │ │ img  │ │ img  │           2 images    │ │
+│  │ └──────┘ └──────┘                      │ │
+│  │                          [View Results] │ │
+│  └─────────────────────────────────────────┘ │
+└──────────────────────────────────────────────┘
 ```
 
-Add a `sceneHeavyRef = useRef(false)` inside `LoadedModel`.
+### Files to Change
 
-In the decomposition effect, after `setAssignedMaterials(autoMaterials)`, compute totals:
+| File | Change |
+|------|--------|
+| `supabase/functions/delivery-manager/index.ts` | Add `my_deliveries` action — authenticate user, query their deliveries + images, return with fresh SAS URLs |
+| `src/pages/Generations.tsx` | Full rebuild — fetch from `my_deliveries`, display organized cards grouped by batch with thumbnails, category badges, dates, and "View Results" links to `/results/:token` |
 
-```ts
-const totalVerts = list.reduce((sum, md) => sum + (md.geometry?.attributes?.position?.count || 0), 0);
-const totalFaces = list.reduce((sum, md) => {
-  const geo = md.geometry;
-  return sum + (geo?.index ? geo.index.count / 3 : (geo?.attributes?.position?.count || 0) / 3);
-}, 0);
-let gemCount = 0;
-for (const name of Object.keys(autoMaterials)) {
-  if (autoMaterials[name]?.category === "gemstone" && autoMaterials[name]?.refractionConfig) gemCount++;
-}
+### Technical Details
 
-const heavy = totalVerts > MAX_TOTAL_VERTICES || totalFaces > MAX_TOTAL_FACES || gemCount > MAX_GEM_MESHES;
-sceneHeavyRef.current = heavy;
+**Edge function `my_deliveries` action:**
+- Requires `X-User-Token` header (same auth as other user actions)
+- Calls `authenticateUser()` to get user email
+- SQL: `SELECT db.*, di.* FROM delivery_batches db JOIN delivery_images di ON di.delivery_batch_id = db.id WHERE db.user_email = $email ORDER BY db.created_at DESC`
+- Generates fresh SAS tokens for thumbnail URLs (reusing existing `generateSasUrlFromHttps`)
+- Returns array of batches, each with nested images array
 
-if (heavy) {
-  console.warn(`[CADCanvas] Heavy scene: ${totalVerts} verts, ${totalFaces} faces, ${gemCount} gems — using optimized rendering`);
-  toast.info("Complex model detected — rendering optimized for stability");
-}
-```
-
-This adds `import { toast } from "sonner"` at the top of the file.
-
-### Change 2: Gem Rendering Fallback for Heavy / Low-Tier Scenes
-
-**File:** `src/components/text-to-cad/CADCanvas.tsx` — in the `useMemo` at line 1150
-
-Compute a boolean before the `forEach`:
-
-```ts
-const useRefractionGems = !sceneHeavyRef.current && Q.tier !== "low";
-```
-
-Modify the gem branch (lines 1206-1211):
-
-```ts
-if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-  if (useRefractionGems) {
-    // Full refraction path (current behavior)
-    gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-    const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-    standard.push({ ...md, material: hiddenMat, isSelected });
-  } else {
-    // Cheap PBR fallback — glass-like appearance, no per-gem useFrame
-    const rc = assigned.refractionConfig;
-    const fallbackKey = `gem_fallback_${md.name}_${assigned.id}`;
-    let fallback = materialCache.current.get(fallbackKey);
-    if (!fallback) {
-      fallback = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(rc.color),
-        transmission: 0.85,
-        ior: rc.ior,
-        roughness: 0.05,
-        metalness: 0,
-        thickness: 0.5,
-        envMapIntensity: 1.5,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.05,
-        side: THREE.DoubleSide,
-      });
-      materialCache.current.set(fallbackKey, fallback);
-    }
-    standard.push({ ...md, material: fallback, isSelected });
-  }
-  return;
-}
-```
-
-Result: when `sceneHeavyRef` is true or device is low-tier, gems render as glass-like PBR. No `SyncedGemOverlay` mounted, no per-gem `useFrame`, no `MeshRefractionMaterial`, no diamond HDRI load.
-
-Additionally, wire `Q.gemBounces` into `DiamondEnvMapConsumer` (line 1433):
-
-```ts
-bounces={Math.min(refractionConfig.bounces, Q.gemBounces)}
-```
-
-This caps refraction bounces on medium-tier devices (3 instead of 5) even for normal scenes.
-
-### Change 3: Tighten Low-Tier Quality + Power Preference
-
-**File:** `src/lib/gpu-detect.ts`
-
-Low tier DPR: `[1, 1]` → `[0.75, 0.75]` (reduces pixel work ~44% on low-end devices)
-
-High tier gemBounces: `6` → `5` (match `DIAMOND_DEFAULTS.bounces`)
-
-**File:** `src/components/text-to-cad/CADCanvas.tsx` — Canvas `gl` prop (line 1564):
-
-```ts
-powerPreference: Q.tier === "low" ? "low-power" : "high-performance",
-```
-
-## Impact Matrix
-
-| Scenario | Visual change | Effect |
-|----------|--------------|--------|
-| Normal model, high-tier | None | gemBounces stays 5 |
-| Normal model, medium-tier | Subtly fewer sparkles (5→3 bounces) | Moderate GPU savings |
-| Normal model, low-tier | Lower DPR + PBR gem fallback | Significant savings |
-| Heavy model (any device) | Gems use glass-like PBR + toast notification | Eliminates crash vector |
-
-## What stays untouched
-
-- No new files or dependencies (sonner already imported elsewhere)
-- No changes to geometry, mesh decomposition, material library, camera, orbit, transform tools, export
-- No canvas remounting — `sceneHeavyRef` is set before the `useMemo` runs in the same render cycle
-- Normal models on good hardware: identical visuals
+**Frontend Generations page:**
+- Uses `useAuth()` to get user context and token
+- Fetches on mount via `useEffect`
+- Shows skeleton cards while loading
+- Each batch card links to `/results/:token` for the full gallery experience
+- Responsive grid: 1 column mobile, 2 columns tablet+
 

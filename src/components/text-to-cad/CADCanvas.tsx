@@ -15,9 +15,15 @@ import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
+import { toast } from "sonner";
 
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
+
+// ── Scene complexity budgets ──
+const MAX_TOTAL_VERTICES = 2_000_000;
+const MAX_TOTAL_FACES    = 1_000_000;
+const MAX_GEM_MESHES     = 100;
 
 // Module-level flag: prevents React from overwriting mesh transforms during gizmo drag
 let _isTransformDragging = false;
@@ -342,6 +348,8 @@ const LoadedModel = forwardRef<
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
   const flatGeoCache = useRef<Map<string, THREE.BufferGeometry>>(new Map());
   const materialCache = useRef<Map<string, THREE.Material>>(new Map());
+  // Scene complexity flag — set during decomposition, read by gem useMemo
+  const sceneHeavyRef = useRef(false);
   // Tracks meshes where the user explicitly applied a material AFTER selecting them.
   // When this set contains a mesh name, the applied material is shown instead of the blue overlay.
   // Cleared when selection changes; populated by applyMaterial.
@@ -498,6 +506,24 @@ const LoadedModel = forwardRef<
 
     setMeshDataList(list);
     setAssignedMaterials(autoMaterials);
+
+    // ── Scene complexity guardrail ──
+    const totalVerts = list.reduce((sum, md) => sum + (md.geometry?.attributes?.position?.count || 0), 0);
+    const totalFaces = list.reduce((sum, md) => {
+      const geo = md.geometry;
+      return sum + (geo?.index ? geo.index.count / 3 : (geo?.attributes?.position?.count || 0) / 3);
+    }, 0);
+    let gemCount = 0;
+    for (const name of Object.keys(autoMaterials)) {
+      if (autoMaterials[name]?.category === "gemstone" && autoMaterials[name]?.refractionConfig) gemCount++;
+    }
+    const heavy = totalVerts > MAX_TOTAL_VERTICES || totalFaces > MAX_TOTAL_FACES || gemCount > MAX_GEM_MESHES;
+    sceneHeavyRef.current = heavy;
+    if (heavy) {
+      console.warn(`[CADCanvas] Heavy scene: ${totalVerts.toLocaleString()} verts, ${Math.round(totalFaces).toLocaleString()} faces, ${gemCount} gems — using optimized rendering`);
+      toast.info("Complex model detected — rendering optimized for stability");
+    }
+
     inv();
 
     if (onMeshesDetected) {
@@ -1188,6 +1214,9 @@ const LoadedModel = forwardRef<
     const standard: (MeshData & { material: THREE.Material; isSelected: boolean })[] = [];
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
 
+    // Use cheap PBR fallback for gems when scene is heavy or device is low-tier
+    const useRefractionGems = !sceneHeavyRef.current && Q.tier !== "low";
+
     meshDataList.forEach((md) => {
       // Skip hidden meshes entirely
       if (hiddenMeshNames.has(md.name)) return;
@@ -1204,9 +1233,33 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-        const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-        standard.push({ ...md, material: hiddenMat, isSelected });
+        if (useRefractionGems) {
+          // Full refraction path (current behavior)
+          gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
+          const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+          standard.push({ ...md, material: hiddenMat, isSelected });
+        } else {
+          // Cheap PBR fallback — glass-like appearance, no per-gem useFrame
+          const rc = assigned.refractionConfig;
+          const fallbackKey = `gem_fallback_${md.name}_${assigned.id}`;
+          let fallback = materialCache.current.get(fallbackKey);
+          if (!fallback) {
+            fallback = new THREE.MeshPhysicalMaterial({
+              color: new THREE.Color(rc.color),
+              transmission: 0.85,
+              ior: rc.ior,
+              roughness: 0.05,
+              metalness: 0,
+              thickness: 0.5,
+              envMapIntensity: 1.5,
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.05,
+              side: THREE.DoubleSide,
+            });
+            materialCache.current.set(fallbackKey, fallback);
+          }
+          standard.push({ ...md, material: fallback, isSelected });
+        }
         return;
       }
 
@@ -1430,7 +1483,7 @@ function DiamondEnvMapConsumer({
         color={new THREE.Color(refractionConfig.color)}
         ior={refractionConfig.ior}
         aberrationStrength={refractionConfig.sparkle}
-        bounces={refractionConfig.bounces}
+        bounces={Math.min(refractionConfig.bounces, Q.gemBounces)}
         fresnel={refractionConfig.fresnel}
         toneMapped={false}
       />
@@ -1561,7 +1614,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
             toneMappingExposure: 0.45 * lightIntensity,
-            powerPreference: "high-performance",
+            powerPreference: Q.tier === "low" ? "low-power" : "high-performance",
           }}
           dpr={Q.dpr}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
