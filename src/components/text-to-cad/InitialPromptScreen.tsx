@@ -111,8 +111,7 @@ export default function InitialPromptScreen({
             onKeyDown={handleKeyDown}
             placeholder="Describe your ring — e.g. A rose ring with three blooming roses, twisted vine band with thorns, and diamond accents"
             rows={4}
-            className="w-full min-h-[130px] max-h-[240px] px-5 py-4 pb-9 text-[15px] text-foreground placeholder:text-muted-foreground/40 resize-none font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
-            style={{ overflow: prompt.length < 200 ? "hidden" : "auto" }}
+            className="w-full min-h-[130px] max-h-[60vh] px-5 py-4 pb-9 text-[15px] text-foreground placeholder:text-muted-foreground/40 resize-y font-body leading-relaxed transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring bg-muted/20 border border-border overflow-y-auto"
           />
           {prompt.length > 0 && (
             <button
