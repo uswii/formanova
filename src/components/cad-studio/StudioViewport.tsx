@@ -247,16 +247,18 @@ export default function StudioViewport({
   }, [modelUrl]);
 
   const handleMeshesDetected = useCallback((meshes: { name: string; original: THREE.Material | THREE.Material[] }[]) => {
-    // Delay dismissing the loading overlay until React has committed the mesh JSX
-    // and the canvas has had time to paint at least one frame.
+    onMeshesDetected(meshes);
+    // Delay dismissing the loading overlay — GLB decomposition blocks the main thread,
+    // so we need time for React commit + R3F reconcile + GPU paint.
     setTimeout(() => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          setIsModelLoading(false);
+          requestAnimationFrame(() => {
+            setIsModelLoading(false);
+          });
         });
       });
-    }, 150);
-    onMeshesDetected(meshes);
+    }, 500);
   }, [onMeshesDetected]);
 
   const handleMeshClick = useCallback((name: string, e?: ThreeEvent<MouseEvent>) => {

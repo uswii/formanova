@@ -462,16 +462,19 @@ const LoadedModel = forwardRef<
     }
 
     // Signal model is fully processed and ready to render.
-    // We need enough delay for: React commit (setMeshDataList) → R3F reconcile → GPU draw.
-    // A short timeout ensures the React re-render + canvas paint have both completed
-    // before we dismiss the loading overlay.
+    // GLB decomposition + material mapping blocks the main thread, so we need a generous
+    // delay to ensure React has committed mesh JSX, R3F has reconciled, and the GPU has
+    // actually painted at least one frame before the loading overlay is dismissed.
     setTimeout(() => {
+      inv(); // force a render frame
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          onModelReady?.();
+          requestAnimationFrame(() => {
+            onModelReady?.();
+          });
         });
       });
-    }, 150);
+    }, 500);
   }, [scene, onMeshesDetected, inv, onModelReady]);
 
   // ── Merge additional GLB parts into the existing scene ──
@@ -1406,7 +1409,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const handleLoadEnd = useCallback(() => setIsLoading(false), []);
 
     return (
-      <div className="w-full h-full relative" style={{ background: "#111" }}>
+      <div className="w-full h-full relative bg-background">
         {/* Loading overlay */}
         {isLoading && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
