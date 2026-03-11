@@ -194,14 +194,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         ) : isEnriching ? (
           /* Pulsing placeholder while enrichment is in progress */
           <div className="w-full aspect-square bg-muted/50 animate-pulse" />
-        ) : (
-          /* Enriched but no image found */
-          <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
-            <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase">
-              No preview
-            </span>
-          </div>
-        )}
+        ) : null}
 
         {/* Card footer: index · date · duration */}
         <div className="flex items-center justify-between px-2.5 py-2">
