@@ -34,6 +34,7 @@ export async function performCreditPreflight(
       body: JSON.stringify({
         workflow_name: workflowName,
         num_variations: numVariations,
+        ...(metadata?.model ? { pricing_context: { llm: metadata.model } } : {}),
       }),
     });
 
