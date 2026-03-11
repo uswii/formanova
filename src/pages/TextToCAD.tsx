@@ -57,6 +57,7 @@ export default function TextToCAD() {
   const [modules, setModules] = useState<string[]>([]);
   const [stats, setStats] = useState<StatsData>({ meshes: 0, sizeKB: 0, timeSec: 0 });
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined);
+  const [generationFailed, setGenerationFailed] = useState(false);
   const wasManualUploadRef = useRef(false);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [redoStack, setRedoStack] = useState<UndoEntry[]>([]);
@@ -297,6 +298,7 @@ export default function TextToCAD() {
 
     setWorkspaceActive(true);
     setIsGenerating(true);
+    setGenerationFailed(false);
     setRetryAttempt(0);
     setHasModel(false);
     setProgressStep("generate_initial");
@@ -447,10 +449,9 @@ export default function TextToCAD() {
 
     } catch (err) {
       console.error("Generation failed:", err);
-      toast.error(err instanceof Error ? err.message : "Generation failed");
       setIsGenerating(false);
-      setProgressStep("failed_final");
       setProgressStep("");
+      setGenerationFailed(true);
     }
   }, [prompt, model, isGenerating]);
 
@@ -999,8 +1000,36 @@ export default function TextToCAD() {
               magicTexturing={magicTexturing}
             />
 
+            {/* Generation failed state */}
+            <AnimatePresence>
+              {generationFailed && !isGenerating && !hasModel && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.25 }}
+                  className="absolute inset-0 z-[20] flex items-center justify-center"
+                >
+                  <div className="bg-card border border-border shadow-2xl px-10 py-8 max-w-sm text-center">
+                    <div className="font-display text-lg uppercase tracking-[0.15em] text-foreground mb-3">
+                      Generation Unavailable
+                    </div>
+                    <p className="font-mono text-[11px] text-muted-foreground leading-[1.8] tracking-wide mb-6">
+                      We're really sorry. Something went wrong while generating your design. Our AI generation service may be temporarily unavailable. Please try again in a few minutes.
+                    </p>
+                    <button
+                      onClick={() => setGenerationFailed(false)}
+                      className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Empty state */}
-            {!hasModel && !isGenerating && !isModelLoading && (
+            {!hasModel && !isGenerating && !isModelLoading && !generationFailed && (
               <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <div className="font-display text-2xl text-muted-foreground/40 uppercase tracking-[0.2em] mb-2">
