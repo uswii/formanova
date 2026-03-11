@@ -1405,15 +1405,17 @@ function SyncedGemOverlay({
   const meshRef = useRef<THREE.Mesh>(null);
   const inv = useInvalidate();
 
+  // Pre-allocate reusable objects to avoid GC pressure in frame loop
+  const _pos = useMemo(() => new THREE.Vector3(), []);
+  const _quat = useMemo(() => new THREE.Quaternion(), []);
+  const _scale = useMemo(() => new THREE.Vector3(), []);
+
   // Sync position from the hidden source mesh every frame
   useFrame(() => {
     const source = meshRefs.current.get(meshName);
     if (!meshRef.current || !source) return;
 
     source.updateWorldMatrix(true, false);
-    const _pos = new THREE.Vector3();
-    const _quat = new THREE.Quaternion();
-    const _scale = new THREE.Vector3();
     source.matrixWorld.decompose(_pos, _quat, _scale);
 
     meshRef.current.position.copy(_pos);
