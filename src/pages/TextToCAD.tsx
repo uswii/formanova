@@ -85,6 +85,13 @@ export default function TextToCAD() {
     };
   }, []);
 
+  // Track browser fullscreen state
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
   // Expand right panel when model is loaded, collapse when no model
   useEffect(() => {
     if (hasModel) {
