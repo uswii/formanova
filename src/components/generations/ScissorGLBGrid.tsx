@@ -122,7 +122,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
   const rafRef = useRef<number>(0);
   const envMapRef = useRef<THREE.Texture | null>(null);
   const gltfLoaderRef = useRef(new GLTFLoader());
-  const [, forceUpdate] = useState(0);
+  const [tick, forceUpdate] = useState(0);
 
   // Initialize renderer
   useEffect(() => {
@@ -240,7 +240,8 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       return;
     }
     card.loading = true;
-
+    console.log('[ScissorGLBGrid] Starting GLB load:', card.glbUrl);
+    forceUpdate((n) => n + 1);
     const cached = getCachedScene(card.glbUrl);
     if (cached) {
       setupCardScene(card, cached);
@@ -282,9 +283,10 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     }
 
     promise.then((scene) => {
+      console.log('[ScissorGLBGrid] GLB loaded successfully:', card.glbUrl);
       setupCardScene(card, scene.clone(true));
     }).catch((err) => {
-      console.warn('[ScissorGLBGrid] Failed to load GLB:', card.glbUrl, err);
+      console.error('[ScissorGLBGrid] GLB load failed:', card.glbUrl, err);
       card.loading = false;
       card.error = true;
       glbErrors.add(card.glbUrl);
@@ -409,7 +411,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     isLoading,
     isLoaded,
     hasError,
-  }), [registerCard, unregisterCard, isLoading, isLoaded, hasError]);
+  }), [registerCard, unregisterCard, isLoading, isLoaded, hasError, tick]);
 
   return (
     <GridContext.Provider value={ctxValue}>
