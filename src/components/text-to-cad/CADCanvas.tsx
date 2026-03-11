@@ -67,12 +67,14 @@ function useInvalidate() {
 function TransformControlsWrapper({
   object,
   mode,
+  siblingObjects,
   onDragStart,
   onDragEnd,
   onRotationDelta,
 }: {
   object: THREE.Object3D;
   mode: "translate" | "rotate" | "scale";
+  siblingObjects?: THREE.Object3D[];
   onDragStart?: () => void;
   onDragEnd?: (obj: THREE.Object3D) => void;
   onRotationDelta?: (obj: THREE.Object3D, deltaDeg: [number, number, number]) => void;
@@ -81,6 +83,12 @@ function TransformControlsWrapper({
   const inv = useInvalidate();
   const controlsRef = useRef<any>(null);
   const prevQuatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
+
+  // Snapshots for multi-mesh transforms (siblings = other selected meshes)
+  const primaryStartPos = useRef(new THREE.Vector3());
+  const primaryStartQuat = useRef(new THREE.Quaternion());
+  const primaryStartScale = useRef(new THREE.Vector3(1, 1, 1));
+  const siblingStarts = useRef<{ obj: THREE.Object3D; pos: THREE.Vector3; quat: THREE.Quaternion; scale: THREE.Vector3 }[]>([]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -92,6 +100,16 @@ function TransformControlsWrapper({
       if (e.value) {
         // Drag started — snapshot the current quaternion for delta tracking
         prevQuatRef.current.copy(object.quaternion);
+        // Snapshot primary + siblings for multi-mesh transform
+        primaryStartPos.current.copy(object.position);
+        primaryStartQuat.current.copy(object.quaternion);
+        primaryStartScale.current.copy(object.scale);
+        siblingStarts.current = (siblingObjects || []).map((s) => ({
+          obj: s,
+          pos: s.position.clone(),
+          quat: s.quaternion.clone(),
+          scale: s.scale.clone(),
+        }));
         onDragStart?.();
         inv();
       }
@@ -100,6 +118,29 @@ function TransformControlsWrapper({
     };
     controls.addEventListener("dragging-changed", handler);
     const onChange = () => {
+      // Apply delta to all sibling (other selected) meshes
+      const siblings = siblingStarts.current;
+      if (siblings.length > 0) {
+        if (mode === "translate") {
+          const delta = object.position.clone().sub(primaryStartPos.current);
+          for (const s of siblings) {
+            s.obj.position.copy(s.pos).add(delta);
+          }
+        } else if (mode === "rotate") {
+          const deltaQuat = object.quaternion.clone().multiply(primaryStartQuat.current.clone().invert());
+          for (const s of siblings) {
+            s.obj.quaternion.copy(deltaQuat).multiply(s.quat);
+          }
+        } else if (mode === "scale") {
+          const sx = primaryStartScale.current.x > 0 ? object.scale.x / primaryStartScale.current.x : 1;
+          const sy = primaryStartScale.current.y > 0 ? object.scale.y / primaryStartScale.current.y : 1;
+          const sz = primaryStartScale.current.z > 0 ? object.scale.z / primaryStartScale.current.z : 1;
+          for (const s of siblings) {
+            s.obj.scale.set(s.scale.x * sx, s.scale.y * sy, s.scale.z * sz);
+          }
+        }
+      }
+
       // During rotate drag, compute incremental delta and report it
       if (_isTransformDragging && mode === "rotate" && onRotationDelta) {
         const prevInv = prevQuatRef.current.clone().invert();
@@ -133,7 +174,7 @@ function TransformControlsWrapper({
       controls.removeEventListener("objectChange", onChange);
       _isTransformDragging = false;
     };
-  }, [gl, onDragEnd, onRotationDelta, inv, object, mode]);
+  }, [gl, onDragEnd, onRotationDelta, inv, object, mode, siblingObjects]);
 
   return (
     <TransformControls
