@@ -24,6 +24,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three-stdlib';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Box } from 'lucide-react';
 
 // ── LRU GLB Cache ────────────────────────────────────────────────────
 const MAX_CACHE = 20;
@@ -35,6 +36,7 @@ interface CachedModel {
 
 const glbCache = new Map<string, CachedModel>();
 const glbLoading = new Map<string, Promise<THREE.Group>>();
+const glbErrors = new Set<string>(); // Track permanently failed URLs
 
 function getCachedScene(url: string): THREE.Group | null {
   const entry = glbCache.get(url);
@@ -87,6 +89,7 @@ interface CardEntry {
   controls: OrbitControls;
   loaded: boolean;
   loading: boolean;
+  error: boolean;
 }
 
 interface GridContextValue {
@@ -94,6 +97,7 @@ interface GridContextValue {
   unregisterCard: (id: string) => void;
   isLoading: (id: string) => boolean;
   isLoaded: (id: string) => boolean;
+  hasError: (id: string) => boolean;
 }
 
 const GridContext = createContext<GridContextValue | null>(null);
@@ -227,9 +231,14 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     return () => { running = false; };
   }, []);
 
-  // Load a GLB for a card
+  // Load a GLB for a card — route through blob-proxy to avoid CORS
   const loadGlb = useCallback((card: CardEntry) => {
-    if (card.loading || card.loaded) return;
+    if (card.loading || card.loaded || card.error) return;
+    if (glbErrors.has(card.glbUrl)) {
+      card.error = true;
+      forceUpdate((n) => n + 1);
+      return;
+    }
     card.loading = true;
 
     const cached = getCachedScene(card.glbUrl);
@@ -241,17 +250,33 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     // Deduplicate in-flight requests
     let promise = glbLoading.get(card.glbUrl);
     if (!promise) {
-      promise = new Promise<THREE.Group>((resolve, reject) => {
-        gltfLoaderRef.current.load(
-          card.glbUrl,
-          (gltf) => {
-            cacheScene(card.glbUrl, gltf.scene);
-            resolve(gltf.scene.clone(true));
+      promise = (async () => {
+        // Fetch GLB binary via blob-proxy edge function to bypass CORS
+        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
+        const resp = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          undefined,
-          reject,
-        );
-      });
+          body: JSON.stringify({ url: card.glbUrl }),
+        });
+        if (!resp.ok) throw new Error(`Proxy returned ${resp.status}`);
+        const arrayBuffer = await resp.arrayBuffer();
+
+        // Parse GLB from arraybuffer
+        return new Promise<THREE.Group>((resolve, reject) => {
+          gltfLoaderRef.current.parse(
+            arrayBuffer,
+            '',
+            (gltf) => {
+              cacheScene(card.glbUrl, gltf.scene);
+              resolve(gltf.scene.clone(true));
+            },
+            reject,
+          );
+        });
+      })();
       glbLoading.set(card.glbUrl, promise);
       promise.finally(() => glbLoading.delete(card.glbUrl));
     }
@@ -261,6 +286,9 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     }).catch((err) => {
       console.warn('[ScissorGLBGrid] Failed to load GLB:', card.glbUrl, err);
       card.loading = false;
+      card.error = true;
+      glbErrors.add(card.glbUrl);
+      forceUpdate((n) => n + 1);
     });
   }, []);
 
@@ -344,6 +372,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       controls,
       loaded: false,
       loading: false,
+      error: false,
     };
 
     cardsRef.current.set(id, entry);
@@ -369,12 +398,18 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     return card ? card.loaded : false;
   }, []);
 
+  const hasError = useCallback((id: string) => {
+    const card = cardsRef.current.get(id);
+    return card ? card.error : false;
+  }, []);
+
   const ctxValue = useMemo<GridContextValue>(() => ({
     registerCard,
     unregisterCard,
     isLoading,
     isLoaded,
-  }), [registerCard, unregisterCard, isLoading, isLoaded]);
+    hasError,
+  }), [registerCard, unregisterCard, isLoading, isLoaded, hasError]);
 
   return (
     <GridContext.Provider value={ctxValue}>
@@ -406,7 +441,7 @@ interface GLBPreviewSlotProps {
 
 export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotProps) {
   const divRef = useRef<HTMLDivElement>(null);
-  const { registerCard, unregisterCard, isLoaded } = useScissorGrid();
+  const { registerCard, unregisterCard, isLoaded, hasError } = useScissorGrid();
   const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
@@ -423,6 +458,7 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
   }, [id, glbUrl, registerCard, unregisterCard]);
 
   const loaded = registered && isLoaded(id);
+  const errored = registered && hasError(id);
 
   return (
     <div
@@ -431,12 +467,23 @@ export function GLBPreviewSlot({ id, glbUrl, className = '' }: GLBPreviewSlotPro
       style={{ touchAction: 'none' }}
     >
       {/* Loading state */}
-      {!loaded && (
+      {!loaded && !errored && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
           <div className="flex flex-col items-center gap-2">
             <div className="w-5 h-5 border-2 border-foreground/20 border-t-foreground/60 rounded-full animate-spin" />
             <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground uppercase">
               Loading 3D
+            </span>
+          </div>
+        </div>
+      )}
+      {/* Error fallback */}
+      {errored && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+          <div className="flex flex-col items-center gap-1.5">
+            <Box className="h-5 w-5 text-muted-foreground/40" />
+            <span className="font-mono text-[8px] tracking-[0.2em] text-muted-foreground/60 uppercase">
+              Preview unavailable
             </span>
           </div>
         </div>
