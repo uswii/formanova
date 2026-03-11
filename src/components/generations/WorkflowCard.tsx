@@ -253,9 +253,9 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
 
 export function WorkflowCard({ workflow, index = 0, onClick: _onClick }: WorkflowCardProps) {
   if (workflow.source_type === 'cad_text') {
-    return <CadTextCard workflow={workflow} index={index} />;
+    return <GlbPreviewCard workflow={workflow} index={index} />;
   }
 
-  // photo and cad_render both use the new image-first card
+  // photo and cad_render both use the image-first card
   return <PhotoCard workflow={workflow} index={index} />;
 }
