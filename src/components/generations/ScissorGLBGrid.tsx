@@ -122,7 +122,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
   const rafRef = useRef<number>(0);
   const envMapRef = useRef<THREE.Texture | null>(null);
   const gltfLoaderRef = useRef(new GLTFLoader());
-  const [, forceUpdate] = useState(0);
+  const [tick, forceUpdate] = useState(0);
 
   // Initialize renderer
   useEffect(() => {
