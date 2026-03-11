@@ -27,6 +27,7 @@ interface LeftPanelProps {
   onGlbUpload: (file: File) => void;
   onRebuildPart?: (partId: string, description: string) => void;
   onAddPart?: (description: string) => void;
+  onReset?: () => void;
   creditBlock?: React.ReactNode;
 }
 
