@@ -119,6 +119,7 @@ const App = () => (
                 <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<Welcome />} />
+                  <Route path="/feedback" element={<Suspense fallback={<PageLoader />}>{(() => { const F = lazy(() => import("./pages/FeedbackRedirect")); return <F />; })()}</Suspense>} />
                   <Route path="/login" element={<Auth />} />
                   <Route path="/oauth-callback" element={<Auth />} />
                   <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
