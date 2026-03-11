@@ -211,8 +211,8 @@ function StudioGemOverlay({
         envMap={envMap}
         color={new THREE.Color(refractionConfig.color)}
         ior={refractionConfig.ior}
-        aberrationStrength={refractionConfig.sparkle}
-        bounces={refractionConfig.bounces}
+        aberrationStrength={refractionConfig.sparkle * Q.aberrationScale}
+        bounces={Math.min(refractionConfig.bounces, Q.gemBounces)}
         fresnel={refractionConfig.fresnel}
         toneMapped={false}
       />
