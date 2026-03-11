@@ -513,7 +513,7 @@ export default function TextToCAD() {
       let pollErrors = 0;
       let consecutive404s = 0;
       const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 12 * 60 * 1000;
+      const POLL_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
       const pollStart = Date.now();
 
       while (true) {
