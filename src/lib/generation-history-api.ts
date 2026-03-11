@@ -103,12 +103,14 @@ export async function listMyWorkflows(
       mode: w.input?.mode ?? null,
     };
   });
-  console.log('[HistoryAPI] source_type breakdown:', {
-    photo: mapped.filter(w => w.source_type === 'photo').length,
-    cad_text: mapped.filter(w => w.source_type === 'cad_text').length,
-    cad_render: mapped.filter(w => w.source_type === 'cad_render').length,
-    unknown: mapped.filter(w => w.source_type === 'unknown').length,
-  });
+  if (__DEV__) {
+    console.log('[HistoryAPI] source_type breakdown:', {
+      photo: mapped.filter(w => w.source_type === 'photo').length,
+      cad_text: mapped.filter(w => w.source_type === 'cad_text').length,
+      cad_render: mapped.filter(w => w.source_type === 'cad_render').length,
+      unknown: mapped.filter(w => w.source_type === 'unknown').length,
+    });
+  }
   return mapped;
 }
 
