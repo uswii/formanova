@@ -13,7 +13,12 @@ const localDateFmt = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short',
 });
 function formatLocal(ts: string): string {
-  return localDateFmt.format(new Date(ts));
+  // Ensure the timestamp is treated as UTC if it lacks a timezone indicator
+  let normalized = ts.trim();
+  if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
+    normalized += 'Z';
+  }
+  return localDateFmt.format(new Date(normalized));
 }
 
 interface WorkflowCardProps {
