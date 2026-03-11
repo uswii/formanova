@@ -367,10 +367,13 @@ const LoadedModel = forwardRef<
     materialCache.current.clear();
 
     // ── Magic Texturing: auto-assign materials based on mesh name + material heuristics ──
+    // Only run if magicTexturing is enabled
+    const autoMaterials: Record<string, MaterialDef> = {};
+
+    if (magicTexturing) {
     // PRIORITY 0: If the GLB's embedded material name matches a library material
     //             (i.e. previously exported from Formanova), honour that assignment
     //             and skip heuristics entirely.
-    const autoMaterials: Record<string, MaterialDef> = {};
     let recognisedCount = 0;
 
     list.forEach((md) => {
