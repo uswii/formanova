@@ -431,7 +431,7 @@ export default function Generations() {
               loading={photoSection.loading}
               currentPage={photoSection.page}
               totalPages={photoSection.totalPages}
-              columns={4}
+              columns={5}
               onPageChange={setPhotoPage}
               onWorkflowClick={() => {}}
             />

@@ -15,7 +15,7 @@ interface WorkflowSectionProps {
   currentPage: number;
   totalPages: number;
   indexOffset?: number;
-  columns?: 2 | 3 | 4;
+  columns?: 2 | 3 | 4 | 5;
   onPageChange: (page: number) => void;
   onWorkflowClick: (id: string) => void;
 }
