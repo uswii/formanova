@@ -42,10 +42,7 @@ const MODEL_LABELS: Record<string, string> = {
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
-  const dateStr = workflow.created_at
-    ? format(new Date(workflow.created_at), 'MMM d, yyyy · HH:mm')
-    : '—';
-
+  const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
   // undefined = enrichment not started yet; [] = enriched but no shots found
