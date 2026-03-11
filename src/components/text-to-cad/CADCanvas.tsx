@@ -506,6 +506,24 @@ const LoadedModel = forwardRef<
 
     setMeshDataList(list);
     setAssignedMaterials(autoMaterials);
+
+    // ── Scene complexity guardrail ──
+    const totalVerts = list.reduce((sum, md) => sum + (md.geometry?.attributes?.position?.count || 0), 0);
+    const totalFaces = list.reduce((sum, md) => {
+      const geo = md.geometry;
+      return sum + (geo?.index ? geo.index.count / 3 : (geo?.attributes?.position?.count || 0) / 3);
+    }, 0);
+    let gemCount = 0;
+    for (const name of Object.keys(autoMaterials)) {
+      if (autoMaterials[name]?.category === "gemstone" && autoMaterials[name]?.refractionConfig) gemCount++;
+    }
+    const heavy = totalVerts > MAX_TOTAL_VERTICES || totalFaces > MAX_TOTAL_FACES || gemCount > MAX_GEM_MESHES;
+    sceneHeavyRef.current = heavy;
+    if (heavy) {
+      console.warn(`[CADCanvas] Heavy scene: ${totalVerts.toLocaleString()} verts, ${Math.round(totalFaces).toLocaleString()} faces, ${gemCount} gems — using optimized rendering`);
+      toast.info("Complex model detected — rendering optimized for stability");
+    }
+
     inv();
 
     if (onMeshesDetected) {
