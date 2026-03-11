@@ -207,7 +207,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           </button>
         ) : isEnriching ? (
           /* Pulsing placeholder while enrichment is in progress */
-          <div className="w-full aspect-square bg-muted/50 animate-pulse" />
+          <div className="w-full aspect-[4/5] bg-muted/50 animate-pulse" />
         ) : (
           /* Enriched but no image found */
           <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
