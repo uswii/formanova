@@ -11,6 +11,10 @@ import * as THREE from "three";
 import type { MaterialDef, GemRefractionConfig } from "./materials";
 import { getQualitySettings } from "@/lib/gpu-detect";
 
+// ── Preload diamond HDRI so first gem application doesn't trigger Suspense ──
+RGBELoader.prototype.manager = THREE.DefaultLoadingManager;
+useLoader.preload(RGBELoader, "/hdri/diamond-studio.hdr");
+
 // ── Quality settings (cached, runs once) ──
 const Q = getQualitySettings();
 
