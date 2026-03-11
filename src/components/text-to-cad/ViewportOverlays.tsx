@@ -311,12 +311,12 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
 
       <SideDivider />
 
-      {/* Actions */}
+      {/* Primary actions — Download + Start Over adjacent (Krug: related actions together) */}
       <button onClick={onDownload} className={`${SIDE_BTN} text-primary hover:text-primary`} title="Download">
-        <SideTooltip label="Download" />
+        <SideTooltip label="Download GLB" />
         <Download className="w-3.5 h-3.5" />
       </button>
-      <button onClick={onReset} className={SIDE_BTN} title="Start over">
+      <button onClick={onReset} className={SIDE_BTN} title="Start over (keeps your prompt)">
         <SideTooltip label="Start Over" />
         <RotateCcw className="w-3.5 h-3.5" />
       </button>
