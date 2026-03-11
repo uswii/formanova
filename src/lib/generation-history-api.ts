@@ -90,7 +90,7 @@ export async function listMyWorkflows(
   const mapped = raw.map((w: any) => {
     const name = w.name ?? '';
     const sourceType = inferSourceType(name);
-    if (sourceType === 'unknown') {
+    if (sourceType === 'unknown' && __DEV__) {
       console.warn('[HistoryAPI] unknown source_type for workflow:', { id: w.workflow_id ?? w.id, name, status: w.status });
     }
     return {
