@@ -144,7 +144,7 @@ export default function LeftPanel({
             <button
               onClick={onReset}
               disabled={isGenerating}
-              className="w-full py-2 mt-2 text-[10px] font-mono uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 text-muted-foreground/60 hover:text-destructive disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              className="w-full py-2 mt-2 text-[10px] font-mono uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 text-muted-foreground/60 hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             >
               <RotateCcw className="w-3 h-3" />
               Start Over
