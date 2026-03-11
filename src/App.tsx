@@ -51,6 +51,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
 const AIJewelryPhotoshoot = lazy(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazy(() => import("./pages/AIJewelryCAD"));
+const LinkAccount = lazy(() => import("./pages/LinkAccount"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -122,6 +123,7 @@ const App = () => (
                   <Route path="/oauth-callback" element={<Auth />} />
                   <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
                   <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
+                  <Route path="/link" element={<LinkAccount />} />
                   {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
                   
                   {/* Protected routes - require sign in */}
