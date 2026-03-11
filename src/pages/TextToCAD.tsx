@@ -306,7 +306,7 @@ export default function TextToCAD() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: prompt.trim(), max_attempts: 3 },
+          payload: { llm, prompt: prompt.trim(), max_attempts: 3, skip_validation: false },
           return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
         }),
       });
@@ -411,12 +411,18 @@ export default function TextToCAD() {
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
-          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri;
-          const successOriginal = result["success_original_glb"]?.[0]?.glb_artifact?.uri;
+          // Fallback per spec: success_final → glb_artifact, then original_glb_artifact
+          // success_original_glb → original_glb_artifact
+          // failed_final → error
+          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
+          if (hasFailed) throw new Error("Generation failed — no valid model produced");
+
+          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri
+            || result["success_final"]?.[0]?.original_glb_artifact?.uri;
+          const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
           const rawUri = successFinal || successOriginal;
           if (rawUri) { glb_url = toUrl(rawUri); break; }
-          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-          throw new Error(hasFailed ? "Generation failed — no valid model produced" : "No GLB model found in results");
+          throw new Error("No GLB model found in results");
         }
 
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
@@ -485,7 +491,7 @@ export default function TextToCAD() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: promptText.trim(), max_attempts: 3 },
+          payload: { llm, prompt: promptText.trim(), max_attempts: 3, skip_validation: false },
           return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
         }),
       });
@@ -560,12 +566,15 @@ export default function TextToCAD() {
           const toUrl = (uri: string) => uri.startsWith("azure://")
             ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
             : uri;
-          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri;
-          const successOriginal = result["success_original_glb"]?.[0]?.glb_artifact?.uri;
+          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
+          if (hasFailed) throw new Error("Edit failed — no valid model produced");
+
+          const successFinal = result["success_final"]?.[0]?.glb_artifact?.uri
+            || result["success_final"]?.[0]?.original_glb_artifact?.uri;
+          const successOriginal = result["success_original_glb"]?.[0]?.original_glb_artifact?.uri;
           const rawUri = successFinal || successOriginal;
           if (rawUri) { glb_url = toUrl(rawUri); break; }
-          const hasFailed = Array.isArray(result["failed_final"]) && result["failed_final"].length > 0;
-          throw new Error(hasFailed ? "Edit failed — no valid model produced" : "No GLB model found");
+          throw new Error("No GLB model found");
         }
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
           await new Promise((r) => setTimeout(r, 1000));

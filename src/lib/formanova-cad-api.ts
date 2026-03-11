@@ -52,20 +52,6 @@ function azureUriToPublicUrl(azureUri: string): string | null {
   return `${AZURE_BLOB_HOST}/${path}`;
 }
 
-function extractGlbUri(results: Record<string, unknown>, nodeKey: string): string | null {
-  const node = results[nodeKey];
-  if (!node) return null;
-  const arr = Array.isArray(node) ? node : [node];
-  for (const entry of arr) {
-    const rec = entry as Record<string, unknown> | null;
-    if (!rec) continue;
-    const glbPath = rec.glb_path as Record<string, unknown> | undefined;
-    if (glbPath && typeof glbPath.uri === 'string' && glbPath.uri.startsWith('azure://')) {
-      return glbPath.uri;
-    }
-  }
-  return null;
-}
 
 function findAzureUri(obj: unknown): string | null {
   if (!obj || typeof obj !== 'object') return null;
@@ -79,20 +65,55 @@ function findAzureUri(obj: unknown): string | null {
   return null;
 }
 
-/** Resolve GLB URL from results object */
-function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: string | null; azure_source: string | null } {
-  const validateUri = extractGlbUri(results, 'ring-validate');
-  const generateUri = extractGlbUri(results, 'ring-generate');
-  const azureUri = validateUri || generateUri;
-  const source = validateUri ? 'ring-validate' : generateUri ? 'ring-generate' : null;
+/** Extract GLB artifact URI from a result node, checking glb_artifact then original_glb_artifact */
+function extractArtifactUri(results: Record<string, unknown>, nodeKey: string, artifactKey: string = 'glb_artifact'): string | null {
+  const node = results[nodeKey];
+  if (!node) return null;
+  const arr = Array.isArray(node) ? node : [node];
+  for (const entry of arr) {
+    const rec = entry as Record<string, unknown> | null;
+    if (!rec) continue;
+    const artifact = rec[artifactKey] as Record<string, unknown> | undefined;
+    if (artifact && typeof artifact.uri === 'string') return artifact.uri;
+  }
+  return null;
+}
 
-  let glbUrl = azureUri ? azureUriToPublicUrl(azureUri) : null;
-  if (!glbUrl) {
-    const fallbackUri = findAzureUri(results);
-    if (fallbackUri) glbUrl = azureUriToPublicUrl(fallbackUri);
+/** Resolve GLB URL from results per spec:
+ *  success_final → glb_artifact, fallback original_glb_artifact
+ *  success_original_glb → original_glb_artifact
+ *  failed_final → null
+ */
+function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: string | null; azure_source: string | null } {
+  // Check failed_final first
+  const failedArr = results['failed_final'];
+  if (Array.isArray(failedArr) && failedArr.length > 0) {
+    return { glb_url: null, azure_source: 'failed_final' };
   }
 
-  return { glb_url: glbUrl, azure_source: source };
+  // success_final: prefer glb_artifact, fallback to original_glb_artifact
+  const finalUri = extractArtifactUri(results, 'success_final', 'glb_artifact')
+    || extractArtifactUri(results, 'success_final', 'original_glb_artifact');
+  if (finalUri) {
+    const url = azureUriToPublicUrl(finalUri) || finalUri;
+    return { glb_url: url, azure_source: 'success_final' };
+  }
+
+  // success_original_glb: use original_glb_artifact
+  const originalUri = extractArtifactUri(results, 'success_original_glb', 'original_glb_artifact');
+  if (originalUri) {
+    const url = azureUriToPublicUrl(originalUri) || originalUri;
+    return { glb_url: url, azure_source: 'success_original_glb' };
+  }
+
+  // Legacy fallback: scan for any azure:// URI
+  const fallbackUri = findAzureUri(results);
+  if (fallbackUri) {
+    const url = azureUriToPublicUrl(fallbackUri);
+    return { glb_url: url, azure_source: 'fallback' };
+  }
+
+  return { glb_url: null, azure_source: null };
 }
 
 // ── API calls ──
@@ -104,7 +125,7 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      payload: { prompt, llm: llmName, mode: 'text', max_attempts: 3 },
+      payload: { prompt, llm: llmName, mode: 'text', max_attempts: 3, skip_validation: false },
       return_nodes: [
         'build_initial', 'build_retry', 'build_corrected',
         'validate_output', 'success_final', 'success_original_glb', 'failed_final',
