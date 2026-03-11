@@ -24,6 +24,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three-stdlib';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Box } from 'lucide-react';
 
 // ── LRU GLB Cache ────────────────────────────────────────────────────
 const MAX_CACHE = 20;

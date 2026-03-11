@@ -446,6 +446,7 @@ export default function Generations() {
                 loading={cadTextSection.loading}
                 currentPage={cadTextSection.page}
                 totalPages={cadTextSection.totalPages}
+                columns={3}
                 indexOffset={(cadTextPage - 1) * PER_PAGE}
                 onPageChange={setCadTextPage}
                 onWorkflowClick={() => {}}

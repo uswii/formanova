@@ -85,11 +85,11 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
 
         {/* ── Interactive 3D GLB Preview ── */}
         {workflow.glb_url && (
-          <div className="mx-4 mb-3">
+          <div className="mx-3 mb-2">
             <GLBPreviewSlot
               id={workflow.workflow_id}
               glbUrl={workflow.glb_url}
-              className="w-full aspect-square bg-background/50 border border-border/30"
+              className="w-full aspect-[4/3] bg-background/50 border border-border/30"
             />
           </div>
         )}
