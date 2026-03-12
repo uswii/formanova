@@ -1561,6 +1561,9 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
   ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced" }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
+    
+    // Compute effective quality settings based on mode
+    const effectiveQ = useMemo(() => getSettingsForMode(qualityMode), [qualityMode]);
 
 
 
