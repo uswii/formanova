@@ -1312,16 +1312,25 @@ const LoadedModel = forwardRef<
   const selectedMeshRef = selectedMeshName ? meshRefs.current.get(selectedMeshName) : undefined;
 
   // Collect sibling mesh refs (other selected meshes, excluding the primary)
-  const siblingObjects = useMemo(() => {
-    if (!selectedMeshName || selectedMeshNames.size <= 1) return [];
-    const siblings: THREE.Object3D[] = [];
-    for (const name of selectedMeshNames) {
-      if (name === selectedMeshName) continue;
-      const obj = meshRefs.current.get(name);
-      if (obj) siblings.push(obj);
+  // Use useEffect (runs after commit, so refs are populated) to avoid stale meshRefs
+  const siblingObjectsRef = useRef<THREE.Object3D[]>([]);
+  useEffect(() => {
+    if (!selectedMeshName || selectedMeshNames.size <= 1) {
+      siblingObjectsRef.current = [];
+      return;
     }
-    return siblings;
+    // Small delay to ensure React has committed all ref callbacks
+    requestAnimationFrame(() => {
+      const siblings: THREE.Object3D[] = [];
+      for (const name of selectedMeshNames) {
+        if (name === selectedMeshName) continue;
+        const obj = meshRefs.current.get(name);
+        if (obj) siblings.push(obj);
+      }
+      siblingObjectsRef.current = siblings;
+    });
   }, [selectedMeshName, selectedMeshNames, meshDataList]);
+  const siblingObjects = siblingObjectsRef.current;
 
   return (
     <group>
