@@ -14,7 +14,8 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
-import { getQualitySettings, getGPURendererString } from "@/lib/gpu-detect";
+import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
+import type { QualityMode } from "@/lib/gpu-detect";
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
 import { trackWebGLContextLost, trackWebGLContextRestored } from "@/lib/posthog-events";
 
@@ -1553,12 +1554,16 @@ interface CADCanvasProps {
   lightIntensity?: number;
   onModelReady?: () => void;
   magicTexturing?: boolean;
+  qualityMode?: QualityMode;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced" }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
+    
+    // Compute effective quality settings based on mode
+    const effectiveQ = useMemo(() => getSettingsForMode(qualityMode), [qualityMode]);
 
 
 
@@ -1712,13 +1717,13 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
         )}
         <Canvas
           gl={{
-            antialias: Q.antialias,
+            antialias: effectiveQ.antialias,
             alpha: true,
             toneMapping: THREE.ACESFilmicToneMapping,
             toneMappingExposure: 0.45 * lightIntensity,
-            powerPreference: Q.tier === "low" ? "low-power" : "high-performance",
+            powerPreference: effectiveQ.tier === "low" ? "low-power" : "high-performance",
           }}
-          dpr={Q.dpr}
+          dpr={effectiveQ.dpr}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
           frameloop="demand"
@@ -1735,11 +1740,11 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             {/* Lighting — scaled by lightIntensity */}
             <ambientLight intensity={0.08 * lightIntensity} />
             <directionalLight position={[3, 5, 3]} intensity={0.6 * lightIntensity} color="#f5f0e8" />
-            {Q.maxLights >= 4 && (
+            {effectiveQ.maxLights >= 4 && (
               <directionalLight position={[-3, 2, -3]} intensity={0.3 * lightIntensity} color="#e8e4dc" />
             )}
             <hemisphereLight args={["#d4cfc8", "#8a8580", 0.15 * lightIntensity]} />
-            {Q.maxLights >= 5 && (
+            {effectiveQ.maxLights >= 5 && (
               <spotLight position={[0, 8, 0]} intensity={0.25 * lightIntensity} angle={0.5} penumbra={1} color="#fff5e6" />
             )}
 

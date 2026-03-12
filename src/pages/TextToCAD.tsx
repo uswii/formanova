@@ -27,6 +27,9 @@ import {
   StatsBar,
   ViewportSideTools,
 } from "@/components/text-to-cad/ViewportOverlays";
+import QualityToggle from "@/components/text-to-cad/QualityToggle";
+import { runMicroBenchmark } from "@/lib/gpu-detect";
+import type { QualityMode } from "@/lib/gpu-detect";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
 
@@ -68,6 +71,10 @@ export default function TextToCAD() {
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [qualityMode, setQualityMode] = useState<QualityMode>("balanced");
+
+  // Run invisible micro-benchmark on mount (offscreen, ~200ms)
+  useEffect(() => { runMicroBenchmark(); }, []);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
@@ -1010,6 +1017,7 @@ export default function TextToCAD() {
               lightIntensity={1}
               onModelReady={handleModelReady}
               magicTexturing={magicTexturing}
+              qualityMode={qualityMode}
             />
 
             {/* Generation failed state */}
@@ -1070,8 +1078,13 @@ export default function TextToCAD() {
               />
             )}
             
-            <div className="absolute bottom-4 left-4 z-50 flex gap-2">
+            <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
+              <QualityToggle
+                visible={hasModel && !isGenerating && !isModelLoading}
+                mode={qualityMode}
+                onModeChange={setQualityMode}
+              />
               {hasModel && !isGenerating && !isModelLoading && (
                 <div className="relative">
                   <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
