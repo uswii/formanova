@@ -363,6 +363,40 @@ export default function LeftPanel({
         )}
       </div>
 
+      {/* Gem Rendering Mode */}
+      {hasModel && (
+        <div className="px-4 lg:px-5 py-3 border-t border-border bg-card/80">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground block truncate">
+                  Real Refraction
+                </span>
+                <span className="font-mono text-[8px] text-muted-foreground/60 tracking-wide block">
+                  Experimental
+                </span>
+              </div>
+            </div>
+            <Switch
+              checked={gemMode === "refraction"}
+              disabled={refractionBlocked}
+              onCheckedChange={(checked) => {
+                onGemModeChange?.(checked ? "refraction" : "simple");
+              }}
+            />
+          </div>
+          {refractionBlocked && (
+            <div className="mt-2 flex items-start gap-1.5">
+              <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" />
+              <span className="font-mono text-[9px] text-amber-500/80 leading-relaxed">
+                Disabled — GPU instability detected on this device
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Status bar */}
       <div className="px-4 lg:px-5 py-3 flex items-center gap-2.5 font-mono text-[10px] border-t border-border bg-card min-w-0">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
