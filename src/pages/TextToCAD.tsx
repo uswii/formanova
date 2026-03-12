@@ -71,6 +71,10 @@ export default function TextToCAD() {
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [qualityMode, setQualityMode] = useState<QualityMode>("balanced");
+
+  // Run invisible micro-benchmark on mount (offscreen, ~200ms)
+  useEffect(() => { runMicroBenchmark(); }, []);
 
   // Track whether user has ever started a generation or uploaded — drives the phase transition
   const [workspaceActive, setWorkspaceActive] = useState(false);
