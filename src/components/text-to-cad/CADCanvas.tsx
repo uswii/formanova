@@ -1204,7 +1204,7 @@ const LoadedModel = forwardRef<
     for (const name of Object.keys(assignedMaterials)) {
       if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
         for (const [key] of materialCache.current) {
-          if (key.includes(`_${name}_`)) {
+          if (key.includes(`_${name}_`) || key.includes(`simple_gem_${name}`)) {
             materialCache.current.get(key)?.dispose();
             materialCache.current.delete(key);
           }
