@@ -1257,15 +1257,10 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        // ── GEM MODE: "simple" → use high-quality PBR transmission (crash-safe, no custom shader) ──
+        // ── GEM MODE: "simple" → GemInstanceRenderer handles visual rendering via InstancedMesh.
+        //    Source meshes use invisible material so they remain raycastable (click/select). ──
         if (gemMode === "simple") {
-          const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
-          let simpleMat = materialCache.current.get(simpleKey);
-          if (!simpleMat) {
-            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
-            materialCache.current.set(simpleKey, simpleMat);
-          }
-          standard.push({ ...md, material: simpleMat, isSelected });
+          standard.push({ ...md, material: GEM_RAYCAST_MATERIAL, isSelected });
           return;
         }
 
