@@ -1247,7 +1247,9 @@ const LoadedModel = forwardRef<
 
       // Selection highlight — show blue overlay when selected, UNLESS the user
       // explicitly applied a material after selecting (materialAppliedAfterSelect).
-      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
+      // Gemstones keep their own material even when selected so users can judge color accurately.
+      const isGemAssigned = assigned?.category === "gemstone" && !!assigned?.refractionConfig;
+      if (isSelected && !isGemAssigned && !materialAppliedAfterSelect.current.has(md.name)) {
         standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
         return;
       }
@@ -1264,22 +1266,31 @@ const LoadedModel = forwardRef<
             maxRefraction: Q.maxGemRefraction
           });
         }
-        // ── GEM MODE: "simple" → use high-quality PBR transmission (crash-safe, no custom shader) ──
+        // ── GEM MODE: "simple" → use material-library gem looks on medium/high,
+        // and keep safe fallback profile for low-tier GPUs.
         if (gemMode === "simple") {
-          const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
+          const simpleProfile = Q.tier === "low" ? "safe" : "library";
+          const simpleKey = `simple_gem_${md.name}_${assigned.id}_${simpleProfile}`;
           let simpleMat = materialCache.current.get(simpleKey);
           if (!simpleMat) {
-            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color, Q.tier);
+            simpleMat = simpleProfile === "safe"
+              ? createSimpleGemMaterial(assigned.refractionConfig.color, Q.tier)
+              : assigned.create();
+
+            if ("side" in simpleMat) {
+              (simpleMat as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+            }
+
             materialCache.current.set(simpleKey, simpleMat);
-            // Log only on first creation (not cached hits)
-            if (isDebugMode()) {
-              const appliedColor = (simpleMat as THREE.MeshPhysicalMaterial).color;
-              const attColor = (simpleMat as THREE.MeshPhysicalMaterial).attenuationColor;
+            if (isDebugMode() && simpleMat instanceof THREE.MeshPhysicalMaterial) {
+              const appliedColor = simpleMat.color;
+              const attColor = simpleMat.attenuationColor;
               console.log(`[GemColor] ${assigned.id} → "${md.name}"`, {
                 srgbInput: assigned.refractionConfig.color,
-                linearHex: `#${appliedColor.getHexString()}`,
-                attenuationHex: attColor ? `#${attColor.getHexString()}` : 'none',
+                appliedHex: `#${appliedColor.getHexString()}`,
+                attenuationHex: attColor ? `#${attColor.getHexString()}` : "none",
                 gpuTier: Q.tier,
+                materialProfile: simpleProfile,
               });
             }
           }
