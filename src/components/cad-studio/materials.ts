@@ -371,19 +371,29 @@ export function findMaterialByName(name: string): MaterialDef | undefined {
 // glass-like appearance using standard MeshPhysicalMaterial transmission
 // without the heavy ray-traced MeshRefractionMaterial shader that crashes
 // Chrome on macOS (ANGLE Metal backend).
-export function createSimpleGemMaterial(color: string = "#ffffff"): THREE.MeshPhysicalMaterial {
+//
+// On low-tier GPUs (Intel integrated), full transmission can render colors
+// incorrectly (washed out / wrong hue). We reduce transmission and boost
+// the base color + specular to keep the gem visually identifiable.
+export function createSimpleGemMaterial(
+  color: string = "#ffffff",
+  gpuTier: "low" | "medium" | "high" = "medium",
+): THREE.MeshPhysicalMaterial {
+  // Low-tier: less transmission, more opaque color to avoid GPU rendering bugs
+  const isLow = gpuTier === "low";
   return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
-    roughness: 0.02,
+    roughness: isLow ? 0.05 : 0.02,
     metalness: 0,
-    transmission: 1,
-    thickness: 1.2,
+    transmission: isLow ? 0.6 : 1,
+    thickness: isLow ? 0.8 : 1.2,
     ior: 2.4,
     clearcoat: 1,
     clearcoatRoughness: 0,
-    envMapIntensity: 2.5,
-    attenuationDistance: 4.0,
+    envMapIntensity: isLow ? 1.8 : 2.5,
+    attenuationDistance: isLow ? 2.0 : 4.0,
     attenuationColor: new THREE.Color(color),
+    specularIntensity: isLow ? 1.5 : 1.0,
     side: THREE.DoubleSide,
   });
 }
