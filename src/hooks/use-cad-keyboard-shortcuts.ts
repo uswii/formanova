@@ -151,6 +151,14 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
         return;
       }
 
+      // Ctrl/Cmd + C → Copy/Duplicate
+      if (mod && key === "c") {
+        // Only intercept when not in a text context (already handled above)
+        e.preventDefault();
+        a.onCopy?.();
+        return;
+      }
+
       // Don't intercept other Ctrl/Cmd combos (browser shortcuts)
       if (mod) return;
 
