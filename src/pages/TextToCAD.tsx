@@ -883,12 +883,41 @@ export default function TextToCAD() {
     canvasRef.current?.setWireframe(wireframeRef.current);
   }, []);
 
+  // ── Clipboard buffer for copy/paste/cut ──
+  const clipboardRef = useRef<string[]>([]);
+
+  const handleCopy = useCallback(() => {
+    if (selectedNames.length === 0) { showSelectionWarning("Select meshes first"); return; }
+    clipboardRef.current = [...selectedNames];
+    toast.success(`${selectedNames.length} mesh${selectedNames.length > 1 ? "es" : ""} copied`);
+  }, [selectedNames, showSelectionWarning]);
+
+  const handlePaste = useCallback(() => {
+    if (clipboardRef.current.length === 0) { showSelectionWarning("Nothing in clipboard — copy meshes first"); return; }
+    // Filter to only names that still exist in the scene
+    const validNames = clipboardRef.current.filter((n) => meshes.some((m) => m.name === n));
+    if (validNames.length === 0) { showSelectionWarning("Copied meshes no longer exist"); return; }
+    pushUndo("Paste meshes");
+    canvasRef.current?.duplicateMeshes(validNames);
+  }, [meshes, pushUndo, showSelectionWarning]);
+
+  const handleCut = useCallback(() => {
+    if (selectedNames.length === 0) { showSelectionWarning("Select meshes first"); return; }
+    clipboardRef.current = [...selectedNames];
+    pushUndo("Cut meshes");
+    canvasRef.current?.deleteMeshes(selectedNames);
+    setMeshes((prev) => prev.filter((m) => !selectedNames.includes(m.name)));
+    toast.success(`${selectedNames.length} mesh${selectedNames.length > 1 ? "es" : ""} cut`);
+  }, [selectedNames, pushUndo, showSelectionWarning]);
+
   useCADKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
     onDelete: () => handleSceneAction("delete"),
     onDuplicate: () => handleSceneAction("duplicate"),
-    onCopy: () => handleSceneAction("duplicate"),
+    onCopy: handleCopy,
+    onPaste: handlePaste,
+    onCut: handleCut,
     onSelectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: true }))),
     onDeselectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: false }))),
     onSetTransformMode: setTransformMode,
