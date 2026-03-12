@@ -51,7 +51,6 @@ export default class GemInstanceRenderer {
       meshes.forEach((mesh, i) => {
         mesh.updateWorldMatrix(true, false);
         instanced.setMatrixAt(i, mesh.matrixWorld);
-        mesh.visible = false;
       });
 
       instanced.instanceMatrix.needsUpdate = true;
