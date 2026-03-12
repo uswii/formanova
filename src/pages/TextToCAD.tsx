@@ -1017,6 +1017,7 @@ export default function TextToCAD() {
               lightIntensity={1}
               onModelReady={handleModelReady}
               magicTexturing={magicTexturing}
+              qualityMode={qualityMode}
             />
 
             {/* Generation failed state */}
