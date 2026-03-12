@@ -36,9 +36,6 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
     shortcuts: [
       { keys: ["Delete", "/", "Backspace", "/", `${modKey}+Backspace`], desc: "Delete selected" },
       { keys: ["Shift+D"], desc: "Duplicate selected" },
-      { keys: [`${modKey}+C`], desc: "Copy selected" },
-      { keys: [`${modKey}+V`], desc: "Paste copied" },
-      { keys: [`${modKey}+X`], desc: "Cut selected" },
       { keys: ["W"], desc: "Toggle wireframe" },
     ],
   },
@@ -47,7 +44,6 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
     shortcuts: [
       { keys: ["Ctrl+A", "/", "⌘+A"], desc: "Select all" },
       { keys: ["Ctrl+Shift+A", "/", "⌘+Shift+A"], desc: "Deselect all" },
-      { keys: ["Esc"], desc: "Deselect all & orbit" },
     ],
   },
   {
@@ -80,9 +76,6 @@ export interface CADShortcutActions {
   onSetTransformMode: (mode: string) => void;
   onToggleWireframe: () => void;
   onToggleShortcutsPanel: () => void;
-  onCopy?: () => void;
-  onPaste?: () => void;
-  onCut?: () => void;
   /** If true, the workspace is active and shortcuts should fire */
   enabled: boolean;
 }
@@ -157,27 +150,6 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
         return;
       }
 
-      // Ctrl/Cmd + C → Copy
-      if (mod && key === "c") {
-        e.preventDefault();
-        a.onCopy?.();
-        return;
-      }
-
-      // Ctrl/Cmd + V → Paste
-      if (mod && key === "v") {
-        e.preventDefault();
-        a.onPaste?.();
-        return;
-      }
-
-      // Ctrl/Cmd + X → Cut
-      if (mod && key === "x") {
-        e.preventDefault();
-        a.onCut?.();
-        return;
-      }
-
       // Don't intercept other Ctrl/Cmd combos (browser shortcuts)
       if (mod) return;
 
@@ -207,13 +179,7 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
           a.onSetTransformMode("scale");
           break;
         case "escape":
-          // If in a transform mode, go back to orbit. If already in orbit, deselect all.
-          if (actionsRef.current.enabled) {
-            // We check by reading the current state indirectly via onSetTransformMode
-            // The parent can decide: orbit → deselect, other → orbit
-            a.onDeselectAll();
-            a.onSetTransformMode("orbit");
-          }
+          a.onSetTransformMode("orbit");
           break;
         case "w":
           a.onToggleWireframe();

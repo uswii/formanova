@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Wand2, ChevronUp } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 import type { MeshTransformData } from "./CADCanvas";
@@ -33,7 +33,6 @@ export function ViewportToolbar({
 }) {
   const config = MODE_CONFIG[mode] ?? null;
   const isTransformActive = mode !== "orbit" && config !== null;
-  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
 
   // Get values for current mode from transform data
   const getValues = (): [number, number, number] => {
@@ -68,7 +67,7 @@ export function ViewportToolbar({
 
       {/* Integrated numeric inspector — slides down from viewer tools */}
       <AnimatePresence>
-        {isTransformActive && config && !inspectorCollapsed && (
+        {isTransformActive && config && (
           <motion.div
             initial={{ opacity: 0, height: 0, y: -4 }}
             animate={{ opacity: 1, height: "auto", y: 0 }}
@@ -76,19 +75,15 @@ export function ViewportToolbar({
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden pointer-events-auto"
           >
-            <div className="bg-card border border-border border-t-0 px-4 py-3 min-w-[360px] shadow-lg relative">
+            <div className="bg-card border border-border border-t-0 px-4 py-3 min-w-[360px] shadow-lg">
               <div className="flex items-center gap-2 mb-2.5">
                 <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
                   {config.icon} {config.title}
                 </span>
                 <div className="flex-1 h-px bg-border" />
-                <button
-                  onClick={() => setInspectorCollapsed(true)}
-                  className="text-muted-foreground/50 hover:text-foreground transition-colors cursor-pointer"
-                  title="Collapse inspector"
-                >
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </button>
+                <span className="font-mono text-[8px] text-muted-foreground/50 uppercase tracking-wider">
+                  Gizmo + Numeric
+                </span>
               </div>
               <div className="flex gap-2">
                 {AXES.map((axis, i) => (
@@ -107,20 +102,6 @@ export function ViewportToolbar({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Collapsed indicator — click to expand */}
-      {isTransformActive && inspectorCollapsed && (
-        <button
-          onClick={() => setInspectorCollapsed(false)}
-          className="pointer-events-auto mt-1 px-3 py-1.5 bg-card border border-border border-t-0 shadow-lg cursor-pointer hover:bg-accent/40 transition-colors flex items-center gap-1.5"
-          title="Show numeric inspector"
-        >
-          <span className={`font-mono text-[9px] font-bold uppercase tracking-[0.12em] ${config?.color}`}>
-            {config?.icon} {config?.title}
-          </span>
-          <ChevronUp className="w-3 h-3 text-muted-foreground rotate-180" />
-        </button>
-      )}
     </div>
   );
 }
@@ -275,7 +256,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen, onMagicTexture, onStartOver }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -286,8 +267,6 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   redoCount: number;
   onDownload: () => void;
   onFullscreen?: () => void;
-  onMagicTexture?: () => void;
-  onStartOver?: () => void;
 }) {
   if (!visible) return null;
 
@@ -331,30 +310,11 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
 
       <SideDivider />
 
-      {/* Magic Texture */}
-      {onMagicTexture && (
-        <button onClick={onMagicTexture} className={SIDE_BTN} title="Magic Texture">
-          <SideTooltip label="Magic Texture" />
-          <Wand2 className="w-3.5 h-3.5" />
-        </button>
-      )}
-
       {/* Export */}
       <button onClick={onDownload} className={`${SIDE_BTN} text-primary hover:text-primary`} title="Download">
         <SideTooltip label="Download" />
         <Download className="w-3.5 h-3.5" />
       </button>
-
-      {/* Start Over */}
-      {onStartOver && (
-        <>
-          <SideDivider />
-          <button onClick={onStartOver} className={SIDE_BTN} title="Start Over">
-            <SideTooltip label="Start Over" />
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-        </>
-      )}
     </div>
   );
 }

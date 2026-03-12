@@ -783,22 +783,8 @@ export default function TextToCAD() {
     );
   };
 
-  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
-  const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showSelectionWarning = useCallback((msg: string) => {
-    setSelectionWarning(msg);
-    if (selectionWarningTimer.current) clearTimeout(selectionWarningTimer.current);
-    selectionWarningTimer.current = setTimeout(() => setSelectionWarning(null), 3000);
-  }, []);
-
-  const handleMeshAction = useCallback((action: string) => {
-    const needsSelection = ["hide", "show", "isolate"].includes(action);
-    if (needsSelection && selectedNames.length === 0) {
-      showSelectionWarning("Select meshes first");
-      return;
-    }
-
+  const handleMeshAction = (action: string) => {
+    // Track visibility changes for undo (skip selection-only changes)
     const isVisibilityAction = ["hide", "show", "show-all", "isolate"].includes(action);
     if (isVisibilityAction) pushUndo(`Visibility: ${action}`);
 
@@ -814,7 +800,16 @@ export default function TextToCAD() {
         default: return prev;
       }
     });
-  }, [selectedNames, pushUndo, showSelectionWarning]);
+  };
+
+  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
+  const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSelectionWarning = useCallback((msg: string) => {
+    setSelectionWarning(msg);
+    if (selectionWarningTimer.current) clearTimeout(selectionWarningTimer.current);
+    selectionWarningTimer.current = setTimeout(() => setSelectionWarning(null), 3000);
+  }, []);
 
   const handleApplyMaterial = useCallback((matId: string) => {
     if (selectedNames.length === 0) {
@@ -888,41 +883,11 @@ export default function TextToCAD() {
     canvasRef.current?.setWireframe(wireframeRef.current);
   }, []);
 
-  // ── Clipboard buffer for copy/paste/cut ──
-  const clipboardRef = useRef<string[]>([]);
-
-  const handleCopy = useCallback(() => {
-    if (selectedNames.length === 0) { showSelectionWarning("Select meshes first"); return; }
-    clipboardRef.current = [...selectedNames];
-    toast.success(`${selectedNames.length} mesh${selectedNames.length > 1 ? "es" : ""} copied`);
-  }, [selectedNames, showSelectionWarning]);
-
-  const handlePaste = useCallback(() => {
-    if (clipboardRef.current.length === 0) { showSelectionWarning("Nothing in clipboard — copy meshes first"); return; }
-    // Filter to only names that still exist in the scene
-    const validNames = clipboardRef.current.filter((n) => meshes.some((m) => m.name === n));
-    if (validNames.length === 0) { showSelectionWarning("Copied meshes no longer exist"); return; }
-    pushUndo("Paste meshes");
-    canvasRef.current?.duplicateMeshes(validNames);
-  }, [meshes, pushUndo, showSelectionWarning]);
-
-  const handleCut = useCallback(() => {
-    if (selectedNames.length === 0) { showSelectionWarning("Select meshes first"); return; }
-    clipboardRef.current = [...selectedNames];
-    pushUndo("Cut meshes");
-    canvasRef.current?.deleteMeshes(selectedNames);
-    setMeshes((prev) => prev.filter((m) => !selectedNames.includes(m.name)));
-    toast.success(`${selectedNames.length} mesh${selectedNames.length > 1 ? "es" : ""} cut`);
-  }, [selectedNames, pushUndo, showSelectionWarning]);
-
   useCADKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
     onDelete: () => handleSceneAction("delete"),
     onDuplicate: () => handleSceneAction("duplicate"),
-    onCopy: handleCopy,
-    onPaste: handlePaste,
-    onCut: handleCut,
     onSelectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: true }))),
     onDeselectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: false }))),
     onSetTransformMode: setTransformMode,
@@ -1178,12 +1143,6 @@ export default function TextToCAD() {
               undoCount={undoStack.length}
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
-              onMagicTexture={() => {
-                pushUndo("Magic Texture");
-                canvasRef.current?.applyMagicTextures();
-                toast.success("Magic textures applied");
-              }}
-              onStartOver={hasModel ? handleReset : undefined}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
                 if (el) {

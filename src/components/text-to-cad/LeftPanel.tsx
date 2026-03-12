@@ -147,7 +147,34 @@ export default function LeftPanel({
             </button>
           )}
 
-          {/* Start Over and Magic Texturing moved to viewport */}
+          {/* Start Over — secondary action, clears model but keeps prompt */}
+          {onReset && (
+            <button
+              onClick={onReset}
+              disabled={isGenerating}
+              className="w-full py-2 mt-2 text-[10px] font-mono uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 text-muted-foreground/60 hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Start Over
+            </button>
+          )}
+
+          {/* Magic Texturing checkbox — hidden, keep for future re-enable
+          {hasModel && (
+            <label className="w-full mt-3 flex items-center gap-2.5 py-3 px-1 cursor-pointer select-none group">
+              <input
+                type="checkbox"
+                checked={magicTexturing}
+                onChange={(e) => onMagicTexturingChange(e.target.checked)}
+                disabled={isGenerating}
+                className="w-4 h-4 rounded border-border accent-primary cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              />
+              <span className="text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.15em] text-muted-foreground group-hover:text-foreground transition-colors">
+                Magic Texturing
+              </span>
+            </label>
+          )}
+          */}
         </section>
 
         {/* Modules */}

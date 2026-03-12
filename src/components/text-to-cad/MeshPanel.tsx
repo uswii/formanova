@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef } from "react";
 
-import { Eye, EyeOff, Focus, Shuffle, Layers, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown, Users } from "lucide-react";
+import { Eye, EyeOff, Focus, Shuffle, Layers, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "./types";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
@@ -102,7 +102,6 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
             handleMeshClick={handleMeshClick}
             onAction={onAction}
             onSceneAction={onSceneAction}
-            onSelectMesh={onSelectMesh}
           />
         </div>
       </div>
@@ -184,7 +183,6 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
               handleMeshClick={handleMeshClick}
               onAction={onAction}
               onSceneAction={onSceneAction}
-              onSelectMesh={onSelectMesh}
             />
           </div>
         </ResizablePanel>
@@ -321,7 +319,7 @@ function MeshSectionHeader({ title, subtitle, collapsed, onToggle, meshTab, setM
 }
 
 // ── Mesh content (scrollable) ──
-function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction, onSelectMesh }: {
+function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction }: {
   meshTab: "list" | "actions";
   search: string; setSearch: (v: string) => void;
   filtered: MeshItemData[];
@@ -331,27 +329,7 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
   handleMeshClick: (mesh: MeshItemData, e: React.MouseEvent) => void;
   onAction: (action: string) => void;
   onSceneAction: (action: string) => void;
-  onSelectMesh: (name: string, multi: boolean) => void;
 }) {
-  // Detect mesh families by common prefix (e.g. "rib_001", "rib_002" → family "rib")
-  const families = useMemo(() => {
-    const familyMap = new Map<string, string[]>();
-    filtered.forEach((m) => {
-      const prefix = m.name.replace(/(_copy)?(_\d+)?$/, '').replace(/_\d+$/, '');
-      if (!familyMap.has(prefix)) familyMap.set(prefix, []);
-      familyMap.get(prefix)!.push(m.name);
-    });
-    return new Map([...familyMap].filter(([_, names]) => names.length >= 2));
-  }, [filtered]);
-
-  const handleSelectFamily = useCallback((familyNames: string[]) => {
-    familyNames.forEach((name) => {
-      if (!meshes.find(m => m.name === name)?.selected) {
-        onSelectMesh(name, true);
-      }
-    });
-  }, [meshes, onSelectMesh]);
-
   if (meshTab === "list") {
     return (
       <div className="flex-1 flex flex-col min-h-0">
@@ -364,27 +342,6 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
             className="w-full px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
           />
         </div>
-
-        {/* Family quick-select buttons */}
-        {families.size > 0 && (
-          <div className="px-4 pb-2 flex-shrink-0">
-            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Families</span>
-            <div className="flex flex-wrap gap-1">
-              {[...families.entries()].map(([prefix, names]) => (
-                <button
-                  key={prefix}
-                  onClick={() => handleSelectFamily(names)}
-                  className="flex items-center gap-1 px-2 py-1 text-[9px] font-mono font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 border border-border/50 transition-colors cursor-pointer"
-                  title={`Select all ${names.length} "${prefix}" meshes`}
-                >
-                  <Users className="w-2.5 h-2.5" />
-                  {prefix} <span className="text-muted-foreground/50">({names.length})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-1 scrollbar-thin">
           {filtered.length === 0 && (
             <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
