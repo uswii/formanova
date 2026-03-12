@@ -1077,8 +1077,13 @@ export default function TextToCAD() {
               />
             )}
             
-            <div className="absolute bottom-4 left-4 z-50 flex gap-2">
+            <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
+              <QualityToggle
+                visible={hasModel && !isGenerating && !isModelLoading}
+                mode={qualityMode}
+                onModeChange={setQualityMode}
+              />
               {hasModel && !isGenerating && !isModelLoading && (
                 <div className="relative">
                   <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
