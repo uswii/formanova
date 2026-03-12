@@ -331,6 +331,27 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
   onSceneAction: (action: string) => void;
 }) {
   if (meshTab === "list") {
+    // Detect mesh families by common prefix (e.g. "rib_001", "rib_002" → family "rib")
+    const families = useMemo(() => {
+      const familyMap = new Map<string, string[]>();
+      filtered.forEach((m) => {
+        // Strip trailing _number, _copy, _copy_N patterns to get family prefix
+        const prefix = m.name.replace(/(_copy)?(_\d+)?$/, '').replace(/_\d+$/, '');
+        if (!familyMap.has(prefix)) familyMap.set(prefix, []);
+        familyMap.get(prefix)!.push(m.name);
+      });
+      // Only return families with 2+ members
+      return new Map([...familyMap].filter(([_, names]) => names.length >= 2));
+    }, [filtered]);
+
+    const handleSelectFamily = useCallback((familyNames: string[]) => {
+      familyNames.forEach((name) => {
+        if (!meshes.find(m => m.name === name)?.selected) {
+          onSelectMesh(name, true);
+        }
+      });
+    }, [meshes, onSelectMesh]);
+
     return (
       <div className="flex-1 flex flex-col min-h-0">
         <div className="px-4 pt-3 pb-2 flex-shrink-0">
@@ -342,6 +363,27 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
             className="w-full px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
           />
         </div>
+
+        {/* Family quick-select buttons */}
+        {families.size > 0 && (
+          <div className="px-4 pb-2 flex-shrink-0">
+            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Families</span>
+            <div className="flex flex-wrap gap-1">
+              {[...families.entries()].map(([prefix, names]) => (
+                <button
+                  key={prefix}
+                  onClick={() => handleSelectFamily(names)}
+                  className="flex items-center gap-1 px-2 py-1 text-[9px] font-mono font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 border border-border/50 transition-colors cursor-pointer"
+                  title={`Select all ${names.length} "${prefix}" meshes`}
+                >
+                  <Users className="w-2.5 h-2.5" />
+                  {prefix} <span className="text-muted-foreground/50">({names.length})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-1 scrollbar-thin">
           {filtered.length === 0 && (
             <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
