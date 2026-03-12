@@ -1143,6 +1143,12 @@ export default function TextToCAD() {
               undoCount={undoStack.length}
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
+              onMagicTexture={() => {
+                pushUndo("Magic Texture");
+                canvasRef.current?.applyMagicTextures();
+                toast.success("Magic textures applied");
+              }}
+              onStartOver={hasModel ? handleReset : undefined}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
                 if (el) {
