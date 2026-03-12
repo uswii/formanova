@@ -1740,11 +1740,11 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             {/* Lighting — scaled by lightIntensity */}
             <ambientLight intensity={0.08 * lightIntensity} />
             <directionalLight position={[3, 5, 3]} intensity={0.6 * lightIntensity} color="#f5f0e8" />
-            {Q.maxLights >= 4 && (
+            {effectiveQ.maxLights >= 4 && (
               <directionalLight position={[-3, 2, -3]} intensity={0.3 * lightIntensity} color="#e8e4dc" />
             )}
             <hemisphereLight args={["#d4cfc8", "#8a8580", 0.15 * lightIntensity]} />
-            {Q.maxLights >= 5 && (
+            {effectiveQ.maxLights >= 5 && (
               <spotLight position={[0, 8, 0]} intensity={0.25 * lightIntensity} angle={0.5} penumbra={1} color="#fff5e6" />
             )}
 
