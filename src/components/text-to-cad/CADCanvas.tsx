@@ -1268,10 +1268,24 @@ const LoadedModel = forwardRef<
         if (gemMode === "simple") {
           const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
           let simpleMat = materialCache.current.get(simpleKey);
+          const cached = !!simpleMat;
           if (!simpleMat) {
             simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color, Q.tier);
             materialCache.current.set(simpleKey, simpleMat);
           }
+          // Always log color debug info for gem assignments
+          const srgb = assigned.refractionConfig.color;
+          const appliedColor = (simpleMat as THREE.MeshPhysicalMaterial).color;
+          const attColor = (simpleMat as THREE.MeshPhysicalMaterial).attenuationColor;
+          console.log(`[GemColor] ${assigned.id} → mesh "${md.name}"`, {
+            srgbInput: srgb,
+            linearApplied: `rgb(${(appliedColor.r * 255).toFixed(0)}, ${(appliedColor.g * 255).toFixed(0)}, ${(appliedColor.b * 255).toFixed(0)})`,
+            linearHex: `#${appliedColor.getHexString()}`,
+            attenuationHex: attColor ? `#${attColor.getHexString()}` : 'none',
+            gpuTier: Q.tier,
+            cached,
+            transmission: (simpleMat as THREE.MeshPhysicalMaterial).transmission,
+          });
           standard.push({ ...md, material: simpleMat, isSelected });
           return;
         }
@@ -1524,12 +1538,14 @@ function DiamondEnvMapConsumer({
 
   if (!envMap) return null;
 
-  if (isDebugMode()) {
-    console.log("[RefractionMaterial]", {
-      mesh: meshName,
-      color: refractionConfig.color,
+  {
+    const srgb = refractionConfig.color;
+    const linear = new THREE.Color(srgb).convertSRGBToLinear();
+    console.log(`[GemColor:Refraction] ${meshName}`, {
+      srgbInput: srgb,
+      linearApplied: `rgb(${(linear.r * 255).toFixed(0)}, ${(linear.g * 255).toFixed(0)}, ${(linear.b * 255).toFixed(0)})`,
+      linearHex: `#${linear.getHexString()}`,
       ior: refractionConfig.ior,
-      sparkle: refractionConfig.sparkle,
       bounces: Math.min(refractionConfig.bounces, Q.gemBounces),
       renderer: getGPURendererString()
     });
