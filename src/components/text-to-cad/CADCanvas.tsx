@@ -16,6 +16,7 @@ import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS, c
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
 import type { QualityMode } from "@/lib/gpu-detect";
+import GemInstanceRenderer from "./GemInstanceRenderer";
 import type { GemMode } from "./GemInstanceRenderer";
 export type { GemMode };
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
@@ -44,23 +45,8 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
-// ── Module-level gem materials (never recreated per render) ──
-// Hidden material for gems rendered via refraction overlay
-const GEM_HIDDEN_MATERIAL = new THREE.MeshBasicMaterial({ visible: false });
-
-// Template for over-budget gem fallback (cloned per color, cached in materialCache)
-const GEM_FALLBACK_TEMPLATE = new THREE.MeshPhysicalMaterial({
-  color: new THREE.Color(0xffffff),
-  metalness: 0.0,
-  roughness: 0.0,
-  transmission: 0.8,
-  ior: 2.0,
-  thickness: 1.5,
-  envMapIntensity: 2.0,
-  clearcoat: 1.0,
-  clearcoatRoughness: 0.0,
-  side: THREE.DoubleSide,
-});
+// ── Invisible material for gem meshes: allows raycasting (clicks/selection) while InstancedMesh handles rendering ──
+const GEM_RAYCAST_MATERIAL = new THREE.MeshBasicMaterial({ visible: false });
 
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
@@ -374,6 +360,8 @@ const LoadedModel = forwardRef<
   const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
+  const { scene: r3fScene } = useThree();
+  const gemRendererRef = useRef<GemInstanceRenderer | null>(null);
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
@@ -427,6 +415,12 @@ const LoadedModel = forwardRef<
         idx++;
       }
     });
+
+    // Dispose gem instance renderer on scene change
+    if (gemRendererRef.current) {
+      gemRendererRef.current.dispose();
+      gemRendererRef.current = null;
+    }
 
     // Dispose old caches
     flatGeoCache.current.forEach((g) => g.dispose());
@@ -748,6 +742,7 @@ const LoadedModel = forwardRef<
       }
     }
     onTransformEnd?.();
+    gemRendererRef.current?.updateFromMeshes();
     inv();
   }, [syncTransformFromObject, onTransformEnd, inv, selectedMeshNames]);
 
@@ -765,15 +760,11 @@ const LoadedModel = forwardRef<
         // Mark: user explicitly applied material after selecting this mesh
         materialAppliedAfterSelect.current.add(n);
       });
-      console.log("[Material Apply]", {
-        materialId: matDef.id,
-        category: matDef.category,
-        meshes: meshNames,
-        hasRefraction: !!matDef.refractionConfig
-      });
+      console.log('[Material Apply] Applying', matDef.id, 'to meshes:', meshNames);
       setAssignedMaterials((prev) => {
         const next = { ...prev };
         meshNames.forEach((n) => { next[n] = matDef; });
+        console.log('[Material Apply] Updated assignedMaterials keys:', Object.keys(next));
         return next;
       });
       inv();
@@ -1213,7 +1204,7 @@ const LoadedModel = forwardRef<
     for (const name of Object.keys(assignedMaterials)) {
       if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
         for (const [key] of materialCache.current) {
-          if (key.includes(`_${name}_`)) {
+          if (key.includes(`_${name}_`) || key.includes(`simple_gem_${name}`)) {
             materialCache.current.get(key)?.dispose();
             materialCache.current.delete(key);
           }
@@ -1223,7 +1214,7 @@ const LoadedModel = forwardRef<
     for (const name of Object.keys(prevAssigned)) {
       if (!assignedMaterials[name] && prevAssigned[name]) {
         for (const [key] of materialCache.current) {
-          if (key.includes(`_${name}_`)) {
+          if (key.includes(`_${name}_`) || key.includes(`simple_gem_${name}`)) {
             materialCache.current.get(key)?.dispose();
             materialCache.current.delete(key);
           }
@@ -1236,7 +1227,19 @@ const LoadedModel = forwardRef<
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
     let refractionGemCount = 0;
 
-    // Reuse module-level fallback materials (see below useMemo)
+    // Cheap fallback material for gems beyond the quality-tier cap
+    const gemFallbackMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0xffffff),
+      metalness: 0.0,
+      roughness: 0.0,
+      transmission: 0.8,
+      ior: 2.0,
+      thickness: 1.5,
+      envMapIntensity: 2.0,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.0,
+      side: THREE.DoubleSide,
+    });
 
     meshDataList.forEach((md) => {
       // Skip hidden meshes entirely
@@ -1247,73 +1250,31 @@ const LoadedModel = forwardRef<
 
       // Selection highlight — show blue overlay when selected, UNLESS the user
       // explicitly applied a material after selecting (materialAppliedAfterSelect).
-      // Gemstones keep their own material even when selected so users can judge color accurately.
-      const isGemAssigned = assigned?.category === "gemstone" && !!assigned?.refractionConfig;
-      if (isSelected && !isGemAssigned && !materialAppliedAfterSelect.current.has(md.name)) {
+      if (isSelected && !materialAppliedAfterSelect.current.has(md.name)) {
         standard.push({ ...md, material: SELECTION_MATERIAL, isSelected });
         return;
       }
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        if (isDebugMode()) {
-          console.log("[GemPipeline]", {
-            mesh: md.name,
-            material: assigned?.id,
-            gemMode,
-            refractionAllowed: refractionGemCount < Q.maxGemRefraction,
-            currentRefractionCount: refractionGemCount,
-            maxRefraction: Q.maxGemRefraction
-          });
-        }
-        // ── GEM MODE: "simple" → use material-library gem looks on medium/high,
-        // and keep safe fallback profile for low-tier GPUs.
+        // ── GEM MODE: "simple" → GemInstanceRenderer handles visual rendering via InstancedMesh.
+        //    Source meshes use invisible material so they remain raycastable (click/select). ──
         if (gemMode === "simple") {
-          const simpleProfile = Q.tier === "low" ? "safe" : "library";
-          const simpleKey = `simple_gem_${md.name}_${assigned.id}_${simpleProfile}`;
-          let simpleMat = materialCache.current.get(simpleKey);
-          if (!simpleMat) {
-            simpleMat = simpleProfile === "safe"
-              ? createSimpleGemMaterial(assigned.refractionConfig.color)
-              : assigned.create();
-
-            if ("side" in simpleMat) {
-              (simpleMat as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
-            }
-
-            materialCache.current.set(simpleKey, simpleMat);
-            if (isDebugMode() && simpleMat instanceof THREE.MeshPhysicalMaterial) {
-              const appliedColor = simpleMat.color;
-              const attColor = simpleMat.attenuationColor;
-              console.log(`[GemColor] ${assigned.id} → "${md.name}"`, {
-                srgbInput: assigned.refractionConfig.color,
-                appliedHex: `#${appliedColor.getHexString()}`,
-                attenuationHex: attColor ? `#${attColor.getHexString()}` : "none",
-                gpuTier: Q.tier,
-                materialProfile: simpleProfile,
-              });
-            }
-          }
-          standard.push({ ...md, material: simpleMat, isSelected });
+          standard.push({ ...md, material: GEM_RAYCAST_MATERIAL, isSelected });
           return;
         }
 
         // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-          standard.push({ ...md, material: GEM_HIDDEN_MATERIAL, isSelected });
+          const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+          standard.push({ ...md, material: hiddenMat, isSelected });
           refractionGemCount++;
         } else {
-          // Over budget — use cached fallback material per color
+          // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
           const color = assigned.refractionConfig.color;
-          const fbKey = `gem_fallback_${color}`;
-          let fallback = materialCache.current.get(fbKey);
-          if (!fallback) {
-            fallback = GEM_FALLBACK_TEMPLATE.clone();
-            (fallback as THREE.MeshPhysicalMaterial).color = new THREE.Color(color);
-            (fallback as THREE.MeshPhysicalMaterial).attenuationColor = new THREE.Color(color);
-            materialCache.current.set(fbKey, fallback);
-          }
+          const fallback = gemFallbackMat.clone();
+          fallback.color = new THREE.Color(color);
           standard.push({ ...md, material: fallback, isSelected });
         }
         return;
@@ -1340,6 +1301,60 @@ const LoadedModel = forwardRef<
     onDebugGemStats?.(gemTotal, gemRefraction, gemFallback, Q.gemBounces);
   }, [gemTotal, gemRefraction, gemFallback, onDebugGemStats]);
 
+  // ── Gem Instancing: batch simple-mode gem meshes into InstancedMesh for fewer draw calls ──
+  // Recompute only when the set of gem meshes changes (not on every transform)
+  const gemMeshKey = useMemo(() => {
+    return meshDataList
+      .filter(md => assignedMaterials[md.name]?.category === "gemstone" && assignedMaterials[md.name]?.refractionConfig)
+      .map(md => md.name)
+      .sort()
+      .join(',');
+  }, [meshDataList, assignedMaterials]);
+
+  useEffect(() => {
+    if (gemMode !== "simple" || !gemMeshKey) {
+      if (gemRendererRef.current) {
+        gemRendererRef.current.dispose();
+        gemRendererRef.current = null;
+      }
+      return;
+    }
+
+    // Collect gem mesh refs (populated by React ref callbacks during render)
+    const gemMeshes: THREE.Mesh[] = [];
+    for (const name of gemMeshKey.split(',')) {
+      if (!name) continue;
+      const meshObj = meshRefs.current.get(name);
+      if (meshObj) gemMeshes.push(meshObj);
+    }
+
+    if (gemMeshes.length === 0) {
+      if (gemRendererRef.current) {
+        gemRendererRef.current.dispose();
+        gemRendererRef.current = null;
+      }
+      return;
+    }
+
+    // Dispose previous renderer before creating new one
+    if (gemRendererRef.current) {
+      gemRendererRef.current.dispose();
+    }
+
+    const simpleMat = createSimpleGemMaterial();
+    gemRendererRef.current = new GemInstanceRenderer(r3fScene, gemMeshes, simpleMat);
+    console.log(`[CADCanvas] GemInstanceRenderer: ${gemMeshes.length} gems batched into ~${gemRendererRef.current.instanceCount} instanced draw calls`);
+    inv();
+
+    return () => {
+      if (gemRendererRef.current) {
+        gemRendererRef.current.dispose();
+        gemRendererRef.current = null;
+      }
+    };
+  }, [gemMode, gemMeshKey, r3fScene, inv]);
+
+
   // ── Imperative transform sync: prevents React props from fighting TransformControls ──
   useEffect(() => {
     if (_isTransformDragging) return;
@@ -1351,6 +1366,7 @@ const LoadedModel = forwardRef<
         mesh.scale.copy(md.scale);
       }
     });
+    gemRendererRef.current?.updateFromMeshes();
     inv();
   }, [meshDataList, inv]);
 
@@ -1540,22 +1556,10 @@ function DiamondEnvMapConsumer({
   useEffect(() => {
     if (envMap) {
       envMap.mapping = THREE.EquirectangularReflectionMapping;
-      envMap.needsUpdate = true;
     }
   }, [envMap]);
 
   if (!envMap) return null;
-
-  if (isDebugMode()) {
-    const srgb = refractionConfig.color;
-    const shaderColor = new THREE.Color(srgb);
-    console.log(`[GemColor:Refraction] ${meshName}`, {
-      srgbInput: srgb,
-      shaderHex: `#${shaderColor.getHexString()}`,
-      ior: refractionConfig.ior,
-      bounces: Math.min(refractionConfig.bounces, Q.gemBounces),
-    });
-  }
 
   return (
     <mesh
@@ -1640,14 +1644,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     // Compute effective quality settings based on mode
     const effectiveQ = useMemo(() => getSettingsForMode(qualityMode), [qualityMode]);
 
-    // ── Stable DPR clamp (prevents Chrome renderer resets) ──
-    const safeDpr = useMemo((): number | [number, number] => {
-      const dpr = effectiveQ.dpr;
-      if (Array.isArray(dpr)) {
-        return [dpr[0], Math.min(dpr[1], 1.5)] as [number, number];
-      }
-      return Math.min(dpr, 1.5);
-    }, [effectiveQ.dpr]);
+
 
     const getOrbitControls = useCallback(() => {
       const canvas = document.querySelector<HTMLCanvasElement>('canvas');
@@ -1814,7 +1811,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             toneMappingExposure: 0.45 * lightIntensity,
             powerPreference: effectiveQ.tier === "low" ? "low-power" : "high-performance",
           }}
-          dpr={safeDpr}
+          dpr={[effectiveQ.dpr[0], Math.min(effectiveQ.dpr[1], 1.5)]}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
           frameloop="demand"

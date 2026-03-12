@@ -51,7 +51,6 @@ export default class GemInstanceRenderer {
       meshes.forEach((mesh, i) => {
         mesh.updateWorldMatrix(true, false);
         instanced.setMatrixAt(i, mesh.matrixWorld);
-        mesh.visible = false;
       });
 
       instanced.instanceMatrix.needsUpdate = true;
@@ -98,8 +97,6 @@ export default class GemInstanceRenderer {
       } else {
         g.instancedMesh.material.dispose();
       }
-      // Restore source mesh visibility
-      g.sourceMeshes.forEach((m) => { m.visible = true; });
     }
     this.groups = [];
   }
