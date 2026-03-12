@@ -883,6 +883,30 @@ export default function TextToCAD() {
     canvasRef.current?.setWireframe(wireframeRef.current);
   }, []);
 
+  // Clipboard for copy/paste/cut
+  const clipboardRef = useRef<string[]>([]);
+
+  const handleCopy = useCallback(() => {
+    const names = meshesRef.current.filter(m => m.selected).map(m => m.name);
+    if (names.length === 0) return;
+    clipboardRef.current = names;
+  }, []);
+
+  const handlePaste = useCallback(() => {
+    if (clipboardRef.current.length === 0) return;
+    pushUndo("Paste meshes");
+    canvasRef.current?.duplicateMeshes(clipboardRef.current);
+  }, [pushUndo]);
+
+  const handleCut = useCallback(() => {
+    const names = meshesRef.current.filter(m => m.selected).map(m => m.name);
+    if (names.length === 0) return;
+    clipboardRef.current = names;
+    pushUndo("Cut meshes");
+    canvasRef.current?.deleteMeshes(names);
+    setMeshes((prev) => prev.filter((m) => !names.includes(m.name)));
+  }, [pushUndo]);
+
   useCADKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
@@ -893,6 +917,9 @@ export default function TextToCAD() {
     onSetTransformMode: setTransformMode,
     onToggleWireframe: toggleWireframe,
     onToggleShortcutsPanel: () => setShortcutsOpen((p) => !p),
+    onCopy: handleCopy,
+    onPaste: handlePaste,
+    onCut: handleCut,
     enabled: workspaceActive,
   });
 
