@@ -27,6 +27,9 @@ import {
   StatsBar,
   ViewportSideTools,
 } from "@/components/text-to-cad/ViewportOverlays";
+import QualityToggle from "@/components/text-to-cad/QualityToggle";
+import { runMicroBenchmark } from "@/lib/gpu-detect";
+import type { QualityMode } from "@/lib/gpu-detect";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
 
