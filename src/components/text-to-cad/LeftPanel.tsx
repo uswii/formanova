@@ -1,10 +1,12 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Diamond, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import { Diamond, ChevronDown, ChevronRight, RotateCcw, Sparkles, Shield, AlertTriangle } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
+import { Switch } from "@/components/ui/switch";
+import type { GemMode } from "./GemInstanceRenderer";
 
 interface LeftPanelProps {
   model: string;
@@ -29,6 +31,9 @@ interface LeftPanelProps {
   onAddPart?: (description: string) => void;
   onReset?: () => void;
   creditBlock?: React.ReactNode;
+  gemMode?: GemMode;
+  onGemModeChange?: (mode: GemMode) => void;
+  refractionBlocked?: boolean;
 }
 
 export default function LeftPanel({
@@ -39,6 +44,9 @@ export default function LeftPanel({
   onRebuildPart, onAddPart,
   onReset,
   creditBlock,
+  gemMode = "simple",
+  onGemModeChange,
+  refractionBlocked = false,
 }: LeftPanelProps) {
   const glbInputRef = useRef<HTMLInputElement>(null);
   const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
@@ -354,6 +362,40 @@ export default function LeftPanel({
         </AnimatePresence>
         )}
       </div>
+
+      {/* Gem Rendering Mode */}
+      {hasModel && (
+        <div className="px-4 lg:px-5 py-3 border-t border-border bg-card/80">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground block truncate">
+                  Real Refraction
+                </span>
+                <span className="font-mono text-[8px] text-muted-foreground/60 tracking-wide block">
+                  Experimental
+                </span>
+              </div>
+            </div>
+            <Switch
+              checked={gemMode === "refraction"}
+              disabled={refractionBlocked}
+              onCheckedChange={(checked) => {
+                onGemModeChange?.(checked ? "refraction" : "simple");
+              }}
+            />
+          </div>
+          {refractionBlocked && (
+            <div className="mt-2 flex items-start gap-1.5">
+              <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" />
+              <span className="font-mono text-[9px] text-amber-500/80 leading-relaxed">
+                Disabled — GPU instability detected on this device
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Status bar */}
       <div className="px-4 lg:px-5 py-3 flex items-center gap-2.5 font-mono text-[10px] border-t border-border bg-card min-w-0">

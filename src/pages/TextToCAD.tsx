@@ -30,6 +30,7 @@ import {
 import QualityToggle from "@/components/text-to-cad/QualityToggle";
 import { runMicroBenchmark } from "@/lib/gpu-detect";
 import type { QualityMode } from "@/lib/gpu-detect";
+import type { GemMode } from "@/components/text-to-cad/CADCanvas";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
 
@@ -72,6 +73,11 @@ export default function TextToCAD() {
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [qualityMode, setQualityMode] = useState<QualityMode>("balanced");
+  const [gemMode, setGemMode] = useState<GemMode>(() => {
+    // Circuit breaker: if refraction was previously blocked by context loss, stay in simple mode
+    return localStorage.getItem("refractionBlocked") === "true" ? "simple" : "simple";
+  });
+  const refractionBlocked = localStorage.getItem("refractionBlocked") === "true";
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
@@ -959,6 +965,9 @@ export default function TextToCAD() {
               }}
               onGlbUpload={handleGlbUpload}
               onReset={hasModel ? handleReset : undefined}
+              gemMode={gemMode}
+              onGemModeChange={setGemMode}
+              refractionBlocked={refractionBlocked}
               creditBlock={creditBlock ? (
                 <InsufficientCreditsInline
                   currentBalance={creditBlock.currentBalance}
@@ -1018,6 +1027,8 @@ export default function TextToCAD() {
               onModelReady={handleModelReady}
               magicTexturing={magicTexturing}
               qualityMode={qualityMode}
+              gemMode={gemMode}
+              onGemModeForced={(mode) => setGemMode(mode)}
             />
 
             {/* Generation failed state */}

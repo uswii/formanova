@@ -12,10 +12,12 @@ import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
-import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
+import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS, createSimpleGemMaterial } from "@/components/cad-studio/materials";
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
 import type { QualityMode } from "@/lib/gpu-detect";
+import type { GemMode } from "./GemInstanceRenderer";
+export type { GemMode };
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
 import { trackWebGLContextLost, trackWebGLContextRestored } from "@/lib/posthog-events";
 
@@ -276,8 +278,10 @@ const LoadedModel = forwardRef<
     onModelReady?: () => void;
     magicTexturing?: boolean;
     onDebugGemStats?: (total: number, refraction: number, fallback: number, effectiveBounces: number) => void;
+    gemMode?: GemMode;
+    onGemModeForced?: (mode: GemMode) => void;
   }
->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats }, ref) => {
+>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced }, ref) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
@@ -1186,7 +1190,6 @@ const LoadedModel = forwardRef<
     const prevAssigned = prevAssignedRef.current;
     for (const name of Object.keys(assignedMaterials)) {
       if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
-        // Material changed — purge old and new cache keys so fresh material is created
         for (const [key] of materialCache.current) {
           if (key.includes(`_${name}_`)) {
             materialCache.current.get(key)?.dispose();
@@ -1195,7 +1198,6 @@ const LoadedModel = forwardRef<
         }
       }
     }
-    // Also handle meshes that had materials removed (undo)
     for (const name of Object.keys(prevAssigned)) {
       if (!assignedMaterials[name] && prevAssigned[name]) {
         for (const [key] of materialCache.current) {
@@ -1242,7 +1244,19 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        // If we're within the refraction budget, use full refraction
+        // ── GEM MODE: "simple" → use high-quality PBR transmission (crash-safe, no custom shader) ──
+        if (gemMode === "simple") {
+          const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
+          let simpleMat = materialCache.current.get(simpleKey);
+          if (!simpleMat) {
+            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
+            materialCache.current.set(simpleKey, simpleMat);
+          }
+          standard.push({ ...md, material: simpleMat, isSelected });
+          return;
+        }
+
+        // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
           const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -1269,7 +1283,7 @@ const LoadedModel = forwardRef<
     });
 
     return { standardElements: standard, gemElements: gems, refractionGemCount };
-  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
+  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames, gemMode]);
 
   // Report gem stats to parent for DebugHUD (event-driven, not per-frame)
   const gemTotal = Object.values(assignedMaterials).filter(m => m?.category === "gemstone").length;
@@ -1555,10 +1569,12 @@ interface CADCanvasProps {
   onModelReady?: () => void;
   magicTexturing?: boolean;
   qualityMode?: QualityMode;
+  gemMode?: GemMode;
+  onGemModeForced?: (mode: GemMode) => void;
 }
 
 const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced" }, ref) => {
+  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced", gemMode = "simple", onGemModeForced }, ref) => {
     const modelUrl = glbUrl || "/models/ring.glb";
     const modelRef = useRef<CADCanvasHandle>(null);
     
@@ -1636,11 +1652,9 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       setDebugStats(prev => ({ ...prev, totalVerts, totalFaces, meshCount: meshes.length }));
     }, [onMeshesDetected, debugActive]);
 
-    // ── WebGL context lost/restored listeners ──
+    // ── WebGL context lost/restored listeners — ALWAYS ACTIVE (circuit breaker) ──
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
-      if (!debugActive) return;
-      // Find the actual canvas element inside the container
       const container = canvasContainerRef.current;
       if (!container) return;
 
@@ -1653,36 +1667,47 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           e.preventDefault(); // allow restore
           contextLostCountRef.current++;
           const count = contextLostCountRef.current;
-          console.error('[DebugHUD] ⚠ WebGL context LOST — event #' + count, {
-            totalVerts: debugStats.totalVerts,
-            totalFaces: debugStats.totalFaces,
-            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
-            tier: debugStats.tier,
-            gpuRenderer: debugStats.gpuRenderer,
+          console.error('[CADCanvas] ⚠ WebGL context LOST — event #' + count);
+
+          // ── Circuit breaker: force simple gem mode and persist ──
+          onGemModeForced?.("simple");
+          localStorage.setItem("refractionBlocked", "true");
+
+          // Import toast dynamically to show user feedback
+          import("sonner").then(({ toast }) => {
+            toast.error("GPU overload detected", {
+              description: "Gem rendering switched to Safe Mode to prevent browser crashes. Real Refraction has been disabled.",
+              duration: 8000,
+            });
           });
-          setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
-          trackWebGLContextLost({
-            totalVerts: debugStats.totalVerts,
-            totalFaces: debugStats.totalFaces,
-            meshCount: debugStats.meshCount,
-            gemMeshCountTotal: debugStats.gemMeshCountTotal,
-            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
-            tier: debugStats.tier,
-            dpr: debugStats.dpr,
-            gpuRenderer: debugStats.gpuRenderer,
-            effectiveGemBounces: debugStats.effectiveGemBounces,
-            contextLostCount: count,
-          });
+
+          if (debugActive) {
+            setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
+            trackWebGLContextLost({
+              totalVerts: debugStats.totalVerts,
+              totalFaces: debugStats.totalFaces,
+              meshCount: debugStats.meshCount,
+              gemMeshCountTotal: debugStats.gemMeshCountTotal,
+              gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
+              tier: debugStats.tier,
+              dpr: debugStats.dpr,
+              gpuRenderer: debugStats.gpuRenderer,
+              effectiveGemBounces: debugStats.effectiveGemBounces,
+              contextLostCount: count,
+            });
+          }
         };
 
         const onRestored = () => {
-          console.log('[DebugHUD] ✓ WebGL context restored');
-          setDebugStats(prev => ({ ...prev, contextLost: false }));
-          trackWebGLContextRestored({
-            tier: debugStats.tier,
-            gpuRenderer: debugStats.gpuRenderer,
-            contextLostCount: contextLostCountRef.current,
-          });
+          console.log('[CADCanvas] ✓ WebGL context restored');
+          if (debugActive) {
+            setDebugStats(prev => ({ ...prev, contextLost: false }));
+            trackWebGLContextRestored({
+              tier: debugStats.tier,
+              gpuRenderer: debugStats.gpuRenderer,
+              contextLostCount: contextLostCountRef.current,
+            });
+          }
         };
 
         canvasEl.addEventListener('webglcontextlost', onLost);
@@ -1695,7 +1720,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
       }, 500);
 
       return () => clearTimeout(timer);
-    }, [debugActive]); // intentionally not including debugStats to avoid re-registering
+    }, [debugActive, onGemModeForced]); // intentionally not including debugStats to avoid re-registering
 
     // Track loading state from LoadedModel
     const handleLoadStart = useCallback(() => setIsLoading(true), []);
@@ -1723,7 +1748,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
             toneMappingExposure: 0.45 * lightIntensity,
             powerPreference: effectiveQ.tier === "low" ? "low-power" : "high-performance",
           }}
-          dpr={effectiveQ.dpr}
+          dpr={[effectiveQ.dpr[0], Math.min(effectiveQ.dpr[1], 1.5)]}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
           onPointerMissed={() => onMeshClick("", false)}
           frameloop="demand"
@@ -1769,6 +1794,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onLoadEnd={handleLoadEnd}
                 onModelReady={onModelReady}
                 magicTexturing={magicTexturing}
+                gemMode={gemMode}
+                onGemModeForced={onGemModeForced}
                 onDebugGemStats={debugActive ? (total, refraction, fallback, bounces) => {
                   setDebugStats(prev => ({
                     ...prev,
