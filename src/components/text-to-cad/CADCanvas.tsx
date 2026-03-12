@@ -45,6 +45,9 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
+// ── Invisible material for gem meshes: allows raycasting (clicks/selection) while InstancedMesh handles rendering ──
+const GEM_RAYCAST_MATERIAL = new THREE.MeshBasicMaterial({ visible: false });
+
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
   const { gl, invalidate: inv } = useThree();
