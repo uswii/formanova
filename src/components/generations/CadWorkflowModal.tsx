@@ -240,6 +240,15 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
           {/* Success content */}
           {!loading && !error && (
             <>
+              {/* Fallback / partial result banner */}
+              {isFallbackResult && fallbackMessage && (
+                <div className="flex items-center gap-2 px-3 py-2.5 mb-4 rounded-sm bg-yellow-500/10 border border-yellow-500/30">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                  <p className="font-mono text-[10px] tracking-wider text-yellow-700 dark:text-yellow-300">
+                    {fallbackMessage}
+                  </p>
+                </div>
+              )}
               {/* Hero image */}
               {heroShot && (
                 <div className="relative group mb-4">
