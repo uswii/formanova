@@ -1301,6 +1301,60 @@ const LoadedModel = forwardRef<
     onDebugGemStats?.(gemTotal, gemRefraction, gemFallback, Q.gemBounces);
   }, [gemTotal, gemRefraction, gemFallback, onDebugGemStats]);
 
+  // ── Gem Instancing: batch simple-mode gem meshes into InstancedMesh for fewer draw calls ──
+  // Recompute only when the set of gem meshes changes (not on every transform)
+  const gemMeshKey = useMemo(() => {
+    return meshDataList
+      .filter(md => assignedMaterials[md.name]?.category === "gemstone" && assignedMaterials[md.name]?.refractionConfig)
+      .map(md => md.name)
+      .sort()
+      .join(',');
+  }, [meshDataList, assignedMaterials]);
+
+  useEffect(() => {
+    if (gemMode !== "simple" || !gemMeshKey) {
+      if (gemRendererRef.current) {
+        gemRendererRef.current.dispose();
+        gemRendererRef.current = null;
+      }
+      return;
+    }
+
+    // Collect gem mesh refs (populated by React ref callbacks during render)
+    const gemMeshes: THREE.Mesh[] = [];
+    for (const name of gemMeshKey.split(',')) {
+      if (!name) continue;
+      const meshObj = meshRefs.current.get(name);
+      if (meshObj) gemMeshes.push(meshObj);
+    }
+
+    if (gemMeshes.length === 0) {
+      if (gemRendererRef.current) {
+        gemRendererRef.current.dispose();
+        gemRendererRef.current = null;
+      }
+      return;
+    }
+
+    // Dispose previous renderer before creating new one
+    if (gemRendererRef.current) {
+      gemRendererRef.current.dispose();
+    }
+
+    const simpleMat = createSimpleGemMaterial();
+    gemRendererRef.current = new GemInstanceRenderer(r3fScene, gemMeshes, simpleMat);
+    console.log(`[CADCanvas] GemInstanceRenderer: ${gemMeshes.length} gems batched into ~${gemRendererRef.current.instanceCount} instanced draw calls`);
+    inv();
+
+    return () => {
+      if (gemRendererRef.current) {
+        gemRendererRef.current.dispose();
+        gemRendererRef.current = null;
+      }
+    };
+  }, [gemMode, gemMeshKey, r3fScene, inv]);
+
+
   // ── Imperative transform sync: prevents React props from fighting TransformControls ──
   useEffect(() => {
     if (_isTransformDragging) return;
