@@ -30,6 +30,7 @@ import {
 import QualityToggle from "@/components/text-to-cad/QualityToggle";
 import { runMicroBenchmark } from "@/lib/gpu-detect";
 import type { QualityMode } from "@/lib/gpu-detect";
+import type { GemMode } from "@/components/text-to-cad/CADCanvas";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
 
