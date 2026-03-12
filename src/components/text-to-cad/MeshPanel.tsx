@@ -319,7 +319,7 @@ function MeshSectionHeader({ title, subtitle, collapsed, onToggle, meshTab, setM
 }
 
 // ── Mesh content (scrollable) ──
-function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction }: {
+function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction, onSelectMesh }: {
   meshTab: "list" | "actions";
   search: string; setSearch: (v: string) => void;
   filtered: MeshItemData[];
@@ -329,7 +329,30 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
   handleMeshClick: (mesh: MeshItemData, e: React.MouseEvent) => void;
   onAction: (action: string) => void;
   onSceneAction: (action: string) => void;
+  onSelectMesh: (name: string, multi: boolean) => void;
 }) {
+  // ── Mesh families: group by name prefix (strip trailing _NNN digits) ──
+  const families = useMemo(() => {
+    const map = new Map<string, string[]>();
+    filtered.forEach((m) => {
+      const prefix = m.name.replace(/[_\-]?\d+$/, '');
+      if (!prefix || prefix === m.name) return; // no numeric suffix = no family
+      const arr = map.get(prefix) || [];
+      arr.push(m.name);
+      map.set(prefix, arr);
+    });
+    // Only keep families with 2+ members
+    const result: { prefix: string; members: string[] }[] = [];
+    map.forEach((members, prefix) => {
+      if (members.length >= 2) result.push({ prefix, members });
+    });
+    return result;
+  }, [filtered]);
+
+  const handleFamilyClick = useCallback((members: string[]) => {
+    members.forEach((name, i) => onSelectMesh(name, i > 0));
+  }, [onSelectMesh]);
+
   if (meshTab === "list") {
     return (
       <div className="flex-1 flex flex-col min-h-0">
@@ -342,6 +365,27 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
             className="w-full px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
           />
         </div>
+
+        {/* Mesh families */}
+        {families.length > 0 && (
+          <div className="px-4 pb-2 flex-shrink-0">
+            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Families</span>
+            <div className="flex flex-wrap gap-1">
+              {families.map((f) => (
+                <button
+                  key={f.prefix}
+                  onClick={() => handleFamilyClick(f.members)}
+                  className="flex items-center gap-1 px-2 py-1 text-[9px] font-mono font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-accent/50 active:scale-[0.97]"
+                  title={`Select all ${f.members.length} "${f.prefix}" meshes`}
+                >
+                  <Users className="w-2.5 h-2.5" />
+                  {f.prefix} <span className="text-muted-foreground/50">({f.members.length})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-1 scrollbar-thin">
           {filtered.length === 0 && (
             <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
