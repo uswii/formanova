@@ -1269,7 +1269,7 @@ const LoadedModel = forwardRef<
           const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
           let simpleMat = materialCache.current.get(simpleKey);
           if (!simpleMat) {
-            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
+            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color, Q.tier);
             materialCache.current.set(simpleKey, simpleMat);
           }
           standard.push({ ...md, material: simpleMat, isSelected });
