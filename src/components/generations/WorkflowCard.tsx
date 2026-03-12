@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Maximize2, Box, Download } from 'lucide-react';
+import { Maximize2, Box, Download, Pencil, Check, X } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
@@ -46,11 +47,13 @@ const MODEL_LABELS: Record<string, string> = {
 
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
-  // undefined = enrichment not started yet; [] = enriched but no shots found
   const isEnriching = workflow.screenshots === undefined;
 
   const modelLabel = workflow.mode
@@ -59,12 +62,36 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
       ? MODEL_LABELS[workflow.ai_model] ?? workflow.ai_model
       : null;
 
+  // Derive the shown filename (user rename takes priority)
+  const rawFilename = workflow.glb_filename || 'model.glb';
+  const extension = rawFilename.includes('.') ? rawFilename.split('.').pop()! : 'glb';
+  const baseName = rawFilename.replace(/\.[^.]+$/, '');
+  const shownFilename = displayName ? `${displayName}.${extension}` : rawFilename;
+
+  const handleStartRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameValue(displayName || baseName);
+    setIsRenaming(true);
+  };
+
+  const handleConfirmRename = useCallback(() => {
+    const sanitized = renameValue.trim().replace(/[<>:"/\\|?*]/g, '_');
+    if (sanitized && sanitized !== baseName) {
+      setDisplayName(sanitized);
+    }
+    setIsRenaming(false);
+  }, [renameValue, baseName]);
+
+  const handleCancelRename = () => {
+    setIsRenaming(false);
+  };
+
   const handleDownloadGlb = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!workflow.glb_url) return;
     const a = document.createElement('a');
     a.href = workflow.glb_url;
-    a.download = workflow.glb_filename || 'model.glb';
+    a.download = shownFilename;
     a.target = '_blank';
     a.click();
   };
@@ -111,9 +138,42 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-              <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
-                {workflow.glb_filename || (isEnriching ? '—' : 'model.glb')}
-              </span>
+              {isRenaming ? (
+                <div className="flex items-center gap-1 min-w-0" onClick={e => e.stopPropagation()}>
+                  <Input
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleConfirmRename();
+                      if (e.key === 'Escape') handleCancelRename();
+                    }}
+                    autoFocus
+                    className="h-6 font-mono text-[10px] tracking-wider px-1.5 py-0 min-w-[80px] max-w-[140px]"
+                  />
+                  <span className="text-[10px] text-muted-foreground font-mono">.{extension}</span>
+                  <button onClick={handleConfirmRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
+                    <Check className="h-3 w-3" />
+                  </button>
+                  <button onClick={handleCancelRename} className="p-0.5 hover:text-foreground text-muted-foreground transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-mono text-[10px] tracking-wider text-foreground truncate">
+                    {isEnriching ? '—' : shownFilename}
+                  </span>
+                  {!isEnriching && workflow.glb_url && (
+                    <button
+                      onClick={handleStartRename}
+                      className="p-0.5 hover:text-foreground text-muted-foreground/50 transition-colors flex-shrink-0"
+                      aria-label="Rename file"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {workflow.glb_url ? (
