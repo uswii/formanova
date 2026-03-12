@@ -47,11 +47,13 @@ const MODEL_LABELS: Record<string, string> = {
 
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
-  // undefined = enrichment not started yet; [] = enriched but no shots found
   const isEnriching = workflow.screenshots === undefined;
 
   const modelLabel = workflow.mode
@@ -60,12 +62,36 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
       ? MODEL_LABELS[workflow.ai_model] ?? workflow.ai_model
       : null;
 
+  // Derive the shown filename (user rename takes priority)
+  const rawFilename = workflow.glb_filename || 'model.glb';
+  const extension = rawFilename.includes('.') ? rawFilename.split('.').pop()! : 'glb';
+  const baseName = rawFilename.replace(/\.[^.]+$/, '');
+  const shownFilename = displayName ? `${displayName}.${extension}` : rawFilename;
+
+  const handleStartRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameValue(displayName || baseName);
+    setIsRenaming(true);
+  };
+
+  const handleConfirmRename = useCallback(() => {
+    const sanitized = renameValue.trim().replace(/[<>:"/\\|?*]/g, '_');
+    if (sanitized && sanitized !== baseName) {
+      setDisplayName(sanitized);
+    }
+    setIsRenaming(false);
+  }, [renameValue, baseName]);
+
+  const handleCancelRename = () => {
+    setIsRenaming(false);
+  };
+
   const handleDownloadGlb = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!workflow.glb_url) return;
     const a = document.createElement('a');
     a.href = workflow.glb_url;
-    a.download = workflow.glb_filename || 'model.glb';
+    a.download = shownFilename;
     a.target = '_blank';
     a.click();
   };
