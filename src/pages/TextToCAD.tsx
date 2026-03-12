@@ -888,6 +888,7 @@ export default function TextToCAD() {
     onRedo: handleRedo,
     onDelete: () => handleSceneAction("delete"),
     onDuplicate: () => handleSceneAction("duplicate"),
+    onCopy: () => handleSceneAction("duplicate"),
     onSelectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: true }))),
     onDeselectAll: () => setMeshes((prev) => prev.map((m) => ({ ...m, selected: false }))),
     onSetTransformMode: setTransformMode,

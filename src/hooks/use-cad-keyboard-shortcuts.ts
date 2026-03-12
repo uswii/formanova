@@ -45,6 +45,7 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
     shortcuts: [
       { keys: ["Ctrl+A", "/", "⌘+A"], desc: "Select all" },
       { keys: ["Ctrl+Shift+A", "/", "⌘+Shift+A"], desc: "Deselect all" },
+      { keys: ["Esc"], desc: "Deselect all & orbit" },
     ],
   },
   {

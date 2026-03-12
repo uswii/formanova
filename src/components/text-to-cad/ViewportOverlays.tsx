@@ -275,7 +275,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen, onMagicTexture, onStartOver }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -286,6 +286,8 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   redoCount: number;
   onDownload: () => void;
   onFullscreen?: () => void;
+  onMagicTexture?: () => void;
+  onStartOver?: () => void;
 }) {
   if (!visible) return null;
 
@@ -329,11 +331,30 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
 
       <SideDivider />
 
+      {/* Magic Texture */}
+      {onMagicTexture && (
+        <button onClick={onMagicTexture} className={SIDE_BTN} title="Magic Texture">
+          <SideTooltip label="Magic Texture" />
+          <Wand2 className="w-3.5 h-3.5" />
+        </button>
+      )}
+
       {/* Export */}
       <button onClick={onDownload} className={`${SIDE_BTN} text-primary hover:text-primary`} title="Download">
         <SideTooltip label="Download" />
         <Download className="w-3.5 h-3.5" />
       </button>
+
+      {/* Start Over */}
+      {onStartOver && (
+        <>
+          <SideDivider />
+          <button onClick={onStartOver} className={SIDE_BTN} title="Start Over">
+            <SideTooltip label="Start Over" />
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
