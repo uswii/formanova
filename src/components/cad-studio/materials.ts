@@ -379,20 +379,24 @@ export function createSimpleGemMaterial(
   color: string = "#ffffff",
   gpuTier: "low" | "medium" | "high" = "medium",
 ): THREE.MeshPhysicalMaterial {
-  // Low-tier: less transmission, more opaque color to avoid GPU rendering bugs
+  // Convert sRGB hex → linear color space (Three.js materials expect linear
+  // when outputColorSpace = SRGBColorSpace). Chrome does NOT auto-correct this
+  // like Safari sometimes does — omitting this causes wrong gem tints.
+  const linearColor = new THREE.Color(color).convertSRGBToLinear();
+
   const isLow = gpuTier === "low";
   return new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(color),
+    color: linearColor,
     roughness: isLow ? 0.05 : 0.02,
     metalness: 0,
     transmission: isLow ? 0.6 : 1,
-    thickness: isLow ? 0.8 : 1.2,
+    thickness: isLow ? 0.8 : 1.4,
     ior: 2.4,
     clearcoat: 1,
     clearcoatRoughness: 0,
     envMapIntensity: isLow ? 1.8 : 2.5,
-    attenuationDistance: isLow ? 2.0 : 4.0,
-    attenuationColor: new THREE.Color(color),
+    attenuationDistance: isLow ? 2.0 : 0.35,
+    attenuationColor: linearColor.clone(),
     specularIntensity: isLow ? 1.5 : 1.0,
     side: THREE.DoubleSide,
   });
