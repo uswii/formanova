@@ -44,6 +44,24 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
+// ── Module-level gem materials (never recreated per render) ──
+// Hidden material for gems rendered via refraction overlay
+const GEM_HIDDEN_MATERIAL = new THREE.MeshBasicMaterial({ visible: false });
+
+// Template for over-budget gem fallback (cloned per color, cached in materialCache)
+const GEM_FALLBACK_TEMPLATE = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0xffffff),
+  metalness: 0.0,
+  roughness: 0.0,
+  transmission: 0.8,
+  ior: 2.0,
+  thickness: 1.5,
+  envMapIntensity: 2.0,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.0,
+  side: THREE.DoubleSide,
+});
+
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
   const { gl, invalidate: inv } = useThree();
@@ -1218,19 +1236,7 @@ const LoadedModel = forwardRef<
     const gems: { meshData: MeshData; refractionConfig: GemRefractionConfig; isSelected: boolean }[] = [];
     let refractionGemCount = 0;
 
-    // Cheap fallback material for gems beyond the quality-tier cap
-    const gemFallbackMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(0xffffff),
-      metalness: 0.0,
-      roughness: 0.0,
-      transmission: 0.8,
-      ior: 2.0,
-      thickness: 1.5,
-      envMapIntensity: 2.0,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.0,
-      side: THREE.DoubleSide,
-    });
+    // Reuse module-level fallback materials (see below useMemo)
 
     meshDataList.forEach((md) => {
       // Skip hidden meshes entirely
@@ -1263,7 +1269,7 @@ const LoadedModel = forwardRef<
           const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
           let simpleMat = materialCache.current.get(simpleKey);
           if (!simpleMat) {
-            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
+            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color, Q.tier);
             materialCache.current.set(simpleKey, simpleMat);
           }
           standard.push({ ...md, material: simpleMat, isSelected });
@@ -1273,15 +1279,19 @@ const LoadedModel = forwardRef<
         // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
-          const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
-          standard.push({ ...md, material: hiddenMat, isSelected });
+          standard.push({ ...md, material: GEM_HIDDEN_MATERIAL, isSelected });
           refractionGemCount++;
         } else {
-          // Over budget — use cheap fallback material (still looks like a gem, just no refraction)
+          // Over budget — use cached fallback material per color
           const color = assigned.refractionConfig.color;
-          const fallback = gemFallbackMat.clone();
-          fallback.color = new THREE.Color(color);
-          fallback.attenuationColor = new THREE.Color(color);
+          const fbKey = `gem_fallback_${color}`;
+          let fallback = materialCache.current.get(fbKey);
+          if (!fallback) {
+            fallback = GEM_FALLBACK_TEMPLATE.clone();
+            (fallback as THREE.MeshPhysicalMaterial).color = new THREE.Color(color);
+            (fallback as THREE.MeshPhysicalMaterial).attenuationColor = new THREE.Color(color);
+            materialCache.current.set(fbKey, fallback);
+          }
           standard.push({ ...md, material: fallback, isSelected });
         }
         return;
@@ -1609,10 +1619,10 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
     const effectiveQ = useMemo(() => getSettingsForMode(qualityMode), [qualityMode]);
 
     // ── Stable DPR clamp (prevents Chrome renderer resets) ──
-    const safeDpr = useMemo(() => {
+    const safeDpr = useMemo((): number | [number, number] => {
       const dpr = effectiveQ.dpr;
       if (Array.isArray(dpr)) {
-        return [dpr[0], Math.min(dpr[1], 1.5)];
+        return [dpr[0], Math.min(dpr[1], 1.5)] as [number, number];
       }
       return Math.min(dpr, 1.5);
     }, [effectiveQ.dpr]);
