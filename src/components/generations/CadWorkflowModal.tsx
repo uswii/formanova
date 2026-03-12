@@ -148,8 +148,9 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
       output: Record<string, unknown>,
       findAzureUri: (obj: unknown) => string | null,
     ) {
-      // GLB from glb_artifact.uri
-      const glbUri = (output as any)?.glb_artifact?.uri;
+      // GLB from glb_artifact.uri → fallback to original_glb_artifact.uri
+      const glbUri = (output as any)?.glb_artifact?.uri
+        ?? (output as any)?.original_glb_artifact?.uri;
       if (typeof glbUri === 'string' && glbUri.startsWith('https://')) {
         setGlbUrl(glbUri);
       } else if (glbUri) {
