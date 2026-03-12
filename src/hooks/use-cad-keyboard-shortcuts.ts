@@ -203,6 +203,7 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
           a.onSetTransformMode("scale");
           break;
         case "escape":
+          a.onDeselectAll();
           a.onSetTransformMode("orbit");
           break;
         case "w":
