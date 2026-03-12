@@ -1274,7 +1274,7 @@ const LoadedModel = forwardRef<
           let simpleMat = materialCache.current.get(simpleKey);
           if (!simpleMat) {
             simpleMat = simpleProfile === "safe"
-              ? createSimpleGemMaterial(assigned.refractionConfig.color, Q.tier)
+              ? createSimpleGemMaterial(assigned.refractionConfig.color)
               : assigned.create();
 
             if ("side" in simpleMat) {
