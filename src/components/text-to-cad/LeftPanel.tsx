@@ -1,10 +1,12 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Diamond, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import { Diamond, ChevronDown, ChevronRight, RotateCcw, Sparkles, Shield, AlertTriangle } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
+import { Switch } from "@/components/ui/switch";
+import type { GemMode } from "./GemInstanceRenderer";
 
 interface LeftPanelProps {
   model: string;
