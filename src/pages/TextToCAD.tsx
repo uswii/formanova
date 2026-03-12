@@ -965,6 +965,9 @@ export default function TextToCAD() {
               }}
               onGlbUpload={handleGlbUpload}
               onReset={hasModel ? handleReset : undefined}
+              gemMode={gemMode}
+              onGemModeChange={setGemMode}
+              refractionBlocked={refractionBlocked}
               creditBlock={creditBlock ? (
                 <InsufficientCreditsInline
                   currentBalance={creditBlock.currentBalance}
