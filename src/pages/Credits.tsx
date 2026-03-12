@@ -127,8 +127,7 @@ export default function Credits() {
     setPromoResult(null);
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await authenticatedFetch(`${supabaseUrl}/functions/v1/redeem-promo`, {
+      const response = await authenticatedFetch('/api/credits/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: promoCode.trim().toUpperCase() }),
@@ -136,13 +135,16 @@ export default function Credits() {
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        setPromoResult({ type: 'success', message: `Congrats! ${data.credits_awarded} free credits have been added to your account.` });
+      if (response.ok && data.status === 'success') {
+        setPromoResult({ type: 'success', message: `${data.credits_added} credits added to your account.` });
         setPromoCode('');
-        // Refresh balance
         await refreshCredits();
+      } else if (response.ok && data.status === 'already_redeemed') {
+        setPromoResult({ type: 'error', message: 'You have already used this promo code.' });
       } else {
-        setPromoResult({ type: 'error', message: data.message || 'Invalid promo code. Please try again.' });
+        // API returns { detail: "..." } for error cases
+        const msg = data.detail || 'This promo code is not valid.';
+        setPromoResult({ type: 'error', message: msg });
       }
     } catch {
       setPromoResult({ type: 'error', message: 'Something went wrong. Please try again.' });
