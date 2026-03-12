@@ -783,7 +783,13 @@ export default function TextToCAD() {
     );
   };
 
-  const handleMeshAction = (action: string) => {
+  const handleMeshAction = useCallback((action: string) => {
+    const needsSelection = ["hide", "show", "isolate"].includes(action);
+    if (needsSelection && selectedNames.length === 0) {
+      showSelectionWarning("Select meshes first");
+      return;
+    }
+
     // Track visibility changes for undo (skip selection-only changes)
     const isVisibilityAction = ["hide", "show", "show-all", "isolate"].includes(action);
     if (isVisibilityAction) pushUndo(`Visibility: ${action}`);
@@ -800,7 +806,7 @@ export default function TextToCAD() {
         default: return prev;
       }
     });
-  };
+  }, [selectedNames, pushUndo, showSelectionWarning]);
 
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
   const selectionWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
