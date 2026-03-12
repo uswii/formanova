@@ -325,7 +325,7 @@ export default function Credits() {
               variant="default"
               className="font-mono text-[10px] tracking-[0.2em] uppercase px-6"
             >
-              {promoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+              {promoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Redeem'}
             </Button>
           </div>
 
