@@ -1128,28 +1128,7 @@ export default function TextToCAD() {
                   <span className="font-mono text-[9px] uppercase tracking-wider font-bold">Start Over</span>
                 </button>
               )}
-              {/* Magic Texture button */}
-              {hasModel && !isGenerating && !isModelLoading && (
-                <button
-                  onClick={() => {
-                    if (magicTexturing) {
-                      setMagicTexturing(false);
-                      canvasRef.current?.removeAllTextures();
-                    } else {
-                      setMagicTexturing(true);
-                      canvasRef.current?.applyMagicTextures();
-                    }
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-2 backdrop-blur-sm border rounded-sm shadow-lg transition-all duration-150 cursor-pointer ${
-                    magicTexturing
-                      ? 'bg-primary/15 border-primary/40 text-primary hover:bg-primary/25'
-                      : 'bg-card/85 border-border/40 text-muted-foreground/80 hover:text-foreground hover:bg-accent/60'
-                  }`}
-                  title={magicTexturing ? "Remove Auto Textures" : "Auto-assign materials based on mesh names"}
-                >
-                  <Wand2 className="w-3.5 h-3.5" />
-                </button>
-              )}
+              {/* Magic Texture button moved to LeftPanel */}
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
               <QualityToggle
                 visible={hasModel && !isGenerating && !isModelLoading}
