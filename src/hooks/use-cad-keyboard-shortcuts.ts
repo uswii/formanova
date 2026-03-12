@@ -40,10 +40,18 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
     ],
   },
   {
+    title: "Clipboard",
+    shortcuts: [
+      { keys: ["Ctrl+C", "/", "⌘+C"], desc: "Copy selected" },
+      { keys: ["Ctrl+V", "/", "⌘+V"], desc: "Paste" },
+      { keys: ["Ctrl+X", "/", "⌘+X"], desc: "Cut selected" },
+    ],
+  },
+  {
     title: "Selection",
     shortcuts: [
       { keys: ["Ctrl+A", "/", "⌘+A"], desc: "Select all" },
-      { keys: ["Ctrl+Shift+A", "/", "⌘+Shift+A"], desc: "Deselect all" },
+      { keys: ["Esc"], desc: "Deselect all" },
     ],
   },
   {
