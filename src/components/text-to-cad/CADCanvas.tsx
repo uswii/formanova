@@ -44,6 +44,24 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
+// ── Module-level gem materials (never recreated per render) ──
+// Hidden material for gems rendered via refraction overlay
+const GEM_HIDDEN_MATERIAL = new THREE.MeshBasicMaterial({ visible: false });
+
+// Template for over-budget gem fallback (cloned per color, cached in materialCache)
+const GEM_FALLBACK_TEMPLATE = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0xffffff),
+  metalness: 0.0,
+  roughness: 0.0,
+  transmission: 0.8,
+  ior: 2.0,
+  thickness: 1.5,
+  envMapIntensity: 2.0,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.0,
+  side: THREE.DoubleSide,
+});
+
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
   const { gl, invalidate: inv } = useThree();
