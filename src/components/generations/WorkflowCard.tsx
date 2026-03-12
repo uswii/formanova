@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Maximize2, Box, Download } from 'lucide-react';
+import { Maximize2, Box, Download, Pencil, Check, X } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type { WorkflowSummary } from '@/lib/generation-history-api';
 import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
