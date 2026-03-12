@@ -16,7 +16,6 @@ import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS, c
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
 import type { QualityMode } from "@/lib/gpu-detect";
-import GemInstanceRenderer from "./GemInstanceRenderer";
 import type { GemMode } from "./GemInstanceRenderer";
 export type { GemMode };
 import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
@@ -44,9 +43,6 @@ const SELECTION_MATERIAL = new THREE.MeshPhysicalMaterial({
   emissiveIntensity: 0.3,
   side: THREE.DoubleSide,
 });
-
-// ── Invisible material for gem meshes: allows raycasting (clicks/selection) while InstancedMesh handles rendering ──
-const GEM_RAYCAST_MATERIAL = new THREE.MeshBasicMaterial({ visible: false });
 
 // ── Dynamic light intensity controller (updates toneMappingExposure + invalidates) ──
 function LightController({ intensity }: { intensity: number }) {
@@ -360,8 +356,6 @@ const LoadedModel = forwardRef<
   const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
-  const { scene: r3fScene } = useThree();
-  const gemRendererRef = useRef<GemInstanceRenderer | null>(null);
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
@@ -415,12 +409,6 @@ const LoadedModel = forwardRef<
         idx++;
       }
     });
-
-    // Dispose gem instance renderer on scene change
-    if (gemRendererRef.current) {
-      gemRendererRef.current.dispose();
-      gemRendererRef.current = null;
-    }
 
     // Dispose old caches
     flatGeoCache.current.forEach((g) => g.dispose());
@@ -742,7 +730,6 @@ const LoadedModel = forwardRef<
       }
     }
     onTransformEnd?.();
-    gemRendererRef.current?.updateFromMeshes();
     inv();
   }, [syncTransformFromObject, onTransformEnd, inv, selectedMeshNames]);
 
@@ -1204,7 +1191,7 @@ const LoadedModel = forwardRef<
     for (const name of Object.keys(assignedMaterials)) {
       if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
         for (const [key] of materialCache.current) {
-          if (key.includes(`_${name}_`) || key.includes(`simple_gem_${name}`)) {
+          if (key.includes(`_${name}_`)) {
             materialCache.current.get(key)?.dispose();
             materialCache.current.delete(key);
           }
@@ -1214,7 +1201,7 @@ const LoadedModel = forwardRef<
     for (const name of Object.keys(prevAssigned)) {
       if (!assignedMaterials[name] && prevAssigned[name]) {
         for (const [key] of materialCache.current) {
-          if (key.includes(`_${name}_`) || key.includes(`simple_gem_${name}`)) {
+          if (key.includes(`_${name}_`)) {
             materialCache.current.get(key)?.dispose();
             materialCache.current.delete(key);
           }
@@ -1257,10 +1244,15 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        // ── GEM MODE: "simple" → GemInstanceRenderer handles visual rendering via InstancedMesh.
-        //    Source meshes use invisible material so they remain raycastable (click/select). ──
+        // ── GEM MODE: "simple" → use high-quality PBR transmission (crash-safe, no custom shader) ──
         if (gemMode === "simple") {
-          standard.push({ ...md, material: GEM_RAYCAST_MATERIAL, isSelected });
+          const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
+          let simpleMat = materialCache.current.get(simpleKey);
+          if (!simpleMat) {
+            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
+            materialCache.current.set(simpleKey, simpleMat);
+          }
+          standard.push({ ...md, material: simpleMat, isSelected });
           return;
         }
 
@@ -1301,60 +1293,6 @@ const LoadedModel = forwardRef<
     onDebugGemStats?.(gemTotal, gemRefraction, gemFallback, Q.gemBounces);
   }, [gemTotal, gemRefraction, gemFallback, onDebugGemStats]);
 
-  // ── Gem Instancing: batch simple-mode gem meshes into InstancedMesh for fewer draw calls ──
-  // Recompute only when the set of gem meshes changes (not on every transform)
-  const gemMeshKey = useMemo(() => {
-    return meshDataList
-      .filter(md => assignedMaterials[md.name]?.category === "gemstone" && assignedMaterials[md.name]?.refractionConfig)
-      .map(md => md.name)
-      .sort()
-      .join(',');
-  }, [meshDataList, assignedMaterials]);
-
-  useEffect(() => {
-    if (gemMode !== "simple" || !gemMeshKey) {
-      if (gemRendererRef.current) {
-        gemRendererRef.current.dispose();
-        gemRendererRef.current = null;
-      }
-      return;
-    }
-
-    // Collect gem mesh refs (populated by React ref callbacks during render)
-    const gemMeshes: THREE.Mesh[] = [];
-    for (const name of gemMeshKey.split(',')) {
-      if (!name) continue;
-      const meshObj = meshRefs.current.get(name);
-      if (meshObj) gemMeshes.push(meshObj);
-    }
-
-    if (gemMeshes.length === 0) {
-      if (gemRendererRef.current) {
-        gemRendererRef.current.dispose();
-        gemRendererRef.current = null;
-      }
-      return;
-    }
-
-    // Dispose previous renderer before creating new one
-    if (gemRendererRef.current) {
-      gemRendererRef.current.dispose();
-    }
-
-    const simpleMat = createSimpleGemMaterial();
-    gemRendererRef.current = new GemInstanceRenderer(r3fScene, gemMeshes, simpleMat);
-    console.log(`[CADCanvas] GemInstanceRenderer: ${gemMeshes.length} gems batched into ~${gemRendererRef.current.instanceCount} instanced draw calls`);
-    inv();
-
-    return () => {
-      if (gemRendererRef.current) {
-        gemRendererRef.current.dispose();
-        gemRendererRef.current = null;
-      }
-    };
-  }, [gemMode, gemMeshKey, r3fScene, inv]);
-
-
   // ── Imperative transform sync: prevents React props from fighting TransformControls ──
   useEffect(() => {
     if (_isTransformDragging) return;
@@ -1366,7 +1304,6 @@ const LoadedModel = forwardRef<
         mesh.scale.copy(md.scale);
       }
     });
-    gemRendererRef.current?.updateFromMeshes();
     inv();
   }, [meshDataList, inv]);
 
