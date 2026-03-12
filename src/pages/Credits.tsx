@@ -180,7 +180,7 @@ export default function Credits() {
               Dashboard
             </Link>
             <div className="flex items-center gap-4 mt-1">
-              <img src={creditCoinIcon} alt="" className="h-10 w-10 object-contain" />
+              <img src={creditCoinIcon} alt="" className="h-16 w-16 object-contain" />
               <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide text-foreground leading-none">
                 My Credits
               </h1>

@@ -139,17 +139,19 @@ export default function Generations() {
   }, [user]);
 
   // ── Pagination helper ─────────────────────────────────────────────
-  const getSection = useCallback(
+    const getSection = useCallback(
     (source: SourceType, page: number, requireImage = false): SectionState => {
       const statusOk = source === 'cad_text'
         ? (w: WorkflowSummary) => w.status === 'completed' || w.status === 'failed'
         : (w: WorkflowSummary) => w.status === 'completed';
-      const filtered = allWorkflows.filter(
-        (w) =>
-          w.source_type === source &&
-          statusOk(w) &&
-          (!requireImage || w.thumbnail_url !== ''),
-      );
+      const filtered = allWorkflows.filter((w) => {
+        if (w.source_type !== source || !statusOk(w)) return false;
+        // Skip photo/cad_render cards that enriched but have no thumbnail
+        if (requireImage && w.thumbnail_url === '') return false;
+        // Skip cad_text cards that enriched but have no GLB
+        if (source === 'cad_text' && w.glb_url !== undefined && !w.glb_url && w.thumbnail_url !== undefined) return false;
+        return true;
+      });
       const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
       const start = (page - 1) * PER_PAGE;
       return {
