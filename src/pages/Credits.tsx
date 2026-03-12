@@ -214,9 +214,6 @@ export default function Credits() {
                   credits available
                 </span>
               </div>
-              <span className="font-mono text-[9px] tracking-wider text-muted-foreground">
-                {credits !== null ? `${Math.round(usagePercent)}%` : ''}
-              </span>
             </div>
             <Progress value={usagePercent} className="h-2 bg-secondary" />
             <p className="font-mono text-[9px] tracking-wider text-muted-foreground mt-2">
