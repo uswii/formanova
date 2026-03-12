@@ -372,10 +372,11 @@ export function findMaterialByName(name: string): MaterialDef | undefined {
 // without the heavy ray-traced MeshRefractionMaterial shader that crashes
 // Chrome on macOS (ANGLE Metal backend).
 export function createSimpleGemMaterial(color: string = "#ffffff"): THREE.MeshPhysicalMaterial {
-  const c = new THREE.Color(color);
+  const c = new THREE.Color(color).convertSRGBToLinear();
+  const ac = new THREE.Color(color).convertSRGBToLinear();
   return new THREE.MeshPhysicalMaterial({
     color: c,
-    emissive: c,
+    emissive: ac,
     emissiveIntensity: 0.12,   // gives the color a floor even if transmission is dark
     roughness: 0.05,
     metalness: 0.0,
@@ -386,7 +387,7 @@ export function createSimpleGemMaterial(color: string = "#ffffff"): THREE.MeshPh
     clearcoatRoughness: 0.0,
     envMapIntensity: 2.0,
     attenuationDistance: 0.8,  // short = aggressive tint, color visible even on ANGLE
-    attenuationColor: c,
+    attenuationColor: ac,
     side: THREE.DoubleSide,
   });
 }
