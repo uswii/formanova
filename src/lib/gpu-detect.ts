@@ -124,6 +124,25 @@ export function getQualitySettings(): QualitySettings {
   return cached;
 }
 
+/** Get the raw GPU renderer string from WebGL (cached). */
+let cachedRenderer: string | null = null;
+export function getGPURendererString(): string {
+  if (cachedRenderer !== null) return cachedRenderer;
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    if (gl) {
+      const ext = (gl as WebGLRenderingContext).getExtension("WEBGL_debug_renderer_info");
+      if (ext) {
+        cachedRenderer = (gl as WebGLRenderingContext).getParameter(ext.UNMASKED_RENDERER_WEBGL) || "unknown";
+        return cachedRenderer;
+      }
+    }
+  } catch { /* ignore */ }
+  cachedRenderer = "unknown";
+  return cachedRenderer;
+}
+
 export function getQualityTier(): QualityTier {
   return getQualitySettings().tier;
 }

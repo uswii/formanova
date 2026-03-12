@@ -64,6 +64,16 @@ export function trackFormSubmit(formName: string) {
   capture('form_submitted', { form: formName });
 }
 
+// ═══════ 3D Rendering Diagnostics ═══════
+
+export function trackWebGLContextLost(stats: Record<string, unknown>) {
+  capture('webgl_context_lost', stats);
+}
+
+export function trackWebGLContextRestored(stats: Record<string, unknown>) {
+  capture('webgl_context_restored', stats);
+}
+
 // ═══════ User Identification ═══════
 
 export function identifyUser(userId: string, properties?: Record<string, unknown>) {
