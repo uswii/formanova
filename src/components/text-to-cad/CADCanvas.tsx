@@ -1190,7 +1190,6 @@ const LoadedModel = forwardRef<
     const prevAssigned = prevAssignedRef.current;
     for (const name of Object.keys(assignedMaterials)) {
       if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
-        // Material changed — purge old and new cache keys so fresh material is created
         for (const [key] of materialCache.current) {
           if (key.includes(`_${name}_`)) {
             materialCache.current.get(key)?.dispose();
@@ -1199,7 +1198,6 @@ const LoadedModel = forwardRef<
         }
       }
     }
-    // Also handle meshes that had materials removed (undo)
     for (const name of Object.keys(prevAssigned)) {
       if (!assignedMaterials[name] && prevAssigned[name]) {
         for (const [key] of materialCache.current) {
@@ -1246,7 +1244,19 @@ const LoadedModel = forwardRef<
 
       // Check if this mesh is assigned a gemstone material with refraction config
       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
-        // If we're within the refraction budget, use full refraction
+        // ── GEM MODE: "simple" → use high-quality PBR transmission (crash-safe, no custom shader) ──
+        if (gemMode === "simple") {
+          const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
+          let simpleMat = materialCache.current.get(simpleKey);
+          if (!simpleMat) {
+            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
+            materialCache.current.set(simpleKey, simpleMat);
+          }
+          standard.push({ ...md, material: simpleMat, isSelected });
+          return;
+        }
+
+        // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
         if (refractionGemCount < Q.maxGemRefraction) {
           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
           const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -1273,7 +1283,7 @@ const LoadedModel = forwardRef<
     });
 
     return { standardElements: standard, gemElements: gems, refractionGemCount };
-  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
+  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames, gemMode]);
 
   // Report gem stats to parent for DebugHUD (event-driven, not per-frame)
   const gemTotal = Object.values(assignedMaterials).filter(m => m?.category === "gemstone").length;
