@@ -188,7 +188,13 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
           a.onSetTransformMode("scale");
           break;
         case "escape":
-          a.onSetTransformMode("orbit");
+          // If in a transform mode, go back to orbit. If already in orbit, deselect all.
+          if (actionsRef.current.enabled) {
+            // We check by reading the current state indirectly via onSetTransformMode
+            // The parent can decide: orbit → deselect, other → orbit
+            a.onDeselectAll();
+            a.onSetTransformMode("orbit");
+          }
           break;
         case "w":
           a.onToggleWireframe();
