@@ -1794,6 +1794,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
                 onLoadEnd={handleLoadEnd}
                 onModelReady={onModelReady}
                 magicTexturing={magicTexturing}
+                gemMode={gemMode}
+                onGemModeForced={onGemModeForced}
                 onDebugGemStats={debugActive ? (total, refraction, fallback, bounces) => {
                   setDebugStats(prev => ({
                     ...prev,
