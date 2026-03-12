@@ -17,13 +17,21 @@ export interface ResolvedNode {
 }
 
 /**
+ * Preferred node resolution order for CAD workflows.
+ * build_corrected (validated/corrected GLB) is preferred over build_initial (raw GLB).
+ */
+const CAD_NODE_PRIORITY = ['build_corrected', 'build_initial'] as const;
+
+/**
  * Resolve the best available output from a workflow's steps array.
  * 
- * 1. Group by node_instance_id, order nodes by latest created_at.
- * 2. Check if the last node has a successful attempt.
- * 3. If yes → return it (normal).
- * 4. If no → walk backwards and return the most recent successful node (fallback).
- * 5. If none succeeded → return null.
+ * For CAD workflows, checks nodes in explicit priority order:
+ *   1. build_corrected — use glb_artifact
+ *   2. build_initial  — use original_glb_artifact
+ * 
+ * If build_corrected failed or has no result, silently falls back to build_initial.
+ * For non-CAD workflows, falls back to generic last-node-backwards walk.
+ * If none succeeded → return null.
  */
 export function resolveWorkflowOutput(steps: WorkflowStep[]): ResolvedNode | null {
   if (!steps?.length) return null;
@@ -50,11 +58,9 @@ export function resolveWorkflowOutput(steps: WorkflowStep[]): ResolvedNode | nul
         latestAt: stepTime,
       });
     } else {
-      // Update latest timestamp
       if (stepTime > existing.latestAt) {
         existing.latestAt = stepTime;
       }
-      // Track best successful attempt (highest attempt_seq)
       if (step.is_success) {
         const existingSeq = existing.bestSuccess?.attempt_seq ?? -1;
         const newSeq = step.attempt_seq ?? 0;
@@ -65,22 +71,41 @@ export function resolveWorkflowOutput(steps: WorkflowStep[]): ResolvedNode | nul
     }
   }
 
-  // Sort nodes by latest created_at (chronological order)
+  if (nodeMap.size === 0) return null;
+
+  // ── CAD-specific priority resolution ──
+  // Check if any of the known CAD nodes exist in this workflow
+  const hasCadNodes = CAD_NODE_PRIORITY.some(n => nodeMap.has(n));
+
+  if (hasCadNodes) {
+    // Walk the priority list: first match with a successful attempt wins
+    for (const nodeName of CAD_NODE_PRIORITY) {
+      const node = nodeMap.get(nodeName);
+      if (node?.bestSuccess) {
+        const isFallback = nodeName !== CAD_NODE_PRIORITY[0];
+        return {
+          step: node.bestSuccess,
+          isFallback,
+          // Silent fallback — no failedNodeName so no banner is shown
+          failedNodeName: isFallback ? CAD_NODE_PRIORITY[0] : undefined,
+        };
+      }
+    }
+    // None of the CAD nodes succeeded
+    return null;
+  }
+
+  // ── Generic fallback: last node backwards walk ──
   const orderedNodes = [...nodeMap.entries()].sort((a, b) =>
     a[1].latestAt.localeCompare(b[1].latestAt)
   );
 
-  if (orderedNodes.length === 0) return null;
-
-  // Check the last (final) node
   const [lastNodeId, lastNodeData] = orderedNodes[orderedNodes.length - 1];
 
   if (lastNodeData.bestSuccess) {
-    // Normal case — last node succeeded
     return { step: lastNodeData.bestSuccess, isFallback: false };
   }
 
-  // Walk backwards to find most recent successful node
   for (let i = orderedNodes.length - 2; i >= 0; i--) {
     const [, nodeData] = orderedNodes[i];
     if (nodeData.bestSuccess) {
@@ -92,7 +117,6 @@ export function resolveWorkflowOutput(steps: WorkflowStep[]): ResolvedNode | nul
     }
   }
 
-  // No node succeeded at all
   return null;
 }
 

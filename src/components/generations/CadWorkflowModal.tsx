@@ -81,8 +81,12 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
 
         if (resolved) {
           // New API path — use resolved node output
-          setIsFallbackResult(resolved.isFallback);
-          if (resolved.isFallback) {
+          // Silent fallback for CAD nodes (build_corrected → build_initial)
+          // Only show banner for non-CAD generic fallbacks
+          const showBanner = resolved.isFallback && resolved.failedNodeName
+            && !['build_corrected', 'build_initial'].includes(resolved.failedNodeName);
+          setIsFallbackResult(showBanner);
+          if (showBanner) {
             setFallbackMessage(
               `Showing best available result — final step "${resolved.failedNodeName?.replace(/_/g, ' ')}" did not complete`
             );
