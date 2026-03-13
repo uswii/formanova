@@ -1496,6 +1496,7 @@ const LoadedModel = forwardRef<
           material={md.material}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
+            if (_isTransformDragging) return;
             onMeshClick(md.name, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
           }}
         />
@@ -1671,6 +1672,7 @@ function DiamondEnvMapConsumer({
       castShadow
       onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
+        if (_isTransformDragging) return;
         onMeshClick(meshName, e.nativeEvent.shiftKey || e.nativeEvent.ctrlKey || e.nativeEvent.metaKey);
       }}
     >
