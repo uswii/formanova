@@ -19,7 +19,7 @@ import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
 import ViewportDisplayMenu from "@/components/text-to-cad/ViewportDisplayMenu";
-import KeyboardShortcutsPanel, { KeyboardShortcutsButton } from "@/components/text-to-cad/KeyboardShortcutsPanel";
+import KeyboardShortcutsPanel from "@/components/text-to-cad/KeyboardShortcutsPanel";
 import GenerationProgress from "@/components/text-to-cad/GenerationProgress";
 import { useCADKeyboardShortcuts } from "@/hooks/use-cad-keyboard-shortcuts";
 import {
@@ -68,6 +68,7 @@ export default function TextToCAD() {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1117,25 +1118,27 @@ export default function TextToCAD() {
               />
             )}
             
-            {/* Bottom-left vertical toolbar: display, keyboard, gem toggle */}
+            {/* Bottom-left: gem toggle only */}
             {hasModel && !isGenerating && !isModelLoading && (
-              <div className="absolute bottom-4 left-4 z-50 flex flex-col gap-1.5 items-start">
-                {/* Gem toggle (proper switch) */}
+              <div className="absolute bottom-4 left-4 z-50">
                 <GemToggle
                   visible
                   mode={gemMode}
                   onModeChange={setGemMode}
                 />
-                {/* Icon row: Eye + Keyboard */}
-                <div className="flex gap-1.5">
-                  <ViewportDisplayMenu visible onSceneAction={handleSceneAction} />
-                  <div className="relative">
-                    <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
-                    <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-                  </div>
-                </div>
               </div>
             )}
+
+            {/* Display menu (anchored to side toolbar) */}
+            <ViewportDisplayMenu
+              visible={hasModel && !isGenerating && !isModelLoading}
+              open={displayMenuOpen}
+              onOpenChange={setDisplayMenuOpen}
+              onSceneAction={handleSceneAction}
+              anchor="side-toolbar"
+            />
+            {/* Keyboard shortcuts panel */}
+            <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
             {/* Selection warning — centered overlay instead of toast */}
             <AnimatePresence>
@@ -1183,6 +1186,8 @@ export default function TextToCAD() {
                   else el.requestFullscreen();
                 }
               }}
+              onDisplayMenu={() => setDisplayMenuOpen(p => !p)}
+              onKeyboardShortcuts={() => setShortcutsOpen(true)}
             />
           </div>
         </ResizablePanel>

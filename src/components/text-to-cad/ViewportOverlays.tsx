@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, ChevronUp, ChevronDown, Wand2 } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, ChevronUp, ChevronDown, Eye, Keyboard } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 import type { MeshTransformData } from "./CADCanvas";
@@ -15,7 +15,7 @@ const AXES = ["X", "Y", "Z"] as const;
 const AXIS_COLORS = ["text-red-400", "text-green-400", "text-blue-400"];
 
 // ── Viewer Tool Button ──
-const VT_BTN = "h-[40px] px-5 text-[11px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-2";
+const VT_BTN = "h-[40px] min-w-[72px] flex-1 text-[11px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center justify-center gap-2";
 const VT_BTN_DEFAULT = `${VT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40`;
 const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 
@@ -273,7 +273,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen, onDisplayMenu, onKeyboardShortcuts }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -284,6 +284,8 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   redoCount: number;
   onDownload: () => void;
   onFullscreen?: () => void;
+  onDisplayMenu?: () => void;
+  onKeyboardShortcuts?: () => void;
 }) {
   if (!visible) return null;
 
@@ -322,6 +324,22 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
         <button onClick={onFullscreen} className={SIDE_BTN} title="Fullscreen">
           <SideTooltip label="Fullscreen" />
           <Maximize className="w-3.5 h-3.5" />
+        </button>
+      )}
+
+      <SideDivider />
+
+      {/* Display & Shortcuts */}
+      {onDisplayMenu && (
+        <button onClick={onDisplayMenu} className={SIDE_BTN} title="Display options">
+          <SideTooltip label="Display" />
+          <Eye className="w-3.5 h-3.5" />
+        </button>
+      )}
+      {onKeyboardShortcuts && (
+        <button onClick={onKeyboardShortcuts} className={SIDE_BTN} title="Keyboard shortcuts">
+          <SideTooltip label="Shortcuts" />
+          <Keyboard className="w-3.5 h-3.5" />
         </button>
       )}
 
