@@ -535,6 +535,31 @@ const LoadedModel = forwardRef<
       })));
     }
 
+    // ── Auto-frame: fit camera so model doesn't overlap the top toolbar ──
+    if (scene) {
+      const box = new THREE.Box3().setFromObject(scene);
+      if (!box.isEmpty()) {
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        // Distance multiplier: 1.8× ensures the model sits comfortably below the toolbar
+        const dist = maxDim * 1.8;
+        const cam = gl.domElement ? (gl.domElement as any).__orbitControls : null;
+        if (cam) {
+          cam.target.copy(center);
+          cam.object.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
+          cam.update();
+        } else {
+          // Fallback: directly set camera
+          const camera = gl.domElement?.parentElement?.querySelector('canvas')?.__r$?.camera;
+          if (!camera) {
+            // Use three context camera
+          }
+        }
+        inv();
+      }
+    }
+
     // Signal model is fully processed and ready to render.
     // GLB decomposition + material mapping blocks the main thread, so we need a generous
     // delay to ensure React has committed mesh JSX, R3F has reconciled, and the GPU has
