@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, Shield } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, ScanEye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -183,7 +183,7 @@ export function Header() {
                         onClick={() => navigate('/admin/promo-codes')}
                         className="cursor-pointer text-sm"
                       >
-                        <Shield className="h-4 w-4 mr-2" />
+                        <ScanEye className="h-4 w-4 mr-2" />
                         Admin
                       </DropdownMenuItem>
                     )}
