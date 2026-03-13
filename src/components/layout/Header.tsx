@@ -118,14 +118,14 @@ export function Header() {
                     {visibleDelta && (
                       <motion.span
                         key={visibleDelta.id}
-                        initial={{ opacity: 0, y: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, y: -8, scale: 1 }}
-                        exit={{ opacity: 0, y: -20, scale: 0.8 }}
-                        transition={{ duration: 0.35, ease: 'easeOut' }}
-                        className={`absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full font-mono text-[10px] font-bold pointer-events-none whitespace-nowrap ${
+                        initial={{ opacity: 0, y: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, y: 10, scale: 1 }}
+                        exit={{ opacity: 0, y: 28, scale: 0.85 }}
+                        transition={{ duration: 0.45, ease: 'easeOut' }}
+                        className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2.5 py-1 rounded-full font-mono text-sm font-bold pointer-events-none whitespace-nowrap shadow-lg ${
                           visibleDelta.amount > 0
-                            ? 'bg-primary/15 text-primary'
-                            : 'bg-destructive/15 text-destructive'
+                            ? 'bg-primary/20 text-primary'
+                            : 'bg-destructive/20 text-destructive'
                         }`}
                       >
                         {visibleDelta.amount > 0 ? '+' : ''}{visibleDelta.amount}
