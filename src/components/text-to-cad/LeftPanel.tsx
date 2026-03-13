@@ -1,6 +1,6 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Diamond, ChevronDown, ChevronRight, RotateCcw, Sparkles, Shield, AlertTriangle, Wand2 } from "lucide-react";
+import { Diamond, ChevronDown, ChevronRight, RotateCcw, Sparkles, Shield, AlertTriangle } from "lucide-react";
 import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
@@ -132,21 +132,6 @@ export default function LeftPanel({
             </button>
           )}
 
-          {/* Magic Texture button — shown after model exists */}
-          {hasModel && !isGenerating && (
-            <button
-              onClick={() => onMagicTexturingChange(!magicTexturing)}
-              className={`w-full py-2.5 lg:py-3 px-3 lg:px-4 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 border ${
-                magicTexturing
-                  ? 'bg-primary/15 border-primary/40 text-primary hover:bg-primary/25'
-                  : 'bg-muted/30 border-border text-muted-foreground hover:text-foreground hover:bg-accent/50'
-              }`}
-            >
-              <Wand2 className="w-4 h-4 flex-shrink-0" />
-              <span>{magicTexturing ? 'Remove Textures' : 'Magic Texture'}</span>
-            </button>
-          )}
-
           {/* Upload GLB — only shown when a model exists */}
           <input type="file" ref={glbInputRef} accept=".glb,.gltf" className="hidden" onChange={handleGlbUpload} />
           {hasModel && (
@@ -161,8 +146,6 @@ export default function LeftPanel({
               <span>Upload Ring Part</span>
             </button>
           )}
-
-          {/* Start Over button moved to viewport bottom-left */}
 
           {/* Magic Texturing checkbox — hidden, keep for future re-enable
           {hasModel && (
@@ -399,6 +382,19 @@ export default function LeftPanel({
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Start Over button — pinned above status bar */}
+      {hasModel && !isGenerating && onReset && (
+        <div className="px-4 lg:px-5 py-3 border-t border-border bg-card">
+          <button
+            onClick={onReset}
+            className="w-full py-2.5 px-4 text-[11px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 border border-destructive/40 text-destructive hover:bg-destructive/10 active:scale-[0.98]"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Start Over</span>
+          </button>
         </div>
       )}
 

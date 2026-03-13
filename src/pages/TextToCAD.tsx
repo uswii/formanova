@@ -3,7 +3,7 @@ import { useCredits } from "@/contexts/CreditsContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, RotateCcw, Wand2 } from "lucide-react";
+import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { performCreditPreflight, type PreflightResult } from "@/lib/credit-preflight";
@@ -1117,18 +1117,7 @@ export default function TextToCAD() {
             )}
             
             <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
-              {/* Start Over button */}
-              {hasModel && !isGenerating && !isModelLoading && (
-                <button
-                  onClick={handleReset}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-card/85 backdrop-blur-sm border border-border/40 rounded-sm shadow-lg text-muted-foreground/80 hover:text-foreground hover:bg-accent/60 transition-all duration-150 cursor-pointer"
-                  title="Start Over"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold">Start Over</span>
-                </button>
-              )}
-              {/* Magic Texture button moved to LeftPanel */}
+              {/* Start Over moved to LeftPanel */}
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
               <QualityToggle
                 visible={hasModel && !isGenerating && !isModelLoading}
