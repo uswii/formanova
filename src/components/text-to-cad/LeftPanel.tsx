@@ -303,8 +303,9 @@ export default function LeftPanel({
                           >
                             <span>Rebuild Part</span>
                             <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
+                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">≤</span>
                               <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? `≤ ${estimatedCost}` : '—')}</span>
+                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? estimatedCost : '—')}</span>
                             </span>
                           </button>
                         </div>
