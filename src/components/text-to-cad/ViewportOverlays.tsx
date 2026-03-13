@@ -1,4 +1,4 @@
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard } from "lucide-react";
+import { Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
@@ -11,15 +11,14 @@ const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 export function ViewportToolbar({
   mode,
   setMode,
-  onResetTransform,
 }: {
   mode: string;
   setMode: (m: string) => void;
   transformData?: unknown;
   onTransformChange?: unknown;
-  onResetTransform?: () => void;
+  onResetTransform?: unknown;
 }) {
-  const isTransformActive = mode !== "orbit";
+  const isTransformActive = mode !== "orbit"; // kept for potential future use
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-2 pointer-events-none">
@@ -35,18 +34,6 @@ export function ViewportToolbar({
           </button>
         ))}
       </div>
-
-      {/* Reset Transform — separate row below toolbar, only when a transform mode is active */}
-      {isTransformActive && onResetTransform && (
-        <button
-          onClick={onResetTransform}
-          className="pointer-events-auto mt-1.5 flex items-center gap-1.5 px-3 py-1.5 bg-card/90 border border-border shadow text-[10px] font-mono uppercase tracking-[0.12em] text-destructive/70 hover:text-destructive hover:bg-card cursor-pointer transition-colors"
-          title="Reset Transform (Alt+R)"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Reset Transform
-        </button>
-      )}
     </div>
   );
 }
