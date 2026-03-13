@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
+import { CreditCostBadge } from '@/components/CreditCostBadge';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Diamond,
@@ -868,12 +869,11 @@ export default function UnifiedStudio() {
                     {preflightChecking ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">
-                        <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-                        10
+                      <span className="flex flex-col items-center gap-1">
+                        <span>Generate Photoshoot</span>
+                        <CreditCostBadge cost={10} layout="block" />
                       </span>
                     )}
-                    Generate Photoshoot
                   </Button>
                 </div>
               </div>
@@ -1096,10 +1096,9 @@ export default function UnifiedStudio() {
                 className="gap-2.5 font-display text-base uppercase tracking-wide px-10 h-11 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
               >
                 <RefreshCw className="h-4 w-4" />
-                Regenerate
-                <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal ml-1">
-                  <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
-                  10
+                <span className="flex flex-col items-center gap-0.5">
+                  <span>Regenerate</span>
+                  <CreditCostBadge cost={10} layout="block" />
                 </span>
               </Button>
             </div>

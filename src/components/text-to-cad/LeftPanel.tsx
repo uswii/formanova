@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Diamond, ChevronDown, ChevronRight, RotateCcw, Sparkles, Shield, AlertTriangle, Wand2 } from "lucide-react";
-import creditCoinIcon from "@/assets/icons/credit-coin.png";
+import { CreditCostBadge } from "@/components/CreditCostBadge";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
@@ -121,13 +121,10 @@ export default function LeftPanel({
               className="w-full py-3 lg:py-4 px-3 lg:px-4 mt-4 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
             >
               {isGenerating ? "Generating…" : (
-                <>
+                <span className="flex flex-col items-center gap-1">
                   <span>Generate Ring</span>
-                  <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
-                    <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                    <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
-                  </span>
-                </>
+                  <CreditCostBadge cost={estimatedCost} loading={costLoading} layout="block" />
+                </span>
               )}
             </button>
           )}
@@ -235,10 +232,9 @@ export default function LeftPanel({
                 disabled={isGenerating || !editPrompt.trim()}
                 className="w-full py-3 lg:py-4 px-3 lg:px-4 mt-3 text-[11px] lg:text-[13px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 flex-wrap"
               >
-                <span>Apply Edit</span>
-                <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
-                  <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                  <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                <span className="flex flex-col items-center gap-1 w-full">
+                  <span>Apply Edit</span>
+                  <CreditCostBadge cost={estimatedCost} loading={costLoading} layout="block" />
                 </span>
               </button>
 
@@ -299,10 +295,9 @@ export default function LeftPanel({
                             onClick={() => selectedPart && onRebuildPart?.(selectedPart, rebuildDesc)}
                             className="w-full py-2.5 lg:py-3.5 px-3 lg:px-4 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
                           >
-                            <span>Rebuild Part</span>
-                            <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
-                              <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                            <span className="flex flex-col items-center gap-1 w-full">
+                              <span>Rebuild Part</span>
+                              <CreditCostBadge cost={estimatedCost} loading={costLoading} layout="block" />
                             </span>
                           </button>
                         </div>
@@ -347,10 +342,9 @@ export default function LeftPanel({
                             onClick={() => onAddPart?.(newPartDesc)}
                             className="w-full py-2.5 lg:py-3.5 px-3 lg:px-4 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
                           >
-                            <span>Import Custom 3D Component</span>
-                            <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
-                              <img src={creditCoinIcon} alt="" className="w-4 h-4" />
-                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost ?? '—')}</span>
+                            <span className="flex flex-col items-center gap-1 w-full">
+                              <span>Import Custom 3D Component</span>
+                              <CreditCostBadge cost={estimatedCost} loading={costLoading} layout="block" />
                             </span>
                           </button>
                         </div>
