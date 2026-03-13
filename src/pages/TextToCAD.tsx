@@ -68,6 +68,7 @@ export default function TextToCAD() {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
