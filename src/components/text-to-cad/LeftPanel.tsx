@@ -347,9 +347,10 @@ export default function LeftPanel({
                             onClick={() => onAddPart?.(newPartDesc)}
                             className="w-full py-2.5 lg:py-3.5 px-3 lg:px-4 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.18em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 flex-wrap"
                           >
-                            <span className="flex flex-col items-center gap-1 w-full">
-                              <span>Import Custom 3D Component</span>
-                              <CreditCostBadge cost={estimatedCost} loading={costLoading} layout="block" />
+                            <span>Import Custom 3D Component</span>
+                            <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
+                              <img src={creditCoinIcon} alt="" className="w-4 h-4" />
+                              <span className="text-[11px] lg:text-[12px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? `≤ ${estimatedCost}` : '—')}</span>
                             </span>
                           </button>
                         </div>
