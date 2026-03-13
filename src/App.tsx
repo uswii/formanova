@@ -48,6 +48,7 @@ const AdminWorkflows = lazy(() => import("./pages/AdminWorkflows"));
 const AdminWorkflowDetail = lazy(() => import("./pages/AdminWorkflowDetail"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminTenants = lazy(() => import("./pages/AdminTenants"));
+const AdminPromoCodes = lazy(() => import("./pages/AdminPromoCodes"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
 const AIJewelryPhotoshoot = lazy(() => import("./pages/AIJewelryPhotoshoot"));
