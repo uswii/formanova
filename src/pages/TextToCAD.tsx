@@ -14,7 +14,7 @@ import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInlin
 
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
-import EditToolbar from "@/components/text-to-cad/EditToolbar";
+
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
@@ -1108,13 +1108,6 @@ export default function TextToCAD() {
               </div>
             )}
 
-            {hasModel && (
-              <EditToolbar
-                onSceneAction={handleSceneAction}
-                hasSelection={selectedNames.length > 0}
-                transformMode={transformMode}
-              />
-            )}
             {hasModel && (
               <ViewportToolbar
                 mode={transformMode}
