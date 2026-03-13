@@ -273,7 +273,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen, onDisplayMenu, onKeyboardShortcuts }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -284,6 +284,8 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   redoCount: number;
   onDownload: () => void;
   onFullscreen?: () => void;
+  onDisplayMenu?: () => void;
+  onKeyboardShortcuts?: () => void;
 }) {
   if (!visible) return null;
 
@@ -322,6 +324,22 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
         <button onClick={onFullscreen} className={SIDE_BTN} title="Fullscreen">
           <SideTooltip label="Fullscreen" />
           <Maximize className="w-3.5 h-3.5" />
+        </button>
+      )}
+
+      <SideDivider />
+
+      {/* Display & Shortcuts */}
+      {onDisplayMenu && (
+        <button onClick={onDisplayMenu} className={SIDE_BTN} title="Display options">
+          <SideTooltip label="Display" />
+          <Eye className="w-3.5 h-3.5" />
+        </button>
+      )}
+      {onKeyboardShortcuts && (
+        <button onClick={onKeyboardShortcuts} className={SIDE_BTN} title="Keyboard shortcuts">
+          <SideTooltip label="Shortcuts" />
+          <Keyboard className="w-3.5 h-3.5" />
         </button>
       )}
 
