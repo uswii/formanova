@@ -869,11 +869,12 @@ export default function UnifiedStudio() {
                     {preflightChecking ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      <span className="flex flex-col items-center gap-1">
-                        <span>Generate Photoshoot</span>
-                        <CreditCostBadge cost={10} layout="block" />
+                      <span className="flex items-center gap-1 opacity-70 text-sm font-mono normal-case tracking-normal">
+                        <img src={creditCoinIcon} alt="" className="h-4 w-4 object-contain" />
+                        ≤ 10
                       </span>
                     )}
+                    Generate Photoshoot
                   </Button>
                 </div>
               </div>
