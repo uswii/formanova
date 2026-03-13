@@ -191,15 +191,24 @@ export async function fetchWorkflowCreditAudit(
     }
 
     const data = await res.json();
-    // Backend may return { total_charged, line_items: [...] } or similar
+
+    // 1. Top-level actual_user_billed (final amount deducted from wallet)
+    if (typeof data.actual_user_billed === 'number') return data.actual_user_billed;
+
+    // 2. Nested under financials
+    if (typeof data.financials?.actual_user_billed === 'number') return data.financials.actual_user_billed;
+
+    // 3. Fallback to other common field names
     const total = data.total_charged ?? data.total_cost ?? data.total ?? data.credits_spent ?? null;
     if (typeof total === 'number') return total;
 
-    // If it's an array of line items, sum them
+    // 4. Sum line_items costs
     if (Array.isArray(data.line_items)) {
-      return data.line_items.reduce((sum: number, item: any) => sum + (item.amount ?? item.credits ?? 0), 0);
+      const sum = data.line_items.reduce((acc: number, item: any) => acc + (item.cost ?? item.amount ?? item.credits ?? 0), 0);
+      if (sum > 0) return sum;
     }
 
+    if (__DEV__) console.warn('[HistoryAPI] credit audit: could not extract cost from response', workflowId, Object.keys(data));
     return null;
   } catch (e) {
     if (__DEV__) console.warn('[HistoryAPI] credit audit error:', workflowId, e);
