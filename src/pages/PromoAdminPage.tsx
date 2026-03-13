@@ -21,7 +21,7 @@ import { Pencil, Ban, Plus, Loader2, TicketPercent } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PromoCode, CreatePromoCodePayload, UpdatePromoCodePayload } from '@/types/promo';
 
-const API_BASE = '/api/credits/admin/ui/promo-codes';
+const API_BASE = 'https://formanova.ai/api/credits/admin/ui/promo-codes';
 
 function formatDate(iso: string | null) {
   if (!iso) return 'Never';
@@ -60,10 +60,15 @@ export default function PromoAdminPage() {
   const fetchCodes = useCallback(async () => {
     try {
       const res = await authenticatedFetch(`${API_BASE}?include_inactive=true`);
-      if (!res.ok) throw new Error('Failed to load');
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const detail = body?.detail || body?.message || `HTTP ${res.status}`;
+        throw new Error(detail);
+      }
       setCodes(await res.json());
-    } catch {
-      toast.error('Failed to load promo codes');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load promo codes';
+      toast.error(`Failed to load promo codes: ${message}`);
     } finally {
       setLoading(false);
     }
