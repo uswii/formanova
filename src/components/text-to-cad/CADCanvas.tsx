@@ -356,6 +356,7 @@ const LoadedModel = forwardRef<
   const materialAppliedAfterSelect = useRef<Set<string>>(new Set());
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const inv = useInvalidate();
+  const { camera, gl: glRenderer } = useThree();
 
   // ── Decompose scene into individual mesh data ──
   useEffect(() => {
@@ -535,6 +536,29 @@ const LoadedModel = forwardRef<
       })));
     }
 
+    // ── Auto-frame: fit camera so model doesn't overlap the top toolbar ──
+    if (scene) {
+      const box = new THREE.Box3().setFromObject(scene);
+      if (!box.isEmpty()) {
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        // Distance multiplier: 1.8× ensures the model sits comfortably below the toolbar
+        const dist = maxDim * 1.8;
+        const orbitCtrl = (glRenderer.domElement as any).__orbitControls;
+        if (orbitCtrl) {
+          orbitCtrl.target.copy(center);
+          orbitCtrl.object.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
+          orbitCtrl.update();
+        } else {
+          // Fallback: use R3F camera directly
+          camera.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
+          (camera as THREE.PerspectiveCamera).lookAt(center);
+        }
+        inv();
+      }
+    }
+
     // Signal model is fully processed and ready to render.
     // GLB decomposition + material mapping blocks the main thread, so we need a generous
     // delay to ensure React has committed mesh JSX, R3F has reconciled, and the GPU has
@@ -549,7 +573,7 @@ const LoadedModel = forwardRef<
         });
       });
     }, 500);
-  }, [scene, onMeshesDetected, inv, onModelReady]);
+  }, [scene, onMeshesDetected, inv, onModelReady, camera, glRenderer]);
 
   // ── Merge additional GLB parts into the existing scene ──
   const mergedUrlsRef = useRef<Set<string>>(new Set());
