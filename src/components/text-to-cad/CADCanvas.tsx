@@ -94,6 +94,7 @@ function TransformControlsWrapper({
   const primaryStartQuat = useRef(new THREE.Quaternion());
   const primaryStartScale = useRef(new THREE.Vector3(1, 1, 1));
   const siblingStarts = useRef<{ obj: THREE.Object3D; pos: THREE.Vector3; quat: THREE.Quaternion; scale: THREE.Vector3 }[]>([]);
+  const groupPivot = useRef(new THREE.Vector3());
 
   useEffect(() => {
     const controls = controlsRef.current;
