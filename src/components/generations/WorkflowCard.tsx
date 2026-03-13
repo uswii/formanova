@@ -125,9 +125,12 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
               </span>
             )}
           </div>
-          <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-            {dateStr}
-          </span>
+          <div className="flex items-center gap-3">
+            <CreditsBadge credits={workflow.credits_spent} />
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
+              {dateStr}
+            </span>
+          </div>
         </div>
 
         {/* ── Interactive 3D GLB Preview ── */}
