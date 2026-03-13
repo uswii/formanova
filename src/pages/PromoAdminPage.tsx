@@ -453,17 +453,15 @@ export default function PromoAdminPage() {
             </div>
 
             {/* Starts At */}
-            {!editingCode && (
-              <div className="space-y-2">
-                <Label htmlFor="promo-starts">Starts At</Label>
-                <Input
-                  id="promo-starts"
-                  type="datetime-local"
-                  value={formStartsAt}
-                  onChange={(e) => setFormStartsAt(e.target.value)}
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="promo-starts">Starts At</Label>
+              <Input
+                id="promo-starts"
+                type="datetime-local"
+                value={formStartsAt}
+                onChange={(e) => setFormStartsAt(e.target.value)}
+              />
+            </div>
 
             {/* Expires At */}
             <div className="space-y-2">
