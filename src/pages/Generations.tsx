@@ -251,6 +251,47 @@ export default function Generations() {
     }
   }, [allWorkflows.length, globalLoading]);
 
+  // ── Step 3: Fetch credit audit for each completed workflow ────────
+  const auditFetchedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (globalLoading || allWorkflows.length === 0) return;
+
+    const needsAudit = allWorkflows.filter(
+      w => w.credits_spent === undefined &&
+           !auditFetchedRef.current.has(w.workflow_id) &&
+           (w.status === 'completed' || w.status === 'failed')
+    );
+
+    if (needsAudit.length === 0) return;
+
+    // Mark to prevent duplicate fetches
+    needsAudit.forEach(w => auditFetchedRef.current.add(w.workflow_id));
+
+    batchSettled(
+      needsAudit.map(wf => async () => {
+        const credits = await fetchWorkflowCreditAudit(wf.workflow_id);
+        return { id: wf.workflow_id, credits_spent: credits };
+      }),
+      5, // higher concurrency for lightweight audit calls
+    ).then(results => {
+      const updates: Record<string, number | null> = {};
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value) {
+          updates[r.value.id] = r.value.credits_spent;
+        }
+      }
+      if (Object.keys(updates).length === 0) return;
+
+      setAllWorkflows(prev =>
+        prev.map(w => updates[w.workflow_id] !== undefined
+          ? { ...w, credits_spent: updates[w.workflow_id] }
+          : w
+        )
+      );
+    });
+  }, [allWorkflows.length, globalLoading]);
+
   const photoSection = getSection('photo', photoPage, true);
   const cadRenderSection = getSection('cad_render', cadRenderPage, true);
   const cadTextSection = getSection('cad_text', cadTextPage);
