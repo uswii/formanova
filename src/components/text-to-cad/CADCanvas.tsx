@@ -226,13 +226,15 @@ function TransformControlsWrapper({
     };
   }, [gl, onDragEnd, onRotationDelta, inv, object, mode, siblingObjects]);
 
+  const hasSiblings = (siblingObjects?.length ?? 0) > 0;
+
   return (
     <TransformControls
       ref={controlsRef}
       object={object}
       mode={mode}
       size={1.5}
-      space="local"
+      space={hasSiblings ? "world" : "local"}
     />
   );
 }
