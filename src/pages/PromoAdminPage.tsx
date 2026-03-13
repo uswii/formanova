@@ -21,7 +21,7 @@ import { Pencil, Ban, Plus, Loader2, TicketPercent } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PromoCode, CreatePromoCodePayload, UpdatePromoCodePayload } from '@/types/promo';
 
-const API_BASE = '/credits/admin/ui/promo-codes';
+const API_BASE = '/api/credits/admin/ui/promo-codes';
 
 function formatDate(iso: string | null) {
   if (!iso) return 'Never';
