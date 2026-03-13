@@ -15,7 +15,7 @@ const AXES = ["X", "Y", "Z"] as const;
 const AXIS_COLORS = ["text-red-400", "text-green-400", "text-blue-400"];
 
 // ── Viewer Tool Button ──
-const VT_BTN = "h-[40px] px-5 text-[11px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center gap-2";
+const VT_BTN = "h-[40px] min-w-[72px] flex-1 text-[11px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center justify-center gap-2";
 const VT_BTN_DEFAULT = `${VT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40`;
 const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 
