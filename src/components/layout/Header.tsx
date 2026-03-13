@@ -23,6 +23,7 @@ export function Header() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { credits, lastDelta } = useCredits();
+  const isAdmin = useIsAdmin();
   const [visibleDelta, setVisibleDelta] = useState<{ amount: number; id: number } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
