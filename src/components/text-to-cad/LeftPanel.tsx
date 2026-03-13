@@ -352,7 +352,7 @@ export default function LeftPanel({
 
       {/* Start Over button — pinned above status bar */}
       {hasModel && !isGenerating && onReset && (
-        <div className="px-4 lg:px-5 py-3 border-t border-border bg-card">
+        <div className="px-4 lg:px-5 py-3 bg-card">
           <button
             onClick={onReset}
             className="w-full py-2.5 px-4 text-[11px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 border border-border text-muted-foreground hover:bg-accent hover:text-foreground active:scale-[0.98]"
