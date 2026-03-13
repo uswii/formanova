@@ -10,7 +10,6 @@ import { CreditsProvider } from "@/contexts/CreditsContext";
 import { Header } from "@/components/layout/Header";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
-import { AdminRoute } from '@/components/admin/AdminRoute';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { Loader2 } from "lucide-react";
@@ -42,13 +41,6 @@ const Credits = lazy(() => import("./pages/Credits"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
-const AdminBatches = lazy(() => import("./pages/AdminBatches"));
-const AdminUsers = lazy(() => import("./pages/AdminUsers"));
-const AdminUserDetail = lazy(() => import("./pages/AdminUserDetail"));
-const AdminWorkflows = lazy(() => import("./pages/AdminWorkflows"));
-const AdminWorkflowDetail = lazy(() => import("./pages/AdminWorkflowDetail"));
-const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
-const AdminTenants = lazy(() => import("./pages/AdminTenants"));
 const PromoAdminPage = lazy(() => import("./pages/PromoAdminPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DeliveryResults = lazy(() => import("./pages/DeliveryResults"));
@@ -148,14 +140,7 @@ const App = () => (
                   <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
                   <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
                   
-                  {/* Admin routes - protected by admin secret */}
-                  <Route path="/admin" element={<AdminRoute><AdminBatches /></AdminRoute>} />
-                  <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-                  <Route path="/admin/users/:externalId" element={<AdminRoute><AdminUserDetail /></AdminRoute>} />
-                  <Route path="/admin/workflows" element={<AdminRoute><AdminWorkflows /></AdminRoute>} />
-                  <Route path="/admin/workflows/:workflowId" element={<AdminRoute><AdminWorkflowDetail /></AdminRoute>} />
-                  <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
-                  <Route path="/admin/tenants" element={<AdminRoute><AdminTenants /></AdminRoute>} />
+                  {/* Admin routes */}
                   <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
                   
                   {/* Results page - handles auth internally (login button + ownership check) */}
