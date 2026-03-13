@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Upload, Diamond } from "lucide-react";
-import { CreditCostBadge } from "@/components/CreditCostBadge";
+import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS } from "./types";
 
@@ -139,10 +139,13 @@ export default function InitialPromptScreen({
               className="w-full py-4 text-[13px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
             >
               {isGenerating ? "Generating…" : (
-                <span className="flex flex-col items-center gap-1">
-                  <span>Generate Ring</span>
-                  <CreditCostBadge cost={estimatedCost} loading={costLoading} layout="block" />
-                </span>
+                <>
+                  Generate Ring
+                  <span className="inline-flex items-center gap-1 ml-1 opacity-80">
+                    <img src={creditCoinIcon} alt="" className="w-5 h-5" />
+                    <span className="text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? `≤ ${estimatedCost}` : '—')}</span>
+                  </span>
+                </>
               )}
             </button>
           </div>
