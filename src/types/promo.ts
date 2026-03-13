@@ -28,8 +28,9 @@ export interface CreatePromoCodePayload {
 
 export interface UpdatePromoCodePayload {
   is_active?: boolean;
-  expires_at?: string;
-  max_redemptions?: number;
-  campaign_name?: string;
-  notes?: string;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  max_redemptions?: number | null;
+  campaign_name?: string | null;
+  notes?: string | null;
 }
