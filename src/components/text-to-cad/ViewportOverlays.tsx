@@ -18,7 +18,7 @@ export function ViewportToolbar({
   onTransformChange?: unknown;
   onResetTransform?: unknown;
 }) {
-  const isTransformActive = mode !== "orbit";
+  const isTransformActive = mode !== "orbit"; // kept for potential future use
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-2 pointer-events-none">
