@@ -1680,15 +1680,14 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           const count = contextLostCountRef.current;
           console.error('[CADCanvas] ⚠ WebGL context LOST — event #' + count);
 
-          // ── Circuit breaker: force simple gem mode and persist ──
+          // ── Circuit breaker: force simple gem mode for this session ──
           onGemModeForced?.("simple");
-          localStorage.setItem("refractionBlocked", "true");
 
           // Import toast dynamically to show user feedback
           import("sonner").then(({ toast }) => {
-            toast.error("GPU overload detected", {
-              description: "Gem rendering switched to Safe Mode to prevent browser crashes. Real Refraction has been disabled.",
-              duration: 8000,
+            toast.warning("GPU recovered", {
+              description: "Switched to Simple Gems for stability. You can re-enable Refractive Gems from the toggle.",
+              duration: 6000,
             });
           });
 

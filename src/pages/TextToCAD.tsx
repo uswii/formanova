@@ -27,9 +27,8 @@ import {
   StatsBar,
   ViewportSideTools,
 } from "@/components/text-to-cad/ViewportOverlays";
-import QualityToggle from "@/components/text-to-cad/QualityToggle";
+import GemToggle from "@/components/text-to-cad/QualityToggle";
 import { runMicroBenchmark } from "@/lib/gpu-detect";
-import type { QualityMode } from "@/lib/gpu-detect";
 import type { GemMode } from "@/components/text-to-cad/CADCanvas";
 
 import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
@@ -72,12 +71,7 @@ export default function TextToCAD() {
   const [selectedTransform, setSelectedTransform] = useState<MeshTransformData | null>(null);
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [qualityMode, setQualityMode] = useState<QualityMode>("balanced");
-  const [gemMode, setGemMode] = useState<GemMode>(() => {
-    // Circuit breaker: if refraction was previously blocked by context loss, stay in simple mode
-    return localStorage.getItem("refractionBlocked") === "true" ? "simple" : "simple";
-  });
-  const refractionBlocked = localStorage.getItem("refractionBlocked") === "true";
+  const [gemMode, setGemMode] = useState<GemMode>("simple");
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
@@ -992,9 +986,6 @@ export default function TextToCAD() {
               }}
               onGlbUpload={handleGlbUpload}
               onReset={hasModel ? handleReset : undefined}
-              gemMode={gemMode}
-              onGemModeChange={setGemMode}
-              refractionBlocked={refractionBlocked}
               creditBlock={creditBlock ? (
                 <InsufficientCreditsInline
                   currentBalance={creditBlock.currentBalance}
@@ -1053,7 +1044,7 @@ export default function TextToCAD() {
               lightIntensity={1}
               onModelReady={handleModelReady}
               magicTexturing={magicTexturing}
-              qualityMode={qualityMode}
+              qualityMode="balanced"
               gemMode={gemMode}
               onGemModeForced={(mode) => setGemMode(mode)}
             />
@@ -1119,17 +1110,21 @@ export default function TextToCAD() {
             <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
               {/* Start Over moved to LeftPanel */}
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
-              <QualityToggle
-                visible={hasModel && !isGenerating && !isModelLoading}
-                mode={qualityMode}
-                onModeChange={setQualityMode}
-              />
               {hasModel && !isGenerating && !isModelLoading && (
                 <div className="relative">
                   <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
                   <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
                 </div>
               )}
+            </div>
+
+            {/* Gem toggle — top right of viewport */}
+            <div className="absolute top-2 right-14 z-[55]">
+              <GemToggle
+                visible={hasModel && !isGenerating && !isModelLoading}
+                mode={gemMode}
+                onModeChange={setGemMode}
+              />
             </div>
 
             {/* Selection warning — centered overlay instead of toast */}
