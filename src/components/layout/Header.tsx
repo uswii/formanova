@@ -21,7 +21,8 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { credits } = useCredits();
+  const { credits, lastDelta } = useCredits();
+  const [visibleDelta, setVisibleDelta] = useState<{ amount: number; id: number } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
