@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Maximize2, Box, Download, Pencil, Check, X } from 'lucide-react';
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,16 @@ const MODEL_LABELS: Record<string, string> = {
   standard: 'Standard',
   premium: 'Premium',
 };
+
+function CreditsBadge({ credits }: { credits?: number | null }) {
+  if (credits === undefined || credits === null) return null;
+  return (
+    <span className="inline-flex items-center gap-1 font-mono text-[10px] tracking-wider text-muted-foreground">
+      <img src={creditCoinIcon} alt="" className="w-3.5 h-3.5" />
+      {credits}
+    </span>
+  );
+}
 
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -114,9 +125,12 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
               </span>
             )}
           </div>
-          <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-            {dateStr}
-          </span>
+          <div className="flex items-center gap-3">
+            <CreditsBadge credits={workflow.credits_spent} />
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
+              {dateStr}
+            </span>
+          </div>
         </div>
 
         {/* ── Interactive 3D GLB Preview ── */}
@@ -256,12 +270,13 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           <div className="w-full aspect-square bg-muted/50 animate-pulse" />
         ) : null}
 
-        {/* Card footer: index · date · duration */}
+        {/* Card footer: index · credits · date · duration */}
         <div className="flex items-center justify-between px-2.5 py-2">
           <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none">
             #{index}
           </span>
           <div className="flex items-center gap-2">
+            <CreditsBadge credits={workflow.credits_spent} />
             {durationSec !== null && (
               <span className="font-mono text-[8px] tracking-wider text-muted-foreground/60">
                 {durationSec}s
