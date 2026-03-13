@@ -1,6 +1,5 @@
-import { useState, useMemo, useRef, useCallback } from "react";
-
-import { Eye, EyeOff, Focus, Shuffle, Layers, Trash2, Copy, Crosshair, FlipVertical, RefreshCw, ChevronUp, ChevronDown, Users } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import type { MeshItemData } from "./types";
 import { MATERIAL_LIBRARY } from "@/components/cad-studio/materials";
@@ -14,13 +13,9 @@ interface MeshPanelProps {
   onSceneAction: (action: string) => void;
 }
 
-const ACTION_BTN = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.97] bg-muted/40 border border-border text-foreground/80";
-const ACTION_BTN_DISABLED = "flex items-center justify-center gap-1.5 py-3 px-2 text-[11px] font-bold uppercase tracking-wide bg-muted/20 border border-border/50 text-muted-foreground/30 cursor-not-allowed";
-
 export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMaterial, onSceneAction }: MeshPanelProps) {
   const [search, setSearch] = useState("");
   const [matTab, setMatTab] = useState<"metal" | "gemstone">("metal");
-  const [meshTab, setMeshTab] = useState<"list" | "actions">("list");
   const [meshCollapsed, setMeshCollapsed] = useState(false);
   const [materialCollapsed, setMaterialCollapsed] = useState(false);
   const lastClickedIdx = useRef<number>(-1);
@@ -52,59 +47,26 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
     onSelectMesh(mesh.name, e.ctrlKey || e.metaKey);
   };
 
-  // Both collapsed — show both headers stacked
+  const meshSubtitle = meshes.length > 0 ? `${meshes.length} · ${totalVerts.toLocaleString()}v` : "—";
+
+  // Both collapsed
   if (materialCollapsed && meshCollapsed) {
     return (
       <div className="flex flex-col bg-card border-l border-border h-full">
-        <SectionHeader
-          title="Material"
-          subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""}
-          collapsed={true}
-          onToggle={() => setMaterialCollapsed(false)}
-        />
-        <SectionHeader
-          title="Meshes"
-          subtitle={meshes.length > 0 ? `${meshes.length} · ${totalVerts.toLocaleString()}v` : "—"}
-          collapsed={true}
-          onToggle={() => setMeshCollapsed(false)}
-        />
+        <SectionHeader title="Material" subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""} collapsed onToggle={() => setMaterialCollapsed(false)} />
+        <SectionHeader title="Meshes" subtitle={meshSubtitle} collapsed onToggle={() => setMeshCollapsed(false)} />
         <div className="flex-1" />
       </div>
     );
   }
 
-  // One collapsed — show collapsed header + expanded section fills rest
   if (materialCollapsed) {
     return (
       <div className="flex flex-col bg-card border-l border-border h-full">
-        <SectionHeader
-          title="Material"
-          subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""}
-          collapsed={true}
-          onToggle={() => setMaterialCollapsed(false)}
-        />
+        <SectionHeader title="Material" subtitle={hasSelection ? `${selectedMeshes.length} sel` : ""} collapsed onToggle={() => setMaterialCollapsed(false)} />
         <div className="flex-1 flex flex-col min-h-0 border-t border-border">
-          <MeshSectionHeader
-            title="Meshes"
-            subtitle={meshes.length > 0 ? `${meshes.length} · ${totalVerts.toLocaleString()}v` : "—"}
-            collapsed={false}
-            onToggle={() => setMeshCollapsed(true)}
-            meshTab={meshTab}
-            setMeshTab={setMeshTab}
-          />
-          <MeshContent
-            meshTab={meshTab}
-            search={search}
-            setSearch={setSearch}
-            filtered={filtered}
-            meshes={meshes}
-            hasSelection={hasSelection}
-            selectedMeshes={selectedMeshes}
-            handleMeshClick={handleMeshClick}
-            onAction={onAction}
-            onSceneAction={onSceneAction}
-            onSelectMesh={onSelectMesh}
-          />
+          <SectionHeader title="Meshes" subtitle={meshSubtitle} collapsed={false} onToggle={() => setMeshCollapsed(true)} />
+          <MeshList search={search} setSearch={setSearch} filtered={filtered} meshes={meshes} handleMeshClick={handleMeshClick} />
         </div>
       </div>
     );
@@ -114,79 +76,29 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
     return (
       <div className="flex flex-col bg-card border-l border-border h-full">
         <div className="flex-1 flex flex-col min-h-0">
-          <MaterialSectionHeader
-            collapsed={false}
-            onToggle={() => setMaterialCollapsed(true)}
-            hasSelection={hasSelection}
-            selectedMeshes={selectedMeshes}
-          />
-          <MaterialContent
-            hasSelection={hasSelection}
-            matTab={matTab}
-            setMatTab={setMatTab}
-            filteredMaterials={filteredMaterials}
-            onApplyMaterial={onApplyMaterial}
-          />
+          <MaterialSectionHeader collapsed={false} onToggle={() => setMaterialCollapsed(true)} hasSelection={hasSelection} selectedMeshes={selectedMeshes} />
+          <MaterialContent hasSelection={hasSelection} matTab={matTab} setMatTab={setMatTab} filteredMaterials={filteredMaterials} onApplyMaterial={onApplyMaterial} />
         </div>
-        <SectionHeader
-          title="Meshes"
-          subtitle={meshes.length > 0 ? `${meshes.length} · ${totalVerts.toLocaleString()}v` : "—"}
-          collapsed={true}
-          onToggle={() => setMeshCollapsed(false)}
-        />
+        <SectionHeader title="Meshes" subtitle={meshSubtitle} collapsed onToggle={() => setMeshCollapsed(false)} />
       </div>
     );
   }
 
-  // Both expanded — resizable split
+  // Both expanded
   return (
     <div className="flex flex-col bg-card border-l border-border h-full">
       <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
-        {/* Material panel */}
         <ResizablePanel defaultSize={50} minSize={20}>
           <div className="flex flex-col h-full">
-            <MaterialSectionHeader
-              collapsed={false}
-              onToggle={() => setMaterialCollapsed(true)}
-              hasSelection={hasSelection}
-              selectedMeshes={selectedMeshes}
-            />
-            <MaterialContent
-              hasSelection={hasSelection}
-              matTab={matTab}
-              setMatTab={setMatTab}
-              filteredMaterials={filteredMaterials}
-              onApplyMaterial={onApplyMaterial}
-            />
+            <MaterialSectionHeader collapsed={false} onToggle={() => setMaterialCollapsed(true)} hasSelection={hasSelection} selectedMeshes={selectedMeshes} />
+            <MaterialContent hasSelection={hasSelection} matTab={matTab} setMatTab={setMatTab} filteredMaterials={filteredMaterials} onApplyMaterial={onApplyMaterial} />
           </div>
         </ResizablePanel>
-
         <ResizableHandle withHandle />
-
-        {/* Mesh panel */}
         <ResizablePanel defaultSize={50} minSize={20}>
           <div className="flex flex-col h-full">
-            <MeshSectionHeader
-              title="Meshes"
-              subtitle={meshes.length > 0 ? `${meshes.length} · ${totalVerts.toLocaleString()}v` : "—"}
-              collapsed={false}
-              onToggle={() => setMeshCollapsed(true)}
-              meshTab={meshTab}
-              setMeshTab={setMeshTab}
-            />
-            <MeshContent
-              meshTab={meshTab}
-              search={search}
-              setSearch={setSearch}
-              filtered={filtered}
-              meshes={meshes}
-              hasSelection={hasSelection}
-              selectedMeshes={selectedMeshes}
-              handleMeshClick={handleMeshClick}
-              onAction={onAction}
-              onSceneAction={onSceneAction}
-              onSelectMesh={onSelectMesh}
-            />
+            <SectionHeader title="Meshes" subtitle={meshSubtitle} collapsed={false} onToggle={() => setMeshCollapsed(true)} />
+            <MeshList search={search} setSearch={setSearch} filtered={filtered} meshes={meshes} handleMeshClick={handleMeshClick} />
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -194,7 +106,7 @@ export default function MeshPanel({ meshes, onSelectMesh, onAction, onApplyMater
   );
 }
 
-// ── Collapsed section header ──
+// ── Section header ──
 function SectionHeader({ title, subtitle, collapsed, onToggle }: {
   title: string; subtitle: string; collapsed: boolean; onToggle: () => void;
 }) {
@@ -232,7 +144,7 @@ function MaterialSectionHeader({ collapsed, onToggle, hasSelection, selectedMesh
   );
 }
 
-// ── Material content (scrollable) ──
+// ── Material content ──
 function MaterialContent({ hasSelection, matTab, setMatTab, filteredMaterials, onApplyMaterial }: {
   hasSelection: boolean;
   matTab: "metal" | "gemstone"; setMatTab: (t: "metal" | "gemstone") => void;
@@ -246,8 +158,6 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filteredMaterials, o
           Select a mesh to assign material
         </div>
       )}
-
-      {/* Category tabs */}
       <div className="flex gap-0 border border-border">
         {(["metal", "gemstone"] as const).map(cat => (
           <button
@@ -261,8 +171,6 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filteredMaterials, o
           </button>
         ))}
       </div>
-
-      {/* Material swatch grid */}
       <div className="grid grid-cols-3 gap-1.5">
         {filteredMaterials.map((m) => (
           <button
@@ -287,184 +195,46 @@ function MaterialContent({ hasSelection, matTab, setMatTab, filteredMaterials, o
   );
 }
 
-// ── Mesh section header with tabs ──
-function MeshSectionHeader({ title, subtitle, collapsed, onToggle, meshTab, setMeshTab }: {
-  title: string; subtitle: string; collapsed: boolean; onToggle: () => void;
-  meshTab: "list" | "actions"; setMeshTab: (t: "list" | "actions") => void;
-}) {
-  return (
-    <div className="flex-shrink-0 border-b border-border">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 cursor-pointer transition-colors duration-150 hover:bg-accent/20"
-      >
-        <span className="font-display text-sm tracking-[0.15em] text-foreground uppercase font-bold">{title}</span>
-        <span className="flex items-center gap-2">
-          <span className="font-mono text-[10px] text-muted-foreground">{subtitle}</span>
-          {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
-        </span>
-      </button>
-      <div className="flex gap-0 mx-4 mb-2 border border-border">
-        {(["list", "actions"] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setMeshTab(tab)}
-            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-150 cursor-pointer ${
-              meshTab === tab ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab === "list" ? "List" : "Actions"}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Mesh content (scrollable) ──
-function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelection, selectedMeshes, handleMeshClick, onAction, onSceneAction, onSelectMesh }: {
-  meshTab: "list" | "actions";
+// ── Mesh list ──
+function MeshList({ search, setSearch, filtered, meshes, handleMeshClick }: {
   search: string; setSearch: (v: string) => void;
   filtered: MeshItemData[];
   meshes: MeshItemData[];
-  hasSelection: boolean;
-  selectedMeshes: MeshItemData[];
   handleMeshClick: (mesh: MeshItemData, e: React.MouseEvent) => void;
-  onAction: (action: string) => void;
-  onSceneAction: (action: string) => void;
-  onSelectMesh: (name: string, multi: boolean) => void;
 }) {
-  // ── Mesh families: group by name prefix (strip trailing _NNN digits) ──
-  const families = useMemo(() => {
-    const map = new Map<string, string[]>();
-    filtered.forEach((m) => {
-      const prefix = m.name.replace(/[_\-]?\d+$/, '');
-      if (!prefix || prefix === m.name) return; // no numeric suffix = no family
-      const arr = map.get(prefix) || [];
-      arr.push(m.name);
-      map.set(prefix, arr);
-    });
-    // Only keep families with 2+ members
-    const result: { prefix: string; members: string[] }[] = [];
-    map.forEach((members, prefix) => {
-      if (members.length >= 2) result.push({ prefix, members });
-    });
-    return result;
-  }, [filtered]);
-
-  const handleFamilyClick = useCallback((members: string[]) => {
-    members.forEach((name, i) => onSelectMesh(name, i > 0));
-  }, [onSelectMesh]);
-
-  if (meshTab === "list") {
-    return (
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="px-4 pt-3 pb-2 flex-shrink-0">
-          <input
-            type="text"
-            placeholder="Search meshes..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
-          />
-        </div>
-
-        {/* Mesh families */}
-        {families.length > 0 && (
-          <div className="px-4 pb-2 flex-shrink-0">
-            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-1.5 block">Families</span>
-            <div className="flex flex-wrap gap-1">
-              {families.map((f) => (
-                <button
-                  key={f.prefix}
-                  onClick={() => handleFamilyClick(f.members)}
-                  className="flex items-center gap-1 px-2 py-1 text-[9px] font-mono font-semibold uppercase tracking-wide cursor-pointer transition-all duration-150 bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-accent/50 active:scale-[0.97]"
-                  title={`Select all ${f.members.length} "${f.prefix}" meshes`}
-                >
-                  <Users className="w-2.5 h-2.5" />
-                  {f.prefix} <span className="text-muted-foreground/50">({f.members.length})</span>
-                </button>
-              ))}
-            </div>
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="px-4 pt-3 pb-2 flex-shrink-0">
+        <input
+          type="text"
+          placeholder="Search meshes..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-ring font-body bg-muted/30 border border-border"
+        />
+      </div>
+      <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-1 scrollbar-thin">
+        {filtered.length === 0 && (
+          <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
+            {meshes.length === 0 ? "Generate a ring to see meshes" : "No matching meshes"}
           </div>
         )}
-
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-1 scrollbar-thin">
-          {filtered.length === 0 && (
-            <div className="text-center font-mono text-[10px] text-muted-foreground/50 py-5">
-              {meshes.length === 0 ? "Generate a ring to see meshes" : "No matching meshes"}
+        {filtered.map((mesh) => (
+          <button
+            key={mesh.name}
+            onClick={(e) => handleMeshClick(mesh, e)}
+            className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 border ${
+              mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"
+            } ${!mesh.visible ? "opacity-35" : ""}`}
+          >
+            <div className="text-[11px] mb-0.5 truncate font-medium">
+              {!mesh.visible && "[H] "}{mesh.name}
             </div>
-          )}
-          {filtered.map((mesh) => (
-            <button
-              key={mesh.name}
-              onClick={(e) => handleMeshClick(mesh, e)}
-              className={`w-full text-left px-3 py-2.5 mb-1 cursor-pointer transition-all duration-200 border ${
-                mesh.selected ? "text-foreground bg-accent border-border" : "hover:bg-accent/50 text-foreground/80 border-transparent"
-              } ${!mesh.visible ? "opacity-35" : ""}`}
-            >
-              <div className="text-[11px] mb-0.5 truncate font-medium">
-                {!mesh.visible && "[H] "}{mesh.name}
-              </div>
-              <div className="font-mono text-[9px] text-muted-foreground">
-                {mesh.verts} verts / {mesh.faces} faces
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 overflow-y-auto min-h-0 px-3 py-3 space-y-4 scrollbar-thin">
-      <div className="px-3 py-2 font-mono text-[10px] border border-border bg-muted/20 text-muted-foreground">
-        {hasSelection
-          ? `${selectedMeshes.length} mesh${selectedMeshes.length > 1 ? "es" : ""} selected`
-          : "No mesh selected"}
-      </div>
-
-      <div>
-        <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-2 block">Visibility</span>
-        <div className="grid grid-cols-3 gap-1.5 mb-1.5">
-          <button onClick={() => hasSelection && onAction("hide")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Hide selected meshes">
-            <EyeOff className="w-3.5 h-3.5" /> Hide
+            <div className="font-mono text-[9px] text-muted-foreground">
+              {mesh.verts} verts / {mesh.faces} faces
+            </div>
           </button>
-          <button onClick={() => hasSelection && onAction("show")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Unhide selected meshes">
-            <Eye className="w-3.5 h-3.5" /> Unhide
-          </button>
-          <button onClick={() => onAction("show-all")} className={ACTION_BTN} title="Show all hidden meshes">
-            <Layers className="w-3.5 h-3.5" /> Show All
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => hasSelection && onAction("isolate")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Show only selected, hide everything else">
-            <Focus className="w-3.5 h-3.5" /> Isolate
-          </button>
-          <button onClick={() => onAction("select-invert")} className={ACTION_BTN} title="Invert current selection">
-            <Shuffle className="w-3.5 h-3.5" /> Invert
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-2 block">Edit</span>
-        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-          <button onClick={() => hasSelection && onSceneAction("duplicate")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Duplicate selected meshes">
-            <Copy className="w-3.5 h-3.5" /> Duplicate
-          </button>
-          <button onClick={() => hasSelection && onSceneAction("delete")} className={hasSelection ? `${ACTION_BTN} hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40` : ACTION_BTN_DISABLED} title="Delete selected meshes">
-            <Trash2 className="w-3.5 h-3.5" /> Delete
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => hasSelection && onSceneAction("center-origin")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Move pivot point to center of mesh bounding box">
-            <Crosshair className="w-3.5 h-3.5" /> Origin
-          </button>
-          <button onClick={() => hasSelection && onSceneAction("flip-normals")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Flip face normals (fix inside-out surfaces)">
-            <FlipVertical className="w-3.5 h-3.5" /> Flip N
-          </button>
-        </div>
+        ))}
       </div>
     </div>
   );
