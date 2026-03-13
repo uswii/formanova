@@ -1145,9 +1145,9 @@ export default function TextToCAD() {
                 />
               </div>
             )}
-            {/* Bottom-center: Ready status — aligned on same baseline as toggle */}
+            {/* Bottom-center: Ready status — same height as gem toggle so vertical centers + south borders align */}
             {hasModel && !isGenerating && !isModelLoading && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 font-mono text-[9px]">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 font-mono text-[9px] h-[30px]">
                 <div className="w-[6px] h-[6px] rounded-full flex-shrink-0 bg-green-400" />
                 <span className="text-muted-foreground/60 uppercase tracking-[0.1em]">Ready</span>
               </div>
