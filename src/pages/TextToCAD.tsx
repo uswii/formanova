@@ -949,6 +949,7 @@ export default function TextToCAD() {
     onCopy: handleCopy,
     onPaste: handlePaste,
     onCut: handleCut,
+    onResetTransform: () => handleSceneAction("reset-transform"),
     enabled: workspaceActive,
   });
 

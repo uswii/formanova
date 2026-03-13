@@ -37,6 +37,7 @@ export const SHORTCUT_SECTIONS: ShortcutSection[] = [
       { keys: ["Delete", "/", "Backspace", "/", `${modKey}+Backspace`], desc: "Delete selected" },
       { keys: ["Shift+D"], desc: "Duplicate selected" },
       { keys: ["W"], desc: "Toggle wireframe" },
+      { keys: ["Alt+R"], desc: "Reset transform" },
     ],
   },
   {
