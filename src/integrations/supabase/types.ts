@@ -246,6 +246,45 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_codes: {
+        Row: {
+          campaign: string
+          code: string
+          created_at: string
+          credits: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          times_used: number
+          updated_at: string
+        }
+        Insert: {
+          campaign?: string
+          code: string
+          created_at?: string
+          credits?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          times_used?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign?: string
+          code?: string
+          created_at?: string
+          credits?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          times_used?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
