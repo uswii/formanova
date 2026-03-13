@@ -22,11 +22,6 @@ export default function GemToggle({ visible, mode, onModeChange }: GemToggleProp
       className="flex items-center gap-2 px-2.5 py-1.5 bg-card/90 backdrop-blur-sm border border-border/50 rounded-sm shadow-sm cursor-pointer hover:bg-accent/30 transition-all duration-150 group"
       title={isRefractive ? "Refractive gems (click for Simple)" : "Simple gems (click for Refractive)"}
     >
-      {/* Diamond icon */}
-      <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">
-        {isRefractive ? "◇" : "◆"}
-      </span>
-
       {/* Toggle track */}
       <div className="relative w-[28px] h-[14px] rounded-full border border-border bg-muted/50 transition-colors duration-200">
         <div
