@@ -39,6 +39,14 @@ export function Header() {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  // Show delta badge briefly when balance changes
+  useEffect(() => {
+    if (!lastDelta) return;
+    setVisibleDelta(lastDelta);
+    const timer = setTimeout(() => setVisibleDelta(null), 2000);
+    return () => clearTimeout(timer);
+  }, [lastDelta]);
+
   const cadEnabled = isCADEnabled(user?.email);
 
   const navLinks = [
