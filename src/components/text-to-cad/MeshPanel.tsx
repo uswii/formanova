@@ -427,21 +427,21 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
       <div>
         <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-2 block">Visibility</span>
         <div className="grid grid-cols-3 gap-1.5 mb-1.5">
-          <button onClick={() => hasSelection && onAction("hide")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title={!hasSelection ? "Select meshes first" : ""}>
+          <button onClick={() => hasSelection && onAction("hide")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Hide selected meshes">
             <EyeOff className="w-3.5 h-3.5" /> Hide
           </button>
-          <button onClick={() => hasSelection && onAction("show")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title={!hasSelection ? "Select meshes first" : ""}>
-            <Eye className="w-3.5 h-3.5" /> Show
+          <button onClick={() => hasSelection && onAction("show")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Unhide selected meshes">
+            <Eye className="w-3.5 h-3.5" /> Unhide
           </button>
-          <button onClick={() => onAction("show-all")} className={ACTION_BTN}>
-            <Layers className="w-3.5 h-3.5" /> All
+          <button onClick={() => onAction("show-all")} className={ACTION_BTN} title="Show all hidden meshes">
+            <Layers className="w-3.5 h-3.5" /> Show All
           </button>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => hasSelection && onAction("isolate")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title={!hasSelection ? "Select meshes first" : ""}>
+          <button onClick={() => hasSelection && onAction("isolate")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Show only selected, hide everything else">
             <Focus className="w-3.5 h-3.5" /> Isolate
           </button>
-          <button onClick={() => onAction("select-invert")} className={ACTION_BTN}>
+          <button onClick={() => onAction("select-invert")} className={ACTION_BTN} title="Invert current selection">
             <Shuffle className="w-3.5 h-3.5" /> Invert
           </button>
         </div>
@@ -450,18 +450,18 @@ function MeshContent({ meshTab, search, setSearch, filtered, meshes, hasSelectio
       <div>
         <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-muted-foreground/60 mb-2 block">Edit</span>
         <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-          <button onClick={() => hasSelection && onSceneAction("duplicate")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title={!hasSelection ? "Select meshes first" : ""}>
+          <button onClick={() => hasSelection && onSceneAction("duplicate")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Duplicate selected meshes">
             <Copy className="w-3.5 h-3.5" /> Duplicate
           </button>
-          <button onClick={() => hasSelection && onSceneAction("delete")} className={hasSelection ? `${ACTION_BTN} hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40` : ACTION_BTN_DISABLED} title={!hasSelection ? "Select meshes first" : ""}>
+          <button onClick={() => hasSelection && onSceneAction("delete")} className={hasSelection ? `${ACTION_BTN} hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40` : ACTION_BTN_DISABLED} title="Delete selected meshes">
             <Trash2 className="w-3.5 h-3.5" /> Delete
           </button>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => hasSelection && onSceneAction("center-origin")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title={!hasSelection ? "Select meshes first" : ""}>
+          <button onClick={() => hasSelection && onSceneAction("center-origin")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Move pivot point to center of mesh bounding box">
             <Crosshair className="w-3.5 h-3.5" /> Origin
           </button>
-          <button onClick={() => hasSelection && onSceneAction("flip-normals")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title={!hasSelection ? "Select meshes first" : ""}>
+          <button onClick={() => hasSelection && onSceneAction("flip-normals")} className={hasSelection ? ACTION_BTN : ACTION_BTN_DISABLED} title="Flip face normals (fix inside-out surfaces)">
             <FlipVertical className="w-3.5 h-3.5" /> Flip N
           </button>
         </div>

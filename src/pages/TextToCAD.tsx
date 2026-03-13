@@ -670,19 +670,24 @@ export default function TextToCAD() {
     }
   }, [glbUrl, additionalParts, workspaceActive, hasModel]);
 
+  // Track names of recently duplicated meshes so they get auto-selected
+  const pendingSelectRef = useRef<Set<string> | null>(null);
+
   const handleMeshesDetected = useCallback((detected: { name: string; verts: number; faces: number }[]) => {
     setMeshes((prev) => {
       // Preserve existing visibility/selection state for known meshes
       const prevMap = new Map(prev.map(m => [m.name, m]));
+      const pendingSelect = pendingSelectRef.current;
       return detected.map((d) => {
         const existing = prevMap.get(d.name);
         return {
           ...d,
           visible: existing?.visible ?? true,
-          selected: existing?.selected ?? false,
+          selected: existing?.selected ?? (pendingSelect?.has(d.name) ?? false),
         };
       });
     });
+    pendingSelectRef.current = null;
     setStats((prev) => ({ ...prev, meshes: detected.length }));
   }, []);
 
@@ -838,6 +843,18 @@ export default function TextToCAD() {
       case "duplicate":
         if (!names.length) { showSelectionWarning("Select meshes first"); return; }
         pushUndo("Duplicate meshes");
+        // Pre-compute expected duplicate names so they auto-select after onMeshesDetected fires
+        const existingNames = new Set(meshesRef.current.map(m => m.name));
+        const dupNames = new Set<string>();
+        names.forEach(n => {
+          let finalName = `${n}_copy`;
+          let suffix = 2;
+          while (existingNames.has(finalName) || dupNames.has(finalName)) {
+            finalName = `${n}_copy_${suffix++}`;
+          }
+          dupNames.add(finalName);
+        });
+        pendingSelectRef.current = dupNames;
         canvasRef.current?.duplicateMeshes(names);
         break;
       case "flip-normals":
@@ -1107,24 +1124,22 @@ export default function TextToCAD() {
               />
             )}
             
+            {/* Bottom-left toolbar consolidated below with gem toggle */}
+
+            {/* Gem toggle — bottom left, next to display menu */}
             <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
-              {/* Start Over moved to LeftPanel */}
               <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
+              <GemToggle
+                visible={hasModel && !isGenerating && !isModelLoading}
+                mode={gemMode}
+                onModeChange={setGemMode}
+              />
               {hasModel && !isGenerating && !isModelLoading && (
                 <div className="relative">
                   <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
                   <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
                 </div>
               )}
-            </div>
-
-            {/* Gem toggle — top right of viewport */}
-            <div className="absolute top-2 right-14 z-[55]">
-              <GemToggle
-                visible={hasModel && !isGenerating && !isModelLoading}
-                mode={gemMode}
-                onModeChange={setGemMode}
-              />
             </div>
 
             {/* Selection warning — centered overlay instead of toast */}

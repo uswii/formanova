@@ -1,9 +1,8 @@
 /**
- * GemToggle — Simple toggle between "Simple Gems" and "Refractive Gems"
- * in the viewport top-right corner. No GPU gating — users choose freely.
+ * GemToggle — Proper segmented toggle between "Simple" and "Refractive" gem rendering.
+ * Placed in the bottom-left viewport toolbar area for clean alignment.
  */
 
-import { Gem, Sparkles } from "lucide-react";
 import type { GemMode } from "./GemInstanceRenderer";
 
 interface GemToggleProps {
@@ -18,21 +17,31 @@ export default function GemToggle({ visible, mode, onModeChange }: GemToggleProp
   const isRefractive = mode === "refraction";
 
   return (
-    <button
-      onClick={() => onModeChange(isRefractive ? "simple" : "refraction")}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-[0.12em] transition-all duration-200 cursor-pointer ${
-        isRefractive
-          ? "bg-primary/15 text-primary border-primary/40 shadow-sm shadow-primary/10"
-          : "bg-card/80 backdrop-blur-sm border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/50"
-      }`}
-      title={isRefractive ? "Refractive gems (ray-traced)" : "Simple gems (fast)"}
-    >
-      {isRefractive ? (
-        <Sparkles className="w-3.5 h-3.5" />
-      ) : (
-        <Gem className="w-3.5 h-3.5" />
-      )}
-      {isRefractive ? "Refractive" : "Simple Gems"}
-    </button>
+    <div className="flex bg-card/90 backdrop-blur-sm border border-border/50 rounded-sm overflow-hidden shadow-sm">
+      <button
+        onClick={() => onModeChange("simple")}
+        className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-150 cursor-pointer ${
+          !isRefractive
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+        }`}
+        title="Standard gem rendering (fast)"
+      >
+        <span className="text-[12px]">◆</span>
+        Simple
+      </button>
+      <button
+        onClick={() => onModeChange("refraction")}
+        className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-150 cursor-pointer ${
+          isRefractive
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+        }`}
+        title="Ray-traced refractive gems (higher quality)"
+      >
+        <span className="text-[12px]">◇</span>
+        Refractive
+      </button>
+    </div>
   );
 }
