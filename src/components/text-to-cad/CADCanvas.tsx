@@ -170,24 +170,42 @@ function TransformControlsWrapper({
           const sx = primaryStartScale.current.x > 0 ? object.scale.x / primaryStartScale.current.x : 1;
           const sy = primaryStartScale.current.y > 0 ? object.scale.y / primaryStartScale.current.y : 1;
           const sz = primaryStartScale.current.z > 0 ? object.scale.z / primaryStartScale.current.z : 1;
+
+          // Build a world-space scale matrix from the primary's local scale delta
+          // This ensures that "scale Y" on the gizmo means world-Y for ALL meshes
+          const primaryQuat = primaryStartQuat.current;
+          const scaleInLocal = new THREE.Matrix4().makeScale(sx, sy, sz);
+          const toWorld = new THREE.Matrix4().makeRotationFromQuaternion(primaryQuat);
+          const toWorldInv = toWorld.clone().invert();
+          // M = R * S * R^-1 — transforms world-space positions by the oriented scale
+          const worldScaleMatrix = toWorld.clone().multiply(scaleInLocal).multiply(toWorldInv);
+
           const pivot = groupPivot.current;
+
           for (const s of siblings) {
-            s.obj.scale.set(s.scale.x * sx, s.scale.y * sy, s.scale.z * sz);
-            // Scale sibling's position offset from shared pivot
+            // Scale sibling uniformly using the same world-space factors
+            // Convert primary's local scale ratios into sibling's local frame
+            const sibQuat = s.quat;
+            const sibToWorld = new THREE.Matrix4().makeRotationFromQuaternion(sibQuat);
+            const sibToWorldInv = sibToWorld.clone().invert();
+            // localScale = R_sib^-1 * worldScaleMatrix * R_sib applied to unit scale
+            const sibLocalScale = sibToWorldInv.clone().multiply(worldScaleMatrix).multiply(sibToWorld);
+            // Extract scale from the combined matrix
+            const decomposed = new THREE.Vector3();
+            const tempM = new THREE.Matrix4().makeScale(s.scale.x, s.scale.y, s.scale.z).premultiply(sibLocalScale);
+            tempM.decompose(new THREE.Vector3(), new THREE.Quaternion(), decomposed);
+            s.obj.scale.copy(decomposed);
+
+            // Scale position offset from pivot in world space
             const offset = s.pos.clone().sub(pivot);
-            s.obj.position.set(
-              pivot.x + offset.x * sx,
-              pivot.y + offset.y * sy,
-              pivot.z + offset.z * sz,
-            );
+            offset.applyMatrix4(worldScaleMatrix);
+            s.obj.position.copy(pivot).add(offset);
           }
+
           // Also scale primary object's position around pivot
           const primaryOffset = primaryStartPos.current.clone().sub(pivot);
-          object.position.set(
-            pivot.x + primaryOffset.x * sx,
-            pivot.y + primaryOffset.y * sy,
-            pivot.z + primaryOffset.z * sz,
-          );
+          primaryOffset.applyMatrix4(worldScaleMatrix);
+          object.position.copy(pivot).add(primaryOffset);
         }
       }
 
