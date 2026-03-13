@@ -113,6 +113,14 @@ export default function Generations() {
     }
 
     // Always fetch fresh in background
+    const controller = new AbortController();
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[Generations] Safety timeout — forcing loading off');
+      setGlobalLoading(false);
+      if (!cached) setError('Request timed out. Please try again.');
+      controller.abort();
+    }, 15000);
+
     (async () => {
       try {
         if (!cached) setGlobalLoading(true);
@@ -134,9 +142,12 @@ export default function Generations() {
           setError('Could not load your generation history. Please try again.');
         }
       } finally {
+        clearTimeout(safetyTimeout);
         setGlobalLoading(false);
       }
     })();
+
+    return () => { clearTimeout(safetyTimeout); controller.abort(); };
   }, [user]);
 
   // ── Pagination helper ─────────────────────────────────────────────
