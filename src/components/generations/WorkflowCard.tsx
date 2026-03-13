@@ -46,6 +46,16 @@ const MODEL_LABELS: Record<string, string> = {
   premium: 'Premium',
 };
 
+function CreditsBadge({ credits }: { credits?: number | null }) {
+  if (credits === undefined || credits === null) return null;
+  return (
+    <span className="inline-flex items-center gap-1 font-mono text-[10px] tracking-wider text-muted-foreground">
+      <img src={creditCoinIcon} alt="" className="w-3.5 h-3.5" />
+      {credits}
+    </span>
+  );
+}
+
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
