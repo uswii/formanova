@@ -169,6 +169,44 @@ export async function getWorkflowDetails(
   };
 }
 
+// ─── Credit Audit ───────────────────────────────────────────────────
+
+/**
+ * Fetch the credit audit for a workflow.
+ * Backend: GET /credits/audit/{workflow_id}
+ * Uses JWT Bearer auth (no X-API-Key needed from client).
+ * Returns total credits spent for this workflow.
+ */
+export async function fetchWorkflowCreditAudit(
+  workflowId: string,
+): Promise<number | null> {
+  try {
+    const res = await authenticatedFetch(
+      `${BASE_URL}/api/credits/audit/${workflowId}`,
+    );
+
+    if (!res.ok) {
+      if (__DEV__) console.warn('[HistoryAPI] credit audit failed:', res.status, workflowId);
+      return null;
+    }
+
+    const data = await res.json();
+    // Backend may return { total_charged, line_items: [...] } or similar
+    const total = data.total_charged ?? data.total_cost ?? data.total ?? data.credits_spent ?? null;
+    if (typeof total === 'number') return total;
+
+    // If it's an array of line items, sum them
+    if (Array.isArray(data.line_items)) {
+      return data.line_items.reduce((sum: number, item: any) => sum + (item.amount ?? item.credits ?? 0), 0);
+    }
+
+    return null;
+  } catch (e) {
+    if (__DEV__) console.warn('[HistoryAPI] credit audit error:', workflowId, e);
+    return null;
+  }
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────
 
 /** Infer the source type from the workflow name */
