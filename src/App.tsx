@@ -155,7 +155,7 @@ const App = () => (
                   <Route path="/admin/workflows/:workflowId" element={<AdminRoute><AdminWorkflowDetail /></AdminRoute>} />
                   <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
                   <Route path="/admin/tenants" element={<AdminRoute><AdminTenants /></AdminRoute>} />
-                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                  <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
                   
                   {/* Results page - handles auth internally (login button + ownership check) */}
                   <Route path="/yourresults/:token" element={<DeliveryResults />} />
