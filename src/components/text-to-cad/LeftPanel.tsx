@@ -238,8 +238,9 @@ export default function LeftPanel({
               >
                 <span>Apply Edit</span>
                 <span className="inline-flex items-center gap-1 opacity-80 flex-shrink-0">
+                  <span className="text-[11px] lg:text-[13px] font-mono font-semibold">≤</span>
                   <img src={creditCoinIcon} alt="" className="w-5 h-5" />
-                  <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? `≤ ${estimatedCost}` : '—')}</span>
+                  <span className="text-[11px] lg:text-[13px] font-mono font-semibold">{costLoading ? '…' : (estimatedCost !== null ? estimatedCost : '—')}</span>
                 </span>
               </button>
 
