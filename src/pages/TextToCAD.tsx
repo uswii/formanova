@@ -1118,13 +1118,20 @@ export default function TextToCAD() {
               )}
             </div>
 
-            {/* Gem toggle — top right of viewport */}
-            <div className="absolute top-2 right-14 z-[55]">
+            {/* Gem toggle — bottom left, next to display menu */}
+            <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
+              <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
               <GemToggle
                 visible={hasModel && !isGenerating && !isModelLoading}
                 mode={gemMode}
                 onModeChange={setGemMode}
               />
+              {hasModel && !isGenerating && !isModelLoading && (
+                <div className="relative">
+                  <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
+                  <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+                </div>
+              )}
             </div>
 
             {/* Selection warning — centered overlay instead of toast */}
