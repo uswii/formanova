@@ -183,7 +183,7 @@ export function Header() {
                         onClick={() => navigate('/admin/promo-codes')}
                         className="cursor-pointer text-sm"
                       >
-                        <Shield className="h-4 w-4 mr-2" />
+                        <ScanEye className="h-4 w-4 mr-2" />
                         Admin
                       </DropdownMenuItem>
                     )}
