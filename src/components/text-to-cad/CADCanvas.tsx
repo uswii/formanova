@@ -95,6 +95,8 @@ function TransformControlsWrapper({
   const primaryStartScale = useRef(new THREE.Vector3(1, 1, 1));
   const siblingStarts = useRef<{ obj: THREE.Object3D; pos: THREE.Vector3; quat: THREE.Quaternion; scale: THREE.Vector3 }[]>([]);
   const groupPivot = useRef(new THREE.Vector3());
+  // Freeze sibling refs at drag start so dependency changes don't cause re-mounts mid-drag
+  const frozenSiblingsRef = useRef<THREE.Object3D[]>([]);
 
   useEffect(() => {
     const controls = controlsRef.current;
