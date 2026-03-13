@@ -26,7 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize from localStorage synchronously (instant load)
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(true);
+  // If we already have a stored user + token, skip the loading spinner entirely
+  // and validate in the background. Only block rendering when there's nothing cached.
+  const [initializing, setInitializing] = useState(() => !(getStoredUser() && getStoredToken()));
 
   useEffect(() => {
     // Listen for auth state changes from AuthCallback (fixes race condition)
