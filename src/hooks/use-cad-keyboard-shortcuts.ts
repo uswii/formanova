@@ -186,7 +186,12 @@ export function useCADKeyboardShortcuts(actions: CADShortcutActions) {
       // Don't intercept other Ctrl/Cmd combos (browser shortcuts)
       if (mod) return;
 
-      // Shift + D → Duplicate
+      // Alt + R → Reset Transform
+      if (e.altKey && key === "r") {
+        e.preventDefault();
+        a.onResetTransform?.();
+        return;
+      }
       if (e.shiftKey && key === "d") {
         e.preventDefault();
         a.onDuplicate();
