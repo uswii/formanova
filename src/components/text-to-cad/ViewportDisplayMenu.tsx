@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { Eye } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const DISPLAY_OPTIONS = [
@@ -11,11 +10,14 @@ const DISPLAY_OPTIONS = [
 
 interface ViewportDisplayMenuProps {
   visible: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSceneAction: (action: string) => void;
+  /** Position anchor — defaults to bottom-left standalone; set to "side-toolbar" for right-side anchoring */
+  anchor?: "standalone" | "side-toolbar";
 }
 
-export default function ViewportDisplayMenu({ visible, onSceneAction }: ViewportDisplayMenuProps) {
-  const [open, setOpen] = useState(false);
+export default function ViewportDisplayMenu({ visible, open, onOpenChange, onSceneAction, anchor = "standalone" }: ViewportDisplayMenuProps) {
   const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set());
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -23,12 +25,12 @@ export default function ViewportDisplayMenu({ visible, onSceneAction }: Viewport
     if (!open) return;
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        onOpenChange(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  }, [open, onOpenChange]);
 
   if (!visible) return null;
 
@@ -47,22 +49,12 @@ export default function ViewportDisplayMenu({ visible, onSceneAction }: Viewport
     });
   };
 
+  const positionClass = anchor === "side-toolbar"
+    ? "absolute right-full mr-2 top-0"
+    : "absolute bottom-11 left-0";
+
   return (
     <div ref={menuRef} className="relative">
-      {/* Trigger */}
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className={`w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-150 cursor-pointer ${
-          open
-            ? "bg-primary text-primary-foreground border-primary shadow-md"
-            : "bg-card/80 backdrop-blur-sm border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/50"
-        }`}
-        title="Display options"
-      >
-        <Eye className="w-4 h-4" />
-      </button>
-
-      {/* Menu */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -70,7 +62,7 @@ export default function ViewportDisplayMenu({ visible, onSceneAction }: Viewport
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-11 left-0 w-[180px] bg-card border border-border shadow-lg rounded-lg overflow-hidden"
+            className={`${positionClass} w-[180px] bg-card border border-border shadow-lg rounded-lg overflow-hidden z-50`}
           >
             <div className="px-3 pt-2.5 pb-1.5">
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
