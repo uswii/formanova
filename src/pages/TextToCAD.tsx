@@ -712,6 +712,22 @@ export default function TextToCAD() {
   };
 
   const handleDownloadGlb = useCallback(async () => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const defaultName = `model-${timestamp}.glb`;
+
+    // Helper: trigger download via anchor element (universal fallback)
+    const anchorDownload = (blob: Blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = defaultName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Revoke after a short delay so the download can start
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
+
     try {
       // Download is always user-initiated, so React state is guaranteed to be
       // committed by the time the click handler fires — no need to defer.
@@ -729,14 +745,19 @@ export default function TextToCAD() {
             body: JSON.stringify({ url: glbUrl }),
           },
         );
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         blob = await response.blob();
       } else {
+        toast.error("No model to download");
         return;
       }
-      // Use browser's native Save As dialog so the user can rename the file
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-      const defaultName = `model-${timestamp}.glb`;
 
+      if (!blob || blob.size === 0) {
+        toast.error("Export produced an empty file");
+        return;
+      }
+
+      // Try native Save-As dialog, fall back to anchor download on any failure
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await (window as any).showSaveFilePicker({
@@ -750,21 +771,17 @@ export default function TextToCAD() {
           await writable.write(blob);
           await writable.close();
         } catch (e: any) {
-          // User cancelled the dialog — not an error
+          // User cancelled — not an error
           if (e?.name === 'AbortError') return;
-          throw e;
+          // Any other File System Access error → fall back to anchor download
+          console.warn('[Download] showSaveFilePicker failed, using fallback:', e);
+          anchorDownload(blob);
         }
       } else {
-        // Fallback for browsers without File System Access API
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = defaultName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(a.href);
+        anchorDownload(blob);
       }
-    } catch {
+    } catch (err) {
+      console.error('[Download] Failed to export/download model:', err);
       toast.error("Failed to download model");
     }
   }, [glbUrl]);
