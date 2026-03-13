@@ -588,16 +588,18 @@ const LoadedModel = forwardRef<
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-        // Distance multiplier: 1.8× ensures the model sits comfortably below the toolbar
-        const dist = maxDim * 1.8;
+        // Distance multiplier: 2.4× ensures the model sits comfortably below the toolbar
+        const dist = maxDim * 2.4;
+        // Slight downward offset so the model center sits below viewport midpoint
+        const yOffset = maxDim * 0.15;
         const orbitCtrl = (glRenderer.domElement as any).__orbitControls;
         if (orbitCtrl) {
-          orbitCtrl.target.copy(center);
-          orbitCtrl.object.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
+          orbitCtrl.target.set(center.x, center.y - yOffset, center.z);
+          orbitCtrl.object.position.set(center.x, center.y - yOffset + maxDim * 0.2, center.z + dist);
           orbitCtrl.update();
         } else {
           // Fallback: use R3F camera directly
-          camera.position.set(center.x, center.y + maxDim * 0.3, center.z + dist);
+          camera.position.set(center.x, center.y - yOffset + maxDim * 0.2, center.z + dist);
           (camera as THREE.PerspectiveCamera).lookAt(center);
         }
         inv();
