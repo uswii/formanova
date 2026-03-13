@@ -167,44 +167,26 @@ function TransformControlsWrapper({
           primaryOffset.applyQuaternion(deltaQuat);
           object.position.copy(pivot).add(primaryOffset);
         } else if (mode === "scale") {
+          // Compute scale ratios from primary mesh's local scale change
           const sx = primaryStartScale.current.x > 0 ? object.scale.x / primaryStartScale.current.x : 1;
           const sy = primaryStartScale.current.y > 0 ? object.scale.y / primaryStartScale.current.y : 1;
           const sz = primaryStartScale.current.z > 0 ? object.scale.z / primaryStartScale.current.z : 1;
 
-          // Build a world-space scale matrix from the primary's local scale delta
-          // This ensures that "scale Y" on the gizmo means world-Y for ALL meshes
-          const primaryQuat = primaryStartQuat.current;
-          const scaleInLocal = new THREE.Matrix4().makeScale(sx, sy, sz);
-          const toWorld = new THREE.Matrix4().makeRotationFromQuaternion(primaryQuat);
-          const toWorldInv = toWorld.clone().invert();
-          // M = R * S * R^-1 — transforms world-space positions by the oriented scale
-          const worldScaleMatrix = toWorld.clone().multiply(scaleInLocal).multiply(toWorldInv);
-
           const pivot = groupPivot.current;
 
           for (const s of siblings) {
-            // Scale sibling uniformly using the same world-space factors
-            // Convert primary's local scale ratios into sibling's local frame
-            const sibQuat = s.quat;
-            const sibToWorld = new THREE.Matrix4().makeRotationFromQuaternion(sibQuat);
-            const sibToWorldInv = sibToWorld.clone().invert();
-            // localScale = R_sib^-1 * worldScaleMatrix * R_sib applied to unit scale
-            const sibLocalScale = sibToWorldInv.clone().multiply(worldScaleMatrix).multiply(sibToWorld);
-            // Extract scale from the combined matrix
-            const decomposed = new THREE.Vector3();
-            const tempM = new THREE.Matrix4().makeScale(s.scale.x, s.scale.y, s.scale.z).premultiply(sibLocalScale);
-            tempM.decompose(new THREE.Vector3(), new THREE.Quaternion(), decomposed);
-            s.obj.scale.copy(decomposed);
+            // Apply the same scale ratios directly to each sibling
+            s.obj.scale.set(s.scale.x * sx, s.scale.y * sy, s.scale.z * sz);
 
-            // Scale position offset from pivot in world space
+            // Scale position offset from pivot using the same ratios
             const offset = s.pos.clone().sub(pivot);
-            offset.applyMatrix4(worldScaleMatrix);
+            offset.set(offset.x * sx, offset.y * sy, offset.z * sz);
             s.obj.position.copy(pivot).add(offset);
           }
 
           // Also scale primary object's position around pivot
           const primaryOffset = primaryStartPos.current.clone().sub(pivot);
-          primaryOffset.applyMatrix4(worldScaleMatrix);
+          primaryOffset.set(primaryOffset.x * sx, primaryOffset.y * sy, primaryOffset.z * sz);
           object.position.copy(pivot).add(primaryOffset);
         }
       }
@@ -1146,52 +1128,114 @@ const LoadedModel = forwardRef<
       };
     },
     setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => {
-      const selectedName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
-      if (!selectedName) return;
+      const selectedNames = new Set(meshDataList.filter((m) => selectedMeshNames.has(m.name)).map(m => m.name));
+      if (selectedNames.size === 0) return;
       const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+      // For single-mesh selection, apply directly
+      const primaryName = meshDataList.find((m) => selectedMeshNames.has(m.name))?.name;
+      if (!primaryName) return;
 
-      setMeshDataList((prev) => prev.map((md) => {
-        if (md.name !== selectedName) return md;
-        if (property === 'position') {
-          const newPos = md.position.clone();
-          if (axisIdx === 0) newPos.x = value;
-          else if (axisIdx === 1) newPos.y = value;
-          else newPos.z = value;
-          return { ...md, position: newPos };
-        } else if (property === 'rotation') {
-          // Update the cumulative degree value and derive quaternion from ALL three axes
-          const newDeg: [number, number, number] = [...md.rotationDeg];
-          newDeg[axisIdx] = value;
-          const newQuat = degToQuat(newDeg);
-          return { ...md, rotationDeg: newDeg, quaternion: newQuat };
-        } else {
-          const newScale = md.scale.clone();
-          if (axisIdx === 0) newScale.x = value;
-          else if (axisIdx === 1) newScale.y = value;
-          else newScale.z = value;
-          return { ...md, scale: newScale };
-        }
-      }));
-
-      // Also update the Three.js mesh object directly for immediate visual feedback
-      const meshObj = meshRefs.current.get(selectedName);
-      if (meshObj) {
-        if (property === 'position') {
-          if (axisIdx === 0) meshObj.position.x = value;
-          else if (axisIdx === 1) meshObj.position.y = value;
-          else meshObj.position.z = value;
-        } else if (property === 'rotation') {
-          // Read current rotationDeg, apply the change, compute quaternion
-          const md = meshDataList.find(m => m.name === selectedName);
-          if (md) {
+      if (selectedNames.size === 1 || property !== 'scale') {
+        // Single mesh or non-scale: apply to the primary mesh only (move/rotate affect all via gizmo)
+        setMeshDataList((prev) => prev.map((md) => {
+          if (property === 'scale' && md.name !== primaryName) return md;
+          if (property !== 'scale' && md.name !== primaryName) return md;
+          if (property === 'position') {
+            const newPos = md.position.clone();
+            if (axisIdx === 0) newPos.x = value;
+            else if (axisIdx === 1) newPos.y = value;
+            else newPos.z = value;
+            return { ...md, position: newPos };
+          } else if (property === 'rotation') {
             const newDeg: [number, number, number] = [...md.rotationDeg];
             newDeg[axisIdx] = value;
-            meshObj.quaternion.copy(degToQuat(newDeg));
+            const newQuat = degToQuat(newDeg);
+            return { ...md, rotationDeg: newDeg, quaternion: newQuat };
+          } else {
+            const newScale = md.scale.clone();
+            if (axisIdx === 0) newScale.x = value;
+            else if (axisIdx === 1) newScale.y = value;
+            else newScale.z = value;
+            return { ...md, scale: newScale };
           }
-        } else {
-          if (axisIdx === 0) meshObj.scale.x = value;
-          else if (axisIdx === 1) meshObj.scale.y = value;
-          else meshObj.scale.z = value;
+        }));
+        // Update Three.js mesh directly for immediate visual feedback
+        const meshObj = meshRefs.current.get(primaryName);
+        if (meshObj) {
+          if (property === 'position') {
+            if (axisIdx === 0) meshObj.position.x = value;
+            else if (axisIdx === 1) meshObj.position.y = value;
+            else meshObj.position.z = value;
+          } else if (property === 'rotation') {
+            const md = meshDataList.find(m => m.name === primaryName);
+            if (md) {
+              const newDeg: [number, number, number] = [...md.rotationDeg];
+              newDeg[axisIdx] = value;
+              meshObj.quaternion.copy(degToQuat(newDeg));
+            }
+          } else {
+            if (axisIdx === 0) meshObj.scale.x = value;
+            else if (axisIdx === 1) meshObj.scale.y = value;
+            else meshObj.scale.z = value;
+          }
+        }
+      } else {
+        // Multi-mesh scale: treat as group, scale around shared pivot
+        const primaryMd = meshDataList.find(m => m.name === primaryName);
+        if (!primaryMd) return;
+
+        // Compute current scale value of primary on this axis
+        const currentVal = axisIdx === 0 ? primaryMd.scale.x : axisIdx === 1 ? primaryMd.scale.y : primaryMd.scale.z;
+        if (currentVal === 0) return;
+        const ratio = value / currentVal;
+
+        // Compute shared pivot from all selected meshes
+        const selectedMeshData = meshDataList.filter(m => selectedNames.has(m.name));
+        const box = new THREE.Box3();
+        for (const md of selectedMeshData) {
+          const meshObj = meshRefs.current.get(md.name);
+          if (meshObj) {
+            const mBox = new THREE.Box3().setFromObject(meshObj);
+            box.union(mBox);
+          }
+        }
+        const pivot = new THREE.Vector3();
+        box.getCenter(pivot);
+
+        setMeshDataList((prev) => prev.map((md) => {
+          if (!selectedNames.has(md.name)) return md;
+          // Apply scale ratio on the target axis
+          const newScale = md.scale.clone();
+          if (axisIdx === 0) newScale.x *= ratio;
+          else if (axisIdx === 1) newScale.y *= ratio;
+          else newScale.z *= ratio;
+
+          // Scale position offset from pivot on target axis
+          const offset = md.position.clone().sub(pivot);
+          if (axisIdx === 0) offset.x *= ratio;
+          else if (axisIdx === 1) offset.y *= ratio;
+          else offset.z *= ratio;
+          const newPos = pivot.clone().add(offset);
+
+          return { ...md, scale: newScale, position: newPos };
+        }));
+
+        // Update Three.js meshes directly
+        for (const [name, meshObj] of meshRefs.current.entries()) {
+          if (!selectedNames.has(name)) continue;
+          const md = meshDataList.find(m => m.name === name);
+          if (!md) continue;
+          const newScale = md.scale.clone();
+          if (axisIdx === 0) newScale.x *= ratio;
+          else if (axisIdx === 1) newScale.y *= ratio;
+          else newScale.z *= ratio;
+          meshObj.scale.copy(newScale);
+
+          const offset = md.position.clone().sub(pivot);
+          if (axisIdx === 0) offset.x *= ratio;
+          else if (axisIdx === 1) offset.y *= ratio;
+          else offset.z *= ratio;
+          meshObj.position.copy(pivot.clone().add(offset));
         }
       }
       inv();
