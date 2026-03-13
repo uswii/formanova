@@ -1044,7 +1044,7 @@ export default function TextToCAD() {
               lightIntensity={1}
               onModelReady={handleModelReady}
               magicTexturing={magicTexturing}
-              qualityMode={qualityMode}
+              qualityMode="balanced"
               gemMode={gemMode}
               onGemModeForced={(mode) => setGemMode(mode)}
             />
