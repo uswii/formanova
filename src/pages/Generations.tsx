@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   listMyWorkflows,
   getWorkflowDetails,
+  fetchWorkflowCreditAudit,
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData } from '@/lib/generation-enrichment';
