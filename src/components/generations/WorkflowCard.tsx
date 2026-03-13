@@ -270,12 +270,13 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           <div className="w-full aspect-square bg-muted/50 animate-pulse" />
         ) : null}
 
-        {/* Card footer: index · date · duration */}
+        {/* Card footer: index · credits · date · duration */}
         <div className="flex items-center justify-between px-2.5 py-2">
           <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none">
             #{index}
           </span>
           <div className="flex items-center gap-2">
+            <CreditsBadge credits={workflow.credits_spent} />
             {durationSec !== null && (
               <span className="font-mono text-[8px] tracking-wider text-muted-foreground/60">
                 {durationSec}s
