@@ -1865,7 +1865,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           }}
           dpr={[effectiveQ.dpr[0], Math.min(effectiveQ.dpr[1], 1.5)]}
           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
-          onPointerMissed={() => onMeshClick("", false)}
+          onPointerMissed={() => { if (!_isTransformDragging) onMeshClick("", false); }}
           frameloop="demand"
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
