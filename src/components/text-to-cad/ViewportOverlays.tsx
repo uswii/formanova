@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, ChevronUp, ChevronDown, Wand2 } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, ChevronUp, ChevronDown, Eye, Keyboard } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 import type { MeshTransformData } from "./CADCanvas";
