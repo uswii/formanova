@@ -2,44 +2,44 @@ import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 
 // Necklace examples
-import necklaceAllowed1 from '@/assets/examples/necklace-allowed-1.webp';
-import necklaceAllowed2 from '@/assets/examples/necklace-allowed-2.webp';
-import necklaceAllowed3 from '@/assets/examples/necklace-allowed-3.webp';
-import necklaceNotAllowed1 from '@/assets/examples/necklace-notallowed-1.webp';
-import necklaceNotAllowed2 from '@/assets/examples/necklace-notallowed-2.webp';
-import necklaceNotAllowed3 from '@/assets/examples/necklace-notallowed-3.webp';
+import necklaceAllowed1 from '@/assets/examples/necklace-allowed-1.jpg';
+import necklaceAllowed2 from '@/assets/examples/necklace-allowed-2.jpg';
+import necklaceAllowed3 from '@/assets/examples/necklace-allowed-3.jpg';
+import necklaceNotAllowed1 from '@/assets/examples/necklace-notallowed-1.png';
+import necklaceNotAllowed2 from '@/assets/examples/necklace-notallowed-2.png';
+import necklaceNotAllowed3 from '@/assets/examples/necklace-notallowed-3.png';
 
 // Earring examples
-import earringAllowed1 from '@/assets/examples/earring-allowed-1.webp';
-import earringAllowed2 from '@/assets/examples/earring-allowed-2.webp';
-import earringAllowed3 from '@/assets/examples/earring-allowed-3.webp';
-import earringNotAllowed1 from '@/assets/examples/earring-notallowed-1.webp';
-import earringNotAllowed2 from '@/assets/examples/earring-notallowed-2.webp';
-import earringNotAllowed3 from '@/assets/examples/earring-notallowed-3.webp';
+import earringAllowed1 from '@/assets/examples/earring-allowed-1.jpg';
+import earringAllowed2 from '@/assets/examples/earring-allowed-2.jpg';
+import earringAllowed3 from '@/assets/examples/earring-allowed-3.jpg';
+import earringNotAllowed1 from '@/assets/examples/earring-notallowed-1.png';
+import earringNotAllowed2 from '@/assets/examples/earring-notallowed-2.png';
+import earringNotAllowed3 from '@/assets/examples/earring-notallowed-3.png';
 
 // Bracelet examples
-import braceletAllowed1 from '@/assets/examples/bracelet-allowed-1.webp';
-import braceletAllowed2 from '@/assets/examples/bracelet-allowed-2.webp';
-import braceletAllowed3 from '@/assets/examples/bracelet-allowed-3.webp';
-import braceletNotAllowed1 from '@/assets/examples/bracelet-notallowed-1.webp';
-import braceletNotAllowed2 from '@/assets/examples/bracelet-notallowed-2.webp';
-import braceletNotAllowed3 from '@/assets/examples/bracelet-notallowed-3.webp';
+import braceletAllowed1 from '@/assets/examples/bracelet-allowed-1.jpg';
+import braceletAllowed2 from '@/assets/examples/bracelet-allowed-2.jpg';
+import braceletAllowed3 from '@/assets/examples/bracelet-allowed-3.jpg';
+import braceletNotAllowed1 from '@/assets/examples/bracelet-notallowed-1.png';
+import braceletNotAllowed2 from '@/assets/examples/bracelet-notallowed-2.png';
+import braceletNotAllowed3 from '@/assets/examples/bracelet-notallowed-3.png';
 
 // Watch examples
-import watchAllowed1 from '@/assets/examples/watch-allowed-1.webp';
-import watchAllowed2 from '@/assets/examples/watch-allowed-2.webp';
-import watchAllowed3 from '@/assets/examples/watch-allowed-3.webp';
-import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.webp';
-import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.webp';
-import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.webp';
+import watchAllowed1 from '@/assets/examples/watch-allowed-1.jpg';
+import watchAllowed2 from '@/assets/examples/watch-allowed-2.jpg';
+import watchAllowed3 from '@/assets/examples/watch-allowed-3.png';
+import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.png';
+import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.png';
+import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.png';
 
 // Ring examples
-import ringAllowed1 from '@/assets/examples/ring-allowed-1.webp';
-import ringAllowed2 from '@/assets/examples/ring-allowed-2.webp';
-import ringAllowed3 from '@/assets/examples/ring-allowed-3.webp';
-import ringNotAllowed1 from '@/assets/examples/ring-notallowed-1.webp';
-import ringNotAllowed2 from '@/assets/examples/ring-notallowed-2.webp';
-import ringNotAllowed3 from '@/assets/examples/ring-notallowed-3.webp';
+import ringAllowed1 from '@/assets/examples/ring-allowed-1.png';
+import ringAllowed2 from '@/assets/examples/ring-allowed-2.png';
+import ringAllowed3 from '@/assets/examples/ring-allowed-3.jpg';
+import ringNotAllowed1 from '@/assets/examples/ring-notallowed-1.png';
+import ringNotAllowed2 from '@/assets/examples/ring-notallowed-2.png';
+import ringNotAllowed3 from '@/assets/examples/ring-notallowed-3.png';
 
 interface ExampleGuidePanelProps {
   categoryName?: string;
