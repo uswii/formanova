@@ -151,17 +151,43 @@ function TransformControlsWrapper({
             s.obj.position.copy(s.pos).add(delta);
           }
         } else if (mode === "rotate") {
+          // Compute delta quaternion from primary object
           const deltaQuat = object.quaternion.clone().multiply(primaryStartQuat.current.clone().invert());
+          const pivot = groupPivot.current;
           for (const s of siblings) {
+            // Rotate sibling's local orientation
             s.obj.quaternion.copy(deltaQuat).multiply(s.quat);
+            // Rotate sibling's position around the shared pivot
+            const offset = s.pos.clone().sub(pivot);
+            offset.applyQuaternion(deltaQuat);
+            s.obj.position.copy(pivot).add(offset);
           }
+          // Also rotate primary object's position around pivot
+          const primaryOffset = primaryStartPos.current.clone().sub(pivot);
+          primaryOffset.applyQuaternion(deltaQuat);
+          object.position.copy(pivot).add(primaryOffset);
         } else if (mode === "scale") {
           const sx = primaryStartScale.current.x > 0 ? object.scale.x / primaryStartScale.current.x : 1;
           const sy = primaryStartScale.current.y > 0 ? object.scale.y / primaryStartScale.current.y : 1;
           const sz = primaryStartScale.current.z > 0 ? object.scale.z / primaryStartScale.current.z : 1;
+          const pivot = groupPivot.current;
           for (const s of siblings) {
             s.obj.scale.set(s.scale.x * sx, s.scale.y * sy, s.scale.z * sz);
+            // Scale sibling's position offset from shared pivot
+            const offset = s.pos.clone().sub(pivot);
+            s.obj.position.set(
+              pivot.x + offset.x * sx,
+              pivot.y + offset.y * sy,
+              pivot.z + offset.z * sz,
+            );
           }
+          // Also scale primary object's position around pivot
+          const primaryOffset = primaryStartPos.current.clone().sub(pivot);
+          object.position.set(
+            pivot.x + primaryOffset.x * sx,
+            pivot.y + primaryOffset.y * sy,
+            pivot.z + primaryOffset.z * sz,
+          );
         }
       }
 
