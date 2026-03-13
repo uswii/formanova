@@ -169,14 +169,23 @@ export default function PromoAdminPage() {
       // Edit — only send changed fields
       const payload: UpdatePromoCodePayload = {};
       const trimmedCampaign = formCampaign.trim();
-      if (trimmedCampaign !== (editingCode.campaign_name ?? '')) payload.campaign_name = trimmedCampaign || undefined;
-      if (formMaxRedemptions !== (editingCode.max_redemptions !== null ? String(editingCode.max_redemptions) : '')) {
-        payload.max_redemptions = formMaxRedemptions ? Number(formMaxRedemptions) : undefined;
+      if (trimmedCampaign !== (editingCode.campaign_name ?? '')) {
+        payload.campaign_name = trimmedCampaign || null;
       }
-      const newExpiresIso = formExpiresAt ? new Date(formExpiresAt).toISOString() : undefined;
+      if (formMaxRedemptions !== (editingCode.max_redemptions !== null ? String(editingCode.max_redemptions) : '')) {
+        payload.max_redemptions = formMaxRedemptions ? Number(formMaxRedemptions) : null;
+      }
+      const oldStartsSlice = editingCode.starts_at ? editingCode.starts_at.slice(0, 16) : '';
+      if (formStartsAt !== oldStartsSlice) {
+        payload.starts_at = formStartsAt ? new Date(formStartsAt).toISOString() : null;
+      }
       const oldExpiresSlice = editingCode.expires_at ? editingCode.expires_at.slice(0, 16) : '';
-      if (formExpiresAt !== oldExpiresSlice) payload.expires_at = newExpiresIso;
-      if (formNotes.trim() !== (editingCode.notes ?? '')) payload.notes = formNotes.trim() || undefined;
+      if (formExpiresAt !== oldExpiresSlice) {
+        payload.expires_at = formExpiresAt ? new Date(formExpiresAt).toISOString() : null;
+      }
+      if (formNotes.trim() !== (editingCode.notes ?? '')) {
+        payload.notes = formNotes.trim() || null;
+      }
       if (formIsActive !== editingCode.is_active) payload.is_active = formIsActive;
 
       if (Object.keys(payload).length === 0) {
