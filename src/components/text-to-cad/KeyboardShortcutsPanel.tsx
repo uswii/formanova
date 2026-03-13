@@ -70,11 +70,11 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
                   <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">
                     {section.title}
                   </h3>
-                  <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 items-center">
+                  <div className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 items-baseline">
                     {section.shortcuts.map((sc) => (
                       <React.Fragment key={sc.desc}>
-                        <span className="text-[11px] text-foreground/80 leading-tight">{sc.desc}</span>
-                        <div className="flex items-center gap-1 justify-end whitespace-nowrap flex-shrink-0 overflow-visible">
+                        <span className="text-[11px] text-foreground/80 leading-normal text-left">{sc.desc}</span>
+                        <div className="flex items-center gap-1 justify-end whitespace-nowrap flex-shrink-0">
                           {sc.keys.map((k, i) => (
                             k === "/" ? (
                               <span key={i} className="text-[9px] text-muted-foreground/50 mx-0.5">/</span>
