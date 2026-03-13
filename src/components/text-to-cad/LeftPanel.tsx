@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Diamond, ChevronDown, ChevronRight, RotateCcw, Sparkles, Shield, AlertTriangle, Wand2 } from "lucide-react";
-import creditCoinIcon from "@/assets/icons/credit-coin.png";
+import { CreditCostBadge } from "@/components/CreditCostBadge";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
 import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
