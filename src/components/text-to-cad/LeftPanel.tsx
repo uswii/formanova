@@ -29,9 +29,6 @@ interface LeftPanelProps {
   onAddPart?: (description: string) => void;
   onReset?: () => void;
   creditBlock?: React.ReactNode;
-  gemMode?: GemMode;
-  onGemModeChange?: (mode: GemMode) => void;
-  refractionBlocked?: boolean;
 }
 
 export default function LeftPanel({
