@@ -1,57 +1,25 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, ChevronUp, ChevronDown, Eye, Keyboard } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
-import type { MeshTransformData } from "./CADCanvas";
-
-const MODE_CONFIG: Record<string, { label: string; title: string; icon: string; color: string; unit: string; step: string; defaultVal: string; property: 'position' | 'rotation' | 'scale' }> = {
-  translate: { label: "Move", title: "Position", icon: "↔", color: "text-green-400", unit: "", step: "0.01", defaultVal: "0.00", property: "position" },
-  rotate:    { label: "Rotate", title: "Rotation", icon: "↻", color: "text-blue-400", unit: "°", step: "1", defaultVal: "0", property: "rotation" },
-  scale:     { label: "Scale", title: "Scale", icon: "⇔", color: "text-amber-400", unit: "", step: "0.01", defaultVal: "1.00", property: "scale" },
-};
-
-const AXES = ["X", "Y", "Z"] as const;
-const AXIS_COLORS = ["text-red-400", "text-green-400", "text-blue-400"];
 
 // ── Viewer Tool Button ──
 const VT_BTN = "h-[40px] min-w-[72px] flex-1 text-[11px] font-bold uppercase tracking-[0.12em] cursor-pointer transition-all duration-150 flex items-center justify-center gap-2";
 const VT_BTN_DEFAULT = `${VT_BTN} text-foreground/70 hover:text-foreground hover:bg-accent/40`;
 const VT_BTN_ACTIVE = `${VT_BTN} text-primary-foreground bg-primary`;
 
-// ── Unified Transform Toolbar + Inspector ──
+// ── Viewport Toolbar ──
 export function ViewportToolbar({
   mode,
   setMode,
-  transformData,
-  onTransformChange,
   onResetTransform,
 }: {
   mode: string;
   setMode: (m: string) => void;
-  transformData?: MeshTransformData | null;
-  onTransformChange?: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
+  transformData?: unknown;
+  onTransformChange?: unknown;
   onResetTransform?: () => void;
 }) {
-  const config = MODE_CONFIG[mode] ?? null;
-  const isTransformActive = mode !== "orbit" && config !== null;
-  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
-
-  // Get values for current mode from transform data
-  const getValues = (): [number, number, number] => {
-    if (!transformData || !config) return [0, 0, 0];
-    return transformData[config.property];
-  };
-
-  const values = isTransformActive ? getValues() : [0, 0, 0];
-
-  const handleChange = (axisIdx: number, rawValue: string) => {
-    if (!config || !onTransformChange) return;
-    const num = parseFloat(rawValue);
-    if (isNaN(num)) return;
-    const axis = (['x', 'y', 'z'] as const)[axisIdx];
-    onTransformChange(axis, config.property, num);
-  };
+  const isTransformActive = mode !== "orbit";
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 flex flex-col items-center pt-2 pointer-events-none">
@@ -81,129 +49,11 @@ export function ViewportToolbar({
           </>
         )}
       </div>
-
-      {/* Integrated numeric inspector — slides down from viewer tools */}
-      <AnimatePresence>
-        {isTransformActive && config && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, y: -4 }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="overflow-hidden pointer-events-auto"
-          >
-            <div className="bg-card border border-border border-t-0 shadow-lg">
-              {/* Collapse toggle header */}
-              <button
-                onClick={() => setInspectorCollapsed(!inspectorCollapsed)}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-4 cursor-pointer hover:bg-accent/30 transition-colors"
-              >
-                <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${config.color}`}>
-                  {config.icon} {config.title}
-                </span>
-                {inspectorCollapsed ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronUp className="w-3 h-3 text-muted-foreground" />}
-              </button>
-              
-              <AnimatePresence>
-                {!inspectorCollapsed && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-4 pb-3 min-w-[360px]">
-                      <div className="flex gap-2">
-                        {AXES.map((axis, i) => (
-                          <NumericAxisInput
-                            key={`${mode}-${axis}`}
-                            axis={axis}
-                            axisColor={AXIS_COLORS[i]}
-                            value={values[i]}
-                            step={config.step}
-                            unit={config.unit}
-                            onChange={(val) => handleChange(i, val)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
-/** Controlled numeric input that syncs with external value but allows free typing */
-function NumericAxisInput({
-  axis,
-  axisColor,
-  value,
-  step,
-  unit,
-  onChange,
-}: {
-  axis: string;
-  axisColor: string;
-  value: number;
-  step: string;
-  unit: string;
-  onChange: (val: string) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [localValue, setLocalValue] = useState(formatNum(value));
-  const isFocused = useRef(false);
 
-  // Sync external value when not focused
-  useEffect(() => {
-    if (!isFocused.current) {
-      setLocalValue(formatNum(value));
-    }
-  }, [value]);
-
-  function formatNum(n: number): string {
-    return Number(n.toFixed(2)).toString();
-  }
-
-  return (
-    <div className="flex items-center gap-1.5 flex-1">
-      <span className={`font-mono text-[11px] font-bold ${axisColor}`}>{axis}</span>
-      <input
-        ref={inputRef}
-        type="number"
-        step={step}
-        value={localValue}
-        onFocus={() => { isFocused.current = true; }}
-        onBlur={() => {
-          isFocused.current = false;
-          onChange(localValue);
-          setLocalValue(formatNum(parseFloat(localValue) || 0));
-        }}
-        onChange={(e) => {
-          setLocalValue(e.target.value);
-          // Live update on every keystroke
-          const num = parseFloat(e.target.value);
-          if (!isNaN(num)) onChange(e.target.value);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            onChange(localValue);
-            (e.target as HTMLInputElement).blur();
-          }
-        }}
-        className="w-full px-2.5 py-1.5 text-[11px] font-mono text-foreground bg-background/50 border border-border focus:outline-none focus:ring-1 focus:ring-ring"
-      />
-      {unit && (
-        <span className="font-mono text-[9px] text-muted-foreground">{unit}</span>
-      )}
-    </div>
-  );
-}
 
 // ── Progress Overlay ──
 export function ProgressOverlay({ visible, progress, currentStep }: { visible: boolean; progress: number; currentStep: string }) {
