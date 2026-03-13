@@ -832,16 +832,19 @@ const LoadedModel = forwardRef<
     },
     flipNormals: (meshNames: string[]) => {
       const names = new Set(meshNames);
-      meshDataList.forEach((md) => {
-        if (names.has(md.name)) {
-          const normals = md.geometry.attributes.normal;
-          if (normals) {
-            for (let i = 0; i < normals.count; i++) {
-              normals.setXYZ(i, -normals.getX(i), -normals.getY(i), -normals.getZ(i));
+      setMeshDataList((prev) => {
+        prev.forEach((md) => {
+          if (names.has(md.name)) {
+            const normals = md.geometry.attributes.normal;
+            if (normals) {
+              for (let i = 0; i < normals.count; i++) {
+                normals.setXYZ(i, -normals.getX(i), -normals.getY(i), -normals.getZ(i));
+              }
+              normals.needsUpdate = true;
             }
-            normals.needsUpdate = true;
           }
-        }
+        });
+        return [...prev]; // trigger re-render
       });
       inv();
     },
