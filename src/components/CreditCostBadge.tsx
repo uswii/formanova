@@ -20,9 +20,10 @@ export function CreditCostBadge({
 }: CreditCostBadgeProps) {
   const content = (
     <span className={`inline-flex items-center gap-1.5 font-mono ${layout === 'block' ? 'text-[11px]' : 'text-[10px] lg:text-[11px]'} opacity-70 ${className}`}>
+      <span>{loading ? '…' : cost !== null ? '≤' : ''}</span>
       <img src={creditCoinIcon} alt="" className="w-4 h-4" />
       <span>
-        {loading ? '…' : cost !== null ? `≤ ${cost} credits` : '—'}
+        {loading ? '' : cost !== null ? `${cost} credits` : '—'}
       </span>
     </span>
   );
