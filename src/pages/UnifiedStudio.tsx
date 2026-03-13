@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
+import { CreditCostBadge } from '@/components/CreditCostBadge';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Diamond,
