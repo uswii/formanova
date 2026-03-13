@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck } from 'lucide-react';
@@ -20,7 +21,8 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { credits } = useCredits();
+  const { credits, lastDelta } = useCredits();
+  const [visibleDelta, setVisibleDelta] = useState<{ amount: number; id: number } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -36,6 +38,14 @@ export function Header() {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Show delta badge briefly when balance changes
+  useEffect(() => {
+    if (!lastDelta) return;
+    setVisibleDelta(lastDelta);
+    const timer = setTimeout(() => setVisibleDelta(null), 2000);
+    return () => clearTimeout(timer);
+  }, [lastDelta]);
 
   const cadEnabled = isCADEnabled(user?.email);
 
@@ -93,15 +103,36 @@ export function Header() {
             {user ? (
               <div className="flex items-center gap-3">
                 {/* Credit pill - clickable */}
-                <Link
-                  to="/credits"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 hover:border-border transition-colors"
-                >
-                  <img src={creditCoinIcon} alt="" className="h-7 w-7 object-contain" width={28} height={28} loading="eager" decoding="sync" />
-                  <span className="text-sm font-medium text-foreground">
-                    {credits !== null ? credits : '—'}
-                  </span>
-                </Link>
+                <div className="relative">
+                  <Link
+                    to="/credits"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 hover:border-border transition-colors"
+                  >
+                    <img src={creditCoinIcon} alt="" className="h-7 w-7 object-contain" width={28} height={28} loading="eager" decoding="sync" />
+                    <span className="text-sm font-medium text-foreground">
+                      {credits !== null ? credits : '—'}
+                    </span>
+                  </Link>
+                  {/* Animated delta badge */}
+                  <AnimatePresence>
+                    {visibleDelta && (
+                      <motion.span
+                        key={visibleDelta.id}
+                        initial={{ opacity: 0, y: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, y: -8, scale: 1 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.8 }}
+                        transition={{ duration: 0.35, ease: 'easeOut' }}
+                        className={`absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full font-mono text-[10px] font-bold pointer-events-none whitespace-nowrap ${
+                          visibleDelta.amount > 0
+                            ? 'bg-primary/15 text-primary'
+                            : 'bg-destructive/15 text-destructive'
+                        }`}
+                      >
+                        {visibleDelta.amount > 0 ? '+' : ''}{visibleDelta.amount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Profile dropdown */}
                 <DropdownMenu>
