@@ -84,16 +84,6 @@ export default function Credits() {
     refreshCredits();
   }, [refreshCredits]);
 
-  // Determine "plan" based on balance (simple heuristic)
-  const currentPlan = credits !== null
-    ? credits >= 1500 ? 'Pro' : credits >= 500 ? 'Standard' : credits >= 100 ? 'Basic' : 'Free'
-    : '—';
-
-  // Credit bar max (next tier ceiling)
-  const maxCredits = credits !== null
-    ? credits >= 1500 ? 2000 : credits >= 500 ? 1500 : credits >= 100 ? 500 : 100
-    : 100;
-  const usagePercent = credits !== null ? Math.min((credits / maxCredits) * 100, 100) : 0;
 
   const handleCheckout = async (tierId: string) => {
     if (!user?.id) {
