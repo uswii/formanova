@@ -5,7 +5,7 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, LogOut, User, Image, BadgeCheck, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { isAdminEmail } from '@/lib/admin-utils';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useCredits } from '@/contexts/CreditsContext';
 import { isCADEnabled } from '@/lib/feature-flags';
 import {
@@ -23,6 +23,7 @@ export function Header() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { credits, lastDelta } = useCredits();
+  const isAdmin = useIsAdmin();
   const [visibleDelta, setVisibleDelta] = useState<{ amount: number; id: number } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -177,7 +178,7 @@ export function Header() {
                       <img src={creditCoinIcon} alt="" className="h-6 w-6 mr-2 object-contain" width={24} height={24} loading="eager" decoding="sync" />
                       My Credits
                     </DropdownMenuItem>
-                    {isAdminEmail(user.email) && (
+                    {isAdmin && (
                       <DropdownMenuItem
                         onClick={() => navigate('/admin/promo-codes')}
                         className="cursor-pointer text-sm"
