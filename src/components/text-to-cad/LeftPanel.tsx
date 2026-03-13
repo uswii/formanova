@@ -125,20 +125,7 @@ export default function LeftPanel({
             </button>
           )}
 
-          {/* Magic Texture toggle — applies to entire model */}
-          {hasModel && !isGenerating && (
-            <button
-              onClick={() => onMagicTexturingChange(!magicTexturing)}
-              className={`w-full py-2.5 lg:py-3 px-3 lg:px-4 mt-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-[0.1em] lg:tracking-[0.15em] cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 border ${
-                magicTexturing
-                  ? 'bg-primary/15 border-primary/40 text-primary hover:bg-primary/25'
-                  : 'bg-muted/30 border-border text-muted-foreground hover:text-foreground hover:bg-accent/50'
-              }`}
-            >
-              <Wand2 className="w-4 h-4 flex-shrink-0" />
-              <span>{magicTexturing ? 'Remove Textures' : 'Magic Texture'}</span>
-            </button>
-          )}
+          {/* Magic Texture removed — materials managed via right panel */}
 
           {/* Upload GLB — only shown when a model exists */}
           <input type="file" ref={glbInputRef} accept=".glb,.gltf" className="hidden" onChange={handleGlbUpload} />

@@ -1107,16 +1107,7 @@ export default function TextToCAD() {
               />
             )}
             
-            <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
-              {/* Start Over moved to LeftPanel */}
-              <ViewportDisplayMenu visible={hasModel && !isGenerating && !isModelLoading} onSceneAction={handleSceneAction} />
-              {hasModel && !isGenerating && !isModelLoading && (
-                <div className="relative">
-                  <KeyboardShortcutsButton onClick={() => setShortcutsOpen(true)} />
-                  <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-                </div>
-              )}
-            </div>
+            {/* Bottom-left toolbar consolidated below with gem toggle */}
 
             {/* Gem toggle — bottom left, next to display menu */}
             <div className="absolute bottom-4 left-4 z-50 flex gap-2 items-end">
