@@ -45,7 +45,7 @@ export default function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortc
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-[380px] max-h-[65vh] flex flex-col bg-card border border-border rounded-lg shadow-2xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-[380px] max-h-[min(80vh,calc(100vh-80px))] flex flex-col bg-card border border-border rounded-lg shadow-2xl m-[40px]"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
