@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Maximize2, Box, Download, Pencil, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle } from 'lucide-react';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
   const isEnriching = workflow.screenshots === undefined;
+  const isFailed = workflow.status === 'failed';
 
   const modelLabel = workflow.mode
     ? MODEL_LABELS[workflow.mode.toLowerCase()] ?? workflow.mode
@@ -134,7 +135,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         </div>
 
         {/* ── Interactive 3D GLB Preview ── */}
-        {workflow.glb_url && (
+        {workflow.glb_url && !isFailed && (
           <div className="mx-3 mb-2">
             <GLBPreviewSlot
               id={workflow.workflow_id}
@@ -143,14 +144,39 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             />
           </div>
         )}
-        {!workflow.glb_url && isEnriching && (
+        {!workflow.glb_url && !isFailed && isEnriching && (
           <div className="mx-4 mb-3 w-[calc(100%-2rem)] aspect-[4/3] bg-muted/30 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
           </div>
         )}
 
+        {/* ── Failed overlay ── */}
+        {isFailed && (
+          <div className="mx-3 mb-2 aspect-[4/3] border border-border/30 bg-card flex items-center justify-center">
+            <div className="text-center px-6">
+              <div className="mx-auto w-10 h-10 border border-border flex items-center justify-center mb-4">
+                <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-2">
+                Generation Unavailable
+              </p>
+              <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted-foreground">
+                Our AI servers experienced a technical difficulty during this generation.
+                Contact{' '}
+                <a
+                  href="mailto:studio@formanova.ai"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                >
+                  studio@formanova.ai
+                </a>
+                {' '}if you need help.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── File box — only shown when GLB is available or still loading ── */}
-        {(workflow.glb_url || isEnriching) && (
+        {!isFailed && (workflow.glb_url || isEnriching) && (
           <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-sm border border-border/50 bg-muted/20 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
               <Box className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
