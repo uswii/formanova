@@ -41,6 +41,7 @@ const CODE_REGEX = /^[A-Z0-9_-]+$/;
 export default function PromoAdminPage() {
   const [codes, setCodes] = useState<PromoCode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<PromoCode | null>(null);
