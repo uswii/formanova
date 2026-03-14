@@ -461,18 +461,29 @@ export default function TextToCAD() {
             continue;
           }
 
-          const progress = await statusRes.json();
+          const progressPayload = await readResponseBody(statusRes);
+          if (!progressPayload || typeof progressPayload !== "object" || Array.isArray(progressPayload)) {
+            throw new Error("Status polling failed: invalid response body");
+          }
+          const progress = progressPayload as Record<string, unknown>;
+          if (progress.__non_json) {
+            throw new Error(getApiErrorMessage(progress, "Status polling failed"));
+          }
+
           pollErrors = 0;
 
           // Spec response: { state, step, stepLabel, attempt, maxAttempts }
-          const state = (progress.state || "running").toLowerCase();
-          const step = progress.step || "";
+          const state = String(progress.state || "running").toLowerCase();
+          const step = String(progress.step || "");
 
           if (step) {
             setProgressStep(step);
-            setProgressLabel(progress.stepLabel || "");
-            if (progress.attempt) {
-              setRetryAttempt(progress.attempt);
+            setProgressLabel(typeof progress.stepLabel === "string" ? progress.stepLabel : "");
+            if (progress.attempt != null) {
+              const attemptValue = Number(progress.attempt);
+              if (!Number.isNaN(attemptValue) && attemptValue > 0) {
+                setRetryAttempt(attemptValue);
+              }
             }
           }
 
