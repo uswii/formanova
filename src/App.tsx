@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy, useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +18,17 @@ import { Loader2 } from "lucide-react";
 const ThemeDecorations = lazy(() => import("@/components/ThemeDecorations").then(m => ({ default: m.ThemeDecorations })));
 const ScrollProgressIndicator = lazy(() => import("@/components/ScrollProgressIndicator").then(m => ({ default: m.ScrollProgressIndicator })));
 const FloatingElements = lazy(() => import("@/components/FloatingElements").then(m => ({ default: m.FloatingElements })));
+
+/** Renders children only after the browser is idle — keeps decorative elements off the critical path */
+function DeferredDecorations({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const id = requestIdleCallback(() => setReady(true));
+    return () => cancelIdleCallback(id);
+  }, []);
+  if (!ready) return null;
+  return <>{children}</>;
+}
 
 // Critical pages loaded eagerly (landing + auth)
 import Welcome from "./pages/Welcome";
