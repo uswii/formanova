@@ -158,18 +158,16 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
                 <AlertTriangle className="h-5 w-5 text-muted-foreground" />
               </div>
               <p className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-2">
-                Generation Unavailable
+                Could Not Complete Generation
               </p>
               <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted-foreground">
-                Our AI servers experienced a technical difficulty during this generation.
-                Contact{' '}
+                Our AI service was unable to complete this generation. Please try again in a few minutes. If the issue persists, contact{' '}
                 <a
                   href="mailto:studio@formanova.ai"
                   className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
                 >
                   studio@formanova.ai
                 </a>
-                {' '}if you need help.
               </p>
             </div>
           </div>
