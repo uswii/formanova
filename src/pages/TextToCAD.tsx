@@ -797,6 +797,7 @@ export default function TextToCAD() {
     setStlModalOpen(false);
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
     const defaultName = `model-${timestamp}.stl`;
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: defaultName, file_type: 'stl', context: 'text-to-cad' }));
 
     const anchorDownload = (blob: Blob) => {
       const url = URL.createObjectURL(blob);

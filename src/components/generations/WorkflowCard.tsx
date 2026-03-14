@@ -101,6 +101,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const handleDownloadGlb = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!workflow.glb_url) return;
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: shownFilename, file_type: 'glb', context: 'generations' }));
     const a = document.createElement('a');
     a.href = workflow.glb_url;
     a.download = shownFilename;

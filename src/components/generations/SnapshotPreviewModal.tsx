@@ -34,18 +34,22 @@ export function SnapshotPreviewModal({
 
   const handleDownloadImage = () => {
     if (!shot) return;
+    const fileName = `ring-${shot.angle}.png`;
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'png', context: 'generations-snapshot' }));
     const a = document.createElement('a');
     a.href = shot.url;
-    a.download = `ring-${shot.angle}.png`;
+    a.download = fileName;
     a.target = '_blank';
     a.click();
   };
 
   const handleDownloadGlb = () => {
     if (!glbUrl) return;
+    const fileName = glbFilename || 'model.glb';
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'glb', context: 'generations-snapshot' }));
     const a = document.createElement('a');
     a.href = glbUrl;
-    a.download = glbFilename || 'model.glb';
+    a.download = fileName;
     a.target = '_blank';
     a.click();
   };

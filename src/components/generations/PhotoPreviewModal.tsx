@@ -30,6 +30,7 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
     const filename = await promptRename(baseName, ext);
     if (!filename) return;
 
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: ext, context: 'generations-photo' }));
     const a = document.createElement('a');
     a.href = imageUrl;
     a.download = filename;
