@@ -295,7 +295,7 @@ export default function TextToCAD() {
     const LLM_MAP: Record<string, string> = { "gemini": "gemini", "claude-sonnet": "claude-sonnet", "claude-opus": "claude-opus" };
     const LABEL_MAP: Record<string, string> = { "gemini": "Lite", "claude-sonnet": "Standard", "claude-opus": "Premium" };
     const llm = LLM_MAP[model] ?? "gemini";
-    console.log("[TextToCAD] User selected quality:", LABEL_MAP[model] ?? model);
+    
 
     const modelKey = `ring_generate_v1:${model}`;
     const requiredCredits = TOOL_COSTS[modelKey] ?? TOOL_COSTS.cad_generation ?? 5;
