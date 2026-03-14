@@ -40,6 +40,19 @@ interface UndoEntry {
   canvasSnapshot: CanvasSnapshot | null;
 }
 
+function resolveWorkflowEndpoint(template: unknown, workflowId: string, fallbackPath: string): string {
+  const workflowToken = encodeURIComponent(workflowId);
+  const raw = typeof template === "string" && template.trim().length > 0
+    ? template
+    : fallbackPath;
+
+  return raw
+    .replaceAll("{workflow_id}", workflowToken)
+    .replaceAll("{workflowId}", workflowToken)
+    .replaceAll(":workflow_id", workflowToken)
+    .replaceAll(":workflowId", workflowToken);
+}
+
 export default function TextToCAD() {
   const navigate = useNavigate();
   const { refreshCredits } = useCredits();
