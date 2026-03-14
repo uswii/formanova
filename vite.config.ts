@@ -36,10 +36,10 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     ViteImageOptimizer({
-      png: { quality: 80 },
-      jpeg: { quality: 80 },
-      jpg: { quality: 80 },
-      webp: { quality: 80 },
+      png: { quality: 70 },
+      jpeg: { quality: 70 },
+      jpg: { quality: 70 },
+      webp: { quality: 65 },
     }),
     // Only apply async CSS in production builds
     mode === "production" && asyncCssPlugin(),
