@@ -108,13 +108,20 @@ export default function GenerationProgress({
           </motion.div>
         </AnimatePresence>
 
-        {isFailed && onRetry && (
-          <button
-            onClick={onRetry}
-            className="px-8 py-3 text-[12px] font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
-          >
-            Try Again
-          </button>
+        {isFailed && (
+          <div className="flex flex-col items-center gap-4 mt-2">
+            <p className="text-[11px] text-muted-foreground/70 max-w-xs text-center leading-relaxed">
+              Our AI service was unable to complete this generation. Please try again in a few minutes.
+            </p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="px-8 py-3 text-[12px] font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Try Again
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
