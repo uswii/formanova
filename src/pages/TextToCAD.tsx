@@ -510,8 +510,8 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start edit — per API spec: POST /api/run/:wfName
-      const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
+      // Step 1: Start edit — per API spec: POST /api/run/state/:wfName
+      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
