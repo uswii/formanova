@@ -12,6 +12,7 @@ import { RGBELoader } from "three-stdlib";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS, createSimpleGemMaterial } from "@/components/cad-studio/materials";
 import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
 import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
