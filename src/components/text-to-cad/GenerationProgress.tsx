@@ -26,6 +26,7 @@ function formatElapsed(seconds: number): string {
 interface GenerationProgressProps {
   visible: boolean;
   currentStep: string;
+  stepLabel?: string;
   retryAttempt?: number;
   maxAttempts?: number;
   onRetry?: () => void;
@@ -34,6 +35,7 @@ interface GenerationProgressProps {
 export default function GenerationProgress({
   visible,
   currentStep,
+  stepLabel,
   retryAttempt,
   maxAttempts = 3,
   onRetry,
@@ -62,9 +64,10 @@ export default function GenerationProgress({
   const isDone = currentStep === "success_final" || currentStep === "success_original_glb";
   const isTerminal = isFailed || isDone;
 
-  let label = NODE_LABELS[currentStep] || "";
+  // Use API stepLabel first, fall back to local map
+  let label = stepLabel || NODE_LABELS[currentStep] || "";
   if (currentStep === "generate_fix" && retryAttempt) {
-    label = `Improving the design... (attempt ${retryAttempt} of ${maxAttempts})`;
+    label = `Fixing mesh (attempt ${retryAttempt} of ${maxAttempts})`;
   }
 
   return (

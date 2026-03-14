@@ -53,6 +53,7 @@ export default function TextToCAD() {
   const [isEditing, setIsEditing] = useState(false);
   const [hasModel, setHasModel] = useState(false);
   const [progressStep, setProgressStep] = useState("");
+  const [progressLabel, setProgressLabel] = useState("");
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [transformMode, setTransformMode] = useState("orbit");
   const [showPartRegen, setShowPartRegen] = useState(false);
@@ -393,6 +394,7 @@ export default function TextToCAD() {
 
           if (step) {
             setProgressStep(step);
+            setProgressLabel(progress.stepLabel || "");
             if (progress.attempt) {
               setRetryAttempt(progress.attempt);
             }
@@ -558,7 +560,7 @@ export default function TextToCAD() {
           pollErrors = 0;
           const state = (progress.state || "running").toLowerCase();
           const step = progress.step || "";
-          if (step) { setProgressStep(step); if (progress.attempt) setRetryAttempt(progress.attempt); }
+          if (step) { setProgressStep(step); setProgressLabel(progress.stepLabel || ""); if (progress.attempt) setRetryAttempt(progress.attempt); }
 
           if (state === "completed" || state === "done") break;
           if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
@@ -1254,7 +1256,7 @@ export default function TextToCAD() {
               )}
             </AnimatePresence>
 
-            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
+            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} stepLabel={progressLabel} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}
