@@ -4,6 +4,8 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { TOOL_COSTS } from '@/lib/credits-api';
 
+const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
+
 export interface PreflightResult {
   approved: boolean;
   estimatedCredits: number;
@@ -28,7 +30,7 @@ export async function performCreditPreflight(
   let estimatedCredits = TOOL_COSTS[fallbackKey] ?? TOOL_COSTS[workflowName] ?? 5;
 
   try {
-    const estimateRes = await authenticatedFetch('/api/credits/estimate', {
+    const estimateRes = await authenticatedFetch(`${API_BASE}/credits/estimate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -51,7 +53,7 @@ export async function performCreditPreflight(
   }
 
   // 2️⃣ Fetch current balance
-  const balanceRes = await authenticatedFetch('/api/credits/balance/me');
+  const balanceRes = await authenticatedFetch(`${API_BASE}/credits/balance/me`);
 
   if (!balanceRes.ok) {
     throw new Error(`Balance fetch failed (${balanceRes.status})`);

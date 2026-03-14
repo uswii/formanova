@@ -12,6 +12,8 @@ import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 
+const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
+
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 
@@ -337,7 +339,7 @@ export default function TextToCAD() {
 
     try {
       // Step 1: Start generation — per API spec: POST /api/run/state/:wfName
-      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
+      const startRes = await authenticatedFetch(`${API_BASE}/run/state/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -369,12 +371,12 @@ export default function TextToCAD() {
       const progressUrl = resolveWorkflowEndpoint(
         startData.progressUrl || startData.status_url,
         workflowId,
-        `/api/status/${encodeURIComponent(workflowId)}`,
+        `${API_BASE}/status/${encodeURIComponent(workflowId)}`,
       );
       const resultUrl = resolveWorkflowEndpoint(
         startData.resultUrl || startData.result_url,
         workflowId,
-        `/api/result/${encodeURIComponent(workflowId)}`,
+        `${API_BASE}/result/${encodeURIComponent(workflowId)}`,
       );
 
       console.log("[TextToCAD] Workflow started:", workflowId, { progressUrl, resultUrl });
@@ -540,7 +542,7 @@ export default function TextToCAD() {
 
     try {
       // Step 1: Start edit — per API spec: POST /api/run/state/:wfName
-      const startRes = await authenticatedFetch(`/api/run/state/ring_generate_v1`, {
+      const startRes = await authenticatedFetch(`${API_BASE}/run/state/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -569,12 +571,12 @@ export default function TextToCAD() {
       const progressUrl = resolveWorkflowEndpoint(
         startData.progressUrl || startData.status_url,
         workflowId,
-        `/api/status/${encodeURIComponent(workflowId)}`,
+        `${API_BASE}/status/${encodeURIComponent(workflowId)}`,
       );
       const resultUrlEdit = resolveWorkflowEndpoint(
         startData.resultUrl || startData.result_url,
         workflowId,
-        `/api/result/${encodeURIComponent(workflowId)}`,
+        `${API_BASE}/result/${encodeURIComponent(workflowId)}`,
       );
       console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId, { progressUrl, resultUrlEdit });
 
