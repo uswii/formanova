@@ -1,14 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext';
 
-/**
- * UI-only admin gating. Security is enforced server-side by the backend whitelist.
- * This list controls visibility of admin UI elements only.
- */
-const ADMIN_EMAILS: string[] = [
-  'hassan@raresense.so',
-  'sophia@raresense.so',
-  'uswa@raresense.so',
-];
+const ADMIN_EMAILS: string[] = (import.meta.env.VITE_ADMIN_EMAILS || '')
+  .split(',')
+  .map((e: string) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 export function useIsAdmin(): boolean {
   const { user } = useAuth();
