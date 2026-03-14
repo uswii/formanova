@@ -5,6 +5,7 @@ import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollReveal
 import { KineticText } from '@/components/KineticText';
 import { CinematicHero } from '@/components/CinematicHero';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 // Lazy-load heavy below-fold component (452 lines + multiple image imports)
 const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').then(m => ({ default: m.CinematicShowcase })));

@@ -81,3 +81,13 @@ export function identifyUser(userId: string, properties?: Record<string, unknown
     posthog.identify(userId, properties);
   }
 }
+
+// ═══════ Studio Actions ═══════
+
+export function trackDownloadClicked(context?: string) {
+  capture('download_clicked', { context });
+}
+
+export function trackRegenerateClicked(context?: string) {
+  capture('regenerate_clicked', { context });
+}
