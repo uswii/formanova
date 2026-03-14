@@ -202,10 +202,20 @@ export default function Generations() {
         const batch = allUnenriched.slice(i, i + 3);
         const results = await Promise.allSettled(
           batch.map(async (wf) => {
-            const details = await getWorkflowDetails(wf.workflow_id);
             if (wf.source_type === 'cad_text') {
-              return { id: wf.workflow_id, data: extractCadTextData(details.steps ?? []) };
+              // Use both details (for screenshots/metadata) and result (for sink-based GLB fallback)
+              const [details, cadResult] = await Promise.all([
+                getWorkflowDetails(wf.workflow_id),
+                fetchCadResult(wf.workflow_id),
+              ]);
+              const stepData = extractCadTextData(details.steps ?? []);
+              // Override GLB URL with the authoritative sink-based result
+              if (cadResult.glb_url) {
+                stepData.glb_url = cadResult.glb_url;
+              }
+              return { id: wf.workflow_id, data: stepData };
             }
+            const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
             return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
