@@ -505,13 +505,15 @@ export default function TextToCAD() {
     setProgressStep("generate_initial");
 
     try {
-      // Step 1: Start generation with edit prompt
+      // Step 1: Start edit — per API spec: POST /api/run/:wfName
       const startRes = await authenticatedFetch(`/api/run/ring_generate_v1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payload: { llm, prompt: promptText.trim(), max_attempts: 3, skip_validation: false },
-          return_nodes: ["build_initial", "build_retry", "build_corrected", "validate_output", "success_final", "success_original_glb", "failed_final"],
+          prompt: promptText.trim(),
+          llm,
+          max_attempts: 3,
+          skip_validation: false,
         }),
       });
 
@@ -520,27 +522,28 @@ export default function TextToCAD() {
         throw new Error(err.error || err.detail || `Failed to start edit (${startRes.status})`);
       }
 
-      const { workflow_id } = await startRes.json();
-      if (!workflow_id) throw new Error("No workflow_id returned");
-      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflow_id);
+      const startData = await startRes.json();
+      const workflowId = startData.workflowId || startData.workflow_id;
+      if (!workflowId) throw new Error("No workflowId returned");
+      console.log(`[TextToCAD] Edit "${label}" workflow started:`, workflowId);
 
-      // Step 2: Poll status
-      const TERMINAL_NODES = new Set(["success_final", "success_original_glb", "failed_final"]);
+      // Step 2: Poll progress — per API spec: GET /api/workflows/:workflowId/progress
+      const TERMINAL_STEPS = new Set(["success_final", "success_original_glb", "failed_final"]);
       pollAbortRef.current?.abort();
       const pollAbort = new AbortController();
       pollAbortRef.current = pollAbort;
       let pollErrors = 0;
       let consecutive404s = 0;
       const MAX_404_RETRIES = 3;
-      const POLL_TIMEOUT_MS = 60 * 60 * 1000; // 60 min
+      const POLL_TIMEOUT_MS = 60 * 60 * 1000;
       const pollStart = Date.now();
 
       while (true) {
         if (Date.now() - pollStart > POLL_TIMEOUT_MS) throw new Error("Edit timed out");
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 3000));
         try {
           const statusRes = await authenticatedFetch(
-            `/api/status/${encodeURIComponent(workflow_id)}`,
+            `/api/workflows/${encodeURIComponent(workflowId)}/progress`,
             { signal: pollAbort.signal }
           );
           if (statusRes.status === 404) {
@@ -551,19 +554,16 @@ export default function TextToCAD() {
           consecutive404s = 0;
           if (!statusRes.ok) { pollErrors++; if (pollErrors >= 10) throw new Error("Status polling failed"); continue; }
 
-          const statusData = await statusRes.json();
+          const progress = await statusRes.json();
           pollErrors = 0;
-          const state = (statusData.runtime?.state || "unknown").toLowerCase();
-          const activeNode = statusData.runtime?.active_nodes?.[0] || "";
-          const lastExitNode = statusData.runtime?.last_exit_node_id || "";
-          const retryCount = statusData.node_visit_seq?.generate_fix || 0;
-          const displayNode = activeNode || lastExitNode;
-          if (displayNode) { setProgressStep(displayNode); if (retryCount > 0) setRetryAttempt(retryCount); }
+          const state = (progress.state || "running").toLowerCase();
+          const step = progress.step || "";
+          if (step) { setProgressStep(step); if (progress.attempt) setRetryAttempt(progress.attempt); }
 
-          if (state === "completed") break;
+          if (state === "completed" || state === "done") break;
           if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
-          if (TERMINAL_NODES.has(activeNode) || TERMINAL_NODES.has(lastExitNode)) {
-            if (activeNode === "failed_final" || lastExitNode === "failed_final") { setProgressStep("failed_final"); throw new Error("Edit failed"); }
+          if (TERMINAL_STEPS.has(step)) {
+            if (step === "failed_final") { setProgressStep("failed_final"); throw new Error("Edit failed"); }
             break;
           }
         } catch (err) {
@@ -574,12 +574,12 @@ export default function TextToCAD() {
         }
       }
 
-      // Step 3: Fetch result GLB
+      // Step 3: Fetch result — per API spec: GET /api/workflows/:workflowId/result
       setProgressStep("_loading");
       let glb_url: string | null = null;
       const MAX_RESULT_RETRIES = 5;
       for (let attempt = 1; attempt <= MAX_RESULT_RETRIES; attempt++) {
-        const resultRes = await authenticatedFetch(`/api/result/${encodeURIComponent(workflow_id)}`);
+        const resultRes = await authenticatedFetch(`/api/workflows/${encodeURIComponent(workflowId)}/result`);
         if (resultRes.ok) {
           const result = await resultRes.json();
           const toUrl = (uri: string) => uri.startsWith("azure://")
@@ -596,7 +596,7 @@ export default function TextToCAD() {
           throw new Error("No GLB model found");
         }
         if (resultRes.status === 404 && attempt < MAX_RESULT_RETRIES) {
-          await new Promise((r) => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, 2000));
           continue;
         }
         const err = await resultRes.json().catch(() => ({}));

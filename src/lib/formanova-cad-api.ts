@@ -201,6 +201,7 @@ export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
 }
 
 export async function fetchResult(resultUrl: string): Promise<ResultResponse> {
+  // Per API spec: GET /api/workflows/:workflowId/result
   const fullUrl = resultUrl.startsWith('http')
     ? resultUrl
     : `${FORMANOVA_API}${resultUrl.startsWith('/') ? '' : '/'}${resultUrl}`;
@@ -214,7 +215,7 @@ export async function fetchResult(resultUrl: string): Promise<ResultResponse> {
 
   const data = await res.json();
 
-  // Resolve GLB URL
+  // Resolve GLB URL per spec fallback rules
   const { glb_url, azure_source } = resolveGlbFromResults(data);
   return { ...data, glb_url, azure_source };
 }
