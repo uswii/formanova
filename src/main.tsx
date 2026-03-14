@@ -46,11 +46,8 @@ if (
 ) {
   window.location.replace(`https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
 } else {
-  // Remove the static skeleton immediately so React owns the #root element cleanly
+  // Render immediately — don't block on analytics/monitoring
   const rootEl = document.getElementById("root")!;
-  const preLoader = document.getElementById("pre-react-loader");
-  if (preLoader) preLoader.remove();
-
   const root = createRoot(rootEl);
 
   const posthogKey = 'phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC';

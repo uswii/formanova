@@ -72,38 +72,29 @@ export default function Welcome() {
         
         {/* Content */}
         <div className="relative z-20 marta-container min-h-screen flex flex-col justify-center py-24 lg:py-32">
-          <ScrollRevealSection animation="fade-left" className="max-w-2xl">
+          <div className="max-w-2xl">
             <span className="marta-label mb-8 block text-white text-base tracking-[0.3em] uppercase font-medium">
               Trustable AI Photography for Jewelry
             </span>
 
             <div className="mb-8">
-              <KineticText as="h1" animation="split" className="marta-headline text-white leading-[0.85]">Your</KineticText>
-              <KineticText as="h1" animation="split" delay={200} className="marta-headline text-white leading-[0.85]">Jewelry</KineticText>
-              <KineticText as="h1" animation="split" delay={400} className="marta-headline hero-accent-text leading-[0.85]">Unchanged</KineticText>
+              <h1 className="marta-headline text-white leading-[0.85]">Your</h1>
+              <h1 className="marta-headline text-white leading-[0.85]">Jewelry</h1>
+              <h1 className="marta-headline hero-accent-text leading-[0.85]">Unchanged</h1>
             </div>
 
-            <ScrollRevealSection animation="fade-up" delay={300}>
-              <p className="marta-body text-white/90 max-w-md mb-12 leading-relaxed">
-                AI imagery you can trust. No hallucinations. No subtle changes. Ever. 
-                Your jewelry accurately shown.
-              </p>
-            </ScrollRevealSection>
+            <p className="marta-body text-white/90 max-w-md mb-12 leading-relaxed">
+              AI imagery you can trust. No hallucinations. No subtle changes. Ever. 
+              Your jewelry accurately shown.
+            </p>
 
-            <ScrollRevealSection animation="fade-up" delay={500}>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button onClick={handleStart} className="marta-button-filled magnetic-button">
-                  <span>Start Creating</span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                {/* HIDDEN: Watch Tutorial button - uncomment to restore */}
-                {/* <button onClick={() => navigate('/tutorial')} className="marta-button glass-effect magnetic-button">
-                  <Play className="h-4 w-4" />
-                  <span>Watch Tutorial</span>
-                </button> */}
-              </div>
-            </ScrollRevealSection>
-          </ScrollRevealSection>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button onClick={handleStart} className="marta-button-filled magnetic-button">
+                <span>Start Creating</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
