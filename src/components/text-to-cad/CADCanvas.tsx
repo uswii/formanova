@@ -1866,21 +1866,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
           // ── Circuit breaker: force simple gem mode for this session ──
           onGemModeForced?.("simple");
 
-          // Show toast only for non-admin users
-          import("@/lib/admin-utils").then(({ isAdminEmail }) => {
-            // Get current user email from auth context isn't available here,
-            // so we check localStorage for the stored user
-            const storedUser = localStorage.getItem('formanova_user');
-            const email = storedUser ? JSON.parse(storedUser)?.email : null;
-            if (!isAdminEmail(email)) {
-              import("sonner").then(({ toast }) => {
-                toast.warning("GPU recovered", {
-                  description: "Switched to Simple Gems for stability. You can re-enable Refractive Gems from the toggle.",
-                  duration: 6000,
-                });
-              });
-            }
-          });
+          // GPU toast suppressed — silent recovery, admin or not
+          console.warn('[CADCanvas] GPU recovered — switched to Simple Gems silently');
 
           if (debugActive) {
             setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
