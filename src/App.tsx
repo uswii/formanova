@@ -1,7 +1,4 @@
 import React, { Suspense, lazy, useState, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -13,6 +10,11 @@ import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { PostHogPageView } from '@/components/PostHogPageView';
 import { Loader2 } from "lucide-react";
+
+// Toast/tooltip providers — deferred since toasts only fire on user interaction
+const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const TooltipProvider = lazy(() => import("@/components/ui/tooltip").then(m => ({ default: m.TooltipProvider })));
 
 // Decorative / non-critical components — lazy-loaded to reduce initial JS payload
 const ThemeDecorations = lazy(() => import("@/components/ThemeDecorations").then(m => ({ default: m.ThemeDecorations })));
@@ -109,67 +111,74 @@ const App = () => (
     <ThemeProvider>
       <AuthProvider>
         <CreditsProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <PostHogPageView />
+        <Suspense fallback={null}>
+          <TooltipProvider>
+            {/* Toasters deferred — only needed on user interaction */}
             <DeferredDecorations>
               <Suspense fallback={null}>
-                <FloatingElements />
-                <ScrollProgressIndicator />
-                <ThemeDecorations />
+                <Toaster />
+                <Sonner />
               </Suspense>
             </DeferredDecorations>
-            <div className="min-h-screen flex flex-col relative z-10">
-              <Header />
-              <main className="flex-1">
-              <ChunkErrorBoundary>
-                <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<Welcome />} />
-                  <Route path="/feedback" element={<FeedbackRedirect />} />
-                  <Route path="/login" element={<Auth />} />
-                  <Route path="/oauth-callback" element={<Auth />} />
-                  <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
-                  <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
-                  <Route path="/link" element={<LinkAccount />} />
-                  {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
-                  
-                  {/* Protected routes - require sign in */}
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
-                  <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
-                  <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
-                  <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
-                  <Route path="/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
-                  <Route path="/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
-                  <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
-                  <Route path="/studio/:type" element={<ProtectedRoute><UnifiedStudio /></ProtectedRoute>} />
-                  {/* PRESERVED: Old single-upload route - uncomment to restore */}
-                  {/* <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} /> */}
-                  {/* PRESERVED: Batch upload route - uncomment to restore batch workflow */}
-                  {/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}
-                  <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
-                  <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
-                  <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
-                  
-                  {/* Admin routes */}
-                  <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
-                  
-                  {/* Results page - handles auth internally (login button + ownership check) */}
-                  <Route path="/yourresults/:token" element={<DeliveryResults />} />
-                  
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+            <BrowserRouter>
+              <PostHogPageView />
+              <DeferredDecorations>
+                <Suspense fallback={null}>
+                  <FloatingElements />
+                  <ScrollProgressIndicator />
+                  <ThemeDecorations />
                 </Suspense>
-              </ChunkErrorBoundary>
-              </main>
-            </div>
-          </BrowserRouter>
-        </TooltipProvider>
+              </DeferredDecorations>
+              <div className="min-h-screen flex flex-col relative z-10">
+                <Header />
+                <main className="flex-1">
+                <ChunkErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/" element={<Welcome />} />
+                    <Route path="/feedback" element={<FeedbackRedirect />} />
+                    <Route path="/login" element={<Auth />} />
+                    <Route path="/oauth-callback" element={<Auth />} />
+                    <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
+                    <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
+                    <Route path="/link" element={<LinkAccount />} />
+                    {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
+                    
+                    {/* Protected routes - require sign in */}
+                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                    <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
+                    <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
+                    <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+                    <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+                    <Route path="/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+                    <Route path="/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
+                    <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
+                    <Route path="/studio/:type" element={<ProtectedRoute><UnifiedStudio /></ProtectedRoute>} />
+                    {/* PRESERVED: Old single-upload route - uncomment to restore */}
+                    {/* <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} /> */}
+                    {/* PRESERVED: Batch upload route - uncomment to restore batch workflow */}
+                    {/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}
+                    <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
+                    <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
+                    <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
+                    
+                    {/* Admin routes */}
+                    <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
+                    
+                    {/* Results page - handles auth internally (login button + ownership check) */}
+                    <Route path="/yourresults/:token" element={<DeliveryResults />} />
+                    
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  </Suspense>
+                </ChunkErrorBoundary>
+                </main>
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </Suspense>
         </CreditsProvider>
       </AuthProvider>
     </ThemeProvider>

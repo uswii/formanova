@@ -51,24 +51,38 @@ if (
 
   const posthogKey = 'phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC';
 
-  // Defer PostHog to after first paint (no longer using Sentry)
-  requestIdleCallback(() => {
-    // PostHog — dynamically imported so it doesn't block FCP
-    if (posthogKey) {
-      import("posthog-js").then((posthogModule) => {
-        const posthog = posthogModule.default;
-        posthog.init(posthogKey, {
-          api_host: 'https://us.i.posthog.com',
-          autocapture: true,
-          capture_pageview: true,
-          capture_pageleave: true,
-          capture_exceptions: true,
-        });
-      });
-    }
+  // Defer PostHog well past LCP — load on first user interaction OR after 5s
+  // Industry best practice: analytics should never compete with content rendering
+  const loadPostHog = () => {
+    if ((loadPostHog as any).__done) return;
+    (loadPostHog as any).__done = true;
 
-    // CAD/3D prefetch moved to navigation-time to avoid loading 6MB+ of assets on landing
-  });
+    import("posthog-js").then((posthogModule) => {
+      const posthog = posthogModule.default;
+      posthog.init(posthogKey, {
+        api_host: 'https://us.i.posthog.com',
+        autocapture: true,
+        capture_pageview: true,
+        capture_pageleave: true,
+        capture_exceptions: true,
+      });
+    });
+  };
+
+  if (posthogKey) {
+    // Whichever fires first: 5-second timeout or first user interaction
+    const timer = setTimeout(loadPostHog, 5000);
+    const interactionEvents = ['click', 'scroll', 'keydown', 'touchstart'] as const;
+    const onInteraction = () => {
+      clearTimeout(timer);
+      interactionEvents.forEach(e => window.removeEventListener(e, onInteraction));
+      // Small delay after interaction to avoid jank during the interaction itself
+      requestIdleCallback(loadPostHog);
+    };
+    interactionEvents.forEach(e =>
+      window.addEventListener(e, onInteraction, { once: true, passive: true })
+    );
+  }
 
   // Render app without waiting for analytics SDKs
   import('./components/PostHogErrorBoundary').then(({ default: PostHogErrorBoundary }) => {
