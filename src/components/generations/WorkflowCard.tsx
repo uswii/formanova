@@ -66,6 +66,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
   const isEnriching = workflow.screenshots === undefined;
+  const isFailed = workflow.status === 'failed';
 
   const modelLabel = workflow.mode
     ? MODEL_LABELS[workflow.mode.toLowerCase()] ?? workflow.mode
