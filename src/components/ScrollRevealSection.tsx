@@ -43,7 +43,7 @@ export function ScrollRevealSection({
   }, [threshold, once]);
 
   const getAnimationClasses = () => {
-    const base = 'transition-all ease-out';
+    const base = 'transition-[transform,opacity] ease-out will-change-[transform,opacity]';
     
     if (!isVisible) {
       switch (animation) {
