@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X, AlertCircle, Loader2, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState, Suspense } from 'react';
+import { Download, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,20 +8,11 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { OptimizedImage } from '@/components/ui/optimized-image';
-import { getWorkflowDetails, fetchCadResult, type WorkflowDetail, type WorkflowStep } from '@/lib/generation-history-api';
-import { azureUriToUrl } from '@/lib/azure-utils';
+import { fetchCadResult } from '@/lib/generation-history-api';
 
-// Preferred angle ordering — front first
-const ANGLE_ORDER = ['front', 'front_left', 'front_right', 'left', 'right', 'back_left', 'back_right', 'back'];
-
-function sortScreenshots(screenshots: { angle: string; url: string }[]) {
-  return [...screenshots].sort((a, b) => {
-    const ai = ANGLE_ORDER.indexOf(a.angle);
-    const bi = ANGLE_ORDER.indexOf(b.angle);
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-  });
-}
+const GLBPreviewSlot = React.lazy(() =>
+  import('./ScissorGLBGrid').then((m) => ({ default: m.GLBPreviewSlot }))
+);
 
 interface CadWorkflowModalProps {
   workflowId: string | null;
@@ -33,179 +23,42 @@ interface CadWorkflowModalProps {
 export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWorkflowModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [screenshots, setScreenshots] = useState<{ angle: string; url: string }[]>([]);
   const [glbUrl, setGlbUrl] = useState<string | null>(null);
-  const [caption, setCaption] = useState<string | null>(null);
-  const [heroIndex, setHeroIndex] = useState(0);
 
   useEffect(() => {
     if (!workflowId) return;
 
-    // Reset state
     setLoading(true);
     setError(null);
-    setScreenshots([]);
     setGlbUrl(null);
-    setCaption(null);
-    setHeroIndex(0);
-
-    if (workflowStatus !== 'completed') {
-      setError('This workflow did not complete successfully.');
-      setLoading(false);
-      return;
-    }
 
     (async () => {
       try {
-        // Fetch details (for screenshots/metadata) AND sink-based result (for GLB) in parallel
-        const [details, cadResult] = await Promise.all([
-          getWorkflowDetails(workflowId),
-          fetchCadResult(workflowId),
-        ]);
+        const cadResult = await fetchCadResult(workflowId);
 
-        // ── GLB: Use authoritative sink-based fallback ──
-        // Rule: success_final → glb_artifact (preferred) → original_glb_artifact
-        //       success_original_glb → original_glb_artifact
-        //       failed_final → null (no model fallback)
         if (cadResult.azure_source === 'failed_final') {
           setError('This generation failed. No model available.');
-          setLoading(false);
-          return;
-        }
-        if (cadResult.glb_url) {
+        } else if (cadResult.glb_url) {
           setGlbUrl(cadResult.glb_url);
+        } else {
+          setError('No GLB model found for this workflow.');
         }
-
-        // ── Screenshots: Extract from step data ──
-        extractScreenshotsFromSteps(details.steps ?? []);
-
-        // ── Caption: Extract from validate step ──
-        const validateStep = details.steps?.find((s: WorkflowStep) =>
-          s.tool === 'ring-validate' || s.tool === 'ring_validate' || s.tool === 'validate_output'
-        );
-        if (validateStep) {
-          const output = validateStep.output_data ?? validateStep.output ?? {};
-          if ((output as any)?.message) {
-            setCaption((output as any).message as string);
-          }
-        }
-
-        // If sink-based didn't return GLB, try step-based as last resort
-        if (!cadResult.glb_url) {
-          extractGlbFromSteps(details.steps ?? []);
-        }
-      } catch (err: any) {
-        console.error('[CadWorkflowModal] fetch error:', err);
-        setError('Failed to load workflow details.');
+      } catch (err) {
+        setError(String(err));
       } finally {
         setLoading(false);
       }
     })();
-
-    function extractScreenshotsFromSteps(steps: WorkflowStep[]) {
-      const getOutput = (s: WorkflowStep) => s?.output_data ?? s?.output ?? {};
-
-      // Try run_blender step first
-      const blenderStep = steps.find(
-        (s) => s.tool === 'run_blender' &&
-          (getOutput(s) as any)?.success === true &&
-          ((getOutput(s) as any)?.screenshots as any[])?.length > 0
-      );
-
-      if (blenderStep) {
-        const output = getOutput(blenderStep);
-        const rawShots = (output as any)?.screenshots as any[] | undefined;
-        if (rawShots?.length) {
-          const mapped = rawShots
-            .map((s: any, i: number) => {
-              const uri = s?.uri;
-              if (typeof uri === 'string' && uri.startsWith('https://')) {
-                return { angle: `angle_${i + 1}`, url: uri };
-              }
-              if (uri) return { angle: `angle_${i + 1}`, url: azureUriToUrl(uri) };
-              return null;
-            })
-            .filter(Boolean) as { angle: string; url: string }[];
-          setScreenshots(sortScreenshots(mapped));
-          return;
-        }
-      }
-
-      // Legacy: ring-screenshot step
-      const screenshotStep = steps.find((s) =>
-        s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
-      );
-      if (screenshotStep) {
-        const output = getOutput(screenshotStep);
-        const rawShots = ((output as any)?.screenshots ?? (output as any)?.images) as any[] | undefined;
-        if (rawShots?.length) {
-          const mapped = rawShots
-            .map((s: any) => {
-              const angle = (s.name as string) || (s.angle as string) || 'unknown';
-              const rawUri = s?.data_uri?.uri ?? s?.url ?? s?.uri;
-              if (rawUri) return { angle, url: azureUriToUrl(rawUri as string) };
-              return null;
-            })
-            .filter(Boolean) as { angle: string; url: string }[];
-          setScreenshots(sortScreenshots(mapped));
-        }
-      }
-    }
-
-    function extractGlbFromSteps(steps: WorkflowStep[]) {
-      const getOutput = (s: WorkflowStep) => s?.output_data ?? s?.output ?? {};
-
-      // Try blender step glb_artifact
-      const blenderStep = steps.find(
-        (s) => s.tool === 'run_blender' && (getOutput(s) as any)?.success === true
-      );
-      if (blenderStep) {
-        const output = getOutput(blenderStep);
-        const uri = (output as any)?.glb_artifact?.uri ?? (output as any)?.original_glb_artifact?.uri;
-        if (uri) { setGlbUrl(azureUriToUrl(uri)); return; }
-      }
-
-      // Legacy: ring-validate / ring-generate
-      const validateStep = steps.find((s) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
-      const generateStep = steps.find((s) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
-      const glbStep = validateStep || generateStep;
-      if (glbStep) {
-        const output = getOutput(glbStep);
-        const findAzureUri = (obj: unknown): string | null => {
-          if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
-          if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-            for (const v of Object.values(obj as Record<string, unknown>)) {
-              const found = findAzureUri(v);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        const uri = findAzureUri(output);
-        if (uri) setGlbUrl(azureUriToUrl(uri));
-      }
-    }
   }, [workflowId, workflowStatus]);
-
-  const heroShot = screenshots[heroIndex];
 
   const handleDownloadGlb = () => {
     if (!glbUrl) return;
     const fileName = `ring-${workflowId?.slice(0, 8)}.glb`;
-    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'glb', context: 'generations-cad-modal' }));
+    import('@/lib/posthog-events').then((m) =>
+      m.trackDownloadClicked({ file_name: fileName, file_type: 'glb', context: 'generations-cad-modal' })
+    );
     const a = document.createElement('a');
     a.href = glbUrl;
-    a.download = fileName;
-    a.target = '_blank';
-    a.click();
-  };
-
-  const handleDownloadPng = () => {
-    if (!heroShot) return;
-    const fileName = `ring-${heroShot.angle}-${workflowId?.slice(0, 8)}.png`;
-    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'png', context: 'generations-cad-modal' }));
-    const a = document.createElement('a');
-    a.href = heroShot.url;
     a.download = fileName;
     a.target = '_blank';
     a.click();
@@ -238,122 +91,53 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
           {/* Error / failed state */}
           {!loading && error && (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-              <AlertCircle className="h-8 w-8 text-destructive" />
-              <p className="font-mono text-[11px] tracking-wider text-destructive">
+              <div className="mx-auto w-10 h-10 border border-border flex items-center justify-center mb-2">
+                <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1">
+                Could Not Complete Generation
+              </p>
+              <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted-foreground max-w-sm">
                 {error}
               </p>
             </div>
           )}
 
-          {/* Success content */}
-          {!loading && !error && (
+          {/* Success: 3D GLB preview + download */}
+          {!loading && !error && glbUrl && (
             <>
-              {/* Hero image */}
-              {heroShot && (
-                <div className="relative group mb-4">
-                  <div className="relative bg-muted rounded-sm overflow-hidden aspect-square max-h-[400px] mx-auto flex items-center justify-center">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={heroIndex}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="w-full h-full flex items-center justify-center"
-                      >
-                        <OptimizedImage
-                          src={heroShot.url}
-                          alt={`Ring — ${heroShot.angle}`}
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      </motion.div>
-                    </AnimatePresence>
-
-                    {/* Nav arrows */}
-                    {screenshots.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => setHeroIndex((heroIndex - 1 + screenshots.length) % screenshots.length)}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setHeroIndex((heroIndex + 1) % screenshots.length)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
+              <Suspense
+                fallback={
+                  <div className="w-full aspect-square max-h-[450px] bg-muted/30 flex items-center justify-center rounded-sm">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
+                }
+              >
+                <GLBPreviewSlot
+                  id={workflowId || 'modal'}
+                  glbUrl={glbUrl}
+                  className="w-full aspect-square max-h-[450px] bg-background/50 border border-border/30 rounded-sm mb-4"
+                />
+              </Suspense>
 
-                  {/* Angle label */}
-                  <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground text-center mt-2">
-                    {heroShot.angle.replace(/_/g, ' ')}
-                  </p>
-                </div>
-              )}
-
-              {/* Thumbnail strip */}
-              {screenshots.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-                  {screenshots.map((s, i) => (
-                    <button
-                      key={s.angle}
-                      onClick={() => setHeroIndex(i)}
-                      className={`flex-shrink-0 w-14 h-14 rounded-sm overflow-hidden border-2 transition-colors ${
-                        i === heroIndex ? 'border-foreground' : 'border-transparent hover:border-muted-foreground/40'
-                      }`}
-                    >
-                      <OptimizedImage
-                        src={s.url}
-                        alt={s.angle}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Caption */}
-              {caption && (
-                <p className="font-mono text-[11px] tracking-wider text-muted-foreground mb-5 leading-relaxed">
-                  {caption}
-                </p>
-              )}
-
-              {/* Action buttons */}
               <div className="flex flex-wrap gap-3">
-                {glbUrl && (
-                  <Button
-                    onClick={handleDownloadGlb}
-                    variant="outline"
-                    className="font-mono text-[10px] tracking-wider uppercase gap-2"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download GLB
-                  </Button>
-                )}
-                {heroShot && (
-                  <Button
-                    onClick={handleDownloadPng}
-                    variant="outline"
-                    className="font-mono text-[10px] tracking-wider uppercase gap-2"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download PNG
-                  </Button>
-                )}
+                <Button
+                  onClick={handleDownloadGlb}
+                  variant="outline"
+                  className="font-mono text-[10px] tracking-wider uppercase gap-2"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download GLB
+                </Button>
               </div>
-
-              {/* No data fallback */}
-              {screenshots.length === 0 && !glbUrl && (
-                <p className="font-mono text-[10px] tracking-wider text-muted-foreground text-center py-8">
-                  No output artifacts found for this workflow.
-                </p>
-              )}
             </>
+          )}
+
+          {/* No data fallback */}
+          {!loading && !error && !glbUrl && (
+            <p className="font-mono text-[10px] tracking-wider text-muted-foreground text-center py-8">
+              No output artifacts found for this workflow.
+            </p>
           )}
         </div>
       </DialogContent>
