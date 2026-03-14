@@ -116,17 +116,63 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
   return { glb_url: null, azure_source: null };
 }
 
+function normalizeApiUrl(pathOrUrl: string): string {
+  const trimmed = pathOrUrl.trim();
+  if (!trimmed) return FORMANOVA_API;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/api/')) return `${FORMANOVA_API}${trimmed.slice(4)}`;
+  if (trimmed.startsWith('/')) return `${FORMANOVA_API}${trimmed}`;
+  return `${FORMANOVA_API}/${trimmed}`;
+}
+
+async function readResponseBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { __non_json: true, __raw_text: text };
+  }
+}
+
+function getApiErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== 'object') return fallback;
+
+  const data = payload as Record<string, unknown>;
+  if (typeof data.detail === 'string') return data.detail;
+  if (Array.isArray(data.detail)) {
+    const messages = data.detail
+      .map((item) => (item && typeof item === 'object' ? (item as Record<string, unknown>).msg : null))
+      .filter((msg): msg is string => typeof msg === 'string');
+    if (messages.length > 0) return messages.join('; ');
+  }
+  if (typeof data.error === 'string') return data.error;
+
+  if (data.__non_json) {
+    const raw = String(data.__raw_text ?? '').trim().toLowerCase();
+    if (raw.includes('<!doctype') || raw.includes('<html')) {
+      return `${fallback} (received HTML instead of JSON)`;
+    }
+    return `${fallback} (received non-JSON response)`;
+  }
+
+  return fallback;
+}
+
 function resolveWorkflowEndpoint(template: unknown, workflowId: string, fallbackPath: string): string {
   const workflowToken = encodeURIComponent(workflowId);
   const raw = typeof template === 'string' && template.trim().length > 0
     ? template
     : fallbackPath;
 
-  return raw
+  const resolved = raw
     .replaceAll('{workflow_id}', workflowToken)
     .replaceAll('{workflowId}', workflowToken)
     .replaceAll(':workflow_id', workflowToken)
     .replaceAll(':workflowId', workflowToken);
+
+  return normalizeApiUrl(resolved);
 }
 
 // ── API calls ──
