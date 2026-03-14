@@ -350,7 +350,7 @@ export default function Generations() {
         {!error && (
           <>
             <WorkflowSection
-              title="From Photo"
+              title="Photo Studio"
               subtitle="Jewelry photo to on-model imagery"
               icon={SectionIcons.photo}
               workflows={photoSection.workflows}
