@@ -158,7 +158,7 @@ export default function Welcome() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/20">
+      <footer className="border-t border-border/20 content-deferred">
         <div className="marta-section border-b border-border/20">
           <div className="marta-container text-center">
             <span className="marta-label">Featured In</span>
