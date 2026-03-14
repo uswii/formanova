@@ -666,11 +666,28 @@ export default function TextToCAD() {
           consecutive404s = 0;
           if (!statusRes.ok) { pollErrors++; if (pollErrors >= 10) throw new Error("Status polling failed"); continue; }
 
-          const progress = await statusRes.json();
+          const progressPayload = await readResponseBody(statusRes);
+          if (!progressPayload || typeof progressPayload !== "object" || Array.isArray(progressPayload)) {
+            throw new Error("Status polling failed: invalid response body");
+          }
+          const progress = progressPayload as Record<string, unknown>;
+          if (progress.__non_json) {
+            throw new Error(getApiErrorMessage(progress, "Status polling failed"));
+          }
+
           pollErrors = 0;
-          const state = (progress.state || "running").toLowerCase();
-          const step = progress.step || "";
-          if (step) { setProgressStep(step); setProgressLabel(progress.stepLabel || ""); if (progress.attempt) setRetryAttempt(progress.attempt); }
+          const state = String(progress.state || "running").toLowerCase();
+          const step = String(progress.step || "");
+          if (step) {
+            setProgressStep(step);
+            setProgressLabel(typeof progress.stepLabel === "string" ? progress.stepLabel : "");
+            if (progress.attempt != null) {
+              const attemptValue = Number(progress.attempt);
+              if (!Number.isNaN(attemptValue) && attemptValue > 0) {
+                setRetryAttempt(attemptValue);
+              }
+            }
+          }
 
           if (state === "completed" || state === "done") break;
           if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
