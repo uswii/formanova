@@ -38,19 +38,19 @@ export function ThemeSwitcher() {
         </div>
         <div className="grid grid-cols-2 gap-1">
           {themes.map((t) => (
-            <DropdownMenuItem
+              <DropdownMenuItem
               key={t.name}
               onClick={() => setTheme(t.name)}
-              className={`flex flex-col items-center gap-1.5 cursor-pointer p-3 rounded-lg text-center relative ${
+              className={`flex flex-col items-center justify-center gap-1.5 cursor-pointer p-3 rounded-lg text-center relative h-[72px] ${
                 theme === t.name 
                   ? 'bg-primary/15 border border-primary/30' 
                   : 'hover:bg-secondary/60 border border-transparent'
               }`}
             >
-              <ThemeIcon theme={t.name} size={20} className="text-foreground" />
-              <span className="font-medium text-xs">{t.label}</span>
+              <ThemeIcon theme={t.name} size={20} className="text-foreground flex-shrink-0" />
+              <span className="font-medium text-xs truncate w-full">{t.label}</span>
               {theme === t.name && (
-                <Check className="h-3 w-3 text-primary absolute top-1 right-1" />
+                <Check className="h-3 w-3 text-primary absolute top-1 right-1 flex-shrink-0" />
               )}
             </DropdownMenuItem>
           ))}

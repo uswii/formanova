@@ -742,7 +742,7 @@
 
   /* Logo adaptive colors for all themes */
   .logo-adaptive {
-    filter: brightness(0) saturate(100%);
+    filter: brightness(0) saturate(100%) drop-shadow(0 0 8px hsl(0 0% 100% / 0.8));
   }
   
   .dark .logo-adaptive,
@@ -753,12 +753,7 @@
   [data-theme="luxury"] .logo-adaptive,
   [data-theme="synthwave"] .logo-adaptive,
   [data-theme="neon"] .logo-adaptive {
-    filter: brightness(0) invert(1);
-  }
-  
-  /* Neon logo - no glow, just invert */
-  [data-theme="neon"] .logo-adaptive {
-    filter: brightness(0) invert(1);
+    filter: brightness(0) invert(1) drop-shadow(0 0 8px hsl(0 0% 0% / 0.5));
   }
 
   /* Cyberpunk scanlines */
