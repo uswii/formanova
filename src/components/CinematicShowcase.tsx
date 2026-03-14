@@ -117,7 +117,7 @@ export function CinematicShowcase() {
     };
   }, [currentTheme]);
 
-  // Extract jewelry region and landmarks from mask
+  // Extract jewelry region and landmarks from mask — deferred to avoid long task
   useEffect(() => {
     const extractLandmarks = () => {
       const canvas = canvasRef.current;
@@ -127,77 +127,80 @@ export function CinematicShowcase() {
 
       const maskImg = new Image();
       maskImg.onload = () => {
-        canvas.width = maskImg.naturalWidth;
-        canvas.height = maskImg.naturalHeight;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(maskImg, 0, 0);
-        
-        const maskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const w = canvas.width;
-        const h = canvas.height;
-        
-        // Find bounding box of jewelry region
-        let minX = w, minY = h, maxX = 0, maxY = 0;
-        const jewelryPixels: { x: number; y: number }[] = [];
-        
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const idx = (y * w + x) * 4;
-            if (maskData.data[idx] > 200) {
-              minX = Math.min(minX, x);
-              minY = Math.min(minY, y);
-              maxX = Math.max(maxX, x);
-              maxY = Math.max(maxY, y);
-              jewelryPixels.push({ x, y });
+        // Defer heavy pixel work to idle time to avoid blocking main thread
+        requestIdleCallback(() => {
+          canvas.width = maskImg.naturalWidth;
+          canvas.height = maskImg.naturalHeight;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(maskImg, 0, 0);
+          
+          const maskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const w = canvas.width;
+          const h = canvas.height;
+          
+          // Find bounding box of jewelry region
+          let minX = w, minY = h, maxX = 0, maxY = 0;
+          const jewelryPixels: { x: number; y: number }[] = [];
+          
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const idx = (y * w + x) * 4;
+              if (maskData.data[idx] > 200) {
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+                jewelryPixels.push({ x, y });
+              }
             }
           }
-        }
-        
-        if (jewelryPixels.length === 0) return;
-        
-        // Normalize to percentage coordinates
-        const normMinX = (minX / w) * 100;
-        const normMinY = (minY / h) * 100;
-        const normMaxX = (maxX / w) * 100;
-        const normMaxY = (maxY / h) * 100;
-        const centerX = (normMinX + normMaxX) / 2;
-        const centerY = (normMinY + normMaxY) / 2;
-        
-        setJewelryBounds({ minX: normMinX, minY: normMinY, maxX: normMaxX, maxY: normMaxY, centerX, centerY });
-        
-        // Generate landmark points: corners + edge midpoints + center
-        const landmarks: LandmarkPoint[] = [
-          { x: normMinX, y: normMinY, type: 'corner' },
-          { x: normMaxX, y: normMinY, type: 'corner' },
-          { x: normMinX, y: normMaxY, type: 'corner' },
-          { x: normMaxX, y: normMaxY, type: 'corner' },
-          { x: centerX, y: normMinY, type: 'anchor' },
-          { x: centerX, y: normMaxY, type: 'anchor' },
-          { x: normMinX, y: centerY, type: 'anchor' },
-          { x: normMaxX, y: centerY, type: 'anchor' },
-        ];
-        
-        setJewelryLandmarks(landmarks);
-        
-        // Create two-color overlay: jewelry in one color, background in another
-        ctx.clearRect(0, 0, w, h);
-        
-        // First fill entire canvas with translucent background color
-        ctx.fillStyle = themeColors.bgOverlay;
-        ctx.fillRect(0, 0, w, h);
-        
-        // Then draw jewelry region in solid jewelry color (cut out bg and fill)
-        ctx.globalCompositeOperation = 'destination-out';
-        for (const pixel of jewelryPixels) {
-          ctx.fillRect(pixel.x, pixel.y, 1, 1);
-        }
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = themeColors.jewelryColor;
-        for (const pixel of jewelryPixels) {
-          ctx.fillRect(pixel.x, pixel.y, 1, 1);
-        }
-        
-        setJewelryEmphasisUrl(canvas.toDataURL('image/png'));
+          
+          if (jewelryPixels.length === 0) return;
+          
+          // Normalize to percentage coordinates
+          const normMinX = (minX / w) * 100;
+          const normMinY = (minY / h) * 100;
+          const normMaxX = (maxX / w) * 100;
+          const normMaxY = (maxY / h) * 100;
+          const centerX = (normMinX + normMaxX) / 2;
+          const centerY = (normMinY + normMaxY) / 2;
+          
+          setJewelryBounds({ minX: normMinX, minY: normMinY, maxX: normMaxX, maxY: normMaxY, centerX, centerY });
+          
+          // Generate landmark points: corners + edge midpoints + center
+          const landmarks: LandmarkPoint[] = [
+            { x: normMinX, y: normMinY, type: 'corner' },
+            { x: normMaxX, y: normMinY, type: 'corner' },
+            { x: normMinX, y: normMaxY, type: 'corner' },
+            { x: normMaxX, y: normMaxY, type: 'corner' },
+            { x: centerX, y: normMinY, type: 'anchor' },
+            { x: centerX, y: normMaxY, type: 'anchor' },
+            { x: normMinX, y: centerY, type: 'anchor' },
+            { x: normMaxX, y: centerY, type: 'anchor' },
+          ];
+          
+          setJewelryLandmarks(landmarks);
+          
+          // Create two-color overlay: jewelry in one color, background in another
+          ctx.clearRect(0, 0, w, h);
+          
+          // First fill entire canvas with translucent background color
+          ctx.fillStyle = themeColors.bgOverlay;
+          ctx.fillRect(0, 0, w, h);
+          
+          // Then draw jewelry region in solid jewelry color (cut out bg and fill)
+          ctx.globalCompositeOperation = 'destination-out';
+          for (const pixel of jewelryPixels) {
+            ctx.fillRect(pixel.x, pixel.y, 1, 1);
+          }
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = themeColors.jewelryColor;
+          for (const pixel of jewelryPixels) {
+            ctx.fillRect(pixel.x, pixel.y, 1, 1);
+          }
+          
+          setJewelryEmphasisUrl(canvas.toDataURL('image/png'));
+        });
       };
       maskImg.src = jewelryMask;
     };
