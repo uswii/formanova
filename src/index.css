@@ -740,9 +740,10 @@
     transform: scale(1.05);
   }
 
-  /* Logo adaptive colors for all themes */
+  /* Logo adaptive colors for all themes — logo has white bg + black text */
   .logo-adaptive {
-    filter: brightness(0) saturate(100%);
+    /* Black text on white bg: no filter needed for light themes */
+    filter: none;
   }
   
   .dark .logo-adaptive,
@@ -753,7 +754,7 @@
   [data-theme="luxury"] .logo-adaptive,
   [data-theme="synthwave"] .logo-adaptive,
   [data-theme="neon"] .logo-adaptive {
-    filter: brightness(0) invert(1);
+    filter: invert(1);
   }
 
   /* Cyberpunk scanlines */
