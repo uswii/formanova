@@ -176,11 +176,10 @@ export default function Generations() {
     [allWorkflows, globalLoading],
   );
 
-  // ── Step 2: Enrich ALL workflows eagerly — not just the visible page
+  // ── Step 2: Enrich workflows with throttled concurrency ──────────
   useEffect(() => {
     if (globalLoading || allWorkflows.length === 0) return;
 
-    // Gather all un-enriched workflows across all sections
     const allUnenriched = allWorkflows.filter(
       w => w.thumbnail_url === undefined && !enrichedRef.current[w.workflow_id] &&
            (w.status === 'completed' || (w.source_type === 'cad_text' && w.status === 'failed'))
@@ -188,62 +187,57 @@ export default function Generations() {
 
     if (allUnenriched.length === 0) return;
 
-    const photoAndCadRender = allUnenriched.filter(w => w.source_type === 'photo' || w.source_type === 'cad_render');
-    const cadTextItems = allUnenriched.filter(w => w.source_type === 'cad_text');
-
     // Mark immediately to prevent duplicate fetches
     allUnenriched.forEach(w => {
       enrichedRef.current[w.workflow_id] = {};
     });
 
-    // Enrich photo & cad_render — stream results as they arrive
-    if (photoAndCadRender.length > 0) {
-      for (const wf of photoAndCadRender) {
-        (async () => {
-          try {
+    let cancelled = false;
+
+    // Throttled sequential-batch enrichment (3 at a time with delay)
+    (async () => {
+      for (let i = 0; i < allUnenriched.length; i += 3) {
+        if (cancelled) return;
+        const batch = allUnenriched.slice(i, i + 3);
+        const results = await Promise.allSettled(
+          batch.map(async (wf) => {
             const details = await getWorkflowDetails(wf.workflow_id);
+            if (wf.source_type === 'cad_text') {
+              return { id: wf.workflow_id, data: extractCadTextData(details.steps ?? []) };
+            }
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
-            const data = { thumbnail_url: thumbnail_url ?? '' };
-            enrichedRef.current[wf.workflow_id] = data;
-            setAllWorkflows(prev =>
-              prev.map(w => w.workflow_id === wf.workflow_id ? { ...w, ...data } : w)
-            );
-            saveCache(allWorkflows, enrichedRef.current);
-          } catch (e) {
-            console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
-            enrichedRef.current[wf.workflow_id] = { thumbnail_url: '' };
-            setAllWorkflows(prev =>
-              prev.map(w => w.workflow_id === wf.workflow_id ? { ...w, thumbnail_url: '' } : w)
-            );
-          }
-        })();
-      }
-    }
+            return { id: wf.workflow_id, data: { thumbnail_url: thumbnail_url ?? '' } };
+          })
+        );
 
-    // Enrich cad_text — stream results as they arrive
-    if (cadTextItems.length > 0) {
-      for (const wf of cadTextItems) {
-        (async () => {
-          try {
-            const details = await getWorkflowDetails(wf.workflow_id);
-            const data = extractCadTextData(details.steps ?? []);
-            enrichedRef.current[wf.workflow_id] = data;
-            setAllWorkflows(prev =>
-              prev.map(w => w.workflow_id === wf.workflow_id ? { ...w, ...data } : w)
-            );
-            saveCache(allWorkflows, enrichedRef.current);
-          } catch (e) {
-            console.warn('[Generations] cadText detail fetch failed:', wf.workflow_id, e);
-            const fallback = { thumbnail_url: '', screenshots: [] as { angle: string; url: string }[], glb_url: null, glb_filename: null };
-            enrichedRef.current[wf.workflow_id] = fallback;
-            setAllWorkflows(prev =>
-              prev.map(w => w.workflow_id === wf.workflow_id ? { ...w, ...fallback } : w)
-            );
+        if (cancelled) return;
+
+        // Apply results
+        const updates: Record<string, Partial<WorkflowSummary>> = {};
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) {
+            enrichedRef.current[r.value.id] = r.value.data;
+            updates[r.value.id] = r.value.data;
+          } else if (r.status === 'rejected') {
+            // Mark as failed so we don't retry
           }
-        })();
+        }
+        if (Object.keys(updates).length > 0) {
+          setAllWorkflows(prev =>
+            prev.map(w => updates[w.workflow_id] ? { ...w, ...updates[w.workflow_id] } : w)
+          );
+          saveCache(allWorkflows, enrichedRef.current);
+        }
+
+        // Small delay between batches to avoid hammering the backend
+        if (i + 3 < allUnenriched.length) {
+          await new Promise(r => setTimeout(r, 300));
+        }
       }
-    }
+    })();
+
+    return () => { cancelled = true; };
   }, [allWorkflows.length, globalLoading]);
 
   // ── Step 3: Fetch credit audit for each completed workflow ────────
