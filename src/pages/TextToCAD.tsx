@@ -616,17 +616,15 @@ export default function TextToCAD() {
         }),
       });
 
+      const startPayload = await readResponseBody(startRes);
       if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}));
-        const msg = typeof err.detail === 'string'
-          ? err.detail
-          : Array.isArray(err.detail)
-            ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
-            : err.error || `Failed to start edit (${startRes.status})`;
-        throw new Error(msg);
+        throw new Error(getApiErrorMessage(startPayload, `Failed to start edit (${startRes.status})`));
+      }
+      if (!startPayload || typeof startPayload !== "object" || Array.isArray(startPayload)) {
+        throw new Error("Invalid edit start response");
       }
 
-      const startData = await startRes.json();
+      const startData = startPayload as Record<string, unknown>;
       const workflowId = String(startData.workflowId || startData.workflow_id || "").trim();
       if (!workflowId) throw new Error("No workflowId returned");
       const progressUrl = resolveWorkflowEndpoint(
