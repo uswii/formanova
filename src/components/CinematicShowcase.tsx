@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 
-// Import images
-import mannequinInput from '@/assets/showcase/mannequin-input.png';
-import jewelryMask from '@/assets/showcase/jewelry-mask.png';
-import modelBlackDress from '@/assets/showcase/model-black-dress.png';
-import modelWhiteDress from '@/assets/showcase/model-white-dress.png';
-import modelBlackTank from '@/assets/showcase/model-black-tank.png';
+// Import optimized WebP images
+import mannequinInput from '@/assets/showcase/mannequin-input.webp';
+import jewelryMask from '@/assets/showcase/jewelry-mask.webp';
+import modelBlackDress from '@/assets/showcase/model-black-dress.webp';
+import modelWhiteDress from '@/assets/showcase/model-white-dress.webp';
+import modelBlackTank from '@/assets/showcase/model-black-tank.webp';
 
 const generatedImages = [modelBlackDress, modelWhiteDress, modelBlackTank];
 
