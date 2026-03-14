@@ -70,7 +70,7 @@ export default function InitialPromptScreen({
             Text‑to‑3D
           </h1>
           <p className="font-mono text-[11px] text-muted-foreground tracking-[0.15em] uppercase">
-            Describe your ring or upload a CAD file
+            Describe your ring design
           </p>
         </div>
 
