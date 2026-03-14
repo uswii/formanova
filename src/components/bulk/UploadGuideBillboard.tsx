@@ -4,7 +4,7 @@ import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Using existing hero images to demonstrate acceptable vs not acceptable
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
-import necklacePearl from '@/assets/jewelry/necklace-pearl.jpg';
+import necklacePearl from '@/assets/jewelry/necklace-diamond.jpg';
 
 interface UploadGuideBillboardProps {
   categoryName?: string;

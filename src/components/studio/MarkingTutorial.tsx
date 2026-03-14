@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import markingDemoGif from '@/assets/tutorial/marking-demo.gif';
+import markingDemoGif from '@/assets/showcase/mannequin-input.webp';
 
 interface Props {
   onDismiss: () => void;
