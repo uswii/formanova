@@ -3,15 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Diamond } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
-  generate_initial: "Designing your ring...",
-  build_initial: "Crafting the 3D model...",
-  generate_fix: "Improving the design...",
-  build_retry: "Refining the geometry...",
-  validate_output: "Checking for accuracy...",
-  build_corrected: "Applying corrections...",
-  success_final: "Your ring is ready",
-  success_original_glb: "Your ring is ready",
-  failed_final: "Something went wrong — want to try again?",
+  generate_initial: "Generating design",
+  build_initial: "Rendering preview",
+  generate_fix: "Fixing mesh",
+  build_retry: "Refining mesh",
+  validate_output: "Validating output",
+  build_corrected: "Rendering final",
+  success_final: "Generation complete",
+  success_original_glb: "Your 3D design is ready",
+  failed_final: "Could not complete generation",
   _loading: "Loading model into viewport",
 };
 
@@ -64,7 +64,7 @@ export default function GenerationProgress({
 
   let label = NODE_LABELS[currentStep] || "";
   if (currentStep === "generate_fix" && retryAttempt) {
-    label = `Improving the design... (attempt ${retryAttempt} of ${maxAttempts})`;
+    label = `Fixing mesh (attempt ${retryAttempt} of ${maxAttempts})`;
   }
 
   return (
@@ -108,13 +108,20 @@ export default function GenerationProgress({
           </motion.div>
         </AnimatePresence>
 
-        {isFailed && onRetry && (
-          <button
-            onClick={onRetry}
-            className="px-8 py-3 text-[12px] font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
-          >
-            Try Again
-          </button>
+        {isFailed && (
+          <div className="flex flex-col items-center gap-4 mt-2">
+            <p className="text-[11px] text-muted-foreground/70 max-w-xs text-center leading-relaxed">
+              Our AI service was unable to complete this generation. Please try again in a few minutes.
+            </p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="px-8 py-3 text-[12px] font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Try Again
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
