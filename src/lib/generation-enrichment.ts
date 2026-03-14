@@ -40,21 +40,27 @@ export function extractCadTextData(steps: any[]) {
   let glb_url: string | null = null;
   let glb_filename: string | null = null;
 
+  // Normalize: backend may use output or output_data
+  const getOutput = (s: any) => s?.output_data ?? s?.output ?? {};
+
   const blenderStep = steps.find(
-    (s: any) =>
-      s.tool === 'run_blender' &&
-      s.output?.success === true &&
-      (s.output?.screenshots as any[])?.length > 0,
+    (s: any) => {
+      const out = getOutput(s);
+      return s.tool === 'run_blender' &&
+        out?.success === true &&
+        (out?.screenshots as any[])?.length > 0;
+    },
   ) ?? null;
 
-  if (blenderStep?.output) {
-    const glbUri = blenderStep.output.glb_artifact?.uri;
+  if (blenderStep) {
+    const blenderOut = getOutput(blenderStep);
+    const glbUri = blenderOut.glb_artifact?.uri;
     if (glbUri) {
       glb_url = azureUriToUrl(glbUri);
       const parts = String(glbUri).split('/');
       glb_filename = parts[parts.length - 1] || 'model.glb';
     }
-    const rawShots = blenderStep.output.screenshots as any[] | undefined;
+    const rawShots = blenderOut.screenshots as any[] | undefined;
     if (rawShots?.length) {
       screenshots = rawShots
         .map((s: any, i: number) => {
@@ -70,7 +76,8 @@ export function extractCadTextData(steps: any[]) {
     const screenshotStep = steps.find((s: any) =>
       s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
     );
-    const rawShots = (screenshotStep?.output?.screenshots ?? screenshotStep?.output?.images) as any[] | undefined;
+    const ssOut = getOutput(screenshotStep);
+    const rawShots = (ssOut?.screenshots ?? ssOut?.images) as any[] | undefined;
     if (rawShots?.length) {
       screenshots = rawShots
         .map((s: any) => {
@@ -88,8 +95,9 @@ export function extractCadTextData(steps: any[]) {
     const validateStep = steps.find((s: any) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
     const generateStep = steps.find((s: any) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
     const glbStep = validateStep || generateStep;
-    if (glbStep?.output?.glb_path) {
-      const glbPath = glbStep.output.glb_path as any;
+    const glbOut = getOutput(glbStep);
+    if (glbOut?.glb_path) {
+      const glbPath = glbOut.glb_path as any;
       const uri = typeof glbPath === 'string' ? glbPath : glbPath?.uri;
       if (uri) {
         glb_url = azureUriToUrl(uri);
@@ -97,8 +105,8 @@ export function extractCadTextData(steps: any[]) {
         glb_filename = parts[parts.length - 1] || 'model.glb';
       }
     }
-    if (!glb_url && glbStep?.output) {
-      const uri = findAzureUri(glbStep.output);
+    if (!glb_url && glbOut) {
+      const uri = findAzureUri(glbOut);
       if (uri) {
         glb_url = azureUriToUrl(uri);
         const parts = uri.split('/');
@@ -107,7 +115,7 @@ export function extractCadTextData(steps: any[]) {
     }
     if (!glb_url) {
       for (const step of steps) {
-        const uri = findAzureUri(step.output);
+        const uri = findAzureUri(getOutput(step));
         if (uri && uri.includes('.glb')) {
           glb_url = azureUriToUrl(uri);
           const parts = uri.split('/');

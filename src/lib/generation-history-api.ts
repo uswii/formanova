@@ -165,7 +165,11 @@ export async function getWorkflowDetails(
       created_at: payload?.created_at ?? '',
       finished_at: payload?.finished_at ?? null,
     },
-    steps: payload?.steps ?? payload?.workflow_steps ?? [],
+    steps: (payload?.steps ?? payload?.workflow_steps ?? []).map((s: any) => ({
+      ...s,
+      // Normalize output_data → output so extraction helpers always find it
+      output: s.output ?? s.output_data ?? {},
+    })),
   };
 }
 
