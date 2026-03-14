@@ -185,11 +185,21 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       }
     });
 
+    // Watch for theme changes on <html> (class or data-theme attribute)
+    const observer = new MutationObserver(() => {
+      const bg = getThemeBgColor();
+      for (const card of cardsRef.current.values()) {
+        card.scene.background = bg;
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
     return () => {
       cancelAnimationFrame(rafRef.current);
       renderer.dispose();
       envMapRef.current?.dispose();
       rendererRef.current = null;
+      observer.disconnect();
     };
   }, []);
 
