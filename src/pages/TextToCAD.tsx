@@ -376,7 +376,7 @@ export default function TextToCAD() {
       const resultUrl = resolveWorkflowEndpoint(
         startData.resultUrl || startData.result_url,
         workflowId,
-        `/api/result/${encodeURIComponent(workflowId)}`,
+        `${API_BASE}/result/${encodeURIComponent(workflowId)}`,
       );
 
       console.log("[TextToCAD] Workflow started:", workflowId, { progressUrl, resultUrl });
