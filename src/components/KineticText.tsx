@@ -71,10 +71,10 @@ export function KineticText({
           <span
             key={index}
             className={cn(
-              'inline-block mr-[0.25em] transition-all duration-700',
+              'inline-block mr-[0.25em] transition-[transform,opacity] duration-700 will-change-[transform,opacity]',
               isVisible 
-                ? 'opacity-100 translate-y-0 blur-0' 
-                : 'opacity-0 translate-y-12 blur-sm'
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-12'
             )}
             style={{
               transitionDelay: isVisible ? `${index * 100}ms` : '0ms',
