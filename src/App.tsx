@@ -93,6 +93,29 @@ class ChunkErrorBoundary extends React.Component<
 
 const queryClient = new QueryClient();
 
+/** Renders decorative components only after the page is interactive */
+function DeferredDecorations() {
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => {
+    // Use requestIdleCallback to defer non-critical decorations
+    const id = (window as any).requestIdleCallback
+      ? (window as any).requestIdleCallback(() => setReady(true))
+      : setTimeout(() => setReady(true), 200);
+    return () => {
+      if ((window as any).cancelIdleCallback) (window as any).cancelIdleCallback(id);
+      else clearTimeout(id);
+    };
+  }, []);
+  if (!ready) return null;
+  return (
+    <Suspense fallback={null}>
+      <FloatingElements />
+      <ScrollProgressIndicator />
+      <ThemeDecorations />
+    </Suspense>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -103,9 +126,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <PostHogPageView />
-            <FloatingElements />
-            <ScrollProgressIndicator />
-            <ThemeDecorations />
+            <DeferredDecorations />
             <div className="min-h-screen flex flex-col relative z-10">
               <Header />
               <main className="flex-1">
