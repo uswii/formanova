@@ -269,6 +269,14 @@ export default function PromoAdminPage() {
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        ) : fetchError ? (
+          <div className="text-center py-20 space-y-3">
+            <p className="text-destructive font-medium">Failed to load promo codes</p>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">{fetchError}</p>
+            <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchCodes(); }} className="mt-4">
+              Retry
+            </Button>
+          </div>
         ) : codes.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             No promo codes yet. Create your first one.
