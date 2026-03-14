@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import formanovaLogo from '@/assets/formanova-logo.webp';
+import formanovaLogo from '@/assets/formanova-logo.png';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 export function Header() {
