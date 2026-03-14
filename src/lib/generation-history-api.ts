@@ -173,6 +173,76 @@ export async function getWorkflowDetails(
   };
 }
 
+// ─── CAD Result (sink-based fallback) ───────────────────────────────
+
+/**
+ * Fetch the final result for a CAD workflow using the /result endpoint.
+ * Applies the deterministic sink-based fallback rule:
+ *   success_final → glb_artifact (final output, preferred) → original_glb_artifact (intermediate)
+ *   success_original_glb → original_glb_artifact
+ *   failed_final → null (no fallback)
+ */
+export async function fetchCadResult(
+  workflowId: string,
+): Promise<{ glb_url: string | null; azure_source: string | null }> {
+  const AZURE_BLOB_HOST = 'https://snapwear.blob.core.windows.net';
+
+  function azureUriToPublicUrl(uri: string): string | null {
+    if (!uri.startsWith('azure://')) return null;
+    const path = uri.replace('azure://', '');
+    if (!path.includes('/')) return null;
+    return `${AZURE_BLOB_HOST}/${path}`;
+  }
+
+  function extractArtifactUri(results: Record<string, unknown>, nodeKey: string, artifactKey: string): string | null {
+    const node = results[nodeKey];
+    if (!node) return null;
+    const arr = Array.isArray(node) ? node : [node];
+    for (const entry of arr) {
+      const rec = entry as Record<string, unknown> | null;
+      if (!rec) continue;
+      const artifact = rec[artifactKey] as Record<string, unknown> | undefined;
+      if (artifact && typeof artifact.uri === 'string') return artifact.uri;
+    }
+    return null;
+  }
+
+  try {
+    const res = await authenticatedFetch(
+      `${BASE_URL}/api/workflows/${workflowId}/result`,
+    );
+    if (!res.ok) return { glb_url: null, azure_source: null };
+
+    const data = await res.json();
+
+    // 1. Check failed_final first
+    const failedArr = data['failed_final'];
+    if (Array.isArray(failedArr) && failedArr.length > 0) {
+      return { glb_url: null, azure_source: 'failed_final' };
+    }
+
+    // 2. success_final: prefer glb_artifact (final output), fallback original_glb_artifact
+    const finalUri = extractArtifactUri(data, 'success_final', 'glb_artifact')
+      || extractArtifactUri(data, 'success_final', 'original_glb_artifact');
+    if (finalUri) {
+      const url = azureUriToPublicUrl(finalUri) || finalUri;
+      return { glb_url: url, azure_source: 'success_final' };
+    }
+
+    // 3. success_original_glb: use original_glb_artifact only
+    const originalUri = extractArtifactUri(data, 'success_original_glb', 'original_glb_artifact');
+    if (originalUri) {
+      const url = azureUriToPublicUrl(originalUri) || originalUri;
+      return { glb_url: url, azure_source: 'success_original_glb' };
+    }
+
+    return { glb_url: null, azure_source: null };
+  } catch (e) {
+    if (__DEV__) console.warn('[HistoryAPI] fetchCadResult error:', workflowId, e);
+    return { glb_url: null, azure_source: null };
+  }
+}
+
 // ─── Credit Audit ───────────────────────────────────────────────────
 
 /**

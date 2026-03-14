@@ -8,6 +8,7 @@ import {
   listMyWorkflows,
   getWorkflowDetails,
   fetchWorkflowCreditAudit,
+  fetchCadResult,
   type WorkflowSummary,
 } from '@/lib/generation-history-api';
 import { extractPhotoThumbnail, extractCadTextData } from '@/lib/generation-enrichment';
