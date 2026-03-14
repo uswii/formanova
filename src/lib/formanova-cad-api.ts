@@ -283,18 +283,22 @@ export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
 
 export async function fetchResult(resultUrl: string): Promise<ResultResponse> {
   // Per API spec: GET /api/workflows/:workflowId/result
-  const fullUrl = resultUrl.startsWith('http')
-    ? resultUrl
-    : `${FORMANOVA_API}${resultUrl.startsWith('/') ? '' : '/'}${resultUrl}`;
+  const fullUrl = normalizeApiUrl(resultUrl);
 
   const res = await authenticatedFetch(fullUrl);
+  const payload = await readResponseBody(res);
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Result fetch failed (${res.status})`);
+    throw new Error(getApiErrorMessage(payload, `Result fetch failed (${res.status})`));
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Result fetch failed: invalid response body');
   }
 
-  const data = await res.json();
+  const data = payload as Record<string, unknown>;
+  if (data.__non_json) {
+    throw new Error(getApiErrorMessage(data, 'Result fetch failed'));
+  }
 
   // Resolve GLB URL per spec fallback rules
   const { glb_url, azure_source } = resolveGlbFromResults(data);
