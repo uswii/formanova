@@ -369,7 +369,7 @@ export default function TextToCAD() {
         await new Promise((r) => setTimeout(r, 3000));
         try {
           const statusRes = await authenticatedFetch(
-            `/api/workflows/${encodeURIComponent(workflowId)}/progress`,
+            progressUrl,
             { signal: pollAbort.signal }
           );
 
