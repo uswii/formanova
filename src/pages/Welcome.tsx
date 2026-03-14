@@ -200,7 +200,7 @@ export default function Welcome() {
         
         <div className="marta-container py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <img src={formanovaLogo} alt="FormaNova" className="h-8 w-auto object-contain logo-adaptive" />
+            <img src={formanovaLogo} alt="FormaNova" className="h-8 w-auto object-contain logo-adaptive" width={234} height={56} />
             <nav className="flex items-center gap-8">
               <Link to="/studio" className="marta-label marta-link hover:text-foreground">Studio</Link>
               <Link to="/tutorial" className="marta-label marta-link hover:text-foreground">Tutorial</Link>
