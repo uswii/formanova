@@ -113,74 +113,72 @@ const App = () => (
     <ThemeProvider>
       <AuthProvider>
         <CreditsProvider>
-        <Suspense fallback={null}>
-          <TooltipProvider>
-            {/* Toasters deferred — only needed on user interaction */}
+        <TooltipProvider>
+          {/* Toasters deferred — only needed on user interaction */}
+          <DeferredDecorations>
+            <Suspense fallback={null}>
+              <Toaster />
+              <Sonner />
+            </Suspense>
+          </DeferredDecorations>
+          <BrowserRouter>
+            <PostHogPageView />
             <DeferredDecorations>
               <Suspense fallback={null}>
-                <Toaster />
-                <Sonner />
+                <FloatingElements />
+                <ScrollProgressIndicator />
+                <ThemeDecorations />
               </Suspense>
             </DeferredDecorations>
-            <BrowserRouter>
-              <PostHogPageView />
-              <DeferredDecorations>
-                <Suspense fallback={null}>
-                  <FloatingElements />
-                  <ScrollProgressIndicator />
-                  <ThemeDecorations />
+            <div className="min-h-screen flex flex-col relative z-10">
+              <Header />
+              <main className="flex-1">
+              <ChunkErrorBoundary>
+                <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<Welcome />} />
+                  <Route path="/feedback" element={<FeedbackRedirect />} />
+                  <Route path="/login" element={<Auth />} />
+                  <Route path="/oauth-callback" element={<Auth />} />
+                  <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
+                  <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
+                  <Route path="/link" element={<LinkAccount />} />
+                  {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
+                  
+                  {/* Protected routes - require sign in */}
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
+                  <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
+                  <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+                  <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+                  <Route path="/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+                  <Route path="/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
+                  <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
+                  <Route path="/studio/:type" element={<ProtectedRoute><UnifiedStudio /></ProtectedRoute>} />
+                  {/* PRESERVED: Old single-upload route - uncomment to restore */}
+                  {/* <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} /> */}
+                  {/* PRESERVED: Batch upload route - uncomment to restore batch workflow */}
+                  {/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}
+                  <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
+                  <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
+                  <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
+                  
+                  {/* Admin routes */}
+                  <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
+                  
+                  {/* Results page - handles auth internally (login button + ownership check) */}
+                  <Route path="/yourresults/:token" element={<DeliveryResults />} />
+                  
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
                 </Suspense>
-              </DeferredDecorations>
-              <div className="min-h-screen flex flex-col relative z-10">
-                <Header />
-                <main className="flex-1">
-                <ChunkErrorBoundary>
-                  <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    {/* Public routes */}
-                    <Route path="/" element={<Welcome />} />
-                    <Route path="/feedback" element={<FeedbackRedirect />} />
-                    <Route path="/login" element={<Auth />} />
-                    <Route path="/oauth-callback" element={<Auth />} />
-                    <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
-                    <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
-                    <Route path="/link" element={<LinkAccount />} />
-                    {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
-                    
-                    {/* Protected routes - require sign in */}
-                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                    <Route path="/generations" element={<ProtectedRoute><Generations /></ProtectedRoute>} />
-                    <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
-                    <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
-                    <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
-                    <Route path="/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
-                    <Route path="/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
-                    <Route path="/studio" element={<ProtectedRoute><PhotographyStudioCategories /></ProtectedRoute>} />
-                    <Route path="/studio/:type" element={<ProtectedRoute><UnifiedStudio /></ProtectedRoute>} />
-                    {/* PRESERVED: Old single-upload route - uncomment to restore */}
-                    {/* <Route path="/studio/:type" element={<ProtectedRoute><JewelryStudio /></ProtectedRoute>} /> */}
-                    {/* PRESERVED: Batch upload route - uncomment to restore batch workflow */}
-                    {/* <Route path="/studio/:type" element={<ProtectedRoute><CategoryUploadStudio /></ProtectedRoute>} /> */}
-                    <Route path="/studio-cad" element={<ProtectedRoute><CADGate><CADStudio /></CADGate></ProtectedRoute>} />
-                    <Route path="/cad-to-catalog" element={<ProtectedRoute><CADGate><CADToCatalog /></CADGate></ProtectedRoute>} />
-                    <Route path="/text-to-cad" element={<ProtectedRoute><CADGate><TextToCAD /></CADGate></ProtectedRoute>} />
-                    
-                    {/* Admin routes */}
-                    <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
-                    
-                    {/* Results page - handles auth internally (login button + ownership check) */}
-                    <Route path="/yourresults/:token" element={<DeliveryResults />} />
-                    
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  </Suspense>
-                </ChunkErrorBoundary>
-                </main>
-              </div>
-            </BrowserRouter>
-          </TooltipProvider>
-        </Suspense>
+              </ChunkErrorBoundary>
+              </main>
+            </div>
+          </BrowserRouter>
+        </TooltipProvider>
         </CreditsProvider>
       </AuthProvider>
     </ThemeProvider>
