@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import { ScrollRevealSection, StaggerContainer } from '@/components/ScrollRevealSection';
@@ -25,6 +25,17 @@ import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.webp';
 export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Dynamically preload the LCP hero image so the browser discovers it early
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = heroDiamondChoker;
+    link.type = 'image/webp';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
 
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
