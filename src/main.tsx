@@ -67,8 +67,7 @@ if (
       });
     }
 
-    // Prefetch CAD/3D chunks in the background so they're cached before navigation
-    import('./components/cad/InteractiveRing').catch(() => {});
+    // CAD/3D prefetch moved to navigation-time to avoid loading 6MB+ of assets on landing
   });
 
   // Render app without waiting for analytics SDKs

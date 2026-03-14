@@ -83,6 +83,8 @@ export function Header() {
                 src={formanovaLogo} 
                 alt="FormaNova" 
                 className="h-10 md:h-12 lg:h-14 w-auto object-contain logo-adaptive"
+                width={234}
+                height={56}
               />
             </div>
             

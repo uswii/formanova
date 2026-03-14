@@ -36,7 +36,8 @@ export default defineConfig(({ mode }) => ({
           // three.js is NOT listed here — it naturally code-splits into lazy chunks
           // that import it, avoiding modulepreload on the landing page
           "vendor-framer": ["framer-motion"],
-          "vendor-charts": ["recharts"],
+          // recharts removed from manualChunks — it naturally code-splits into
+          // lazy chunks that import it, avoiding eager load on landing page
           
           "vendor-posthog": ["posthog-js", "posthog-js/react"],
           "vendor-radix": [
