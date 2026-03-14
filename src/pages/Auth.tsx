@@ -238,11 +238,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <img 
-        src={formanovaLogo} 
-        alt="Formanova" 
-        className="h-16 md:h-20 w-auto object-contain logo-adaptive mb-8"
-      />
+      <ThemeLogo className="h-16 md:h-20 mb-8" />
       
       <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
         <CardContent className="flex flex-col items-center py-10 px-8">
