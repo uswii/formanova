@@ -788,6 +788,64 @@ export default function TextToCAD() {
     }
   }, [glbUrl]);
 
+  const handleDownloadStl = useCallback(() => {
+    setStlModalOpen(true);
+  }, []);
+
+  const confirmDownloadStl = useCallback(async () => {
+    setStlModalOpen(false);
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const defaultName = `model-${timestamp}.stl`;
+
+    const anchorDownload = (blob: Blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = defaultName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
+
+    try {
+      if (!canvasRef.current) {
+        toast.error("3D canvas not ready");
+        return;
+      }
+      const blob = await canvasRef.current.exportSceneStlBlob(stlScaleMm);
+
+      if (!blob || blob.size === 0) {
+        toast.error("Export produced an empty file");
+        return;
+      }
+
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: defaultName,
+            types: [{
+              description: 'STL 3D Print File',
+              accept: { 'model/stl': ['.stl'] },
+            }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } catch (e: any) {
+          if (e?.name === 'AbortError') return;
+          console.warn('[STL Download] showSaveFilePicker failed, using fallback:', e);
+          anchorDownload(blob);
+        }
+      } else {
+        anchorDownload(blob);
+      }
+    } catch (err) {
+      console.error('[STL Download] Failed to export/download model:', err);
+      toast.error("Failed to download STL");
+    }
+  }, [stlScaleMm]);
+
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
       setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
