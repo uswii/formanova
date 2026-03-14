@@ -43,7 +43,7 @@ export function ScrollRevealSection({
   }, [threshold, once]);
 
   const getAnimationClasses = () => {
-    const base = 'transition-all ease-out';
+    const base = 'transition-[transform,opacity] ease-out will-change-[transform,opacity]';
     
     if (!isVisible) {
       switch (animation) {
@@ -145,7 +145,7 @@ export function StaggerContainer({
             style={{
               opacity: isVisible ? 1 : 0,
               transform: getTransform(),
-              transition: `all 700ms cubic-bezier(0.16, 1, 0.3, 1) ${index * staggerDelay}ms`,
+              transition: `transform 700ms cubic-bezier(0.16, 1, 0.3, 1) ${index * staggerDelay}ms, opacity 700ms cubic-bezier(0.16, 1, 0.3, 1) ${index * staggerDelay}ms`,
             }}
           >
             {child}
