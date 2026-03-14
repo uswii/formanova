@@ -1256,7 +1256,7 @@ export default function TextToCAD() {
               )}
             </AnimatePresence>
 
-            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
+            <GenerationProgress visible={isGenerating || isModelLoading} currentStep={progressStep} stepLabel={progressLabel} retryAttempt={retryAttempt} onRetry={() => simulateGeneration()} />
             <ViewportSideTools
               visible={hasModel && !isGenerating && !isModelLoading}
               onZoomIn={() => canvasRef.current?.zoomIn()}
