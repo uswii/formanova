@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as Sentry from '@sentry/react';
+
 import { trackLogin, trackLogout, identifyUser } from '@/lib/posthog-events';
 import { 
   authApi, 
