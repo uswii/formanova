@@ -73,6 +73,8 @@ export default function TextToCAD() {
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gemMode, setGemMode] = useState<GemMode>("simple");
+  const [stlModalOpen, setStlModalOpen] = useState(false);
+  const [stlScaleMm, setStlScaleMm] = useState(6.67);
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
@@ -786,6 +788,64 @@ export default function TextToCAD() {
     }
   }, [glbUrl]);
 
+  const handleDownloadStl = useCallback(() => {
+    setStlModalOpen(true);
+  }, []);
+
+  const confirmDownloadStl = useCallback(async () => {
+    setStlModalOpen(false);
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const defaultName = `model-${timestamp}.stl`;
+
+    const anchorDownload = (blob: Blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = defaultName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
+
+    try {
+      if (!canvasRef.current) {
+        toast.error("3D canvas not ready");
+        return;
+      }
+      const blob = await canvasRef.current.exportSceneStlBlob(stlScaleMm);
+
+      if (!blob || blob.size === 0) {
+        toast.error("Export produced an empty file");
+        return;
+      }
+
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: defaultName,
+            types: [{
+              description: 'STL 3D Print File',
+              accept: { 'model/stl': ['.stl'] },
+            }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } catch (e: any) {
+          if (e?.name === 'AbortError') return;
+          console.warn('[STL Download] showSaveFilePicker failed, using fallback:', e);
+          anchorDownload(blob);
+        }
+      } else {
+        anchorDownload(blob);
+      }
+    } catch (err) {
+      console.error('[STL Download] Failed to export/download model:', err);
+      toast.error("Failed to download STL");
+    }
+  }, [stlScaleMm]);
+
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
       setMeshes((prev) => prev.map((m) => ({ ...m, selected: false })));
@@ -1205,6 +1265,7 @@ export default function TextToCAD() {
               undoCount={undoStack.length}
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
+              onDownloadStl={handleDownloadStl}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
                 if (el) {
@@ -1245,6 +1306,74 @@ export default function TextToCAD() {
         </ResizablePanel>
       </ResizablePanelGroup>
       
+      {/* STL Scale Modal */}
+      <AnimatePresence>
+        {stlModalOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
+          >
+            <div className="pointer-events-auto bg-card border border-border shadow-2xl px-8 py-6 max-w-sm text-center">
+              <div className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1.5">
+                Download for 3D Printing
+              </div>
+              <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-4">
+                Scale sets the real-world size. Default prints approximately a US size 7 ring (20mm diameter).
+              </p>
+              <div className="mb-3">
+                <label className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground block mb-1.5">
+                  mm per unit
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  step={0.1}
+                  value={stlScaleMm}
+                  onChange={(e) => setStlScaleMm(parseFloat(e.target.value) || 1)}
+                  className="w-24 px-3 py-1.5 text-center font-mono text-xs bg-background border border-border text-foreground focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div className="flex gap-2 justify-center mb-4">
+                {[
+                  { label: "Size 6", value: 6.33 },
+                  { label: "Size 7", value: 6.67 },
+                  { label: "Size 8", value: 7.0 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => setStlScaleMm(preset.value)}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] border cursor-pointer transition-opacity ${
+                      stlScaleMm === preset.value
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:opacity-80"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setStlModalOpen(false)}
+                  className="px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDownloadStl}
+                  className="px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+                >
+                  Download STL
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

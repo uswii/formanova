@@ -1,4 +1,4 @@
-import { Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard } from "lucide-react";
+import { Undo2, Redo2, Download, Plus, Minus, Maximize2, Maximize, Eye, Keyboard, Printer } from "lucide-react";
 import { TRANSFORM_MODES, PROGRESS_STEPS } from "./types";
 import type { StatsData } from "./types";
 
@@ -124,7 +124,7 @@ function SideTooltip({ label }: { label: string }) {
   );
 }
 
-export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onFullscreen, onDisplayMenu, onKeyboardShortcuts }: {
+export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, onUndo, onRedo, undoCount, redoCount, onDownload, onDownloadStl, onFullscreen, onDisplayMenu, onKeyboardShortcuts }: {
   visible: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -134,6 +134,7 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
   undoCount: number;
   redoCount: number;
   onDownload: () => void;
+  onDownloadStl?: () => void;
   onFullscreen?: () => void;
   onDisplayMenu?: () => void;
   onKeyboardShortcuts?: () => void;
@@ -201,6 +202,12 @@ export function ViewportSideTools({ visible, onZoomIn, onZoomOut, onResetView, o
         <SideTooltip label="Download" />
         <Download className="w-3.5 h-3.5" />
       </button>
+      {onDownloadStl && (
+        <button onClick={onDownloadStl} className={`${SIDE_BTN} text-primary hover:text-primary`} title="Download STL for 3D printing">
+          <SideTooltip label="Print (STL)" />
+          <Printer className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
