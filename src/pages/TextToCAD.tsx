@@ -716,6 +716,7 @@ export default function TextToCAD() {
   const handleDownloadGlb = useCallback(async () => {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
     const defaultName = `model-${timestamp}.glb`;
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: defaultName, file_type: 'glb', context: 'text-to-cad' }));
 
     // Helper: trigger download via anchor element (universal fallback)
     const anchorDownload = (blob: Blob) => {
