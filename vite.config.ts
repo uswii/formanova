@@ -60,13 +60,18 @@ export default defineConfig(({ mode }) => ({
           // three.js is NOT listed here — it naturally code-splits into lazy chunks
           // that import it, avoiding modulepreload on the landing page
           "vendor-framer": ["framer-motion"],
-          // recharts removed from manualChunks — it naturally code-splits into
-          // lazy chunks that import it, avoiding eager load on landing page
-          
+          // Radix UI loaded as parallel chunk — keeps main bundle lean (~167KB)
+          // while loading Radix in parallel rather than serializing into critical chain
+          "vendor-radix": [
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-toast",
+          ],
           "vendor-posthog": ["posthog-js", "posthog-js/react"],
-          // Radix removed from manualChunks — components now naturally code-split
-          // per route. Only DropdownMenu (Header) loads on landing page; Dialog,
-          // Select, Tabs, Popover, Toast defer to their respective lazy routes.
         },
       },
     },
