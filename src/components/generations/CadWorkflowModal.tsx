@@ -10,9 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
-import { getWorkflowDetails, type WorkflowDetail, type WorkflowStep } from '@/lib/generation-history-api';
+import { getWorkflowDetails, fetchCadResult, type WorkflowDetail, type WorkflowStep } from '@/lib/generation-history-api';
 import { azureUriToUrl } from '@/lib/azure-utils';
-import { resolveWorkflowOutput, getStepOutput } from '@/lib/workflow-fallback';
 
 // Preferred angle ordering — front first
 const ANGLE_ORDER = ['front', 'front_left', 'front_right', 'left', 'right', 'back_left', 'back_right', 'back'];
@@ -38,8 +37,6 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
   const [glbUrl, setGlbUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState<string | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
-  const [isFallbackResult, setIsFallbackResult] = useState(false);
-  const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workflowId) return;
@@ -51,8 +48,6 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
     setGlbUrl(null);
     setCaption(null);
     setHeroIndex(0);
-    setIsFallbackResult(false);
-    setFallbackMessage(null);
 
     if (workflowStatus !== 'completed') {
       setError('This workflow did not complete successfully.');
@@ -62,9 +57,120 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
 
     (async () => {
       try {
-        const details = await getWorkflowDetails(workflowId);
+        // Fetch details (for screenshots/metadata) AND sink-based result (for GLB) in parallel
+        const [details, cadResult] = await Promise.all([
+          getWorkflowDetails(workflowId),
+          fetchCadResult(workflowId),
+        ]);
 
-        // Recursively find any azure:// URI inside any object
+        // ── GLB: Use authoritative sink-based fallback ──
+        // Rule: success_final → glb_artifact (preferred) → original_glb_artifact
+        //       success_original_glb → original_glb_artifact
+        //       failed_final → null (no model fallback)
+        if (cadResult.azure_source === 'failed_final') {
+          setError('This generation failed. No model available.');
+          setLoading(false);
+          return;
+        }
+        if (cadResult.glb_url) {
+          setGlbUrl(cadResult.glb_url);
+        }
+
+        // ── Screenshots: Extract from step data ──
+        extractScreenshotsFromSteps(details.steps ?? []);
+
+        // ── Caption: Extract from validate step ──
+        const validateStep = details.steps?.find((s: WorkflowStep) =>
+          s.tool === 'ring-validate' || s.tool === 'ring_validate' || s.tool === 'validate_output'
+        );
+        if (validateStep) {
+          const output = validateStep.output_data ?? validateStep.output ?? {};
+          if ((output as any)?.message) {
+            setCaption((output as any).message as string);
+          }
+        }
+
+        // If sink-based didn't return GLB, try step-based as last resort
+        if (!cadResult.glb_url) {
+          extractGlbFromSteps(details.steps ?? []);
+        }
+      } catch (err: any) {
+        console.error('[CadWorkflowModal] fetch error:', err);
+        setError('Failed to load workflow details.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    function extractScreenshotsFromSteps(steps: WorkflowStep[]) {
+      const getOutput = (s: WorkflowStep) => s?.output_data ?? s?.output ?? {};
+
+      // Try run_blender step first
+      const blenderStep = steps.find(
+        (s) => s.tool === 'run_blender' &&
+          (getOutput(s) as any)?.success === true &&
+          ((getOutput(s) as any)?.screenshots as any[])?.length > 0
+      );
+
+      if (blenderStep) {
+        const output = getOutput(blenderStep);
+        const rawShots = (output as any)?.screenshots as any[] | undefined;
+        if (rawShots?.length) {
+          const mapped = rawShots
+            .map((s: any, i: number) => {
+              const uri = s?.uri;
+              if (typeof uri === 'string' && uri.startsWith('https://')) {
+                return { angle: `angle_${i + 1}`, url: uri };
+              }
+              if (uri) return { angle: `angle_${i + 1}`, url: azureUriToUrl(uri) };
+              return null;
+            })
+            .filter(Boolean) as { angle: string; url: string }[];
+          setScreenshots(sortScreenshots(mapped));
+          return;
+        }
+      }
+
+      // Legacy: ring-screenshot step
+      const screenshotStep = steps.find((s) =>
+        s.tool === 'ring-screenshot' || s.tool === 'screenshot' || s.tool === 'ring_screenshot'
+      );
+      if (screenshotStep) {
+        const output = getOutput(screenshotStep);
+        const rawShots = ((output as any)?.screenshots ?? (output as any)?.images) as any[] | undefined;
+        if (rawShots?.length) {
+          const mapped = rawShots
+            .map((s: any) => {
+              const angle = (s.name as string) || (s.angle as string) || 'unknown';
+              const rawUri = s?.data_uri?.uri ?? s?.url ?? s?.uri;
+              if (rawUri) return { angle, url: azureUriToUrl(rawUri as string) };
+              return null;
+            })
+            .filter(Boolean) as { angle: string; url: string }[];
+          setScreenshots(sortScreenshots(mapped));
+        }
+      }
+    }
+
+    function extractGlbFromSteps(steps: WorkflowStep[]) {
+      const getOutput = (s: WorkflowStep) => s?.output_data ?? s?.output ?? {};
+
+      // Try blender step glb_artifact
+      const blenderStep = steps.find(
+        (s) => s.tool === 'run_blender' && (getOutput(s) as any)?.success === true
+      );
+      if (blenderStep) {
+        const output = getOutput(blenderStep);
+        const uri = (output as any)?.glb_artifact?.uri ?? (output as any)?.original_glb_artifact?.uri;
+        if (uri) { setGlbUrl(azureUriToUrl(uri)); return; }
+      }
+
+      // Legacy: ring-validate / ring-generate
+      const validateStep = steps.find((s) => s.tool === 'ring-validate' || s.tool === 'ring_validate');
+      const generateStep = steps.find((s) => s.tool === 'ring-generate' || s.tool === 'ring_generate' || s.tool === 'generate');
+      const glbStep = validateStep || generateStep;
+      if (glbStep) {
+        const output = getOutput(glbStep);
         const findAzureUri = (obj: unknown): string | null => {
           if (typeof obj === 'string' && obj.startsWith('azure://')) return obj;
           if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
@@ -75,115 +181,8 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
           }
           return null;
         };
-
-        // ── NEW: Try node-based fallback resolution first ──
-        const resolved = resolveWorkflowOutput(details.steps ?? []);
-
-        if (resolved) {
-          // New API path — use resolved node output
-          // Silent fallback for CAD nodes (build_corrected → build_initial)
-          // Only show banner for non-CAD generic fallbacks
-          const showBanner = resolved.isFallback && resolved.failedNodeName
-            && !['build_corrected', 'build_initial'].includes(resolved.failedNodeName);
-          setIsFallbackResult(showBanner);
-          if (showBanner) {
-            setFallbackMessage(
-              `Showing best available result — final step "${resolved.failedNodeName?.replace(/_/g, ' ')}" did not complete`
-            );
-          }
-
-          const output = getStepOutput(resolved.step);
-          extractArtifactsFromOutput(output, findAzureUri);
-        } else {
-          // ── LEGACY: Existing extraction logic ──
-          // Pick the FIRST run_blender step that succeeded AND has screenshots
-          const blenderStep = details.steps?.find(
-            (s: WorkflowStep) =>
-              s.tool === 'run_blender' &&
-              (s.output as any)?.success === true &&
-              ((s.output as any)?.screenshots as any[])?.length > 0
-          ) ?? null;
-
-          if (blenderStep?.output) {
-            extractArtifactsFromOutput(blenderStep.output as Record<string, unknown>, findAzureUri);
-          }
-
-          // FALLBACK: Legacy ring-screenshot / ring-validate / ring-generate
-          if (!blenderStep) {
-            const screenshotStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-screenshot');
-            if (screenshotStep?.output?.screenshots) {
-              const raw = screenshotStep.output.screenshots as Record<string, unknown>[];
-              const mapped = raw
-                .map(s => {
-                  const angle = (s.name as string) || (s.angle as string) || 'unknown';
-                  const rawUri = (s as any)?.data_uri?.uri ?? (s as any)?.url ?? (s as any)?.uri;
-                  const uri = rawUri || findAzureUri(s);
-                  return uri ? { angle, url: azureUriToUrl(uri as string) } : null;
-                })
-                .filter(Boolean) as { angle: string; url: string }[];
-              setScreenshots(sortScreenshots(mapped));
-            }
-
-            const validateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-validate');
-            const generateStep = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-generate');
-            const glbStep = validateStep || generateStep;
-            if (glbStep?.output) {
-              const uri = findAzureUri(glbStep.output);
-              if (uri) setGlbUrl(azureUriToUrl(uri));
-            }
-          }
-
-          // Caption from validate step (legacy)
-          const legacyValidate = details.steps?.find((s: WorkflowStep) => s.tool === 'ring-validate');
-          if (legacyValidate?.output?.message) {
-            setCaption(legacyValidate.output.message as string);
-          }
-        }
-      } catch (err: any) {
-        console.error('[CadWorkflowModal] fetch error:', err);
-        setError('Failed to load workflow details.');
-      } finally {
-        setLoading(false);
-      }
-    })();
-
-    /** Extract screenshots and GLB from an output object (shared by new + legacy paths) */
-    function extractArtifactsFromOutput(
-      output: Record<string, unknown>,
-      findAzureUri: (obj: unknown) => string | null,
-    ) {
-      // GLB from glb_artifact.uri → fallback to original_glb_artifact.uri
-      const glbUri = (output as any)?.glb_artifact?.uri
-        ?? (output as any)?.original_glb_artifact?.uri;
-      if (typeof glbUri === 'string' && glbUri.startsWith('https://')) {
-        setGlbUrl(glbUri);
-      } else if (glbUri) {
-        setGlbUrl(azureUriToUrl(glbUri));
-      } else {
-        // Try finding any azure URI as GLB fallback
-        const anyGlb = findAzureUri(output);
-        if (anyGlb) setGlbUrl(azureUriToUrl(anyGlb));
-      }
-
-      // Screenshots from output.screenshots[].uri
-      const rawShots = (output as any)?.screenshots as any[] | undefined;
-      if (rawShots?.length) {
-        const mapped = rawShots
-          .map((s: any, i: number) => {
-            const uri = s?.uri;
-            if (typeof uri === 'string' && uri.startsWith('https://')) {
-              return { angle: `angle_${i + 1}`, url: uri };
-            }
-            if (uri) return { angle: `angle_${i + 1}`, url: azureUriToUrl(uri) };
-            return null;
-          })
-          .filter(Boolean) as { angle: string; url: string }[];
-        setScreenshots(sortScreenshots(mapped));
-      }
-
-      // Caption from message field
-      if ((output as any)?.message) {
-        setCaption((output as any).message as string);
+        const uri = findAzureUri(output);
+        if (uri) setGlbUrl(azureUriToUrl(uri));
       }
     }
   }, [workflowId, workflowStatus]);
@@ -249,15 +248,6 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
           {/* Success content */}
           {!loading && !error && (
             <>
-              {/* Fallback / partial result banner */}
-              {isFallbackResult && fallbackMessage && (
-                <div className="flex items-center gap-2 px-3 py-2.5 mb-4 rounded-sm bg-yellow-500/10 border border-yellow-500/30">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                  <p className="font-mono text-[10px] tracking-wider text-yellow-700 dark:text-yellow-300">
-                    {fallbackMessage}
-                  </p>
-                </div>
-              )}
               {/* Hero image */}
               {heroShot && (
                 <div className="relative group mb-4">
