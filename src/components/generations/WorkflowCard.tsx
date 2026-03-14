@@ -144,7 +144,9 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </div>
         )}
         {!workflow.glb_url && isEnriching && (
-          <div className="mx-4 mb-3 w-[calc(100%-2rem)] aspect-square bg-muted/30 animate-pulse" />
+          <div className="mx-4 mb-3 w-[calc(100%-2rem)] aspect-[4/3] bg-muted/30 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
+          </div>
         )}
 
         {/* ── File box — only shown when GLB is available or still loading ── */}
@@ -266,8 +268,10 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             </div>
           </button>
         ) : isEnriching ? (
-          /* Pulsing placeholder while enrichment is in progress */
-          <div className="w-full aspect-square bg-muted/50 animate-pulse" />
+          /* Spinner placeholder while enrichment is in progress */
+          <div className="w-full aspect-square bg-muted/30 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
+          </div>
         ) : null}
 
         {/* Card footer: index · credits · date · duration */}
