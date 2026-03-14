@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as Sentry from '@sentry/react';
+
 import { trackLogin, trackLogout, identifyUser } from '@/lib/posthog-events';
 import { 
   authApi, 
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authApi.initiateGoogleLogin();
     } catch (error) {
       console.error('[AuthContext] Google sign-in failed:', error);
-      Sentry.captureException(error, { tags: { feature: 'google-login' } });
+      // Error already logged to console above
     }
   };
 

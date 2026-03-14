@@ -51,26 +51,9 @@ if (
 
   const posthogKey = 'phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC';
 
-  // Defer heavy SDKs (Sentry + PostHog) to after first paint
+  // Defer PostHog to after first paint (no longer using Sentry)
   requestIdleCallback(() => {
-    // Sentry — dynamically imported so it doesn't block FCP
-    import("@sentry/react").then((Sentry) => {
-      Sentry.init({
-        dsn: "https://fb062ed4887fdb94c55272c7cfc9c7d0@o4510947153870848.ingest.us.sentry.io/4510947154722816",
-        integrations: [
-          Sentry.browserTracingIntegration(),
-          Sentry.replayIntegration({
-            maskAllText: false,
-            blockAllMedia: false,
-          }),
-        ],
-        tracesSampleRate: 1.0,
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
-      });
-    });
-
-    // PostHog — dynamically imported
+    // PostHog — dynamically imported so it doesn't block FCP
     if (posthogKey) {
       import("posthog-js").then((posthogModule) => {
         const posthog = posthogModule.default;
@@ -83,6 +66,9 @@ if (
         });
       });
     }
+
+    // Prefetch CAD/3D chunks in the background so they're cached before navigation
+    import('./components/cad/InteractiveRing').catch(() => {});
   });
 
   // Render app without waiting for analytics SDKs

@@ -73,7 +73,7 @@ class ChunkErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error) {
-    // Send non-chunk errors to PostHog error tracking
+    // Send errors to PostHog error tracking
     import('posthog-js').then(({ default: posthog }) => {
       posthog.captureException(error);
     }).catch(() => {});

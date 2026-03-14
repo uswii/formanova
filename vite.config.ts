@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => ({
           // that import it, avoiding modulepreload on the landing page
           "vendor-framer": ["framer-motion"],
           "vendor-charts": ["recharts"],
-          "vendor-sentry": ["@sentry/react"],
+          
           "vendor-posthog": ["posthog-js", "posthog-js/react"],
           "vendor-radix": [
             "@radix-ui/react-dialog",
