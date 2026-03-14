@@ -26,6 +26,17 @@ export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Dynamically preload the LCP hero image so the browser discovers it early
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = heroDiamondChoker;
+    link.type = 'image/webp';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
+
   const heroImages = [
     { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
     { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
