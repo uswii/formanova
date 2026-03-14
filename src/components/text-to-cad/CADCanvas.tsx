@@ -1324,6 +1324,32 @@ const LoadedModel = forwardRef<
       console.log('[GLB Export] Done. Blob size:', blob.size, 'bytes');
       return blob;
     },
+    exportSceneStlBlob: async (scaleMm: number): Promise<Blob> => {
+      const exportScene = new THREE.Scene();
+      const currentMeshData = meshDataListRef.current;
+
+      console.log('[STL Export] Starting. meshDataList:', currentMeshData.length, 'scale:', scaleMm, 'mm/unit');
+
+      currentMeshData.forEach((md) => {
+        const material = new THREE.MeshStandardMaterial();
+        const geo = md.geometry.clone();
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.name = md.name;
+
+        mesh.position.copy(md.position);
+        mesh.quaternion.copy(md.quaternion);
+        mesh.scale.copy(md.scale);
+        mesh.scale.multiplyScalar(scaleMm);
+
+        exportScene.add(mesh);
+      });
+
+      const exporter = new STLExporter();
+      const stlString = exporter.parse(exportScene, { binary: false });
+      const blob = new Blob([stlString], { type: 'model/stl' });
+      console.log(`[STL Export] Done. Blob size: ${blob.size} bytes, scale: ${scaleMm}mm/unit`);
+      return blob;
+    },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // Selection-change detection moved into useMemo below (synchronous)
