@@ -63,7 +63,13 @@ export async function performCreditPreflight(
     throw new Error(`Balance fetch failed (${balanceRes.status})`);
   }
 
-  const balanceData = await balanceRes.json();
+  const balanceText = await balanceRes.text();
+  let balanceData: any;
+  try {
+    balanceData = JSON.parse(balanceText);
+  } catch {
+    throw new Error('Balance response was not valid JSON');
+  }
   // Use "available" (balance minus reserved holds), fall back to "balance"
   const currentBalance = balanceData.available ?? balanceData.balance ?? 0;
 

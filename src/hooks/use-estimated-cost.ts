@@ -65,6 +65,7 @@ export function useEstimatedCost({
             setLoading(false);
             return;
           }
+          } catch { /* non-JSON — fall through */ }
         }
       } catch {
         // Network error or aborted — fall through to fallback
