@@ -33,8 +33,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Heavy vendor libs split into dedicated chunks (loaded on demand)
-          "vendor-three": ["three", "@react-three/fiber", "@react-three/drei", "@react-three/postprocessing"],
+          // three.js is NOT listed here — it naturally code-splits into lazy chunks
+          // that import it, avoiding modulepreload on the landing page
           "vendor-framer": ["framer-motion"],
           "vendor-charts": ["recharts"],
           "vendor-sentry": ["@sentry/react"],
