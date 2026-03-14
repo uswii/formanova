@@ -1316,8 +1316,16 @@ export default function TextToCAD() {
             transition={{ duration: 0.2 }}
             className="absolute inset-0 z-[80] flex items-center justify-center pointer-events-none"
           >
-            <div className="pointer-events-auto bg-card border border-border shadow-2xl w-[340px] px-8 py-7 text-center">
-              <div className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1.5">
+            <div className="pointer-events-auto bg-card border border-border shadow-2xl w-[340px] px-8 py-7 text-center relative">
+              {/* Close button */}
+              <button
+                onClick={() => setStlModalOpen(false)}
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-sm transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1.5 pr-6">
                 Download for 3D Printing
               </div>
               <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-5 text-left">
