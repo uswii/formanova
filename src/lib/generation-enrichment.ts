@@ -105,8 +105,8 @@ export function extractCadTextData(steps: any[]) {
         glb_filename = parts[parts.length - 1] || 'model.glb';
       }
     }
-    if (!glb_url && glbStep?.output) {
-      const uri = findAzureUri(glbStep.output);
+    if (!glb_url && glbOut) {
+      const uri = findAzureUri(glbOut);
       if (uri) {
         glb_url = azureUriToUrl(uri);
         const parts = uri.split('/');
@@ -115,7 +115,7 @@ export function extractCadTextData(steps: any[]) {
     }
     if (!glb_url) {
       for (const step of steps) {
-        const uri = findAzureUri(step.output);
+        const uri = findAzureUri(getOutput(step));
         if (uri && uri.includes('.glb')) {
           glb_url = azureUriToUrl(uri);
           const parts = uri.split('/');
