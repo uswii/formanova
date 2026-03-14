@@ -50,7 +50,7 @@ export function WorkflowSection({
     <section className="mb-14">
       {/* Section Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 flex items-center justify-center bg-foreground text-background">
+        <div className="w-8 h-8 flex items-center justify-center bg-primary/10 text-primary border border-border">
           {icon}
         </div>
         <div>

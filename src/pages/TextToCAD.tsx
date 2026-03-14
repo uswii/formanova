@@ -1320,7 +1320,7 @@ export default function TextToCAD() {
               <div className="font-display text-sm uppercase tracking-[0.15em] text-foreground mb-1.5">
                 Download for 3D Printing
               </div>
-              <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-5">
+              <p className="font-mono text-[11px] text-muted-foreground leading-relaxed mb-5 text-left">
                 Scale sets the real-world size. Default prints approximately a US size 7 ring (20mm diameter).
               </p>
 
