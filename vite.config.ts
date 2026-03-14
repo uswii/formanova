@@ -57,21 +57,10 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // three.js is NOT listed here — it naturally code-splits into lazy chunks
-          // that import it, avoiding modulepreload on the landing page
           "vendor-framer": ["framer-motion"],
-          // Radix UI loaded as parallel chunk — keeps main bundle lean (~167KB)
-          // while loading Radix in parallel rather than serializing into critical chain
-          "vendor-radix": [
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-tooltip",
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-select",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-toast",
-          ],
           "vendor-posthog": ["posthog-js", "posthog-js/react"],
+          // Radix: no manual chunk — let each component split naturally
+          // with the lazy page that imports it. Avoids 230KB on landing.
         },
       },
     },

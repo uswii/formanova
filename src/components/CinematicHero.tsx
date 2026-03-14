@@ -13,6 +13,19 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollTime = useRef(0);
+  // Track which images have been shown (always include first + neighbours)
+  const [loadedIndices, setLoadedIndices] = useState<Set<number>>(() => new Set([0, 1]));
+
+  // Preload upcoming image when index changes
+  useEffect(() => {
+    setLoadedIndices(prev => {
+      const next = new Set(prev);
+      next.add(currentIndex);
+      next.add((currentIndex + 1) % images.length);
+      if (next.size === prev.size) return prev;
+      return next;
+    });
+  }, [currentIndex, images.length]);
 
   // Scroll-based image transition
   useEffect(() => {
@@ -36,10 +49,8 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
         setIsTransitioning(true);
         
         if (accumulatedDelta > 0) {
-          // Scroll down - next image
           setCurrentIndex(prev => (prev + 1) % images.length);
         } else {
-          // Scroll up - previous image
           setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
         }
         
@@ -93,6 +104,9 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
       className={cn('relative overflow-hidden', className)}
     >
       {images.map((image, index) => {
+        // Only render images that have been or are about to be shown
+        if (!loadedIndices.has(index)) return null;
+
         const isActive = index === currentIndex;
         
         return (

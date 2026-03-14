@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').then(m => ({ default: m.CinematicShowcase })));
 
 // Assets
-import formanovaLogo from '@/assets/formanova-logo.png';
+import formanovaLogo from '@/assets/formanova-logo.webp';
 import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.webp';
 import heroVneckNecklace from '@/assets/jewelry/hero-vneck-necklace.webp';
 import heroChokerBack from '@/assets/jewelry/hero-choker-back.webp';

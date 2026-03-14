@@ -4,7 +4,7 @@ import { Download, Loader2, Images, LogIn, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { removeStoredToken, removeStoredUser } from '@/lib/auth-api';
-import formanovaLogo from '@/assets/formanova-logo.png';
+import formanovaLogo from '@/assets/formanova-logo.webp';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DELIVERY_API = `${SUPABASE_URL}/functions/v1/delivery-manager`;
