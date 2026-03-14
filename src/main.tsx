@@ -84,15 +84,7 @@ if (
     );
   }
 
-  // Render app without waiting for analytics SDKs
-  import('./components/PostHogErrorBoundary').then(({ default: PostHogErrorBoundary }) => {
-    root.render(
-      <PostHogErrorBoundary>
-        <App />
-      </PostHogErrorBoundary>
-    );
-  }).catch(() => {
-    root.render(<App />);
-  });
+  // Render app immediately — don't block on lazy imports
+  root.render(<App />);
 }
 
