@@ -6,6 +6,10 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   priority?: boolean;
   /** CSS aspect-ratio value e.g. "3/4", "16/9" to prevent CLS */
   aspectRatio?: string;
+  /** Explicit width for CLS prevention */
+  width?: number;
+  /** Explicit height for CLS prevention */
+  height?: number;
 }
 
 /**
