@@ -64,7 +64,7 @@ export default function GenerationProgress({
 
   let label = NODE_LABELS[currentStep] || "";
   if (currentStep === "generate_fix" && retryAttempt) {
-    label = `Improving the design... (attempt ${retryAttempt} of ${maxAttempts})`;
+    label = `Fixing mesh (attempt ${retryAttempt} of ${maxAttempts})`;
   }
 
   return (
