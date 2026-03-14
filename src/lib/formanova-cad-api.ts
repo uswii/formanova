@@ -244,13 +244,20 @@ export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
   }
 
   // Spec response: { state, step, stepLabel, attempt, maxAttempts }
+  const rawState = String(raw.state ?? 'running').toLowerCase();
   const data: StatusResponse = {
-    status: (raw.state || 'running').toLowerCase(),
-    current_step: raw.step || raw.current_step,
-    progress: (raw.state === 'completed' || raw.state === 'done') ? 100 : (raw.progress ?? 0),
-    steps_completed: raw.steps_completed,
-    steps_total: raw.steps_total,
-    results: raw.results,
+    status: rawState,
+    current_step: typeof raw.step === 'string'
+      ? raw.step
+      : (typeof raw.current_step === 'string' ? raw.current_step : undefined),
+    progress: (rawState === 'completed' || rawState === 'done')
+      ? 100
+      : Number(raw.progress ?? 0),
+    steps_completed: raw.steps_completed == null ? undefined : Number(raw.steps_completed),
+    steps_total: raw.steps_total == null ? undefined : Number(raw.steps_total),
+    results: raw.results && typeof raw.results === 'object' && !Array.isArray(raw.results)
+      ? (raw.results as Record<string, unknown>)
+      : undefined,
   };
 
   // Also handle legacy progress object shape
