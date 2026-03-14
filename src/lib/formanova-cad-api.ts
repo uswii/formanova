@@ -193,17 +193,15 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
     }),
   });
 
+  const payload = await readResponseBody(res);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const msg = typeof err.detail === 'string'
-      ? err.detail
-      : Array.isArray(err.detail)
-        ? err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ')
-        : err.error || `Pipeline start failed (${res.status})`;
-    throw new Error(msg);
+    throw new Error(getApiErrorMessage(payload, `Pipeline start failed (${res.status})`));
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Pipeline start response is invalid');
   }
 
-  const data = await res.json();
+  const data = payload as Record<string, unknown>;
   // Normalize spec response (workflowId) to internal shape (workflow_id)
   const workflow_id = String(data.workflowId || data.workflow_id || '').trim();
   if (!workflow_id) {
