@@ -119,7 +119,11 @@
   <body>
     <div id="root">
       <!-- Minimal loader: dark bg + critical layout to prevent CLS while React mounts -->
-      <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;font-family:'Bebas Neue',sans-serif;"></div>
+      <!-- Static hero skeleton: painted before React mounts to eliminate LCP render delay -->
+      <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;position:relative;overflow:hidden;">
+        <img src="/src/assets/jewelry/hero-diamond-choker.webp" alt="" fetchpriority="high" decoding="sync" width="1920" height="1080" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />
+        <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.8),rgba(0,0,0,.4),rgba(0,0,0,.8));"></div>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

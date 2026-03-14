@@ -189,7 +189,7 @@ export default function Welcome() {
                   href={brand.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="font-display text-2xl md:text-3xl text-foreground/20 hover:text-foreground/50 transition-colors duration-300 cursor-pointer"
+                  className="font-display text-2xl md:text-3xl text-foreground/50 hover:text-foreground/70 transition-colors duration-300 cursor-pointer"
                 >
                   {brand.name}
                 </a>

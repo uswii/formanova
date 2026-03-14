@@ -142,7 +142,7 @@ export function Header() {
                 {/* Profile dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
+                    <button aria-label="Account menu" className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full">
                       {user.avatar_url ? (
                         <img 
                           src={user.avatar_url} 
