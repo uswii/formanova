@@ -192,18 +192,22 @@ export function CadWorkflowModal({ workflowId, workflowStatus, onClose }: CadWor
 
   const handleDownloadGlb = () => {
     if (!glbUrl) return;
+    const fileName = `ring-${workflowId?.slice(0, 8)}.glb`;
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'glb', context: 'generations-cad-modal' }));
     const a = document.createElement('a');
     a.href = glbUrl;
-    a.download = `ring-${workflowId?.slice(0, 8)}.glb`;
+    a.download = fileName;
     a.target = '_blank';
     a.click();
   };
 
   const handleDownloadPng = () => {
     if (!heroShot) return;
+    const fileName = `ring-${heroShot.angle}-${workflowId?.slice(0, 8)}.png`;
+    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'png', context: 'generations-cad-modal' }));
     const a = document.createElement('a');
     a.href = heroShot.url;
-    a.download = `ring-${heroShot.angle}-${workflowId?.slice(0, 8)}.png`;
+    a.download = fileName;
     a.target = '_blank';
     a.click();
   };

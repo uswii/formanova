@@ -84,8 +84,8 @@ export function identifyUser(userId: string, properties?: Record<string, unknown
 
 // ═══════ Studio Actions ═══════
 
-export function trackDownloadClicked(context?: string) {
-  capture('download_clicked', { context });
+export function trackDownloadClicked(props?: { file_name?: string; file_type?: string; context?: string }) {
+  capture('download_clicked', props ?? {});
 }
 
 export function trackRegenerateClicked(context?: string) {
