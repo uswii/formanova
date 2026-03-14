@@ -73,6 +73,8 @@ export default function TextToCAD() {
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gemMode, setGemMode] = useState<GemMode>("simple");
+  const [stlModalOpen, setStlModalOpen] = useState(false);
+  const [stlScaleMm, setStlScaleMm] = useState(6.67);
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
