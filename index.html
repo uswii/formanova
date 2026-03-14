@@ -86,6 +86,34 @@
       }
     }
     </script>
+    <!-- Critical inline CSS: hero above-the-fold styles to allow first paint before full stylesheet -->
+    <style>
+      /* Reset + base layout (subset of Tailwind preflight + theme tokens) */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { line-height: 1.5; -webkit-text-size-adjust: 100%; font-family: 'Inter', system-ui, sans-serif; }
+      body { background: #0a0a0a; color: #fff; }
+      :root {
+        --background: 0 0% 100%; --foreground: 0 0% 0%;
+        --primary: 0 0% 0%; --primary-foreground: 0 0% 100%;
+        --muted-foreground: 0 0% 45%; --border: 0 0% 90%;
+      }
+      .dark, [data-theme="dark"] {
+        --background: 0 0% 0%; --foreground: 0 0% 100%;
+        --primary: 0 0% 100%; --primary-foreground: 0 0% 0%;
+        --muted-foreground: 0 0% 65%; --border: 0 0% 15%;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme]) { --background: 0 0% 0%; --foreground: 0 0% 100%; }
+      }
+      /* Fixed header skeleton */
+      .fixed { position: fixed; } .top-0 { top: 0; } .left-0 { left: 0; } .right-0 { right: 0; }
+      .z-50 { z-index: 50; } .h-16 { height: 4rem; }
+      /* Hero section minimum layout */
+      .min-h-screen { min-height: 100vh; } .relative { position: relative; }
+      .overflow-hidden { overflow: hidden; } .absolute { position: absolute; }
+      .inset-0 { inset: 0; }
+      img { display: block; max-width: 100%; height: auto; }
+    </style>
   </head>
 
   <body>
