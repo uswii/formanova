@@ -4,7 +4,7 @@ import { Download, Loader2, Images, LogIn, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { removeStoredToken, removeStoredUser } from '@/lib/auth-api';
-import formanovaLogo from '@/assets/formanova-logo.webp';
+import { ThemeLogo } from '@/components/ThemeLogo';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DELIVERY_API = `${SUPABASE_URL}/functions/v1/delivery-manager`;
@@ -120,7 +120,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-8 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
+          <ThemeLogo className="h-16 md:h-20 mx-auto" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <div className="space-y-3">
             <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
@@ -159,7 +159,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-8 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
+          <ThemeLogo className="h-16 md:h-20 mx-auto" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <div className="space-y-3">
             <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
@@ -186,7 +186,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-6 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
+          <ThemeLogo className="h-16 md:h-20 mx-auto" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <ShieldAlert className="h-10 w-10 text-destructive mx-auto" />
           <div className="space-y-2">
@@ -214,7 +214,7 @@ export default function DeliveryResults() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="text-center space-y-8 max-w-sm">
-          <img src={formanovaLogo} alt="FormaNova" className="h-16 md:h-20 w-auto object-contain logo-adaptive mx-auto" />
+          <ThemeLogo className="h-16 md:h-20 mx-auto" />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-formanova-hero-accent to-transparent mx-auto" />
           <div className="space-y-3">
             <h2 className="text-xl tracking-[0.15em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>

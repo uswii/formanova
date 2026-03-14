@@ -740,22 +740,7 @@
     transform: scale(1.05);
   }
 
-  /* Logo adaptive colors for all themes — logo has white bg + black text */
-  .logo-adaptive {
-    /* Black text on white bg: no filter needed for light themes */
-    filter: none;
-  }
-  
-  .dark .logo-adaptive,
-  [data-theme="dark"] .logo-adaptive,
-  [data-theme="cyberpunk"] .logo-adaptive,
-  [data-theme="retro"] .logo-adaptive,
-  [data-theme="fashion"] .logo-adaptive,
-  [data-theme="luxury"] .logo-adaptive,
-  [data-theme="synthwave"] .logo-adaptive,
-  [data-theme="neon"] .logo-adaptive {
-    filter: invert(1);
-  }
+  /* Logo adaptive: now handled by ThemeLogo component with separate assets */
 
   /* Cyberpunk scanlines */
   [data-theme="cyberpunk"] .cyber-scanlines::after {

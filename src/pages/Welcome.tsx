@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 const CinematicShowcase = lazy(() => import('@/components/CinematicShowcase').then(m => ({ default: m.CinematicShowcase })));
 
 // Assets
-import formanovaLogo from '@/assets/formanova-logo.webp';
+import { ThemeLogo } from '@/components/ThemeLogo';
 import heroDiamondChoker from '@/assets/jewelry/hero-diamond-choker.webp';
 import heroVneckNecklace from '@/assets/jewelry/hero-vneck-necklace.webp';
 import heroChokerBack from '@/assets/jewelry/hero-choker-back.webp';
@@ -197,7 +197,7 @@ export default function Welcome() {
         
         <div className="marta-container py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <img src={formanovaLogo} alt="FormaNova" className="h-8 w-auto object-contain logo-adaptive" width={234} height={56} />
+            <ThemeLogo className="h-8" />
             <nav className="flex items-center gap-8">
               <Link to="/studio" className="marta-label marta-link hover:text-foreground">Studio</Link>
               <Link to="/tutorial" className="marta-label marta-link hover:text-foreground">Tutorial</Link>

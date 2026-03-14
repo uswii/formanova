@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import formanovaLogo from '@/assets/formanova-logo.webp';
+import { ThemeLogo } from '@/components/ThemeLogo';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 export function Header() {
@@ -79,13 +79,7 @@ export function Header() {
           <div className="flex items-center gap-3 md:gap-4">
             {/* Logo - First at corner */}
             <div className="flex items-center relative z-10">
-              <img 
-                src={formanovaLogo} 
-                alt="FormaNova" 
-                className="h-10 md:h-12 lg:h-14 w-auto object-contain logo-adaptive"
-                width={234}
-                height={56}
-              />
+              <ThemeLogo className="h-10 md:h-12 lg:h-14" />
             </div>
             
             {/* Theme Switcher - After logo */}
