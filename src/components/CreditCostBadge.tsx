@@ -1,4 +1,4 @@
-import creditCoinIcon from '@/assets/icons/credit-coin.png';
+import creditCoinIcon from '@/assets/icons/credit-coin.webp';
 
 interface CreditCostBadgeProps {
   cost: number | null;

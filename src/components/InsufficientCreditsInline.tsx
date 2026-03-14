@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import creditCoinIcon from '@/assets/icons/credit-coin.png';
+import creditCoinIcon from '@/assets/icons/credit-coin.webp';
 import { AlertCircle } from 'lucide-react';
 
 interface InsufficientCreditsInlineProps {

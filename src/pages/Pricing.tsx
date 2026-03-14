@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { toast } from '@/hooks/use-toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import creditCoinIcon from '@/assets/icons/credit-coin.png';
+import creditCoinIcon from '@/assets/icons/credit-coin.webp';
 
 const CHECKOUT_URL = '/billing/checkout';
 
