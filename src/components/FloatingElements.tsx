@@ -9,12 +9,20 @@ export function FloatingElements({ className }: FloatingElementsProps) {
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
+    let rafId: number | undefined;
     const handleScroll = () => {
-      setScrollY(window.scrollY);
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        setScrollY(window.scrollY);
+        rafId = undefined;
+      });
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   return (

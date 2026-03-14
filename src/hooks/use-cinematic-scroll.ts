@@ -78,22 +78,30 @@ export function useParallaxHero(options: ParallaxHeroOptions = {}) {
   });
 
   useEffect(() => {
+    let rafId: number | undefined;
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const scrollRatio = Math.min(scrollY / windowHeight, 1);
-      
-      setTransform({
-        translateY: scrollY * intensity * 0.5,
-        translateZ: -scrollRatio * 200 * intensity,
-        rotateX: scrollRatio * 10 * intensity,
-        scale: 1 - scrollRatio * 0.15,
-        opacity: 1 - scrollRatio * 0.6,
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        const windowHeight = window.innerHeight;
+        const scrollRatio = Math.min(scrollY / windowHeight, 1);
+        
+        setTransform({
+          translateY: scrollY * intensity * 0.5,
+          translateZ: -scrollRatio * 200 * intensity,
+          rotateX: scrollRatio * 10 * intensity,
+          scale: 1 - scrollRatio * 0.15,
+          opacity: 1 - scrollRatio * 0.6,
+        });
+        rafId = undefined;
       });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [intensity]);
 
   return { transform, perspective };

@@ -20,13 +20,15 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
  * - CSS `aspect-ratio` to prevent CLS
  */
 const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
-  ({ priority = false, aspectRatio, className, style, ...props }, ref) => {
+  ({ priority = false, aspectRatio, className, style, width, height, ...props }, ref) => {
     return (
       <img
         ref={ref}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         {...(priority ? { fetchPriority: 'high' as const } : {})}
+        {...(width ? { width } : {})}
+        {...(height ? { height } : {})}
         className={cn(className)}
         style={{
           ...(aspectRatio ? { aspectRatio } : {}),

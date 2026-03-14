@@ -54,17 +54,25 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
     return () => window.removeEventListener('wheel', handleWheel);
   }, [images.length, isTransitioning]);
 
-  // Track scroll for parallax effects
+  // Track scroll for parallax effects (rAF-throttled)
   useEffect(() => {
+    let rafId: number | undefined;
     const handleScroll = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const progress = Math.max(0, Math.min(1, -rect.top / (rect.height - window.innerHeight)));
-      setScrollProgress(progress);
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        if (!containerRef.current) { rafId = undefined; return; }
+        const rect = containerRef.current.getBoundingClientRect();
+        const progress = Math.max(0, Math.min(1, -rect.top / (rect.height - window.innerHeight)));
+        setScrollProgress(progress);
+        rafId = undefined;
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // Auto-advance when not actively scrolling
