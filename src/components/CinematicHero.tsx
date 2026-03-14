@@ -99,6 +99,8 @@ export function CinematicHero({ images, className }: CinematicHeroProps) {
               src={image.src} 
               alt={image.alt} 
               priority={index === 0}
+              width={1920}
+              height={1080}
               className="w-full h-full object-cover"
               style={{
                 transform: isActive ? `scale(${1 + scrollProgress * 0.05})` : 'scale(1)',
