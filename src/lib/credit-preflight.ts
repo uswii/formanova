@@ -4,6 +4,8 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { TOOL_COSTS } from '@/lib/credits-api';
 
+const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
+
 export interface PreflightResult {
   approved: boolean;
   estimatedCredits: number;
