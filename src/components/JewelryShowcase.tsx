@@ -4,11 +4,11 @@ import { ChevronLeft, ChevronRight, Sparkles, CheckCircle2, Target } from 'lucid
 import { OptimizedImage } from '@/components/ui/optimized-image';
 
 // Import showcase images
-import mannequinInput from '@/assets/showcase/mannequin-input.png';
+import mannequinInput from '@/assets/showcase/mannequin-input.webp';
 import jewelryOverlay from '@/assets/showcase/mannequin-jewelry-overlay.png';
-import modelBlackDress from '@/assets/showcase/model-black-dress.png';
-import modelWhiteDress from '@/assets/showcase/model-white-dress.png';
-import modelBlackTank from '@/assets/showcase/model-black-tank.png';
+import modelBlackDress from '@/assets/showcase/model-black-dress.webp';
+import modelWhiteDress from '@/assets/showcase/model-white-dress.webp';
+import modelBlackTank from '@/assets/showcase/model-black-tank.webp';
 import metrics1 from '@/assets/showcase/metrics-1.png';
 import metrics2 from '@/assets/showcase/metrics-2.png';
 import metrics3 from '@/assets/showcase/metrics-3.png';

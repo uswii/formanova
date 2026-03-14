@@ -5,10 +5,10 @@ import { BeforeAfterSlider } from './studio/BeforeAfterSlider';
 // Note: BeforeAfterSlider handles its own images internally
 
 // Assets
-import mannequinInput from '@/assets/showcase/mannequin-input.png';
-import modelBlackDress from '@/assets/showcase/model-black-dress.png';
-import modelBlackTank from '@/assets/showcase/model-black-tank.png';
-import modelWhiteDress from '@/assets/showcase/model-white-dress.png';
+import mannequinInput from '@/assets/showcase/mannequin-input.webp';
+import modelBlackDress from '@/assets/showcase/model-black-dress.webp';
+import modelBlackTank from '@/assets/showcase/model-black-tank.webp';
+import modelWhiteDress from '@/assets/showcase/model-white-dress.webp';
 
 interface ShowcaseItem {
   before: string;

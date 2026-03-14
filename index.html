@@ -35,10 +35,12 @@
     <meta name="twitter:description" content="Professional jewelry photoshoots in minutes. Pixel-perfect preservation guaranteed." />
     <meta name="twitter:image" content="https://formanova.ai/og-image.png" />
 
-    <!-- Marta Verba Typography - Bebas Neue + Inter -->
+    <!-- Marta Verba Typography - Bebas Neue + Inter (non-render-blocking) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'"  >
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"></noscript>
 
     <!-- LCP hero image preload — injected statically for fastest discovery -->
     <link rel="preload" as="image" type="image/webp" href="/src/assets/jewelry/hero-diamond-choker.webp" />
@@ -88,8 +90,8 @@
 
   <body>
     <div id="root">
-      <!-- Minimal loader: just dark background to prevent white flash while React mounts -->
-      <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;"></div>
+      <!-- Minimal loader: dark bg + critical layout to prevent CLS while React mounts -->
+      <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;font-family:'Bebas Neue',sans-serif;"></div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
