@@ -11,12 +11,8 @@ import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
-
-const API_BASE = import.meta.env.DEV ? 'https://formanova.ai/api' : '/api';
-
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
-
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
 import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
