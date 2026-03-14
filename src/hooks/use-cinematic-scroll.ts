@@ -172,21 +172,29 @@ export function useImageSequence(imageCount: number) {
   const containerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    let rafId: number | undefined;
     const handleScroll = () => {
-      if (!containerRef.current) return;
-      
-      const rect = containerRef.current.getBoundingClientRect();
-      const containerHeight = rect.height;
-      const scrollProgress = -rect.top / containerHeight;
-      
-      if (scrollProgress >= 0 && scrollProgress <= 1) {
-        const newIndex = Math.floor(scrollProgress * imageCount);
-        setActiveIndex(Math.min(newIndex, imageCount - 1));
-      }
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        if (!containerRef.current) { rafId = undefined; return; }
+        
+        const rect = containerRef.current.getBoundingClientRect();
+        const containerHeight = rect.height;
+        const scrollProgress = -rect.top / containerHeight;
+        
+        if (scrollProgress >= 0 && scrollProgress <= 1) {
+          const newIndex = Math.floor(scrollProgress * imageCount);
+          setActiveIndex(Math.min(newIndex, imageCount - 1));
+        }
+        rafId = undefined;
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [imageCount]);
 
   return { containerRef, activeIndex };
