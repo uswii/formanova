@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
     // Enable source maps only in dev; production gets clean bundles
     sourcemap: mode === "development",
     // Target modern browsers for smaller output
-    target: "es2020",
+    target: "es2022",
     rollupOptions: {
       output: {
         manualChunks: {

@@ -90,8 +90,8 @@
 
   <body>
     <div id="root">
-      <!-- Minimal loader: just dark background to prevent white flash while React mounts -->
-      <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;"></div>
+      <!-- Minimal loader: dark bg + critical layout to prevent CLS while React mounts -->
+      <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;font-family:'Bebas Neue',sans-serif;"></div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
