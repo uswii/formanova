@@ -1325,10 +1325,17 @@ const LoadedModel = forwardRef<
       return blob;
     },
     exportSceneStlBlob: async (scaleMm: number): Promise<Blob> => {
+      // ── Identical data source as GLB export: meshDataListRef ──
+      // React state is the single source of truth for geometry + transforms.
       const exportScene = new THREE.Scene();
       const currentMeshData = meshDataListRef.current;
 
-      console.log('[STL Export] Starting. meshDataList:', currentMeshData.length, 'scale:', scaleMm, 'mm/unit');
+      const meshNames = currentMeshData.map(m => m.name);
+      console.log('[STL Export] Starting. meshDataList:', currentMeshData.length, 'names:', meshNames, 'scale:', scaleMm, 'mm/unit');
+
+      if (currentMeshData.length === 0) {
+        console.warn('[STL Export] ⚠ meshDataList is EMPTY — nothing to export');
+      }
 
       currentMeshData.forEach((md) => {
         const material = new THREE.MeshStandardMaterial();
@@ -1336,18 +1343,22 @@ const LoadedModel = forwardRef<
         const mesh = new THREE.Mesh(geo, material);
         mesh.name = md.name;
 
+        // Transforms from React state — always up-to-date (matches GLB export)
         mesh.position.copy(md.position);
         mesh.quaternion.copy(md.quaternion);
-        mesh.scale.copy(md.scale);
-        mesh.scale.multiplyScalar(scaleMm);
+        mesh.scale.copy(md.scale).multiplyScalar(scaleMm);
 
         exportScene.add(mesh);
+        console.log(`[STL Export] Added mesh "${md.name}" — verts:${geo.attributes.position?.count ?? 0} pos:(${md.position.x.toFixed(3)},${md.position.y.toFixed(3)},${md.position.z.toFixed(3)})`);
       });
 
+      console.log('[STL Export] Export scene built:', exportScene.children.length, 'meshes');
+
       const exporter = new STLExporter();
-      const stlString = exporter.parse(exportScene, { binary: false });
-      const blob = new Blob([stlString], { type: 'model/stl' });
-      console.log(`[STL Export] Done. Blob size: ${blob.size} bytes, scale: ${scaleMm}mm/unit`);
+      // Binary mode — more robust for multi-mesh scenes and produces smaller files
+      const result = exporter.parse(exportScene, { binary: true });
+      const blob = new Blob([result], { type: 'model/stl' });
+      console.log(`[STL Export] Done. Blob size: ${blob.size} bytes, meshes: ${exportScene.children.length}, scale: ${scaleMm}mm/unit`);
       return blob;
     },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
