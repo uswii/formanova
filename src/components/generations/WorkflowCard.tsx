@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Maximize2, Box, Download, Pencil, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle } from 'lucide-react';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
