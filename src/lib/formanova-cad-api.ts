@@ -116,6 +116,19 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
   return { glb_url: null, azure_source: null };
 }
 
+function resolveWorkflowEndpoint(template: unknown, workflowId: string, fallbackPath: string): string {
+  const workflowToken = encodeURIComponent(workflowId);
+  const raw = typeof template === 'string' && template.trim().length > 0
+    ? template
+    : fallbackPath;
+
+  return raw
+    .replaceAll('{workflow_id}', workflowToken)
+    .replaceAll('{workflowId}', workflowToken)
+    .replaceAll(':workflow_id', workflowToken)
+    .replaceAll(':workflowId', workflowToken);
+}
+
 // ── API calls ──
 
 export async function startRingPipeline(prompt: string, model: string): Promise<RunResponse> {
