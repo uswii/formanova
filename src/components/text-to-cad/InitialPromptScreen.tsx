@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Upload, Diamond } from "lucide-react";
-import creditCoinIcon from "@/assets/icons/credit-coin.webp";
+import creditCoinIcon from "@/assets/icons/credit-coin.png";
 import { useEstimatedCost } from "@/hooks/use-estimated-cost";
 import { AI_MODELS } from "./types";
 

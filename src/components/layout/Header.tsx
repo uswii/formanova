@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import formanovaLogo from '@/assets/formanova-logo.png';
-import creditCoinIcon from '@/assets/icons/credit-coin.webp';
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 export function Header() {
   const location = useLocation();

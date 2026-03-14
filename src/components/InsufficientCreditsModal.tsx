@@ -8,7 +8,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import creditCoinIcon from '@/assets/icons/credit-coin.webp';
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 interface InsufficientCreditsModalProps {
   open: boolean;

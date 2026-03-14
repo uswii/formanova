@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
-import creditCoinIcon from '@/assets/icons/credit-coin.webp';
+import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const PLANS = [
   {
