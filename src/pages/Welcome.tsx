@@ -139,7 +139,7 @@ export default function Welcome() {
       </section>
 
       {/* CTA Section */}
-      <section className="marta-section">
+      <section className="marta-section content-deferred">
         <ScrollRevealSection animation="zoom" className="marta-container text-center">
           <div className="max-w-4xl mx-auto">
             <span className="marta-label mb-12 block">Start Now</span>
