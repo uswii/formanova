@@ -121,15 +121,14 @@ function resolveGlbFromResults(results: Record<string, unknown>): { glb_url: str
 export async function startRingPipeline(prompt: string, model: string): Promise<RunResponse> {
   const llmName = MODEL_MAP[model] || 'gemini';
 
-  const res = await authenticatedFetch(`${FORMANOVA_API}/run/state/ring_generate_v1`, {
+  const res = await authenticatedFetch(`${FORMANOVA_API}/run/ring_generate_v1`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      payload: { prompt, llm: llmName, mode: 'text', max_attempts: 3, skip_validation: false },
-      return_nodes: [
-        'build_initial', 'build_retry', 'build_corrected',
-        'validate_output', 'success_final', 'success_original_glb', 'failed_final',
-      ],
+      prompt,
+      llm: llmName,
+      max_attempts: 3,
+      skip_validation: false,
     }),
   });
 
@@ -138,7 +137,14 @@ export async function startRingPipeline(prompt: string, model: string): Promise<
     throw new Error(err.error || err.detail || `Pipeline start failed (${res.status})`);
   }
 
-  return res.json();
+  const data = await res.json();
+  // Normalize spec response (workflowId) to internal shape (workflow_id)
+  return {
+    ...data,
+    workflow_id: data.workflowId || data.workflow_id,
+    status_url: data.progressUrl || data.status_url,
+    result_url: data.resultUrl || data.result_url,
+  };
 }
 
 export async function pollStatus(statusUrl: string): Promise<StatusResponse> {
