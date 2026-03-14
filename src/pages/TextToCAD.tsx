@@ -560,7 +560,7 @@ export default function TextToCAD() {
           pollErrors = 0;
           const state = (progress.state || "running").toLowerCase();
           const step = progress.step || "";
-          if (step) { setProgressStep(step); if (progress.attempt) setRetryAttempt(progress.attempt); }
+          if (step) { setProgressStep(step); setProgressLabel(progress.stepLabel || ""); if (progress.attempt) setRetryAttempt(progress.attempt); }
 
           if (state === "completed" || state === "done") break;
           if (state === "failed" || state === "budget_exhausted") { setProgressStep("failed_final"); throw new Error(`Edit ${state}`); }
