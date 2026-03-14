@@ -118,11 +118,27 @@
 
   <body>
     <div id="root">
-      <!-- Minimal loader: dark bg + critical layout to prevent CLS while React mounts -->
       <!-- Static hero skeleton: painted before React mounts to eliminate LCP render delay -->
       <div id="pre-react-loader" style="min-height:100vh;background:#0a0a0a;position:relative;overflow:hidden;">
         <img src="/src/assets/jewelry/hero-diamond-choker.webp" alt="" fetchpriority="high" decoding="sync" width="1920" height="1080" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />
         <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.8),rgba(0,0,0,.4),rgba(0,0,0,.8));"></div>
+        <!-- Header skeleton -->
+        <div style="position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;">
+          <div style="width:140px;height:32px;background:rgba(255,255,255,.08);border-radius:4px;"></div>
+          <div style="display:flex;gap:1.5rem;">
+            <div style="width:50px;height:14px;background:rgba(255,255,255,.06);border-radius:2px;"></div>
+            <div style="width:70px;height:14px;background:rgba(255,255,255,.06);border-radius:2px;"></div>
+          </div>
+        </div>
+        <!-- Hero text skeleton -->
+        <div style="position:absolute;left:5%;top:38%;z-index:20;max-width:600px;">
+          <div style="width:280px;height:14px;background:rgba(255,255,255,.08);border-radius:2px;margin-bottom:1.5rem;"></div>
+          <div style="width:320px;height:60px;background:rgba(255,255,255,.06);border-radius:4px;margin-bottom:.5rem;"></div>
+          <div style="width:360px;height:60px;background:rgba(255,255,255,.06);border-radius:4px;margin-bottom:.5rem;"></div>
+          <div style="width:300px;height:60px;background:rgba(255,255,255,.08);border-radius:4px;margin-bottom:2rem;"></div>
+          <div style="width:240px;height:16px;background:rgba(255,255,255,.05);border-radius:2px;margin-bottom:2rem;"></div>
+          <div style="width:180px;height:48px;background:rgba(255,255,255,.1);border-radius:0;"></div>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
