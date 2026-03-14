@@ -1,7 +1,6 @@
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Ghost } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface AdminRouteGuardProps {
   children: React.ReactNode;
@@ -22,20 +21,10 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="text-center max-w-md"
-        >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.4 }}
-            className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-muted/60 backdrop-blur-sm border border-border/50"
-          >
+        <div className="text-center max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-muted/60 backdrop-blur-sm border border-border/50 animate-in zoom-in-95 fade-in duration-400 delay-150">
             <Ghost className="h-10 w-10 text-muted-foreground" />
-          </motion.div>
+          </div>
 
           <h1 className="text-5xl font-display font-bold text-foreground mb-3 tracking-tight">
             404
@@ -50,7 +39,7 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
           >
             Back to Home
           </a>
-        </motion.div>
+        </div>
       </div>
     );
   }
