@@ -26,19 +26,24 @@ import heroDiamondBracelets from '@/assets/jewelry/hero-diamond-bracelets.webp';
 export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
-  const heroImages = [
-    { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
-    { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
-    { src: heroChokerBack, alt: 'Diamond choker from back' },
-    { src: heroHandDiamonds, alt: 'Diamond hand jewelry' },
-    { src: heroBlueBracelets, alt: 'Blue gemstone bracelets' },
-    { src: heroGoldPendant, alt: 'Gold pendant necklace' },
-    { src: heroEmeraldEarrings, alt: 'Emerald crystal earrings' },
-    { src: heroGemstoneRings, alt: 'Colorful gemstone rings' },
-    { src: heroAquamarineRings, alt: 'Aquamarine rings on hands' },
-    { src: heroDiamondBracelets, alt: 'Diamond bracelets and rings' },
-  ];
+  // On mobile, use fewer hero images to reduce network payload & memory
+  const heroImages = useMemo(() => {
+    const allImages = [
+      { src: heroDiamondChoker, alt: 'Diamond choker necklace' },
+      { src: heroVneckNecklace, alt: 'V-neck diamond necklace' },
+      { src: heroChokerBack, alt: 'Diamond choker from back' },
+      { src: heroHandDiamonds, alt: 'Diamond hand jewelry' },
+      { src: heroBlueBracelets, alt: 'Blue gemstone bracelets' },
+      { src: heroGoldPendant, alt: 'Gold pendant necklace' },
+      { src: heroEmeraldEarrings, alt: 'Emerald crystal earrings' },
+      { src: heroGemstoneRings, alt: 'Colorful gemstone rings' },
+      { src: heroAquamarineRings, alt: 'Aquamarine rings on hands' },
+      { src: heroDiamondBracelets, alt: 'Diamond bracelets and rings' },
+    ];
+    return isMobile ? allImages.slice(0, 4) : allImages;
+  }, [isMobile]);
 
   // If signed in, go straight to studio. Otherwise, prompt to sign in.
   const handleStart = () => {
