@@ -299,6 +299,14 @@ export function Header() {
                     My Credits
                   </Button>
                 </Link>
+                {isAdmin && (
+                  <Link to="/admin/promo-codes">
+                    <Button variant="outline" size="lg" className="gap-2 w-full">
+                      <ScanEye className="h-5 w-5" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   variant="outline"
                   size="lg"

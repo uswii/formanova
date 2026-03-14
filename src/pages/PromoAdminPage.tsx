@@ -41,6 +41,7 @@ const CODE_REGEX = /^[A-Z0-9_-]+$/;
 export default function PromoAdminPage() {
   const [codes, setCodes] = useState<PromoCode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<PromoCode | null>(null);
@@ -58,16 +59,23 @@ export default function PromoAdminPage() {
   const [formIsActive, setFormIsActive] = useState(true);
 
   const fetchCodes = useCallback(async () => {
+    setFetchError(null);
     try {
       const res = await authenticatedFetch(`${API_BASE}?include_inactive=true`);
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         const detail = body?.detail || body?.message || `HTTP ${res.status}`;
+        if (res.status === 403) {
+          setFetchError('Your account is not authorized on the backend gateway. Contact the system administrator to add your email to the backend whitelist.');
+        } else {
+          setFetchError(detail);
+        }
         throw new Error(detail);
       }
       setCodes(await res.json());
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load promo codes';
+      if (!fetchError) setFetchError(message);
       toast.error(`Failed to load promo codes: ${message}`);
     } finally {
       setLoading(false);
@@ -260,6 +268,14 @@ export default function PromoAdminPage() {
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : fetchError ? (
+          <div className="text-center py-20 space-y-3">
+            <p className="text-destructive font-medium">Failed to load promo codes</p>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">{fetchError}</p>
+            <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchCodes(); }} className="mt-4">
+              Retry
+            </Button>
           </div>
         ) : codes.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
