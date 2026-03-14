@@ -196,37 +196,29 @@ export default function Generations() {
       enrichedRef.current[w.workflow_id] = {};
     });
 
-    // Enrich photo & cad_render
+    // Enrich photo & cad_render — stream results as they arrive
     if (photoAndCadRender.length > 0) {
-      const ids = new Set(photoAndCadRender.map(w => w.workflow_id));
-      batchSettled(
-        photoAndCadRender.map(wf => async () => {
+      for (const wf of photoAndCadRender) {
+        (async () => {
           try {
             const details = await getWorkflowDetails(wf.workflow_id);
             const thumbnail_url = extractPhotoThumbnail(details.steps ?? []);
             if (thumbnail_url) preloadImage(thumbnail_url);
-            return { id: wf.workflow_id, thumbnail_url: thumbnail_url ?? '' };
+            const data = { thumbnail_url: thumbnail_url ?? '' };
+            enrichedRef.current[wf.workflow_id] = data;
+            setAllWorkflows(prev =>
+              prev.map(w => w.workflow_id === wf.workflow_id ? { ...w, ...data } : w)
+            );
+            saveCache(allWorkflows, enrichedRef.current);
           } catch (e) {
             console.warn('[Generations] photo detail fetch failed:', wf.workflow_id, e);
-            return { id: wf.workflow_id, thumbnail_url: '' };
+            enrichedRef.current[wf.workflow_id] = { thumbnail_url: '' };
+            setAllWorkflows(prev =>
+              prev.map(w => w.workflow_id === wf.workflow_id ? { ...w, thumbnail_url: '' } : w)
+            );
           }
-        })
-      ).then(results => {
-        const updates: Record<string, Partial<WorkflowSummary>> = {};
-        for (const r of results) {
-          if (r.status === 'fulfilled' && r.value) {
-            updates[r.value.id] = { thumbnail_url: r.value.thumbnail_url };
-            enrichedRef.current[r.value.id] = updates[r.value.id];
-          }
-        }
-        setAllWorkflows(prev =>
-          prev.map(w => ids.has(w.workflow_id) && updates[w.workflow_id]
-            ? { ...w, ...updates[w.workflow_id] }
-            : w
-          )
-        );
-        saveCache(allWorkflows, enrichedRef.current);
-      });
+        })();
+      }
     }
 
     // Enrich cad_text
