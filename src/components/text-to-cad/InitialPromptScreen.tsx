@@ -152,27 +152,6 @@ export default function InitialPromptScreen({
           </div>
         )}
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-4 max-w-[680px] mx-auto">
-          <div className="flex-1 h-px bg-border" />
-          <span className="font-mono text-[9px] text-muted-foreground/40 uppercase tracking-[0.2em]">or</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        {/* Upload GLB */}
-        <div className="max-w-[680px] mx-auto">
-          <input type="file" ref={glbInputRef} accept=".glb,.gltf" className="hidden" onChange={handleGlbUpload} />
-          <button
-            onClick={() => glbInputRef.current?.click()}
-            disabled={isGenerating}
-            className="w-full py-3.5 text-[12px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-all duration-200 text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:text-foreground flex items-center justify-center gap-2 bg-muted/20 border border-border"
-          >
-            <span className="w-7 h-7 rounded-full border border-primary/60 flex items-center justify-center shrink-0 shadow-[0_0_8px_hsl(var(--primary)/0.4)] text-primary">
-              <Diamond className="w-3.5 h-3.5" />
-            </span>
-            Upload CAD File
-          </button>
-        </div>
 
         {/* Example Prompts */}
         <div className="mt-6">

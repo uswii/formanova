@@ -1,8 +1,11 @@
-/** Check if a given email is in the VITE_ADMIN_EMAILS whitelist */
-const ADMIN_EMAILS: string[] = (import.meta.env.VITE_ADMIN_EMAILS || '')
-  .split(',')
-  .map((e: string) => e.trim().toLowerCase())
-  .filter(Boolean);
+/**
+ * UI-only admin check. Security is enforced server-side.
+ */
+const ADMIN_EMAILS: string[] = [
+  'hassan@raresense.so',
+  'sophia@raresense.so',
+  'uswa@raresense.so',
+];
 
 export function isAdminEmail(email: string | undefined | null): boolean {
   if (!email) return false;
