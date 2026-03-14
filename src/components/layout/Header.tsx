@@ -71,7 +71,7 @@ export function Header() {
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled 
             ? 'bg-background/95 backdrop-blur-sm border-b border-border/20' 
-            : 'bg-transparent'
+            : 'bg-background/80 backdrop-blur-sm'
         }`}
       >
         <div className="flex h-16 lg:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
