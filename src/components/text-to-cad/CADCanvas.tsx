@@ -424,6 +424,8 @@ const LoadedModel = forwardRef<
     const center = box.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const s = maxDim === 0 ? 1 : 3 / maxDim;
+    normScaleRef.current = s;
+    normCenterRef.current = center.clone();
 
     const list: MeshData[] = [];
     let idx = 0;
