@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
-import logoBlack from '@/assets/formanova-logo-black.png';
-import logoWhite from '@/assets/formanova-logo-white.png';
+import logoBlack from '@/assets/formanova-logo-black-tagline.png';
+import logoWhite from '@/assets/formanova-logo-white-tagline.png';
 
 const DARK_THEMES = new Set(['dark', 'cyberpunk', 'retro', 'fashion', 'luxury', 'synthwave', 'neon']);
 
