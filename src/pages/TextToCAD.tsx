@@ -14,6 +14,8 @@ import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInlin
 
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import { isWeightStlEnabled, isCadUploadEnabled } from "@/lib/feature-flags";
 
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
@@ -43,6 +45,9 @@ interface UndoEntry {
 export default function TextToCAD() {
   const navigate = useNavigate();
   const { refreshCredits } = useCredits();
+  const { user } = useAuth();
+  const showWeightStl = isWeightStlEnabled(user?.email);
+  const showCadUpload = isCadUploadEnabled(user?.email);
   
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
@@ -1070,7 +1075,7 @@ export default function TextToCAD() {
           setPrompt={setPrompt}
           isGenerating={isGenerating}
           onGenerate={simulateGeneration}
-          onGlbUpload={handleGlbUpload}
+          onGlbUpload={showCadUpload ? handleGlbUpload : undefined}
           creditBlock={creditBlock ? (
             <InsufficientCreditsInline
               currentBalance={creditBlock.currentBalance}
@@ -1311,9 +1316,9 @@ export default function TextToCAD() {
               undoCount={undoStack.length}
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
-              onEstimateWeight={handleEstimateWeight}
+              onEstimateWeight={showWeightStl ? handleEstimateWeight : undefined}
               weightLoading={weightLoading}
-              onDownloadStl={handleDownloadStl}
+              onDownloadStl={showWeightStl ? handleDownloadStl : undefined}
               stlExporting={stlExporting}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
