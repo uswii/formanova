@@ -20,7 +20,7 @@ interface InitialPromptScreenProps {
   setPrompt: (p: string) => void;
   isGenerating: boolean;
   onGenerate: () => void;
-  onGlbUpload: (file: File) => void;
+  onGlbUpload?: (file: File) => void;
   creditBlock?: React.ReactNode;
 }
 
