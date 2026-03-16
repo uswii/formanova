@@ -1796,6 +1796,7 @@ export interface CADCanvasHandle {
   resetCamera: () => void;
   exportSceneBlob: () => Promise<Blob>;
   exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
+  exportSceneRawBlob: () => Promise<Blob>;
 }
 
 interface CADCanvasProps {
