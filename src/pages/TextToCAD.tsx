@@ -1316,9 +1316,9 @@ export default function TextToCAD() {
               undoCount={undoStack.length}
               redoCount={redoStack.length}
               onDownload={handleDownloadGlb}
-              onEstimateWeight={handleEstimateWeight}
+              onEstimateWeight={showWeightStl ? handleEstimateWeight : undefined}
               weightLoading={weightLoading}
-              onDownloadStl={handleDownloadStl}
+              onDownloadStl={showWeightStl ? handleDownloadStl : undefined}
               stlExporting={stlExporting}
               onFullscreen={() => {
                 const el = document.querySelector('[data-cad-viewport]') as HTMLElement;
