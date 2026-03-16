@@ -1368,6 +1368,39 @@ const LoadedModel = forwardRef<
       console.log(`[STL Export] Done. Blob size: ${blob.size} bytes, meshes: ${exportScene.children.length}, scale: ${scaleMm}mm/unit`);
       return blob;
     },
+    exportSceneRawBlob: async (): Promise<Blob> => {
+      // ── Export geometry at original real-world metre scale ──
+      // Reverses the viewport normalisation (s = 3/maxDim, center offset)
+      const exportScene = new THREE.Scene();
+      const currentMeshData = meshDataListRef.current;
+      const s = normScaleRef.current;
+      const center = normCenterRef.current;
+
+      console.log('[Raw Export] Starting. meshDataList:', currentMeshData.length, 'normScale:', s);
+
+      currentMeshData.forEach((md) => {
+        const material = new THREE.MeshStandardMaterial();
+        const geo = md.geometry.clone();
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.name = md.name;
+
+        // Reverse normalisation: rawPos = (normalisedPos / s) + center
+        const rawPosition = md.position.clone().divideScalar(s).add(center);
+        const rawScale = md.scale.clone().divideScalar(s);
+        // Quaternion is unaffected by uniform scaling
+        mesh.position.copy(rawPosition);
+        mesh.quaternion.copy(md.quaternion);
+        mesh.scale.copy(rawScale);
+
+        exportScene.add(mesh);
+      });
+
+      const exporter = new GLTFExporter();
+      const result = await exporter.parseAsync(exportScene, { binary: true });
+      const blob = new Blob([result as ArrayBuffer], { type: 'model/gltf-binary' });
+      console.log(`[Raw Export] Done. Blob size: ${blob.size} bytes, normScale: ${normScaleRef.current}`);
+      return blob;
+    },
   }), [meshDataList, assignedMaterials, inv, syncTransformFromObject, onTransformEnd, selectedMeshNames]);
 
   // Selection-change detection moved into useMemo below (synchronous)
