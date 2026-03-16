@@ -316,6 +316,9 @@ const LoadedModel = forwardRef<
     applyMagicTextures: () => void;
     getSelectedTransform: () => MeshTransformData | null;
     setMeshTransform: (axis: 'x' | 'y' | 'z', property: 'position' | 'rotation' | 'scale', value: number) => void;
+    exportSceneBlob: () => Promise<Blob>;
+    exportSceneStlBlob: (scaleMm: number) => Promise<Blob>;
+    exportSceneRawBlob: () => Promise<Blob>;
   },
   {
   url: string;
