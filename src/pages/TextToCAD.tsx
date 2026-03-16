@@ -73,8 +73,15 @@ export default function TextToCAD() {
   const [magicTexturing, setMagicTexturing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gemMode, setGemMode] = useState<GemMode>("simple");
-  const [stlModalOpen, setStlModalOpen] = useState(false);
-  const [stlScaleMm, setStlScaleMm] = useState(6.67);
+  const [weightResult, setWeightResult] = useState<{
+    weight_14k_gold_g: number;
+    weight_platinum_g: number;
+    scale_warning: boolean;
+  } | null>(null);
+  const [weightLoading, setWeightLoading] = useState(false);
+  const [stlExporting, setStlExporting] = useState(false);
+  const [stlPresetOpen, setStlPresetOpen] = useState(false);
+  const [stlQuality, setStlQuality] = useState<'draft' | 'standard' | 'high'>('standard');
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
