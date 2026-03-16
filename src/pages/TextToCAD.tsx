@@ -796,64 +796,101 @@ export default function TextToCAD() {
     }
   }, [glbUrl]);
 
-  const handleDownloadStl = useCallback(() => {
-    setStlModalOpen(true);
+  const handleEstimateWeight = useCallback(async () => {
+    if (!canvasRef.current) {
+      toast.error("3D canvas not ready");
+      return;
+    }
+    setWeightLoading(true);
+    try {
+      const blob = await canvasRef.current.exportSceneRawBlob();
+      const formData = new FormData();
+      formData.append('glb', blob, 'scene.glb');
+      const response = await fetch('/estimate_weight', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      if (!result.success) {
+        toast.error(result.error || "Weight estimation failed");
+        return;
+      }
+      if (result.scale_warning) {
+        toast.warning("Weight estimate may be inaccurate — geometry scale looks unusual");
+      }
+      setWeightResult({
+        weight_14k_gold_g: result.weight_14k_gold_g,
+        weight_platinum_g: result.weight_platinum_g,
+        scale_warning: result.scale_warning,
+      });
+    } catch (err) {
+      toast.error("Weight estimation failed");
+      console.error('[Weight]', err);
+    } finally {
+      setWeightLoading(false);
+    }
   }, []);
 
-  const confirmDownloadStl = useCallback(async () => {
-    setStlModalOpen(false);
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-    const defaultName = `model-${timestamp}.stl`;
-    import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: defaultName, file_type: 'stl', context: 'text-to-cad' }));
+  const handleDownloadStl = useCallback(() => {
+    setStlPresetOpen(true);
+  }, []);
 
-    const anchorDownload = (blob: Blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = defaultName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    };
-
+  const executeStlDownload = useCallback(async () => {
+    setStlPresetOpen(false);
+    if (!canvasRef.current) {
+      toast.error("3D canvas not ready");
+      return;
+    }
+    const voxelSizeMm = stlQuality === 'draft' ? 0.1 : stlQuality === 'high' ? 0.03 : 0.05;
+    setStlExporting(true);
     try {
-      if (!canvasRef.current) {
-        toast.error("3D canvas not ready");
+      const blob = await canvasRef.current.exportSceneRawBlob();
+      const formData = new FormData();
+      formData.append('glb', blob, 'scene.glb');
+      formData.append('voxel_size_mm', String(voxelSizeMm));
+
+      const response = await fetch('/prepare_stl', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+
+      if (!result.success || !result.stl_artifact) {
+        toast.error(result.error_text || "STL export failed");
         return;
       }
-      const blob = await canvasRef.current.exportSceneStlBlob(stlScaleMm);
 
-      if (!blob || blob.size === 0) {
-        toast.error("Export produced an empty file");
-        return;
-      }
+      // Resolve stl_artifact.uri using the same azure:// pattern as GLB downloads
+      const toUrl = (uri: string) => uri.startsWith("azure://")
+        ? `https://snapwear.blob.core.windows.net/${uri.replace("azure://", "")}`
+        : uri;
+      const downloadUrl = toUrl(result.stl_artifact.uri);
+      const timestamp = Date.now();
 
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await (window as any).showSaveFilePicker({
-            suggestedName: defaultName,
-            types: [{
-              description: 'STL 3D Print File',
-              accept: { 'model/stl': ['.stl'] },
-            }],
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-        } catch (e: any) {
-          if (e?.name === 'AbortError') return;
-          console.warn('[STL Download] showSaveFilePicker failed, using fallback:', e);
-          anchorDownload(blob);
+      try {
+        const fileHandle = await (window as any).showSaveFilePicker({
+          suggestedName: `model-${timestamp}.stl`,
+          types: [{ description: 'STL 3D Print File', accept: { 'model/stl': ['.stl'] } }],
+        });
+        const writable = await fileHandle.createWritable();
+        const stlResponse = await fetch(downloadUrl);
+        await writable.write(await stlResponse.blob());
+        await writable.close();
+      } catch (pickerErr: any) {
+        if (pickerErr?.name !== 'AbortError') {
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `model-${timestamp}.stl`;
+          a.click();
         }
-      } else {
-        anchorDownload(blob);
       }
     } catch (err) {
-      console.error('[STL Download] Failed to export/download model:', err);
-      toast.error("Failed to download STL");
+      toast.error("STL export failed");
+      console.error('[STL Export]', err);
+    } finally {
+      setStlExporting(false);
     }
-  }, [stlScaleMm]);
+  }, [stlQuality]);
 
   const handleSelectMesh = (name: string, multi: boolean) => {
     if (!name) {
