@@ -215,7 +215,7 @@ export function Header() {
               size="icon"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="relative z-10 h-7 w-7 p-0 flex items-center justify-center"
+              className="relative z-10"
             >
               {isMobileMenuOpen ? (
                 <X className="h-5 w-5" />
