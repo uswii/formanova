@@ -21,10 +21,10 @@ export function ThemeSwitcher() {
           variant="outline" 
           size="sm" 
           aria-label="Change theme"
-          className="h-10 w-[160px] px-4 gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group justify-center"
+          className="h-8 lg:h-10 w-[130px] lg:w-[160px] px-3 lg:px-4 gap-1.5 lg:gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group justify-center"
         >
-          <ThemeIcon theme={theme} size={18} className="text-primary group-hover:scale-110 transition-transform flex-shrink-0" />
-          <span className="hidden sm:inline text-sm font-medium truncate">
+          <ThemeIcon theme={theme} size={16} className="text-primary group-hover:scale-110 transition-transform flex-shrink-0 lg:[&]:w-[18px] lg:[&]:h-[18px]" />
+          <span className="text-xs lg:text-sm font-medium truncate">
             {currentTheme?.label}
           </span>
         </Button>
