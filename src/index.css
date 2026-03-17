@@ -1049,29 +1049,33 @@
   background-color: hsl(var(--muted-foreground));
 }
 
-/* Mobile-only compact theme switcher */
+/* Mobile-only theme switcher — compact, fixed-width, aligned with menu button */
 @media (max-width: 768px) {
   .mobile-theme-switcher {
     display: flex;
     align-items: center;
   }
   .mobile-theme-switcher button {
-    height: 2.25rem;
-    width: auto;
-    min-width: 0;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    gap: 0.25rem;
-    font-size: 0.75rem;
-    line-height: 1;
+    height: 2.25rem !important;   /* matches menu button h-9 = 36px */
+    width: 6.5rem !important;     /* fixed width — consistent across all themes */
+    min-width: 0 !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    gap: 0.25rem !important;
+    font-size: 0.7rem !important;
+    line-height: 1 !important;
   }
   .mobile-theme-switcher button span {
     display: inline !important;
-    font-size: 0.7rem;
+    font-size: 0.7rem !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .mobile-theme-switcher button svg {
-    width: 14px;
-    height: 14px;
+    width: 13px !important;
+    height: 13px !important;
+    flex-shrink: 0;
   }
 }
 
