@@ -75,17 +75,14 @@ export function Header() {
         }`}
       >
         <div className="flex h-16 lg:h-20 items-center justify-between px-4 md:px-8 lg:px-12">
-          {/* Left side: Logo first, then Theme Switcher */}
-          <div className="flex items-center gap-3 md:gap-4">
-            {/* Logo - First at corner */}
-            <div className="flex items-center relative z-10">
-              <ThemeLogo className="h-10 md:h-12 lg:h-14" />
-            </div>
-            
-            {/* Theme Switcher - After logo */}
-            <div className="hidden lg:block">
-              <ThemeSwitcher />
-            </div>
+          {/* Left side: Logo */}
+          <div className="flex items-center">
+            <ThemeLogo className="h-10 md:h-12 lg:h-14" />
+          </div>
+
+          {/* Right side: Theme Switcher (desktop only, next to nav) */}
+          <div className="hidden lg:flex items-center gap-4">
+            <ThemeSwitcher />
           </div>
 
           {/* Desktop Navigation - Marta Style */}
