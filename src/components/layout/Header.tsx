@@ -210,14 +210,17 @@ export function Header() {
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
-          <div className="flex lg:hidden items-center gap-2">
+          {/* Mobile right-side group: Theme + Menu */}
+          <div className="flex lg:hidden items-center gap-2.5">
+            <div className="mobile-theme-switcher">
+              <ThemeSwitcher />
+            </div>
             <Button
               variant="ghost"
               size="icon"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="relative z-10"
+              className="relative z-10 h-9 w-9 flex-shrink-0"
             >
               {isMobileMenuOpen ? (
                 <X className="h-5 w-5" />
