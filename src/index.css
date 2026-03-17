@@ -1048,3 +1048,10 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--muted-foreground));
 }
+
+/* Hide mobile theme switcher on lg+ (already shown in desktop nav) */
+@media (min-width: 1024px) {
+  .mobile-theme-switcher {
+    display: none;
+  }
+}

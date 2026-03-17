@@ -185,13 +185,8 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
       }
     });
 
-    // Watch for theme changes on <html> (class or data-theme attribute)
-    const observer = new MutationObserver(() => {
-      const bg = getThemeBgColor();
-      for (const card of cardsRef.current.values()) {
-        card.scene.background = bg;
-      }
-    });
+    // No theme observer needed — background is always black
+    const observer = new MutationObserver(() => {});
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
 
     return () => {
@@ -375,7 +370,7 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     if (!renderer) return;
 
     const scene = new THREE.Scene();
-    scene.background = getThemeBgColor();
+    scene.background = new THREE.Color(0x000000);
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambient);

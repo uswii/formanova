@@ -95,8 +95,8 @@ export function Header() {
                 key={link.path}
                 to={link.path}
                 className={`text-sm font-medium transition-colors whitespace-nowrap ${
-                  location.pathname === link.path 
-                    ? 'text-foreground' 
+                  location.pathname === link.path || location.pathname.startsWith(link.path + '/')
+                    ? 'text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -210,15 +210,14 @@ export function Header() {
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
-          <div className="flex lg:hidden items-center gap-3">
-            <ThemeSwitcher />
+          {/* Mobile right-side group: Menu only */}
+          <div className="flex lg:hidden items-center">
             <Button
               variant="ghost"
               size="icon"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="relative z-10"
+              className="relative z-10 h-9 w-9 flex-shrink-0"
             >
               {isMobileMenuOpen ? (
                 <X className="h-5 w-5" />
@@ -254,11 +253,19 @@ export function Header() {
             </Link>
           ))}
           
+          {/* Theme Switcher in mobile menu */}
+          <div
+            className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+          >
+            <ThemeSwitcher />
+          </div>
+
           {/* Mobile User Profile / Auth Button */}
           {user ? (
-            <div 
+            <div
               className={`flex flex-col items-center gap-6 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+              style={{ transitionDelay: isMobileMenuOpen ? `${(navLinks.length + 1) * 100 + 200}ms` : '0ms' }}
             >
               <div className="flex items-center gap-3">
                 {user.avatar_url ? (
@@ -316,7 +323,7 @@ export function Header() {
             <Link
               to="/login"
               className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
+              style={{ transitionDelay: isMobileMenuOpen ? `${(navLinks.length + 1) * 100 + 200}ms` : '0ms' }}
             >
               <Button variant="default" size="lg" className="gap-2">
                 <LogIn className="h-5 w-5" />
