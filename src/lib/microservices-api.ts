@@ -3,7 +3,6 @@
 
 import { getStoredToken } from './auth-api';
 
-const AZURE_UPLOAD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/azure-upload`;
 const MICROSERVICES_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/microservices-proxy`;
 
 function getAuthHeaders(): Record<string, string> {
