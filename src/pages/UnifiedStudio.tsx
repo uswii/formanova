@@ -1038,20 +1038,9 @@ export default function UnifiedStudio() {
                           try {
                             const isAzure = url.includes('blob.core.windows.net');
                             let blob: Blob;
-                            if (isAzure) {
-                              const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-                              const resp = await fetch(proxyUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ url }),
-                              });
-                              if (!resp.ok) throw new Error('Proxy fetch failed');
-                              blob = await resp.blob();
-                            } else {
-                              const resp = await fetch(url);
-                              if (!resp.ok) throw new Error('Fetch failed');
-                              blob = await resp.blob();
-                            }
+                            const resp = await fetch(url);
+                            if (!resp.ok) throw new Error('Fetch failed');
+                            blob = await resp.blob();
                             const blobUrl = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = blobUrl;

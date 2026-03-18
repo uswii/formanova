@@ -293,16 +293,8 @@ export function ScissorGLBGrid({ children }: ScissorGLBGridProps) {
     let promise = glbLoading.get(card.glbUrl);
     if (!promise) {
       promise = (async () => {
-        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-        const resp = await fetch(proxyUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ url: card.glbUrl }),
-        });
-        if (!resp.ok) throw new Error(`Proxy returned ${resp.status}`);
+        const resp = await fetch(card.glbUrl);
+        if (!resp.ok) throw new Error(`Fetch returned ${resp.status}`);
         const arrayBuffer = await resp.arrayBuffer();
 
         return new Promise<THREE.Group>((resolve, reject) => {

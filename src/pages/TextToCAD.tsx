@@ -751,15 +751,7 @@ export default function TextToCAD() {
         blob = await canvasRef.current.exportSceneBlob();
       } else if (glbUrl) {
         // Fallback: download original if canvas not available
-        const isBlobUrl = glbUrl.startsWith("blob:");
-        const response = await fetch(
-          isBlobUrl ? glbUrl : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`,
-          isBlobUrl ? {} : {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: glbUrl }),
-          },
-        );
+        const response = await fetch(glbUrl);
         if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         blob = await response.blob();
       } else {

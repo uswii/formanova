@@ -342,7 +342,7 @@ const LoadedModel = forwardRef<
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const loadedUrlRef = useRef<string>("");
 
-  // Load GLB via server-side blob-proxy to avoid CORS issues with Azure
+  // Load GLB directly
   useEffect(() => {
     if (!url || loadedUrlRef.current === url) return;
     loadedUrlRef.current = url;
@@ -351,27 +351,13 @@ const LoadedModel = forwardRef<
 
     (async () => {
       try {
-        const isBlobUrl = url.startsWith("blob:");
-        let arrayBuffer: ArrayBuffer;
-
-        if (isBlobUrl) {
-          console.log("[CADCanvas] Loading local blob GLB directly");
-          const response = await fetch(url);
-          arrayBuffer = await response.arrayBuffer();
-        } else {
-          const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-          console.log("[CADCanvas] Fetching GLB via blob-proxy for:", url.substring(0, 80));
-          const response = await fetch(proxyUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-          });
-          if (!response.ok) {
-            const errBody = await response.text();
-            throw new Error(`Proxy returned ${response.status}: ${errBody.substring(0, 200)}`);
-          }
-          arrayBuffer = await response.arrayBuffer();
+        console.log("[CADCanvas] Fetching GLB:", url.substring(0, 80));
+        const response = await fetch(url);
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`Fetch returned ${response.status}: ${errBody.substring(0, 200)}`);
         }
+        const arrayBuffer = await response.arrayBuffer();
 
         if (cancelled) return;
 
@@ -668,17 +654,8 @@ const LoadedModel = forwardRef<
         try {
           const isBlobUrl = partUrl.startsWith("blob:");
           let arrayBuffer: ArrayBuffer;
-          if (isBlobUrl) {
-            arrayBuffer = await (await fetch(partUrl)).arrayBuffer();
-          } else {
-            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blob-proxy`;
-            const resp = await fetch(proxyUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: partUrl }),
-            });
-            arrayBuffer = await resp.arrayBuffer();
-          }
+          const resp = await fetch(partUrl);
+          arrayBuffer = await resp.arrayBuffer();
 
           const loader = new GLTFLoader();
           loader.parse(arrayBuffer, "", (gltf) => {
