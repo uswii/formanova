@@ -252,7 +252,7 @@ serve(async (req) => {
     const url = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${AZURE_CONTAINER_NAME}/${encodedBlobName}`;
     const dateStr = new Date().toUTCString();
     const blobType = 'BlockBlob';
-    const contentLength = binaryData.length;
+    const blobByteLength = binaryData.length;
     const blobContentType = content_type || 'image/jpeg';
 
     // Create signature for Azure authentication
@@ -260,7 +260,7 @@ serve(async (req) => {
       'PUT',
       '', // Content-Encoding
       '', // Content-Language
-      contentLength.toString(), // Content-Length
+      blobByteLength.toString(), // Content-Length
       '', // Content-MD5
       blobContentType, // Content-Type
       '', // Date
@@ -291,7 +291,7 @@ serve(async (req) => {
     const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
     const authHeader = `SharedKey ${AZURE_ACCOUNT_NAME}:${signatureBase64}`;
 
-    console.log(`Uploading to Azure: ${blobName} (${contentLength} bytes)`);
+    console.log(`Uploading to Azure: ${blobName} (${blobByteLength} bytes)`);
 
     const response = await fetch(url, {
       method: 'PUT',
@@ -301,7 +301,7 @@ serve(async (req) => {
         'x-ms-version': '2020-10-02',
         'x-ms-blob-type': blobType,
         'Content-Type': blobContentType,
-        'Content-Length': contentLength.toString(),
+        'Content-Length': blobByteLength.toString(),
       },
       body: binaryData,
     });
@@ -319,7 +319,11 @@ serve(async (req) => {
     let assetId: string | null = null;
     // PIPELINE_API_URL must be set in Supabase secrets: supabase secrets set PIPELINE_API_URL=<value from .env VITE_PIPELINE_API_URL>
     const BACKEND_URL = Deno.env.get('PIPELINE_API_URL');
-    const userToken = req.headers.get('X-User-Token');
+    if (!BACKEND_URL) {
+      console.warn('[azure-upload] PIPELINE_API_URL not set — asset registration skipped');
+    }
+    // Non-null: authenticateRequest already returned 401 if this header was absent.
+    const userToken = req.headers.get('X-User-Token') as string;
     if (BACKEND_URL && asset_type) {
       try {
         const regResp = await fetch(`${BACKEND_URL}/assets`, {
@@ -332,7 +336,7 @@ serve(async (req) => {
             sha256,
             uri: `azure://${AZURE_CONTAINER_NAME}/${blobName}`,
             mime_type: blobContentType,
-            size_bytes: contentLength,
+            size_bytes: blobByteLength,
             asset_type,
           }),
         });
