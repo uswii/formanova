@@ -18,8 +18,6 @@ export { default as BatchReviewConfirm } from './BatchReviewConfirm';
 export { default as ImageUploadCard } from './ImageUploadCard';
 export { default as InputGuidePanel } from './InputGuidePanel';
 export { default as ProcessingTimeNotice } from './ProcessingTimeNotice';
-export { default as CategoryUploadStudio } from './CategoryUploadStudio';
-export { default as EmailNotificationPanel } from './EmailNotificationPanel';
 export { default as ExampleGuidePanel } from './ExampleGuidePanel';
 export { default as InspirationUpload } from './InspirationUpload';
 export type { InspirationImage } from './InspirationUpload';
