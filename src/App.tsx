@@ -168,8 +168,6 @@ const App = () => (
                   {/* Admin routes */}
                   <Route path="/admin/promo-codes" element={<AdminRouteGuard><PromoAdminPage /></AdminRouteGuard>} />
                   
-                  {/* Results page - handles auth internally (login button + ownership check) */}
-                  <Route path="/yourresults/:token" element={<DeliveryResults />} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
