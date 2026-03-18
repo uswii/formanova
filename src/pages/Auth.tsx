@@ -15,9 +15,6 @@ import {
   dispatchAuthChange 
 } from '@/lib/auth-api';
 
-// Edge function proxy URL for API calls
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const AUTH_PROXY_URL = `${SUPABASE_URL}/functions/v1/auth-proxy`;
 const AUTH_SUCCESS_REDIRECT = '/studio';
 
 // CRITICAL: Capture hash fragment IMMEDIATELY on module load (before React clears it)
@@ -78,21 +75,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
       return;
     }
 
-    // Preload OAuth URL for instant click
-    if (!isCallback) {
-      const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
-      const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
-      fetch(url)
-        .then(r => r.json())
-        .then(data => {
-          const redirectUrl = data.redirect_url || data.authorization_url;
-          if (redirectUrl) {
-            preloadedUrlRef.current = redirectUrl;
-            console.log('[Auth] OAuth URL preloaded');
-          }
-        })
-        .catch(() => {});
-    }
+    // No preload needed — Google sign-in navigates directly to /auth/auth/google/authorize
   }, [navigate, isCallback]);
 
   // ═══════ OAuth Callback Handling ═══════
@@ -156,7 +139,7 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
       const params = new URLSearchParams({ code });
       if (state) params.append('state', state);
 
-      const response = await fetch(`${AUTH_PROXY_URL}/auth/google/callback?${params.toString()}`, {
+      const response = await fetch(`/auth/auth/google/callback?${params.toString()}`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
       });
@@ -199,32 +182,12 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    setStatusText('Getting your profile...');
+    setStatusText('Redirecting to Google...');
 
-    // Use preloaded URL for instant redirect
-    if (preloadedUrlRef.current) {
-      console.log('[Auth] Using preloaded OAuth URL — instant redirect');
-      window.location.href = preloadedUrlRef.current;
-      return;
-    }
-
-    // Fallback: fetch on click if preload didn't finish
     try {
       const frontendCallbackUrl = `${window.location.origin}/oauth-callback`;
-      const url = `${AUTH_PROXY_URL}/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
-
-      console.log('[Auth] Preload missed, fetching OAuth URL...');
-      const response = await fetch(url);
-      const data = await response.json();
-
-      const redirectUrl = data.redirect_url || data.authorization_url;
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
-      } else if (data.error) {
-        throw new Error(data.error);
-      } else {
-        throw new Error('No redirect URL received');
-      }
+      // Navigate directly — browser follows the 302 to Google automatically
+      window.location.href = `/auth/auth/google/authorize?redirect_uri=${encodeURIComponent(frontendCallbackUrl)}`;
     } catch (error) {
       console.error('[Auth] Google OAuth error:', error);
       setLoading(false);

@@ -4,9 +4,7 @@
 
 import { getStoredToken } from './auth-api';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const getProxyUrl = (endpoint: string) =>
-  `${SUPABASE_URL}/functions/v1/workflow-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+const getProxyUrl = (endpoint: string) => `/api${endpoint}`;
 // ========== Types ==========
 
 export type JewelryType = 'necklace' | 'ring' | 'bracelet' | 'earrings' | 'watch';
@@ -191,15 +189,9 @@ export function getStepProgress(visited: string[], workflow: 'masking' | 'flux_g
 
 class WorkflowApi {
   private getAuthHeaders(): Record<string, string> {
-    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const userToken = getStoredToken();
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${anonKey}`, // Supabase gateway routing
-      'apikey': anonKey,
-    };
-    if (userToken) {
-      headers['X-User-Token'] = userToken; // Backend auth via custom FastAPI service
-    }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
     return headers;
   }
 

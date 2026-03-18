@@ -1,13 +1,9 @@
 // Temporal/DAG Workflow API Client
 // Connects to DAG pipeline orchestrator for jewelry generation
 
-import { supabase } from '@/integrations/supabase/client';
 import { getStoredToken } from '@/lib/auth-api';
 
-// Use Supabase edge function proxy
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const getProxyUrl = (endpoint: string) => 
-  `${SUPABASE_URL}/functions/v1/workflow-proxy?endpoint=${encodeURIComponent(endpoint)}`;
+const getProxyUrl = (endpoint: string) => `/api${endpoint}`;
 
 // ========== DAG Pipeline Types ==========
 
@@ -235,35 +231,16 @@ export function getStepProgress(step: string | null): number {
 
 class TemporalApi {
   private getAuthHeaders(): Record<string, string> {
-    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const userToken = getStoredToken();
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${anonKey}`, // Supabase gateway routing
-      'apikey': anonKey,
-    };
-
-    if (userToken) {
-      headers['X-User-Token'] = userToken; // Backend auth via custom FastAPI service
-    }
-
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
     return headers;
   }
 
   private getFormDataHeaders(): Record<string, string> {
-    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const userToken = getStoredToken();
-
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${anonKey}`, // Supabase gateway routing
-      'apikey': anonKey,
-    };
-
-    if (userToken) {
-      headers['X-User-Token'] = userToken; // Backend auth via custom FastAPI service
-    }
-
+    const headers: Record<string, string> = {};
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
     return headers;
   }
 
@@ -547,7 +524,7 @@ class TemporalApi {
       }
       
       try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/azure-fetch-image`, {
+        const response = await fetch('/api/fetch-image', {
           method: 'POST',
           headers: this.getAuthHeaders(),
           body: JSON.stringify({ azure_uri: azureUri }),

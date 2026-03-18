@@ -57,14 +57,6 @@ export async function authenticatedFetch(
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${token}`);
 
-  // Supabase Edge Functions require the apikey header for the gateway to accept requests.
-  // Without it, the gateway returns 400 before the function code runs (no CORS headers).
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (supabaseUrl && anonKey && url.startsWith(supabaseUrl)) {
-    headers.set('apikey', anonKey);
-  }
-
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401) {
