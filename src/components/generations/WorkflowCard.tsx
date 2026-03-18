@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle } from 'lucide-react';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
@@ -11,8 +10,10 @@ import { SnapshotPreviewModal } from './SnapshotPreviewModal';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { GLBPreviewSlot } from './ScissorGLBGrid';
 
-const localDateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
-const localTimeFmt = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
+const localDateFmt = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
 function formatLocal(ts: string): string {
   // Ensure the timestamp is treated as UTC if it lacks a timezone indicator
   let normalized = ts.trim();
@@ -20,13 +21,6 @@ function formatLocal(ts: string): string {
     normalized += 'Z';
   }
   return localDateFmt.format(new Date(normalized));
-}
-function formatLocalTime(ts: string): string {
-  let normalized = ts.trim();
-  if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
-    normalized += 'Z';
-  }
-  return localTimeFmt.format(new Date(normalized));
 }
 
 interface WorkflowCardProps {
@@ -63,7 +57,6 @@ function CreditsBadge({ credits }: { credits?: number | null }) {
 }
 
 function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: number }) {
-  const navigate = useNavigate();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -148,7 +141,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             <GLBPreviewSlot
               id={workflow.workflow_id}
               glbUrl={workflow.glb_url}
-              className="w-full aspect-[4/3] bg-black border border-border/30"
+              className="w-full aspect-[4/3] bg-background/50 border border-border/30"
             />
           </div>
         )}
@@ -225,25 +218,14 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
             </div>
 
             {workflow.glb_url ? (
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => { e.stopPropagation(); navigate('/text-to-cad', { state: { glbUrl: workflow.glb_url } }); }}
-                  className="h-7 px-2.5 font-mono text-[10px] tracking-wider uppercase gap-1 border-primary/30 bg-primary/5 hover:bg-primary/10"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Reload in Studio
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleDownloadGlb}
-                  className="h-7 px-3 font-mono text-[10px] tracking-wider uppercase gap-1.5"
-                >
-                  <Download className="h-3 w-3" />
-                  Download GLB
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                onClick={handleDownloadGlb}
+                className="h-7 px-3 font-mono text-[10px] tracking-wider uppercase gap-1.5 flex-shrink-0"
+              >
+                <Download className="h-3 w-3" />
+                Download GLB
+              </Button>
             ) : (
               <span className="font-mono text-[9px] tracking-wider text-muted-foreground/40 uppercase flex-shrink-0">
                 Loading…
@@ -274,14 +256,6 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
-  const durationSec =
-    workflow.finished_at && workflow.created_at
-      ? Math.round(
-          (new Date(workflow.finished_at).getTime() -
-            new Date(workflow.created_at).getTime()) /
-            1000,
-        )
-      : null;
 
   // undefined = enrichment not started; '' = enriched but no thumbnail found
   const isEnriching = workflow.thumbnail_url === undefined;
@@ -317,21 +291,15 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           </div>
         ) : null}
 
-        {/* Card footer: index · credits · date · duration */}
-        <div className="flex items-center justify-between px-2.5 py-2">
+        {/* Card footer: index · credits · date */}
+        <div className="flex items-center justify-between px-3 pt-3 pb-3">
           <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none">
             #{index}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <CreditsBadge credits={workflow.credits_spent} />
-            {durationSec !== null && (
-              <span className="font-mono text-[8px] tracking-wider text-muted-foreground/60">
-                {durationSec}s
-              </span>
-            )}
-            <span className="font-mono text-[9px] tracking-wider text-muted-foreground text-right leading-tight">
-              <span className="block">{dateStr}</span>
-              <span className="block">{workflow.created_at ? formatLocalTime(workflow.created_at) : ''}</span>
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
+              {dateStr}
             </span>
           </div>
         </div>

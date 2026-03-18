@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useCredits } from "@/contexts/CreditsContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, X } from "lucide-react";
@@ -44,7 +44,6 @@ interface UndoEntry {
 
 export default function TextToCAD() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
   const showWeightStl = isWeightStlEnabled(user?.email);
@@ -88,18 +87,6 @@ export default function TextToCAD() {
   const [stlExporting, setStlExporting] = useState(false);
   const [stlPresetOpen, setStlPresetOpen] = useState(false);
   const [stlQuality, setStlQuality] = useState<'draft' | 'standard' | 'high'>('standard');
-
-  // Load GLB from generation history if navigated with state
-  useEffect(() => {
-    const state = location.state as { glbUrl?: string } | null;
-    if (state?.glbUrl) {
-      setGlbUrl(state.glbUrl);
-      setHasModel(true);
-      setWorkspaceActive(true);
-      // Clear navigation state so a refresh doesn't re-load
-      window.history.replaceState({}, '');
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
   useEffect(() => { runMicroBenchmark(); }, []);
