@@ -27,6 +27,13 @@ export default function Welcome() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Auto-redirect authenticated users to studio
+  useEffect(() => {
+    if (user) {
+      navigate('/studio', { replace: true });
+    }
+  }, [user, navigate]);
+
   // Web Vitals tracking — landing page only
   useEffect(() => {
     import('@/lib/web-vitals').then(({ initWebVitals }) => initWebVitals());
