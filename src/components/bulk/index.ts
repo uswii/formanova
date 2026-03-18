@@ -12,7 +12,7 @@ export type { SkinTone, Gender } from './MetadataSelectors';
 
 export { default as BatchReviewConfirm } from './BatchReviewConfirm';
 
-export { default as BatchSubmittedConfirmation } from './BatchSubmittedConfirmation';
+
 
 // Modular components
 export { default as ImageUploadCard } from './ImageUploadCard';
