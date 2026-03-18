@@ -507,7 +507,7 @@ class TemporalApi {
   async fetchImages(imageUris: { [key: string]: string | null | undefined }): Promise<{ [key: string]: string | null }> {
     const results: { [key: string]: string | null } = {};
     
-    // Use azure-fetch-image edge function to fetch each image from Azure
+    // Fetch each image from Azure via gateway
     const fetchPromises = Object.entries(imageUris).map(async ([key, uri]) => {
       if (!uri) {
         results[key] = null;

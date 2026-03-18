@@ -3,7 +3,6 @@
 
 import { getStoredToken } from './auth-api';
 
-const AZURE_UPLOAD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/azure-upload`;
 const MICROSERVICES_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/microservices-proxy`;
 
 function getAuthHeaders(): Record<string, string> {
@@ -19,42 +18,6 @@ function getAuthHeaders(): Record<string, string> {
   }
   return headers;
 }
-// ========== Azure Upload ==========
-export interface AzureUploadResponse {
-  uri: string;  // azure:// format for microservices
-  sas_url: string;  // SAS URL for direct browser access
-  https_url: string;  // Plain HTTPS URL (won't work for private containers)
-  asset_id?: string | null;  // set by backend registration; null if fail-open triggered
-}
-
-export async function uploadToAzure(
-  base64: string,
-  contentType: string = 'image/jpeg',
-  assetType?: 'jewelry_photo' | 'model_photo'
-): Promise<AzureUploadResponse> {
-  console.log('[microservices] Uploading to Azure...');
-  
-  const response = await fetch(AZURE_UPLOAD_URL, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      base64,
-      content_type: contentType,
-      ...(assetType ? { asset_type: assetType } : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('[microservices] Azure upload failed:', error);
-    throw new Error(`Azure upload failed: ${error}`);
-  }
-
-  const data = await response.json();
-  console.log('[microservices] Azure upload success:', data.uri);
-  return data;
-}
-
 // ========== Image Manipulator ==========
 export interface ResizeRequest {
   image: string;  // Can be azure:// URI, HTTP URL, or base64
@@ -301,40 +264,3 @@ export async function pollJobUntilComplete<T extends { status: string }>(
   throw new Error(`Job timed out after ${maxAttempts} attempts`);
 }
 
-// ========== Helper: Fetch image via edge function (avoids CORS) ==========
-const AZURE_FETCH_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/azure-fetch-image`;
-
-export async function fetchImageAsBase64(uri: string): Promise<string> {
-  console.log('[microservices] Fetching image from URI:', uri.substring(0, 50) + '...');
-  
-  // Handle azure:// URIs via edge function to avoid CORS
-  if (uri.startsWith('azure://')) {
-    console.log('[microservices] Fetching via edge function to avoid CORS...');
-    const response = await fetch(AZURE_FETCH_IMAGE_URL, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ azure_uri: uri }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to fetch image: ${error}`);
-    }
-
-    const data = await response.json();
-    return data.base64;
-  }
-  
-  // For regular URLs, fetch directly
-  const response = await fetch(uri);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.status}`);
-  }
-  
-  const arrayBuffer = await response.arrayBuffer();
-  const base64 = btoa(
-    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-  );
-  
-  return base64;
-}
