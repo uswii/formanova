@@ -65,6 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const currentUser = await authApi.getCurrentUser();
           if (currentUser) {
             setUser(currentUser);
+            // Identify returning users so PostHog links them to their email
+            identifyUser(currentUser.id, { email: currentUser.email, name: currentUser.full_name });
           } else {
             // 401: token expired/invalid — clear session to prevent fake UI
             removeStoredToken();
