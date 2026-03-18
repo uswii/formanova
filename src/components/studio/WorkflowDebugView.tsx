@@ -10,7 +10,7 @@ import {
   AlertCircle, Loader2, X, Maximize2, Minimize2 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+
 import { FLUX_GEN_DAG_STEPS, ALL_JEWELRY_DAG_STEPS } from '@/lib/workflow-api';
 
 interface NodeOutput {
