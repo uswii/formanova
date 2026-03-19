@@ -190,7 +190,7 @@ serve(async (req) => {
       );
     }
 
-    const { base64, filename, content_type, asset_type } = await req.json();
+    const { base64, filename, content_type } = await req.json();
 
     if (!base64) {
       return new Response(
@@ -232,12 +232,6 @@ serve(async (req) => {
     // Decode base64 to binary
     const binaryData = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
 
-    // Compute SHA-256 server-side — binaryData is already in memory, zero extra cost
-    const hashBuffer = await crypto.subtle.digest('SHA-256', binaryData);
-    const sha256 = Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
     // Validate decoded image size
     if (binaryData.length > MAX_IMAGE_SIZE) {
       return new Response(
@@ -252,7 +246,7 @@ serve(async (req) => {
     const url = `https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/${AZURE_CONTAINER_NAME}/${encodedBlobName}`;
     const dateStr = new Date().toUTCString();
     const blobType = 'BlockBlob';
-    const blobByteLength = binaryData.length;
+    const contentLength = binaryData.length;
     const blobContentType = content_type || 'image/jpeg';
 
     // Create signature for Azure authentication
@@ -260,7 +254,7 @@ serve(async (req) => {
       'PUT',
       '', // Content-Encoding
       '', // Content-Language
-      blobByteLength.toString(), // Content-Length
+      contentLength.toString(), // Content-Length
       '', // Content-MD5
       blobContentType, // Content-Type
       '', // Date
@@ -291,7 +285,7 @@ serve(async (req) => {
     const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
     const authHeader = `SharedKey ${AZURE_ACCOUNT_NAME}:${signatureBase64}`;
 
-    console.log(`Uploading to Azure: ${blobName} (${blobByteLength} bytes)`);
+    console.log(`Uploading to Azure: ${blobName} (${contentLength} bytes)`);
 
     const response = await fetch(url, {
       method: 'PUT',
@@ -301,7 +295,7 @@ serve(async (req) => {
         'x-ms-version': '2020-10-02',
         'x-ms-blob-type': blobType,
         'Content-Type': blobContentType,
-        'Content-Length': blobByteLength.toString(),
+        'Content-Length': contentLength.toString(),
       },
       body: binaryData,
     });
@@ -313,41 +307,6 @@ serve(async (req) => {
         JSON.stringify({ error: 'Azure upload failed', details: errorText }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    // Register asset — fail-open: never fail the upload for a registration error
-    let assetId: string | null = null;
-    // PIPELINE_API_URL must be set in Supabase secrets: supabase secrets set PIPELINE_API_URL=<value from .env VITE_PIPELINE_API_URL>
-    const BACKEND_URL = Deno.env.get('PIPELINE_API_URL');
-    if (!BACKEND_URL) {
-      console.warn('[azure-upload] PIPELINE_API_URL not set — asset registration skipped');
-    }
-    // Non-null: authenticateRequest already returned 401 if this header was absent.
-    const userToken = req.headers.get('X-User-Token') as string;
-    if (BACKEND_URL && asset_type) {
-      try {
-        const regResp = await fetch(`${BACKEND_URL}/assets`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Token': userToken,  // forward the validated user token
-          },
-          body: JSON.stringify({
-            sha256,
-            uri: `azure://${AZURE_CONTAINER_NAME}/${blobName}`,
-            mime_type: blobContentType,
-            size_bytes: blobByteLength,
-            asset_type,
-          }),
-        });
-        if (regResp.ok) {
-          assetId = (await regResp.json()).asset_id ?? null;
-        } else {
-          console.warn(`[azure-upload] Asset registration failed: ${regResp.status} — upload still succeeds`);
-        }
-      } catch (e) {
-        console.warn('[azure-upload] Asset registration error (non-fatal):', e);
-      }
     }
 
     // Generate SAS token for the uploaded blob (valid for 60 minutes)
@@ -368,11 +327,10 @@ serve(async (req) => {
     console.log(`Upload successful: ${azureUri}`);
 
     return new Response(
-      JSON.stringify({
-        uri: azureUri,        // Primary: azure:// format for microservices
-        sas_url: sasUrl,      // SAS URL for direct client access to private blobs
-        https_url: url,       // Plain HTTPS URL (won't work for private containers without SAS)
-        asset_id: assetId,    // null if registration failed (fail-open)
+      JSON.stringify({ 
+        uri: azureUri,  // Primary: azure:// format for microservices
+        sas_url: sasUrl,  // SAS URL for direct client access to private blobs
+        https_url: url  // Plain HTTPS URL (won't work for private containers without SAS)
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

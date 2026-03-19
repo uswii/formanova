@@ -2,8 +2,9 @@
 // Routes through Edge Functions to Azure, Image Manipulator, BiRefNet, and SAM3
 
 import { getStoredToken } from './auth-api';
+import { authenticatedFetch } from './authenticated-fetch';
 
-const AZURE_UPLOAD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/azure-upload`;
+const AZURE_UPLOAD_URL = `${import.meta.env.VITE_PIPELINE_API_URL}/upload`;
 const MICROSERVICES_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/microservices-proxy`;
 
 function getAuthHeaders(): Record<string, string> {
@@ -34,9 +35,9 @@ export async function uploadToAzure(
 ): Promise<AzureUploadResponse> {
   console.log('[microservices] Uploading to Azure...');
   
-  const response = await fetch(AZURE_UPLOAD_URL, {
+  const response = await authenticatedFetch(AZURE_UPLOAD_URL, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       base64,
       content_type: contentType,
