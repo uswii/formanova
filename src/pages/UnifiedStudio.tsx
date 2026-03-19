@@ -195,6 +195,7 @@ export default function UnifiedStudio() {
     const normalized = await normalizeImageFile(file);
     setJewelryFile(normalized);
     setJewelryUploadedUrl(null);
+    setJewelryAssetId(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       setJewelryImage(e.target?.result as string);
@@ -466,9 +467,11 @@ export default function UnifiedStudio() {
     setJewelryImage(null);
     setJewelryFile(null);
     setJewelryUploadedUrl(null);
+    setJewelryAssetId(null);
     setSelectedModel(null);
     setCustomModelImage(null);
     setCustomModelFile(null);
+    setModelAssetId(null);
     setValidationResult(null);
     setResultImages([]);
     setWorkflowId(null);
@@ -678,7 +681,7 @@ export default function UnifiedStudio() {
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
-                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
+                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
                         className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -867,7 +870,7 @@ export default function UnifiedStudio() {
                         className="max-w-full max-h-[520px] object-contain"
                       />
                       <button
-                        onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); }}
+                        onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); setModelAssetId(null); }}
                         className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
                         aria-label="Remove selected model"
                       >
