@@ -43,8 +43,6 @@ verify_jwt = false
 [functions.admin-batches]
 verify_jwt = false
 
-[functions.credits-proxy]
-verify_jwt = false
 
 [functions.generate-ring]
 verify_jwt = false
