@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -149,6 +149,8 @@ export default function UnifiedStudio() {
   const { isValidating, results: validationResults, validateImages, clearValidation } = useImageValidation();
   const [validationResult, setValidationResult] = useState<ImageValidationResult | null>(null);
   const [jewelryUploadedUrl, setJewelryUploadedUrl] = useState<string | null>(null);
+  const [jewelryAssetId, setJewelryAssetId] = useState<string | null>(null);
+  const [modelAssetId, setModelAssetId] = useState<string | null>(null);
 
   // Generation
   const [isGenerating, setIsGenerating] = useState(false);
@@ -157,6 +159,31 @@ export default function UnifiedStudio() {
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
+
+  const location = useLocation();
+  // Intentionally empty deps: pre-load runs once on mount from route state.
+  // Adding 'location' to deps would re-apply pre-load on every in-studio navigation, which is wrong.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const state = location.state as {
+      preloadedJewelryUrl?: string;
+      preloadedJewelryAssetId?: string;
+      preloadedModelUrl?: string;
+      preloadedModelAssetId?: string;
+    } | null;
+
+    if (state?.preloadedJewelryUrl) {
+      setJewelryUploadedUrl(state.preloadedJewelryUrl);
+      setJewelryAssetId(state.preloadedJewelryAssetId ?? null);
+    }
+
+    if (state?.preloadedModelUrl) {
+      setCustomModelImage(state.preloadedModelUrl);
+      setModelAssetId(state.preloadedModelAssetId ?? null);
+    }
+  }, []); // run once on mount — location.state is set before component renders
 
   // ─── Upload Handlers ──────────────────────────────────────────────
 
@@ -168,6 +195,7 @@ export default function UnifiedStudio() {
     const normalized = await normalizeImageFile(file);
     setJewelryFile(normalized);
     setJewelryUploadedUrl(null);
+    setJewelryAssetId(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       setJewelryImage(e.target?.result as string);
@@ -191,12 +219,38 @@ export default function UnifiedStudio() {
     }
     const normalized = await normalizeImageFile(file);
     setCustomModelFile(normalized);
+
+    // Show preview immediately via local blob URL while upload runs
     const reader = new FileReader();
     reader.onload = (e) => {
       setCustomModelImage(e.target?.result as string);
       setSelectedModel(null);
     };
     reader.readAsDataURL(normalized);
+
+    // Upload to Azure immediately so the model registers in My Models vault
+    try {
+      // normalized is a File (which is a Blob) — pass directly to compressImageBlob
+      const { blob: compressed } = await compressImageBlob(normalized);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader2 = new FileReader();
+        reader2.onload = () => resolve(reader2.result as string);
+        reader2.onerror = reject;
+        reader2.readAsDataURL(compressed);
+      });
+      const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
+      // Replace the local preview with the stable SAS URL for generation
+      setCustomModelImage(azResult.sas_url || azResult.https_url);
+      setModelAssetId(azResult.asset_id ?? null);
+      setCustomModelFile(null);  // clear stale file reference
+    } catch (e) {
+      // Upload failed — clear state so the user is not left with a broken 'data:' URL in customModelImage.
+      // (A 'data:' URL would silently fail the startsWith('http') guard in handleGenerate.)
+      setCustomModelImage(null);
+      setCustomModelFile(null);
+      toast({ variant: 'destructive', title: 'Upload failed', description: 'Model image could not be uploaded. Please re-select the file.' });
+      console.warn('[handleModelUpload] Azure upload failed:', e);
+    }
   }, [toast]);
 
   const handleSelectLibraryModel = (model: ModelImage) => {
@@ -281,6 +335,7 @@ export default function UnifiedStudio() {
         });
         const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo');
         jewelryUrl = azResult.https_url || azResult.sas_url;
+        setJewelryAssetId(azResult.asset_id ?? null);
         setGenerationProgress(20);
       }
 
@@ -291,18 +346,10 @@ export default function UnifiedStudio() {
       if (selectedModel) {
         // Preset models already have HTTPS URLs — use directly
         modelUrl = selectedModel.url;
-      } else if (customModelImage && customModelFile) {
-        setGenerationStep('Uploading model image...');
-        const modelBlob = await imageSourceToBlob(customModelImage);
-        const { blob: compressedModel } = await compressImageBlob(modelBlob);
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(compressedModel);
-        });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
-        modelUrl = azResult.https_url || azResult.sas_url;
+      } else if (customModelImage && customModelImage.startsWith('http')) {
+        // Model was uploaded at selection time (handleModelUpload) — customModelImage is a SAS URL.
+        // startsWith('http') guards against 'data:' URL previews set briefly before the Azure upload completes.
+        modelUrl = customModelImage;
       } else {
         throw new Error('No model selected');
       }
@@ -323,6 +370,8 @@ export default function UnifiedStudio() {
         model_image_url: modelUrl,
         category: TO_SINGULAR[jewelryType] ?? jewelryType,
         idempotency_key: idempotencyKey,
+        ...(jewelryAssetId ? { input_jewelry_asset_id: jewelryAssetId } : {}),
+        ...(modelAssetId ? { input_model_asset_id: modelAssetId } : {}),
       };
       const startResponse = await startPhotoshoot(photoshootPayload);
 
@@ -418,9 +467,11 @@ export default function UnifiedStudio() {
     setJewelryImage(null);
     setJewelryFile(null);
     setJewelryUploadedUrl(null);
+    setJewelryAssetId(null);
     setSelectedModel(null);
     setCustomModelImage(null);
     setCustomModelFile(null);
+    setModelAssetId(null);
     setValidationResult(null);
     setResultImages([]);
     setWorkflowId(null);
@@ -630,7 +681,7 @@ export default function UnifiedStudio() {
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
-                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
+                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
                         className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -819,7 +870,7 @@ export default function UnifiedStudio() {
                         className="max-w-full max-h-[520px] object-contain"
                       />
                       <button
-                        onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); }}
+                        onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); setModelAssetId(null); }}
                         className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
                         aria-label="Remove selected model"
                       >

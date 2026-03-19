@@ -1,0 +1,472 @@
+diff --git a/src/components/cad-studio/materials.ts b/src/components/cad-studio/materials.ts
+index 59f5ca5..f7cdf34 100644
+--- a/src/components/cad-studio/materials.ts
++++ b/src/components/cad-studio/materials.ts
+@@ -365,3 +365,25 @@ export function findMaterialByName(name: string): MaterialDef | undefined {
+   const lower = name.toLowerCase().trim();
+   return MATERIAL_LIBRARY.find((m) => m.name.toLowerCase() === lower);
+ }
++
++// ── Simple Gem Material (PBR transmission, no custom shader) ──
++// This is the crash-safe default for all gemstones. It produces a sparkly,
++// glass-like appearance using standard MeshPhysicalMaterial transmission
++// without the heavy ray-traced MeshRefractionMaterial shader that crashes
++// Chrome on macOS (ANGLE Metal backend).
++export function createSimpleGemMaterial(color: string = "#ffffff"): THREE.MeshPhysicalMaterial {
++  return new THREE.MeshPhysicalMaterial({
++    color: new THREE.Color(color),
++    roughness: 0.02,
++    metalness: 0,
++    transmission: 1,
++    thickness: 1.2,
++    ior: 2.4,
++    clearcoat: 1,
++    clearcoatRoughness: 0,
++    envMapIntensity: 2.5,
++    attenuationDistance: 4.0,
++    attenuationColor: new THREE.Color(color),
++    side: THREE.DoubleSide,
++  });
++}
+diff --git a/src/components/text-to-cad/CADCanvas.tsx b/src/components/text-to-cad/CADCanvas.tsx
+index 235cc0c..75ad631 100644
+--- a/src/components/text-to-cad/CADCanvas.tsx
++++ b/src/components/text-to-cad/CADCanvas.tsx
+@@ -12,10 +12,12 @@ import { RGBELoader } from "three-stdlib";
+ import * as THREE from "three";
+ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+ import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+-import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS } from "@/components/cad-studio/materials";
++import { MATERIAL_LIBRARY, findMaterial, findMaterialByName, DIAMOND_DEFAULTS, createSimpleGemMaterial } from "@/components/cad-studio/materials";
+ import type { MaterialDef, GemRefractionConfig } from "@/components/cad-studio/materials";
+ import { getQualitySettings, getGPURendererString, getSettingsForMode, getDynamicGemCaps } from "@/lib/gpu-detect";
+ import type { QualityMode } from "@/lib/gpu-detect";
++import type { GemMode } from "./GemInstanceRenderer";
++export type { GemMode };
+ import { DebugHUD, isDebugMode, type DebugStats } from "@/components/text-to-cad/DebugHUD";
+ import { trackWebGLContextLost, trackWebGLContextRestored } from "@/lib/posthog-events";
+ 
+@@ -276,8 +278,10 @@ const LoadedModel = forwardRef<
+     onModelReady?: () => void;
+     magicTexturing?: boolean;
+     onDebugGemStats?: (total: number, refraction: number, fallback: number, effectiveBounces: number) => void;
++    gemMode?: GemMode;
++    onGemModeForced?: (mode: GemMode) => void;
+   }
+->(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats }, ref) => {
++>(({ url, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames, onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, onLoadStart, onLoadEnd, onModelReady, magicTexturing = false, onDebugGemStats, gemMode = "simple", onGemModeForced }, ref) => {
+   const [scene, setScene] = useState<THREE.Group | null>(null);
+   const loadedUrlRef = useRef<string>("");
+ 
+@@ -1186,7 +1190,6 @@ const LoadedModel = forwardRef<
+     const prevAssigned = prevAssignedRef.current;
+     for (const name of Object.keys(assignedMaterials)) {
+       if (prevAssigned[name]?.id !== assignedMaterials[name]?.id) {
+-        // Material changed — purge old and new cache keys so fresh material is created
+         for (const [key] of materialCache.current) {
+           if (key.includes(`_${name}_`)) {
+             materialCache.current.get(key)?.dispose();
+@@ -1195,7 +1198,6 @@ const LoadedModel = forwardRef<
+         }
+       }
+     }
+-    // Also handle meshes that had materials removed (undo)
+     for (const name of Object.keys(prevAssigned)) {
+       if (!assignedMaterials[name] && prevAssigned[name]) {
+         for (const [key] of materialCache.current) {
+@@ -1242,7 +1244,19 @@ const LoadedModel = forwardRef<
+ 
+       // Check if this mesh is assigned a gemstone material with refraction config
+       if (assigned?.category === "gemstone" && assigned.refractionConfig) {
+-        // If we're within the refraction budget, use full refraction
++        // ── GEM MODE: "simple" → use high-quality PBR transmission (crash-safe, no custom shader) ──
++        if (gemMode === "simple") {
++          const simpleKey = `simple_gem_${md.name}_${assigned.id}`;
++          let simpleMat = materialCache.current.get(simpleKey);
++          if (!simpleMat) {
++            simpleMat = createSimpleGemMaterial(assigned.refractionConfig.color);
++            materialCache.current.set(simpleKey, simpleMat);
++          }
++          standard.push({ ...md, material: simpleMat, isSelected });
++          return;
++        }
++
++        // ── GEM MODE: "refraction" → use MeshRefractionMaterial overlay (capped) ──
+         if (refractionGemCount < Q.maxGemRefraction) {
+           gems.push({ meshData: md, refractionConfig: assigned.refractionConfig, isSelected });
+           const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+@@ -1269,7 +1283,7 @@ const LoadedModel = forwardRef<
+     });
+ 
+     return { standardElements: standard, gemElements: gems, refractionGemCount };
+-  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames]);
++  }, [meshDataList, assignedMaterials, selectedMeshNames, hiddenMeshNames, gemMode]);
+ 
+   // Report gem stats to parent for DebugHUD (event-driven, not per-frame)
+   const gemTotal = Object.values(assignedMaterials).filter(m => m?.category === "gemstone").length;
+@@ -1555,10 +1569,12 @@ interface CADCanvasProps {
+   onModelReady?: () => void;
+   magicTexturing?: boolean;
+   qualityMode?: QualityMode;
++  gemMode?: GemMode;
++  onGemModeForced?: (mode: GemMode) => void;
+ }
+ 
+ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
+-  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced" }, ref) => {
++  ({ hasModel, glbUrl, additionalGlbUrls = [], selectedMeshNames, hiddenMeshNames = new Set(), onMeshClick, transformMode, onMeshesDetected, onTransformStart, onTransformEnd, lightIntensity = 1, onModelReady, magicTexturing = false, qualityMode = "balanced", gemMode = "simple", onGemModeForced }, ref) => {
+     const modelUrl = glbUrl || "/models/ring.glb";
+     const modelRef = useRef<CADCanvasHandle>(null);
+     
+@@ -1636,11 +1652,9 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
+       setDebugStats(prev => ({ ...prev, totalVerts, totalFaces, meshCount: meshes.length }));
+     }, [onMeshesDetected, debugActive]);
+ 
+-    // ── WebGL context lost/restored listeners ──
++    // ── WebGL context lost/restored listeners — ALWAYS ACTIVE (circuit breaker) ──
+     const canvasContainerRef = useRef<HTMLDivElement>(null);
+     useEffect(() => {
+-      if (!debugActive) return;
+-      // Find the actual canvas element inside the container
+       const container = canvasContainerRef.current;
+       if (!container) return;
+ 
+@@ -1653,36 +1667,47 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
+           e.preventDefault(); // allow restore
+           contextLostCountRef.current++;
+           const count = contextLostCountRef.current;
+-          console.error('[DebugHUD] ⚠ WebGL context LOST — event #' + count, {
+-            totalVerts: debugStats.totalVerts,
+-            totalFaces: debugStats.totalFaces,
+-            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
+-            tier: debugStats.tier,
+-            gpuRenderer: debugStats.gpuRenderer,
+-          });
+-          setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
+-          trackWebGLContextLost({
+-            totalVerts: debugStats.totalVerts,
+-            totalFaces: debugStats.totalFaces,
+-            meshCount: debugStats.meshCount,
+-            gemMeshCountTotal: debugStats.gemMeshCountTotal,
+-            gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
+-            tier: debugStats.tier,
+-            dpr: debugStats.dpr,
+-            gpuRenderer: debugStats.gpuRenderer,
+-            effectiveGemBounces: debugStats.effectiveGemBounces,
+-            contextLostCount: count,
++          console.error('[CADCanvas] ⚠ WebGL context LOST — event #' + count);
++
++          // ── Circuit breaker: force simple gem mode and persist ──
++          onGemModeForced?.("simple");
++          localStorage.setItem("refractionBlocked", "true");
++
++          // Import toast dynamically to show user feedback
++          import("sonner").then(({ toast }) => {
++            toast.error("GPU overload detected", {
++              description: "Gem rendering switched to Safe Mode to prevent browser crashes. Real Refraction has been disabled.",
++              duration: 8000,
++            });
+           });
++
++          if (debugActive) {
++            setDebugStats(prev => ({ ...prev, contextLost: true, contextLostCount: count }));
++            trackWebGLContextLost({
++              totalVerts: debugStats.totalVerts,
++              totalFaces: debugStats.totalFaces,
++              meshCount: debugStats.meshCount,
++              gemMeshCountTotal: debugStats.gemMeshCountTotal,
++              gemMeshCountRefraction: debugStats.gemMeshCountRefraction,
++              tier: debugStats.tier,
++              dpr: debugStats.dpr,
++              gpuRenderer: debugStats.gpuRenderer,
++              effectiveGemBounces: debugStats.effectiveGemBounces,
++              contextLostCount: count,
++            });
++          }
+         };
+ 
+         const onRestored = () => {
+-          console.log('[DebugHUD] ✓ WebGL context restored');
+-          setDebugStats(prev => ({ ...prev, contextLost: false }));
+-          trackWebGLContextRestored({
+-            tier: debugStats.tier,
+-            gpuRenderer: debugStats.gpuRenderer,
+-            contextLostCount: contextLostCountRef.current,
+-          });
++          console.log('[CADCanvas] ✓ WebGL context restored');
++          if (debugActive) {
++            setDebugStats(prev => ({ ...prev, contextLost: false }));
++            trackWebGLContextRestored({
++              tier: debugStats.tier,
++              gpuRenderer: debugStats.gpuRenderer,
++              contextLostCount: contextLostCountRef.current,
++            });
++          }
+         };
+ 
+         canvasEl.addEventListener('webglcontextlost', onLost);
+@@ -1695,7 +1720,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
+       }, 500);
+ 
+       return () => clearTimeout(timer);
+-    }, [debugActive]); // intentionally not including debugStats to avoid re-registering
++    }, [debugActive, onGemModeForced]); // intentionally not including debugStats to avoid re-registering
+ 
+     // Track loading state from LoadedModel
+     const handleLoadStart = useCallback(() => setIsLoading(true), []);
+@@ -1723,7 +1748,7 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
+             toneMappingExposure: 0.45 * lightIntensity,
+             powerPreference: effectiveQ.tier === "low" ? "low-power" : "high-performance",
+           }}
+-          dpr={effectiveQ.dpr}
++          dpr={[effectiveQ.dpr[0], Math.min(effectiveQ.dpr[1], 1.5)]}
+           camera={{ fov: 35, near: 0.1, far: 100, position: [0, 1.5, 5] }}
+           onPointerMissed={() => onMeshClick("", false)}
+           frameloop="demand"
+@@ -1769,6 +1794,8 @@ const CADCanvas = forwardRef<CADCanvasHandle, CADCanvasProps>(
+                 onLoadEnd={handleLoadEnd}
+                 onModelReady={onModelReady}
+                 magicTexturing={magicTexturing}
++                gemMode={gemMode}
++                onGemModeForced={onGemModeForced}
+                 onDebugGemStats={debugActive ? (total, refraction, fallback, bounces) => {
+                   setDebugStats(prev => ({
+                     ...prev,
+diff --git a/src/components/text-to-cad/GemInstanceRenderer.ts b/src/components/text-to-cad/GemInstanceRenderer.ts
+new file mode 100644
+index 0000000..4689887
+--- /dev/null
++++ b/src/components/text-to-cad/GemInstanceRenderer.ts
+@@ -0,0 +1,110 @@
++/**
++ * GemInstanceRenderer — converts N individual diamond/gem meshes into a single
++ * THREE.InstancedMesh to dramatically reduce draw calls.
++ *
++ * Usage:
++ *   const renderer = new GemInstanceRenderer({ scene, diamondMeshes, material });
++ *   renderer.updateFromMeshes();   // after transforms change
++ *   renderer.setMaterial(newMat);   // swap simple ↔ refraction
++ *   renderer.dispose();             // cleanup on scene change
++ *
++ * Limitation: all meshes in a single group must share the same BufferGeometry.
++ * If geometries differ, create one renderer per geometry group.
++ */
++
++import * as THREE from "three";
++
++export type GemMode = "simple" | "refraction";
++
++interface GemInstanceGroup {
++  instancedMesh: THREE.InstancedMesh;
++  sourceMeshes: THREE.Mesh[];
++}
++
++export default class GemInstanceRenderer {
++  private scene: THREE.Scene;
++  private groups: GemInstanceGroup[] = [];
++  private totalCount: number = 0;
++
++  constructor(
++    scene: THREE.Scene,
++    diamondMeshes: THREE.Mesh[],
++    material: THREE.Material,
++  ) {
++    this.scene = scene;
++    this.totalCount = diamondMeshes.length;
++    if (this.totalCount === 0) return;
++
++    // Group meshes by geometry reference (uuid) for correct instancing
++    const geoGroups = new Map<string, THREE.Mesh[]>();
++    for (const mesh of diamondMeshes) {
++      const key = mesh.geometry.uuid;
++      if (!geoGroups.has(key)) geoGroups.set(key, []);
++      geoGroups.get(key)!.push(mesh);
++    }
++
++    for (const [, meshes] of geoGroups) {
++      const geo = meshes[0].geometry;
++      const instanced = new THREE.InstancedMesh(geo, material, meshes.length);
++      instanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
++
++      meshes.forEach((mesh, i) => {
++        mesh.updateWorldMatrix(true, false);
++        instanced.setMatrixAt(i, mesh.matrixWorld);
++        mesh.visible = false;
++      });
++
++      instanced.instanceMatrix.needsUpdate = true;
++      scene.add(instanced);
++      this.groups.push({ instancedMesh: instanced, sourceMeshes: meshes });
++    }
++  }
++
++  /** Swap material for all instance groups */
++  setMaterial(material: THREE.Material) {
++    for (const g of this.groups) {
++      g.instancedMesh.material = material;
++    }
++  }
++
++  /** Re-sync all instance transforms from source meshes (call after edits) */
++  updateFromMeshes() {
++    const mat = new THREE.Matrix4();
++    for (const g of this.groups) {
++      g.sourceMeshes.forEach((mesh, i) => {
++        mesh.updateWorldMatrix(true, false);
++        mat.copy(mesh.matrixWorld);
++        g.instancedMesh.setMatrixAt(i, mat);
++      });
++      g.instancedMesh.instanceMatrix.needsUpdate = true;
++    }
++  }
++
++  /** Update a single instance transform */
++  updateTransform(groupIndex: number, instanceIndex: number, matrix: THREE.Matrix4) {
++    const g = this.groups[groupIndex];
++    if (!g || instanceIndex >= g.sourceMeshes.length) return;
++    g.instancedMesh.setMatrixAt(instanceIndex, matrix);
++    g.instancedMesh.instanceMatrix.needsUpdate = true;
++  }
++
++  /** Remove all instanced meshes from scene and dispose */
++  dispose() {
++    for (const g of this.groups) {
++      this.scene.remove(g.instancedMesh);
++      // Don't dispose geometry — it's shared with source meshes
++      if (Array.isArray(g.instancedMesh.material)) {
++        g.instancedMesh.material.forEach((m) => m.dispose());
++      } else {
++        g.instancedMesh.material.dispose();
++      }
++      // Restore source mesh visibility
++      g.sourceMeshes.forEach((m) => { m.visible = true; });
++    }
++    this.groups = [];
++  }
++
++  get instanceCount() {
++    return this.totalCount;
++  }
++}
+diff --git a/src/components/text-to-cad/LeftPanel.tsx b/src/components/text-to-cad/LeftPanel.tsx
+index ee37bfb..82a9e3c 100644
+--- a/src/components/text-to-cad/LeftPanel.tsx
++++ b/src/components/text-to-cad/LeftPanel.tsx
+@@ -1,10 +1,12 @@
+ import { useRef, useCallback, useState } from "react";
+ import { AnimatePresence, motion } from "framer-motion";
+-import { Diamond, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
++import { Diamond, ChevronDown, ChevronRight, RotateCcw, Sparkles, Shield, AlertTriangle } from "lucide-react";
+ import creditCoinIcon from "@/assets/icons/credit-coin.png";
+ import { useEstimatedCost } from "@/hooks/use-estimated-cost";
+ import { AI_MODELS, QUICK_EDITS, PART_REGEN_PARTS } from "./types";
+ import { CAD_EDIT_TOOLS_ENABLED } from "@/lib/feature-flags";
++import { Switch } from "@/components/ui/switch";
++import type { GemMode } from "./GemInstanceRenderer";
+ 
+ interface LeftPanelProps {
+   model: string;
+@@ -29,6 +31,9 @@ interface LeftPanelProps {
+   onAddPart?: (description: string) => void;
+   onReset?: () => void;
+   creditBlock?: React.ReactNode;
++  gemMode?: GemMode;
++  onGemModeChange?: (mode: GemMode) => void;
++  refractionBlocked?: boolean;
+ }
+ 
+ export default function LeftPanel({
+@@ -39,6 +44,9 @@ export default function LeftPanel({
+   onRebuildPart, onAddPart,
+   onReset,
+   creditBlock,
++  gemMode = "simple",
++  onGemModeChange,
++  refractionBlocked = false,
+ }: LeftPanelProps) {
+   const glbInputRef = useRef<HTMLInputElement>(null);
+   const { cost: estimatedCost, loading: costLoading } = useEstimatedCost({ workflowName: 'ring_generate_v1', model });
+@@ -355,6 +363,40 @@ export default function LeftPanel({
+         )}
+       </div>
+ 
++      {/* Gem Rendering Mode */}
++      {hasModel && (
++        <div className="px-4 lg:px-5 py-3 border-t border-border bg-card/80">
++          <div className="flex items-center justify-between gap-2">
++            <div className="flex items-center gap-2 min-w-0">
++              <Sparkles className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
++              <div className="min-w-0">
++                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground block truncate">
++                  Real Refraction
++                </span>
++                <span className="font-mono text-[8px] text-muted-foreground/60 tracking-wide block">
++                  Experimental
++                </span>
++              </div>
++            </div>
++            <Switch
++              checked={gemMode === "refraction"}
++              disabled={refractionBlocked}
++              onCheckedChange={(checked) => {
++                onGemModeChange?.(checked ? "refraction" : "simple");
++              }}
++            />
++          </div>
++          {refractionBlocked && (
++            <div className="mt-2 flex items-start gap-1.5">
++              <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" />
++              <span className="font-mono text-[9px] text-amber-500/80 leading-relaxed">
++                Disabled — GPU instability detected on this device
++              </span>
++            </div>
++          )}
++        </div>
++      )}
++
+       {/* Status bar */}
+       <div className="px-4 lg:px-5 py-3 flex items-center gap-2.5 font-mono text-[10px] border-t border-border bg-card min-w-0">
+         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+diff --git a/src/pages/TextToCAD.tsx b/src/pages/TextToCAD.tsx
+index 7c74fc0..a46a84c 100644
+--- a/src/pages/TextToCAD.tsx
++++ b/src/pages/TextToCAD.tsx
+@@ -30,6 +30,7 @@ import {
+ import QualityToggle from "@/components/text-to-cad/QualityToggle";
+ import { runMicroBenchmark } from "@/lib/gpu-detect";
+ import type { QualityMode } from "@/lib/gpu-detect";
++import type { GemMode } from "@/components/text-to-cad/CADCanvas";
+ 
+ import type { MeshItemData, StatsData } from "@/components/text-to-cad/types";
+ 
+@@ -72,6 +73,11 @@ export default function TextToCAD() {
+   const [magicTexturing, setMagicTexturing] = useState(false);
+   const [isFullscreen, setIsFullscreen] = useState(false);
+   const [qualityMode, setQualityMode] = useState<QualityMode>("balanced");
++  const [gemMode, setGemMode] = useState<GemMode>(() => {
++    // Circuit breaker: if refraction was previously blocked by context loss, stay in simple mode
++    return localStorage.getItem("refractionBlocked") === "true" ? "simple" : "simple";
++  });
++  const refractionBlocked = localStorage.getItem("refractionBlocked") === "true";
+ 
+   // Run invisible micro-benchmark on mount (offscreen, ~200ms)
+   useEffect(() => { runMicroBenchmark(); }, []);
+@@ -959,6 +965,9 @@ export default function TextToCAD() {
+               }}
+               onGlbUpload={handleGlbUpload}
+               onReset={hasModel ? handleReset : undefined}
++              gemMode={gemMode}
++              onGemModeChange={setGemMode}
++              refractionBlocked={refractionBlocked}
+               creditBlock={creditBlock ? (
+                 <InsufficientCreditsInline
+                   currentBalance={creditBlock.currentBalance}
+@@ -1018,6 +1027,8 @@ export default function TextToCAD() {
+               onModelReady={handleModelReady}
+               magicTexturing={magicTexturing}
+               qualityMode={qualityMode}
++              gemMode={gemMode}
++              onGemModeForced={(mode) => setGemMode(mode)}
+             />
+ 
+             {/* Generation failed state */}

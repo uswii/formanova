@@ -17,6 +17,8 @@ export interface PhotoshootStartRequest {
   model_image_url: string;
   category: string;
   idempotency_key?: string;
+  input_jewelry_asset_id?: string;
+  input_model_asset_id?: string;
 }
 
 export interface PhotoshootStartResponse {
