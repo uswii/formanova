@@ -3,7 +3,7 @@
 
 import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
-const API_BASE = import.meta.env.VITE_PIPELINE_API_URL;
+const API_BASE = import.meta.env.VITE_PIPELINE_API_URL ?? '';
 
 export type AssetType = 'jewelry_photo' | 'model_photo';
 

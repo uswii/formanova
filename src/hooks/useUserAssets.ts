@@ -19,6 +19,8 @@ export function useUserAssets(type: AssetType, pageSize = 20): UseUserAssetsResu
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Note: concurrent tab switches are safe here because each tab mounts its own hook instance
+  // (TabsContent unmounts on switch). If type ever changes without unmount, add an AbortController.
   const load = useCallback(async (pageNum: number) => {
     setIsLoading(true);
     setError(null);

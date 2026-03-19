@@ -23,7 +23,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel }: AssetCard
       <div className="aspect-square w-full overflow-hidden bg-muted">
         <img
           src={asset.thumbnail_url}
-          alt={asset.name ?? 'Asset'}
+          alt={asset.name ?? (asset.asset_type === 'model_photo' ? 'Model photo' : 'Jewelry photo')}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
         />
