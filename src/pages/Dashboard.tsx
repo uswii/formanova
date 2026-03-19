@@ -5,6 +5,10 @@ import { isCADEnabled } from '@/lib/feature-flags';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { AssetGrid } from '@/components/vault/AssetGrid';
+import { useUserAssets } from '@/hooks/useUserAssets';
+import type { UserAsset } from '@/lib/assets-api';
 
 // Reuse the same hero imagery
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.jpg';
@@ -26,6 +30,45 @@ const itemVariants = {
     transition: { duration: 0.5 },
   },
 };
+
+function MyProductsTab() {
+  const navigate = useNavigate();
+  const { assets, isLoading, error } = useUserAssets('jewelry_photo');
+
+  const handleReshoot = (asset: UserAsset) => {
+    navigate('/studio', { state: { preloadedJewelryUrl: asset.thumbnail_url, preloadedJewelryAssetId: asset.id } });
+  };
+
+  return (
+    <AssetGrid
+      assets={assets}
+      isLoading={isLoading}
+      error={error}
+      emptyMessage="No jewelry photos yet. Upload a photo to start your first shoot."
+      onReshoot={handleReshoot}
+    />
+  );
+}
+
+function MyModelsTab() {
+  const navigate = useNavigate();
+  const { assets, isLoading, error } = useUserAssets('model_photo');
+
+  const handleReshoot = (asset: UserAsset) => {
+    navigate('/studio', { state: { preloadedModelUrl: asset.thumbnail_url, preloadedModelAssetId: asset.id } });
+  };
+
+  return (
+    <AssetGrid
+      assets={assets}
+      isLoading={isLoading}
+      error={error}
+      emptyMessage="No model photos yet. Upload a model face to get started."
+      onReshoot={handleReshoot}
+      reshootLabel="New Shoot"
+    />
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -123,6 +166,28 @@ export default function Dashboard() {
           </motion.button>
         )}
       </motion.div>
+
+      {/* ── Vault Section ─────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto mt-10">
+        <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-4">
+          My Vault
+        </span>
+
+        <Tabs defaultValue="products">
+          <TabsList className="mb-6">
+            <TabsTrigger value="products">My Products</TabsTrigger>
+            <TabsTrigger value="models">My Models</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products">
+            <MyProductsTab />
+          </TabsContent>
+
+          <TabsContent value="models">
+            <MyModelsTab />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
