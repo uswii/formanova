@@ -1,1 +1,0 @@
-ALTER TYPE batch_status ADD VALUE IF NOT EXISTS 'delivered';
