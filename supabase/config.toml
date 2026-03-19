@@ -19,26 +19,8 @@ verify_jwt = false
 verify_jwt = false
 
 
-[functions.batch-submit]
-verify_jwt = false
-
-[functions.send-results-email]
-verify_jwt = false
 
 
-[functions.delivery-manager]
-verify_jwt = false
-
-[functions.blob-proxy]
-verify_jwt = false
-
-
-[functions.send-resubmit-email]
-verify_jwt = false
-
-
-[functions.send-announcement]
-verify_jwt = false
 
 [functions.admin-batches]
 verify_jwt = false
