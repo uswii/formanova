@@ -119,7 +119,7 @@ export function useImageValidation() {
       console.log('[ImageValidation] Uploading image to Azure...');
 
       // 1. Upload to Azure to get a URL
-      const azureResult = await uploadToAzure(base64DataUri);
+      const azureResult = await uploadToAzure(base64DataUri, 'image/jpeg', 'jewelry_photo');
       const uploadedUrl = azureResult.uri; // azure:// URI for backend services
       console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
 
