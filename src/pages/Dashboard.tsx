@@ -5,7 +5,7 @@ import { isCADEnabled } from '@/lib/feature-flags';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
 import { AssetGrid } from '@/components/vault/AssetGrid';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import type { UserAsset } from '@/lib/assets-api';
