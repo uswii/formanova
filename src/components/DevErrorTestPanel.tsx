@@ -24,12 +24,8 @@ export function DevErrorTestPanel() {
         (window as any).__generationInProgress = false;
         (window as any).__activeGenerationId = null;
         setOpen(false);
-        // Throw async so React boundary catches it
-        setTimeout(() => {
-          throw new TypeError(
-            'Failed to fetch dynamically imported module: https://formanova.ai/assets/Test-abc123.js',
-          );
-        }, 100);
+        // Use the same render-time bomb so React boundary catches it
+        window.dispatchEvent(new CustomEvent('dev:force-chunk-error'));
       },
     },
     {
