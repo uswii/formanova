@@ -119,17 +119,10 @@ export default function Pricing() {
               className="p-8 flex flex-col gap-8 border-2 border-foreground"
             >
               {/* Plan name */}
-              <div className="space-y-3">
+              <div>
                 <span className="font-mono text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
                   {plan.name}
                 </span>
-                {plan.popular && (
-                  <div>
-                    <span className="font-mono text-[9px] tracking-[0.2em] text-foreground uppercase border border-foreground/50 px-2 py-1">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Price */}
