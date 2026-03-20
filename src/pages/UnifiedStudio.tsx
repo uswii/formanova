@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useSearchParams } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -143,14 +143,19 @@ function saveMyModels(models: UserModel[]) {
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
+function getStepFromQuery(stepParam: string | null): StudioStep {
+  return stepParam === 'model' ? 'model' : 'upload';
+}
+
 export default function UnifiedStudio() {
   const { type } = useParams<{ type: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const jewelryType = type || 'necklace';
   const { toast } = useToast();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
 
-  const [currentStep, setCurrentStep] = useState<StudioStep>('upload');
+  const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
 
@@ -215,6 +220,24 @@ export default function UnifiedStudio() {
     const q = myModelsSearch.trim().toLowerCase();
     return mergedMyModels.filter(m => m.name.toLowerCase().includes(q));
   }, [mergedMyModels, myModelsSearch]);
+
+  const isMyModelsEmptyState = !myModelsLoading && mergedMyModels.length === 0 && !myModelsSearch.trim();
+
+  // Keep the current in-studio step in the URL so browser refresh keeps users on the same screen.
+  useEffect(() => {
+    const currentStepParam = searchParams.get('step');
+    const desiredStepParam = currentStep === 'model' ? 'model' : null;
+
+    if (currentStepParam === desiredStepParam) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (desiredStepParam) {
+      nextParams.set('step', desiredStepParam);
+    } else {
+      nextParams.delete('step');
+    }
+    setSearchParams(nextParams, { replace: true });
+  }, [currentStep, searchParams, setSearchParams]);
 
   // Persist only local pending models to localStorage
   useEffect(() => { saveMyModels(localPendingModels); }, [localPendingModels]);
@@ -1047,85 +1070,101 @@ export default function UnifiedStudio() {
                         className="w-full bg-muted/20 border border-border/20 text-[11px] font-mono text-foreground pl-8 pr-3 py-2 outline-none focus:border-foreground/30 transition-colors placeholder:text-muted-foreground/40"
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
-                      {/* Upload card — always first */}
-                      <button
-                        onClick={() => modelInputRef.current?.click()}
-                        className="group relative aspect-[3/4] overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
-                      >
-                        <Upload className="h-5 w-5 text-muted-foreground/40" />
-                        <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
-                          + Upload
-                        </span>
-                      </button>
 
-                      {/* User-uploaded models */}
-                      {filteredMyModels.map((model) => {
-                        const isActive = customModelImage === model.url;
-                        return (
-                          <div key={model.id} className="relative group">
-                            <button
-                              onClick={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); }}
-                              className={`relative aspect-[3/4] overflow-hidden border transition-all w-full ${
-                                isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
-                              }`}
-                            >
-                              <img src={model.url} alt={model.name} className="w-full h-full object-cover" loading="lazy" />
-                              {isActive && (
-                                <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
-                                  <div className="w-6 h-6 bg-foreground flex items-center justify-center">
-                                    <Check className="h-3.5 w-3.5 text-background" />
-                                  </div>
-                                </div>
-                              )}
-                            </button>
-                            {/* Name + inline rename */}
-                            <div className="mt-1.5 flex items-center gap-1">
-                              {renamingId === model.id ? (
-                                <input
-                                  autoFocus
-                                  value={renameValue}
-                                  onChange={(e) => setRenameValue(e.target.value)}
-                                  onBlur={() => handleRenameConfirm(model.id)}
-                                  onKeyDown={(e) => { if (e.key === 'Enter') handleRenameConfirm(model.id); if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
-                                  className="w-full bg-transparent border-b border-foreground/20 text-[10px] font-mono text-foreground outline-none py-0.5 px-0"
-                                />
-                              ) : (
-                                <span className="text-[10px] font-mono text-muted-foreground truncate text-left flex-1">
-                                  {model.name || 'Untitled'}
-                                </span>
-                              )}
-                              {/* Edit (pencil) button */}
-                              {renamingId !== model.id && (
-                                <button
-                                  onClick={() => { setRenamingId(model.id); setRenameValue(model.name || 'Untitled'); }}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                  aria-label="Rename model"
-                                >
-                                  <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                </button>
-                              )}
-                              {/* Delete button — visible on hover */}
+                    {isMyModelsEmptyState ? (
+                      <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8 flex flex-col items-center text-center gap-4">
+                        <p className="text-sm text-muted-foreground max-w-[28ch]">
+                          No models yet. Upload a model—it’ll be saved here.
+                        </p>
+                        <Button
+                          onClick={() => modelInputRef.current?.click()}
+                          className="gap-2 font-mono text-[11px] uppercase tracking-widest"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Upload Your Own
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
+                        {/* Upload card — always first */}
+                        <button
+                          onClick={() => modelInputRef.current?.click()}
+                          className="group relative aspect-[3/4] overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
+                        >
+                          <Upload className="h-5 w-5 text-muted-foreground/40" />
+                          <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
+                            + Upload
+                          </span>
+                        </button>
+
+                        {/* User-uploaded models */}
+                        {filteredMyModels.map((model) => {
+                          const isActive = customModelImage === model.url;
+                          return (
+                            <div key={model.id} className="relative group">
                               <button
-                                onClick={() => handleDeleteUserModel(model.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                aria-label="Delete model"
+                                onClick={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); }}
+                                className={`relative aspect-[3/4] overflow-hidden border transition-all w-full ${
+                                  isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
+                                }`}
                               >
-                                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                                <img src={model.url} alt={model.name} className="w-full h-full object-cover" loading="lazy" />
+                                {isActive && (
+                                  <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+                                    <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                                      <Check className="h-3.5 w-3.5 text-background" />
+                                    </div>
+                                  </div>
+                                )}
                               </button>
+                              {/* Name + inline rename */}
+                              <div className="mt-1.5 flex items-center gap-1">
+                                {renamingId === model.id ? (
+                                  <input
+                                    autoFocus
+                                    value={renameValue}
+                                    onChange={(e) => setRenameValue(e.target.value)}
+                                    onBlur={() => handleRenameConfirm(model.id)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameConfirm(model.id); if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
+                                    className="w-full bg-transparent border-b border-foreground/20 text-[10px] font-mono text-foreground outline-none py-0.5 px-0"
+                                  />
+                                ) : (
+                                  <span className="text-[10px] font-mono text-muted-foreground truncate text-left flex-1">
+                                    {model.name || 'Untitled'}
+                                  </span>
+                                )}
+                                {/* Edit (pencil) button */}
+                                {renamingId !== model.id && (
+                                  <button
+                                    onClick={() => { setRenamingId(model.id); setRenameValue(model.name || 'Untitled'); }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                    aria-label="Rename model"
+                                  >
+                                    <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                  </button>
+                                )}
+                                {/* Delete button — visible on hover */}
+                                <button
+                                  onClick={() => handleDeleteUserModel(model.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                  aria-label="Delete model"
+                                >
+                                  <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
 
-                      {filteredMyModels.length === 0 && !myModelsLoading && (
-                        <div className="col-span-2 flex items-center justify-center py-8">
-                          <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
-                            {myModelsSearch.trim() ? 'No models match your search' : 'No models uploaded yet'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                        {filteredMyModels.length === 0 && !myModelsLoading && myModelsSearch.trim() && (
+                          <div className="col-span-2 flex items-center justify-center py-8">
+                            <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
+                              No models match your search
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </TabsContent>
 
                   {/* ── FORMANOVA MODELS TAB ── */}
