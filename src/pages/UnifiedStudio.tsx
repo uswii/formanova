@@ -864,7 +864,7 @@ export default function UnifiedStudio() {
         </Dialog>
 
         {/* ═══════════════════════════════════════════════════════════
-            STEP 2 — CHOOSE A MODEL (visible only after Next)
+            STEP 2 — CHOOSE YOUR MODEL (visible only after Next)
             ═══════════════════════════════════════════════════════════ */}
         {currentStep === 'model' && (
           <motion.div
@@ -877,18 +877,20 @@ export default function UnifiedStudio() {
             <div className="mb-6">
               <span className="marta-label">Step 2</span>
               <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-                Choose a Model
+                Choose Your Model
               </h2>
               <p className="text-muted-foreground mt-1.5 text-sm">
-                Select from our library or upload your own reference photo
+                Select a model from our library or upload your own
               </p>
             </div>
 
-            {/* 2/3 + 1/3 split — mirrors old StepUploadMark layout */}
+            {modelFileInput}
+
+            {/* 2/3 + 1/3 split */}
             <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
               {/* Left 2/3 — Model Preview Canvas */}
               <div className="lg:col-span-2 space-y-5">
-                <div className="border border-border/30 bg-muted/10 min-h-[420px] md:min-h-[520px] flex items-center justify-center relative overflow-hidden">
+                <div className="border border-border/30 bg-muted/5 min-h-[420px] md:min-h-[520px] flex items-center justify-center relative overflow-hidden">
                   {activeModelUrl ? (
                     <>
                       <img
@@ -898,29 +900,43 @@ export default function UnifiedStudio() {
                       />
                       <button
                         onClick={() => { setSelectedModel(null); setCustomModelImage(null); setCustomModelFile(null); setModelAssetId(null); }}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
+                        className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm border border-border/40 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
                         aria-label="Remove selected model"
                       >
-                        <X size={16} />
+                        <X size={14} />
                       </button>
                     </>
                   ) : (
+                    /* Empty state — line-art face placeholder */
                     <div
-                      className="text-center px-8 cursor-pointer w-full h-full min-h-[420px] md:min-h-[520px] flex flex-col items-center justify-center hover:bg-foreground/5 transition-colors"
+                      className="text-center w-full h-full min-h-[420px] md:min-h-[520px] flex flex-col items-center justify-center cursor-pointer hover:bg-foreground/[0.02] transition-colors"
                       onClick={() => modelInputRef.current?.click()}
                       onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleModelUpload(f); }}
                       onDragOver={(e) => e.preventDefault()}
                     >
-                      <div className="relative mx-auto w-16 h-16 mb-4">
-                        <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
-                        <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
-                          <Diamond className="h-7 w-7 text-primary" />
-                        </div>
-                      </div>
-                      <p className="text-foreground text-sm font-medium mb-1">Choose from our AI model library</p>
-                      <p className="text-muted-foreground text-xs mb-4">or upload your own reference photo</p>
-                      <p className="text-muted-foreground/50 text-[10px] font-mono uppercase tracking-wider">
-                        Drop · Click · Paste (Ctrl+V)
+                      {/* Minimal line-art face sketch */}
+                      <svg viewBox="0 0 80 100" fill="none" stroke="currentColor" className="w-16 h-20 text-border mb-6" strokeWidth="1" strokeLinecap="round">
+                        {/* Face outline */}
+                        <ellipse cx="40" cy="42" rx="22" ry="28" />
+                        {/* Left eye */}
+                        <line x1="30" y1="38" x2="36" y2="38" />
+                        {/* Right eye */}
+                        <line x1="44" y1="38" x2="50" y2="38" />
+                        {/* Nose */}
+                        <line x1="40" y1="42" x2="38" y2="48" />
+                        {/* Lips */}
+                        <path d="M34 54 Q40 58 46 54" />
+                        {/* Neck */}
+                        <line x1="35" y1="70" x2="35" y2="82" />
+                        <line x1="45" y1="70" x2="45" y2="82" />
+                        {/* Shoulders hint */}
+                        <path d="M35 82 Q28 84 18 90" />
+                        <path d="M45 82 Q52 84 62 90" />
+                        {/* Hair hint */}
+                        <path d="M18 38 Q16 20 28 14 Q40 8 52 14 Q64 20 62 38" />
+                      </svg>
+                      <p className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase">
+                        Selected model will appear here
                       </p>
                     </div>
                   )}
@@ -955,26 +971,116 @@ export default function UnifiedStudio() {
                 </div>
               </div>
 
-              {/* Right 1/3 — Model Library Sidebar */}
+              {/* Right 1/3 — Model Selection Sidebar with My Models / Formanova tabs */}
               <div className="space-y-4">
-                <div>
-                  <span className="marta-label mb-2 block">Library</span>
-                  <h3 className="font-display text-2xl uppercase tracking-tight">Choose Model</h3>
-                </div>
-                <Tabs defaultValue="ecom" className="w-full">
+                <Tabs defaultValue={myModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
                   <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
-                    <TabsTrigger value="ecom" className="font-mono text-xs uppercase tracking-[0.15em] data-[state=active]:bg-background">
-                      E-Commerce
+                    <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-background">
+                      My Models
                     </TabsTrigger>
-                    <TabsTrigger value="editorial" className="font-mono text-xs uppercase tracking-[0.15em] data-[state=active]:bg-background">
-                      Editorial
+                    <TabsTrigger value="formanova" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-background">
+                      Formanova Models
                     </TabsTrigger>
                   </TabsList>
-                  <TabsContent value="ecom" className="max-h-[520px] overflow-y-auto pr-1">
-                    <ModelGrid models={ECOM_MODELS} />
+
+                  {/* ── MY MODELS TAB ── */}
+                  <TabsContent value="my-models" className="max-h-[520px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* Upload card — always first */}
+                      <button
+                        onClick={() => modelInputRef.current?.click()}
+                        className="group relative aspect-[3/4] overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
+                      >
+                        <Upload className="h-5 w-5 text-muted-foreground/40" />
+                        <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
+                          + Upload
+                        </span>
+                      </button>
+
+                      {/* User-uploaded models */}
+                      {myModels.map((model) => {
+                        const isActive = customModelImage === model.url;
+                        return (
+                          <div key={model.id} className="relative group">
+                            <button
+                              onClick={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); }}
+                              className={`relative aspect-[3/4] overflow-hidden border transition-all w-full ${
+                                isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
+                              }`}
+                            >
+                              <img src={model.url} alt={model.name} className="w-full h-full object-cover" loading="lazy" />
+                              {isActive && (
+                                <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+                                  <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                                    <Check className="h-3.5 w-3.5 text-background" />
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                            {/* Name + inline rename */}
+                            <div className="mt-1.5 flex items-center gap-1">
+                              {renamingId === model.id ? (
+                                <input
+                                  autoFocus
+                                  value={renameValue}
+                                  onChange={(e) => setRenameValue(e.target.value)}
+                                  onBlur={() => handleRenameConfirm(model.id)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') handleRenameConfirm(model.id); if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
+                                  className="w-full bg-transparent border-b border-foreground/20 text-[10px] font-mono text-foreground outline-none py-0.5 px-0"
+                                />
+                              ) : (
+                                <button
+                                  onClick={() => { setRenamingId(model.id); setRenameValue(model.name); }}
+                                  className="text-[10px] font-mono text-muted-foreground truncate hover:text-foreground transition-colors text-left w-full"
+                                  title="Click to rename"
+                                >
+                                  {model.name}
+                                </button>
+                              )}
+                              {/* Delete button — visible on hover */}
+                              <button
+                                onClick={() => handleDeleteUserModel(model.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                aria-label="Delete model"
+                              >
+                                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                              </button>
+                            </div>
+                            <span className="text-[9px] font-mono text-muted-foreground/40 block mt-0.5">
+                              {relativeTime(model.uploadedAt)}
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                      {myModels.length === 0 && (
+                        <div className="col-span-2 flex items-center justify-center py-8">
+                          <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
+                            No models uploaded yet
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </TabsContent>
-                  <TabsContent value="editorial" className="max-h-[520px] overflow-y-auto pr-1">
-                    <ModelGrid models={EDITORIAL_MODELS} />
+
+                  {/* ── FORMANOVA MODELS TAB ── */}
+                  <TabsContent value="formanova" className="space-y-4">
+                    <Tabs defaultValue="ecom" className="w-full">
+                      <TabsList className="w-full grid grid-cols-2 mb-3 bg-transparent border border-border/20 h-9">
+                        <TabsTrigger value="ecom" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-muted">
+                          E-Commerce
+                        </TabsTrigger>
+                        <TabsTrigger value="editorial" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-muted">
+                          Editorial
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="ecom" className="max-h-[460px] overflow-y-auto pr-1">
+                        <FormanovaModelGrid models={ECOM_MODELS} />
+                      </TabsContent>
+                      <TabsContent value="editorial" className="max-h-[460px] overflow-y-auto pr-1">
+                        <FormanovaModelGrid models={EDITORIAL_MODELS} />
+                      </TabsContent>
+                    </Tabs>
                   </TabsContent>
                 </Tabs>
               </div>
