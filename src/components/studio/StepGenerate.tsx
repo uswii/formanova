@@ -25,6 +25,8 @@ import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
 
+import { markGenerationStarted, markGenerationCompleted, markGenerationFailed } from '@/lib/generation-lifecycle';
+
 interface Props {
   state: StudioState;
   updateState: (updates: Partial<StudioState>) => void;
