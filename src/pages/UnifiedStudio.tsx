@@ -969,7 +969,7 @@ export default function UnifiedStudio() {
                       onDragOver={(e) => e.preventDefault()}
                     >
                       {/* Refined line-art face — large, editorial, intentional */}
-                      <svg viewBox="0 0 200 280" fill="none" stroke="currentColor" className="w-40 h-56 md:w-52 md:h-72 text-border/60 mb-8" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round">
+                      <svg viewBox="0 0 200 280" fill="none" stroke="currentColor" className="w-64 h-[22rem] md:w-80 md:h-[28rem] text-muted-foreground/40 mb-6" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round">
                         {/* Hair — flowing, editorial */}
                         <path d="M52 100 Q44 50 72 32 Q100 16 128 32 Q156 50 148 100" />
                         <path d="M52 100 Q48 80 56 60" strokeWidth="0.5" />
