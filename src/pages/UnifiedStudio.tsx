@@ -935,8 +935,8 @@ export default function UnifiedStudio() {
                         {/* Hair hint */}
                         <path d="M18 38 Q16 20 28 14 Q40 8 52 14 Q64 20 62 38" />
                       </svg>
-                      <p className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase">
-                        Selected model will appear here
+                      <p className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground text-center">
+                        Selected / Uploaded Model Will Appear Here
                       </p>
                     </div>
                   )}
