@@ -52,7 +52,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return stored;
       }
     }
-    return 'dark';
+    return 'light';
   });
 
   const setTheme = (newTheme: ThemeName) => {
