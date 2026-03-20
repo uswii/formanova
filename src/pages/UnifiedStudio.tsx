@@ -580,8 +580,6 @@ export default function UnifiedStudio() {
       onChange={(e) => { const f = e.target.files?.[0]; if (f) handleModelUpload(f); }}
     />
   );
-    </div>
-  );
 
   // ─── Render ───────────────────────────────────────────────────────
 
