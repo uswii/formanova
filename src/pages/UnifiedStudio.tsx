@@ -17,6 +17,7 @@ import {
   RefreshCw,
   ArrowRight,
   ArrowLeft,
+  ChevronLeft,
   AlertTriangle,
   ExternalLink,
 } from 'lucide-react';
@@ -182,7 +183,7 @@ export default function UnifiedStudio() {
   const [renameValue, setRenameValue] = useState('');
   const [myModelsLoading, setMyModelsLoading] = useState(true);
   const [myModelsSearch, setMyModelsSearch] = useState('');
-  const [formanovaCategory, setFormanovaCategory] = useState<'ecom' | 'editorial'>('ecom');
+  const [formanovaCategoryView, setFormanovaCategoryView] = useState<'categories' | 'ecom' | 'editorial'>('categories');
 
   // Fetch user-uploaded models from backend API
   const fetchMyModels = useCallback(async () => {
@@ -1079,18 +1080,6 @@ export default function UnifiedStudio() {
                         </Button>
                       </div>
                     ) : (
-                      <>
-                      {/* Search bar — only when models exist */}
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-                        <input
-                          type="text"
-                          placeholder="Search models..."
-                          value={myModelsSearch}
-                          onChange={(e) => setMyModelsSearch(e.target.value)}
-                          className="w-full bg-muted/20 border border-border/20 text-[11px] font-mono text-foreground pl-8 pr-3 py-2 outline-none focus:border-foreground/30 transition-colors placeholder:text-muted-foreground/40"
-                        />
-                      </div>
                       <div className="grid grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
                         {/* Upload card — always first */}
                         <button
@@ -1104,7 +1093,7 @@ export default function UnifiedStudio() {
                         </button>
 
                         {/* User-uploaded models */}
-                        {filteredMyModels.map((model) => {
+                        {mergedMyModels.map((model) => {
                           const isActive = customModelImage === model.url;
                           return (
                             <div key={model.id} className="relative group">
@@ -1123,84 +1112,68 @@ export default function UnifiedStudio() {
                                   </div>
                                 )}
                               </button>
-                              {/* Name + inline rename */}
-                              <div className="mt-1.5 flex items-center gap-1">
-                                {renamingId === model.id ? (
-                                  <input
-                                    autoFocus
-                                    value={renameValue}
-                                    onChange={(e) => setRenameValue(e.target.value)}
-                                    onBlur={() => handleRenameConfirm(model.id)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameConfirm(model.id); if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
-                                    className="w-full bg-transparent border-b border-foreground/20 text-[10px] font-mono text-foreground outline-none py-0.5 px-0"
-                                  />
-                                ) : (
-                                  <span className="text-[10px] font-mono text-muted-foreground truncate text-left flex-1">
-                                    {model.name || 'Untitled'}
-                                  </span>
-                                )}
-                                {/* Edit (pencil) button */}
-                                {renamingId !== model.id && (
-                                  <button
-                                    onClick={() => { setRenamingId(model.id); setRenameValue(model.name || 'Untitled'); }}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                    aria-label="Rename model"
-                                  >
-                                    <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                  </button>
-                                )}
-                                {/* Delete button — visible on hover */}
-                                <button
-                                  onClick={() => handleDeleteUserModel(model.id)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                  aria-label="Delete model"
-                                >
-                                  <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                                </button>
-                              </div>
+                              {/* Delete button — overlay on hover */}
+                              <button
+                                onClick={() => handleDeleteUserModel(model.id)}
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center"
+                                aria-label="Delete model"
+                              >
+                                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                              </button>
                             </div>
                           );
                         })}
-
-                        {filteredMyModels.length === 0 && !myModelsLoading && myModelsSearch.trim() && (
-                          <div className="col-span-2 flex items-center justify-center py-8">
-                            <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
-                              No models match your search
-                            </p>
-                          </div>
-                        )}
                       </div>
-                      </>
                     )}
                   </TabsContent>
 
                   {/* ── FORMANOVA MODELS TAB ── */}
                   <TabsContent value="formanova">
-                    <div className="flex gap-4">
-                      {/* Vertical category sidebar */}
-                      <div className="flex flex-col flex-shrink-0 w-24 border-r border-border/15">
+                    {formanovaCategoryView === 'categories' ? (
+                      /* Category thumbnail cards */
+                      <div className="grid grid-cols-2 gap-3">
                         {([
-                          { key: 'ecom' as const, label: 'E-Commerce' },
-                          { key: 'editorial' as const, label: 'Editorial' },
+                          { key: 'ecom' as const, label: 'E-Commerce', thumb: ECOM_MODELS[0].url },
+                          { key: 'editorial' as const, label: 'Editorial', thumb: EDITORIAL_MODELS[0].url },
                         ]).map((cat) => (
                           <button
                             key={cat.key}
-                            onClick={() => setFormanovaCategory(cat.key)}
-                            className={`text-left font-mono text-[10px] uppercase tracking-[0.12em] whitespace-nowrap px-3 py-3 transition-colors border-l-2 flex-1 ${
-                              formanovaCategory === cat.key
-                                ? 'border-foreground text-foreground bg-foreground/5'
-                                : 'border-transparent text-muted-foreground/60 hover:text-foreground hover:border-foreground/20'
-                            }`}
+                            onClick={() => setFormanovaCategoryView(cat.key)}
+                            className="group relative aspect-[3/4] overflow-hidden border border-border/20 hover:border-foreground/30 transition-all"
                           >
-                            {cat.label}
+                            <img
+                              src={cat.thumb}
+                              alt={cat.label}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-x-0 bottom-0 bg-background/85 px-3 py-2">
+                              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground">{cat.label}</span>
+                            </div>
                           </button>
                         ))}
                       </div>
-                      {/* Model grid */}
-                      <div className="flex-1 max-h-[480px] overflow-y-auto pr-1">
-                        <FormanovaModelGrid models={formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS} />
-                      </div>
-                    </div>
+                    ) : (
+                      /* Model grid with breadcrumb */
+                      <>
+                        <div className="flex items-center gap-2 mb-3">
+                          <button
+                            onClick={() => setFormanovaCategoryView('categories')}
+                            className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <ChevronLeft className="h-3 w-3" />
+                            Categories
+                          </button>
+                          <span className="font-mono text-[10px] text-muted-foreground/30">/</span>
+                          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground">
+                            {formanovaCategoryView === 'ecom' ? 'E-Commerce' : 'Editorial'}
+                          </span>
+                        </div>
+                        <div className="max-h-[440px] overflow-y-auto pr-1">
+                          <FormanovaModelGrid models={formanovaCategoryView === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS} />
+                        </div>
+                      </>
+                    )}
                   </TabsContent>
                 </Tabs>
               </div>
