@@ -145,7 +145,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
       });
 
       if (generatedImageUrl) {
-        markGenerationCompleted(workflow_id, genStartTime);
+        markGenerationCompleted(_wfId, _genStart);
         toast({
           title: 'Generation complete',
           description: 'Your photoshoot has been generated successfully.',
