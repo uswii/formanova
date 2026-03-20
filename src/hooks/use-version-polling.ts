@@ -108,6 +108,18 @@ export function useVersionPolling() {
     return () => window.removeEventListener('generation:complete', handler);
   }, [checkVersion]);
 
+  // Dev-only: force a version mismatch for testing the update banner
+  useEffect(() => {
+    const handler = () => {
+      if (initialVersion.current) {
+        initialVersion.current = '__dev_old_version__';
+        checkVersion();
+      }
+    };
+    window.addEventListener('dev:force-version-mismatch', handler);
+    return () => window.removeEventListener('dev:force-version-mismatch', handler);
+  }, [checkVersion]);
+
   const refresh = useCallback(() => {
     window.location.reload();
   }, []);

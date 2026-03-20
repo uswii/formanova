@@ -13,6 +13,7 @@ import { PostHogPageView } from '@/components/PostHogPageView';
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { useVersionPolling } from '@/hooks/use-version-polling';
+import { DevErrorTestPanel } from '@/components/DevErrorTestPanel';
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 import { Loader2 } from "lucide-react";
 
@@ -125,6 +126,7 @@ const App = () => (
             <PostHogPageView />
             <PostReloadHandler />
             <VersionBanner />
+            <DevErrorTestPanel />
             <DeferredDecorations>
               <Suspense fallback={null}>
                 <FloatingElements />
