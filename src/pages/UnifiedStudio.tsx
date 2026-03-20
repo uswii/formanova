@@ -1068,7 +1068,7 @@ export default function UnifiedStudio() {
                     {isMyModelsEmptyState ? (
                       <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8 flex flex-col items-center text-center gap-4">
                         <p className="text-sm text-muted-foreground max-w-[28ch]">
-                          No models yet. Upload a model it’ll be saved here.
+                          No models yet. Upload a model. It shows up here.
                         </p>
                         <Button
                           onClick={() => modelInputRef.current?.click()}
