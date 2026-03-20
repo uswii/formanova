@@ -1,4 +1,5 @@
 import React from 'react';
+import { reloadPreservingSession } from '@/lib/reload-utils';
 
 class PostHogErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -23,7 +24,7 @@ class PostHogErrorBoundary extends React.Component<
       return (
         <div style={{ padding: 40, textAlign: 'center' }}>
           <h1>Something went wrong</h1>
-          <button onClick={() => window.location.reload()}>Reload</button>
+          <button onClick={() => reloadPreservingSession()}>Reload</button>
         </div>
       );
     }
