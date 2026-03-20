@@ -127,7 +127,7 @@ const App = () => (
             <PostHogPageView />
             <PostReloadHandler />
             <VersionBanner />
-            <DevErrorTestPanel />
+            
             <DeferredDecorations>
               <Suspense fallback={null}>
                 <FloatingElements />
