@@ -920,36 +920,46 @@ export default function UnifiedStudio() {
                       </button>
                     </>
                   ) : (
-                    /* Empty state — line-art face placeholder */
                     <div
                       className="text-center w-full h-full min-h-[420px] md:min-h-[520px] flex flex-col items-center justify-center cursor-pointer hover:bg-foreground/[0.02] transition-colors"
                       onClick={() => modelInputRef.current?.click()}
                       onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleModelUpload(f); }}
                       onDragOver={(e) => e.preventDefault()}
                     >
-                      {/* Minimal line-art face sketch */}
-                      <svg viewBox="0 0 80 100" fill="none" stroke="currentColor" className="w-16 h-20 text-border mb-6" strokeWidth="1" strokeLinecap="round">
-                        {/* Face outline */}
-                        <ellipse cx="40" cy="42" rx="22" ry="28" />
+                      {/* Refined line-art face — large, editorial, intentional */}
+                      <svg viewBox="0 0 200 280" fill="none" stroke="currentColor" className="w-40 h-56 md:w-52 md:h-72 text-border/60 mb-8" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round">
+                        {/* Hair — flowing, editorial */}
+                        <path d="M52 100 Q44 50 72 32 Q100 16 128 32 Q156 50 148 100" />
+                        <path d="M52 100 Q48 80 56 60" strokeWidth="0.5" />
+                        <path d="M148 100 Q152 80 144 60" strokeWidth="0.5" />
+                        {/* Face oval */}
+                        <ellipse cx="100" cy="115" rx="38" ry="50" />
+                        {/* Left brow */}
+                        <path d="M76 98 Q84 94 92 97" strokeWidth="0.6" />
+                        {/* Right brow */}
+                        <path d="M108 97 Q116 94 124 98" strokeWidth="0.6" />
                         {/* Left eye */}
-                        <line x1="30" y1="38" x2="36" y2="38" />
+                        <path d="M78 106 Q84 102 90 106 Q84 108 78 106" strokeWidth="0.6" />
+                        <circle cx="84" cy="105" r="1" fill="currentColor" stroke="none" opacity="0.3" />
                         {/* Right eye */}
-                        <line x1="44" y1="38" x2="50" y2="38" />
+                        <path d="M110 106 Q116 102 122 106 Q116 108 110 106" strokeWidth="0.6" />
+                        <circle cx="116" cy="105" r="1" fill="currentColor" stroke="none" opacity="0.3" />
                         {/* Nose */}
-                        <line x1="40" y1="42" x2="38" y2="48" />
+                        <path d="M100 108 L97 124 Q100 127 103 124" strokeWidth="0.6" />
                         {/* Lips */}
-                        <path d="M34 54 Q40 58 46 54" />
+                        <path d="M90 136 Q96 132 100 133 Q104 132 110 136" strokeWidth="0.6" />
+                        <path d="M90 136 Q100 142 110 136" strokeWidth="0.5" />
                         {/* Neck */}
-                        <line x1="35" y1="70" x2="35" y2="82" />
-                        <line x1="45" y1="70" x2="45" y2="82" />
-                        {/* Shoulders hint */}
-                        <path d="M35 82 Q28 84 18 90" />
-                        <path d="M45 82 Q52 84 62 90" />
-                        {/* Hair hint */}
-                        <path d="M18 38 Q16 20 28 14 Q40 8 52 14 Q64 20 62 38" />
+                        <line x1="88" y1="165" x2="86" y2="210" strokeWidth="0.6" />
+                        <line x1="112" y1="165" x2="114" y2="210" strokeWidth="0.6" />
+                        {/* Shoulders — elegant curve */}
+                        <path d="M86 210 Q72 214 46 230 Q36 236 28 244" strokeWidth="0.6" />
+                        <path d="M114 210 Q128 214 154 230 Q164 236 172 244" strokeWidth="0.6" />
+                        {/* Collarbone hint */}
+                        <path d="M68 222 Q86 218 100 220 Q114 218 132 222" strokeWidth="0.4" opacity="0.4" />
                       </svg>
-                      <p className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground text-center">
-                        Selected / Uploaded Model Will Appear Here
+                      <p className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground/60">
+                        Selected or uploaded model will appear here
                       </p>
                     </div>
                   )}
