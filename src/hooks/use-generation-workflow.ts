@@ -120,6 +120,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
           stepLabel: 'Failed',
         }));
 
+        if (workflowIdRef.current) markGenerationFailed(workflowIdRef.current, status.error?.message);
         onError?.(status.error || new Error('Workflow failed'));
       } else if (status.status === 'CANCELLED') {
         if (pollingRef.current) {
