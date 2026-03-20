@@ -1,7 +1,7 @@
-import React, { Suspense, lazy, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
@@ -10,19 +10,23 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { CADGate } from '@/components/CADGate';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { PostHogPageView } from '@/components/PostHogPageView';
+import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary';
+import { UpdateBanner } from '@/components/UpdateBanner';
+import { useVersionPolling } from '@/hooks/use-version-polling';
+import { lazyWithRetry } from '@/utils/lazyWithRetry';
 import { Loader2 } from "lucide-react";
 
 // Toast providers — deferred since toasts only fire on user interaction
-const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
-const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
+const Toaster = lazyWithRetry(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const Sonner = lazyWithRetry(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
 
 // TooltipProvider is tiny — load eagerly to avoid blank flash on initial render
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Decorative / non-critical components — lazy-loaded to reduce initial JS payload
-const ThemeDecorations = lazy(() => import("@/components/ThemeDecorations").then(m => ({ default: m.ThemeDecorations })));
-const ScrollProgressIndicator = lazy(() => import("@/components/ScrollProgressIndicator").then(m => ({ default: m.ScrollProgressIndicator })));
-const FloatingElements = lazy(() => import("@/components/FloatingElements").then(m => ({ default: m.FloatingElements })));
+const ThemeDecorations = lazyWithRetry(() => import("@/components/ThemeDecorations").then(m => ({ default: m.ThemeDecorations })));
+const ScrollProgressIndicator = lazyWithRetry(() => import("@/components/ScrollProgressIndicator").then(m => ({ default: m.ScrollProgressIndicator })));
+const FloatingElements = lazyWithRetry(() => import("@/components/FloatingElements").then(m => ({ default: m.FloatingElements })));
 
 /** Renders children only after the browser is idle — keeps decorative elements off the critical path */
 function DeferredDecorations({ children }: { children: React.ReactNode }) {
@@ -40,28 +44,28 @@ import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
 
 // Lazy-loaded pages (split into separate chunks)
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Tutorial = lazy(() => import("./pages/Tutorial"));
-const FeedbackRedirect = lazy(() => import("./pages/FeedbackRedirect"));
-const PhotographyStudioCategories = lazy(() => import("./pages/PhotographyStudioCategories"));
-const UnifiedStudio = lazy(() => import("./pages/UnifiedStudio"));
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const Tutorial = lazyWithRetry(() => import("./pages/Tutorial"));
+const FeedbackRedirect = lazyWithRetry(() => import("./pages/FeedbackRedirect"));
+const PhotographyStudioCategories = lazyWithRetry(() => import("./pages/PhotographyStudioCategories"));
+const UnifiedStudio = lazyWithRetry(() => import("./pages/UnifiedStudio"));
 // PRESERVED: Old single-upload studio - uncomment to restore
-// const JewelryStudio = lazy(() => import("./pages/JewelryStudio"));
+// const JewelryStudio = lazyWithRetry(() => import("./pages/JewelryStudio"));
 // PRESERVED: Batch upload studio - uncomment to restore batch workflow
-// const CategoryUploadStudio = lazy(() => import("@/components/bulk").then(m => ({ default: m.CategoryUploadStudio })));
-const CADStudio = lazy(() => import("./pages/CADStudio"));
-const CADToCatalog = lazy(() => import("./pages/CADToCatalog"));
-const TextToCAD = lazy(() => import("./pages/TextToCAD"));
-const Generations = lazy(() => import("./pages/Generations"));
-const Credits = lazy(() => import("./pages/Credits"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
-const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
-const PromoAdminPage = lazy(() => import("./pages/PromoAdminPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const AIJewelryPhotoshoot = lazy(() => import("./pages/AIJewelryPhotoshoot"));
-const AIJewelryCAD = lazy(() => import("./pages/AIJewelryCAD"));
-const LinkAccount = lazy(() => import("./pages/LinkAccount"));
+// const CategoryUploadStudio = lazyWithRetry(() => import("@/components/bulk").then(m => ({ default: m.CategoryUploadStudio })));
+const CADStudio = lazyWithRetry(() => import("./pages/CADStudio"));
+const CADToCatalog = lazyWithRetry(() => import("./pages/CADToCatalog"));
+const TextToCAD = lazyWithRetry(() => import("./pages/TextToCAD"));
+const Generations = lazyWithRetry(() => import("./pages/Generations"));
+const Credits = lazyWithRetry(() => import("./pages/Credits"));
+const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
+const PaymentSuccess = lazyWithRetry(() => import("./pages/PaymentSuccess"));
+const PaymentCancel = lazyWithRetry(() => import("./pages/PaymentCancel"));
+const PromoAdminPage = lazyWithRetry(() => import("./pages/PromoAdminPage"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotoshoot"));
+const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
+const LinkAccount = lazyWithRetry(() => import("./pages/LinkAccount"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -69,41 +73,36 @@ const PageLoader = () => (
   </div>
 );
 
-// Reload once on chunk load failure (stale deployment)
-class ChunkErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError(error: Error) {
-    if (
-      error.message?.includes('dynamically imported module') ||
-      error.message?.includes('Failed to fetch') ||
-      error.message?.includes('Loading chunk')
-    ) {
-      return { hasError: true };
+/** Handles post-reload redirect + success toast when returning from a chunk error during generation */
+function PostReloadHandler() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const redirect = sessionStorage.getItem('post_reload_redirect');
+    const message = sessionStorage.getItem('post_reload_message');
+    if (redirect) {
+      sessionStorage.removeItem('post_reload_redirect');
+      sessionStorage.removeItem('post_reload_message');
+      sessionStorage.removeItem('chunk_reload_attempted');
+      navigate(redirect, { replace: true });
+      if (message) {
+        // Lazy-import toast to avoid adding to critical bundle
+        import('@/hooks/use-toast').then(({ toast }) => {
+          toast({
+            title: 'Welcome back',
+            description: message,
+            duration: 8000,
+          });
+        });
+      }
     }
-    throw error;
-  }
+  }, [navigate]);
+  return null;
+}
 
-  componentDidCatch(error: Error) {
-    // Send errors to PostHog error tracking
-    import('posthog-js').then(({ default: posthog }) => {
-      posthog.captureException(error);
-    }).catch(() => {});
-
-    const key = '_chunk_reload';
-    if (!sessionStorage.getItem(key)) {
-      sessionStorage.setItem(key, '1');
-      window.location.reload();
-    }
-  }
-
-  render() {
-    if (this.state.hasError) return <PageLoader />;
-    return this.props.children;
-  }
+/** Version-aware update banner wired into the router context */
+function VersionBanner() {
+  const { updateAvailable, refresh, dismiss } = useVersionPolling();
+  return <UpdateBanner visible={updateAvailable} onRefresh={refresh} onDismiss={dismiss} />;
 }
 
 const queryClient = new QueryClient();
@@ -124,6 +123,8 @@ const App = () => (
           </DeferredDecorations>
           <BrowserRouter>
             <PostHogPageView />
+            <PostReloadHandler />
+            <VersionBanner />
             <DeferredDecorations>
               <Suspense fallback={null}>
                 <FloatingElements />

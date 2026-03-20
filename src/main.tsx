@@ -7,12 +7,15 @@ if (typeof window !== 'undefined' && !('requestIdleCallback' in window)) {
   (window as any).requestIdleCallback = (cb: Function) => setTimeout(cb, 1);
 }
 
-// Global chunk load error handler — reloads on stale deployments
+// ── Global chunk-load error handlers ──────────────────────────────
 function isChunkLoadError(error: unknown): boolean {
   if (error instanceof Error) {
+    const msg = error.message || '';
     return (
-      error.message.includes('Failed to fetch dynamically imported module') ||
-      error.message.includes('ChunkLoadError') ||
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('ChunkLoadError') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('error loading dynamically imported module') ||
       error.name === 'ChunkLoadError'
     );
   }
@@ -21,19 +24,37 @@ function isChunkLoadError(error: unknown): boolean {
 
 window.addEventListener('unhandledrejection', (event) => {
   if (isChunkLoadError(event.reason)) {
-    console.warn('Chunk load failed. Reloading to fetch latest version...');
-    window.location.reload();
+    // Log to PostHog (lazy — don't block)
+    import('posthog-js').then(({ default: posthog }) => {
+      if (posthog.__loaded) posthog.captureException(event.reason);
+    }).catch(() => {});
+
+    const alreadyAttempted = sessionStorage.getItem('chunk_reload_attempted');
+    if (!alreadyAttempted) {
+      // Don't reload during an active generation — ChunkErrorBoundary handles the UI
+      if ((window as any).__generationInProgress) return;
+      sessionStorage.setItem('chunk_reload_attempted', '1');
+      window.location.reload();
+    }
   }
 });
 
 window.addEventListener('error', (event) => {
   if (isChunkLoadError(event.error)) {
-    console.warn('Chunk load failed. Reloading to fetch latest version...');
-    window.location.reload();
+    import('posthog-js').then(({ default: posthog }) => {
+      if (posthog.__loaded) posthog.captureException(event.error);
+    }).catch(() => {});
+
+    const alreadyAttempted = sessionStorage.getItem('chunk_reload_attempted');
+    if (!alreadyAttempted) {
+      if ((window as any).__generationInProgress) return;
+      sessionStorage.setItem('chunk_reload_attempted', '1');
+      window.location.reload();
+    }
   }
 });
 
-// Redirect all non-production domains to formanova.ai
+// ── Domain redirect ───────────────────────────────────────────────
 const PRODUCTION_DOMAIN = 'formanova.ai';
 if (
   typeof window !== 'undefined' &&
@@ -53,7 +74,6 @@ if (
   const posthogKey = 'phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC';
 
   // Defer PostHog well past LCP — load on first user interaction OR after 5s
-  // Industry best practice: analytics should never compete with content rendering
   const loadPostHog = () => {
     if ((loadPostHog as any).__done) return;
     (loadPostHog as any).__done = true;
@@ -72,13 +92,11 @@ if (
   };
 
   if (posthogKey) {
-    // Whichever fires first: 5-second timeout or first user interaction
     const timer = setTimeout(loadPostHog, 5000);
     const interactionEvents = ['click', 'scroll', 'keydown', 'touchstart'] as const;
     const onInteraction = () => {
       clearTimeout(timer);
       interactionEvents.forEach(e => window.removeEventListener(e, onInteraction));
-      // Small delay after interaction to avoid jank during the interaction itself
       requestIdleCallback(loadPostHog);
     };
     interactionEvents.forEach(e =>
@@ -89,4 +107,3 @@ if (
   // Render app immediately — don't block on lazy imports
   root.render(<App />);
 }
-
