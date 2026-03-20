@@ -143,6 +143,19 @@ export default function UnifiedStudio() {
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
 
+  // My Models (user-uploaded, persisted in-session)
+  interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
+  const [myModels, setMyModels] = useState<UserModel[]>(() => {
+    try { return JSON.parse(localStorage.getItem('formanova_my_models') || '[]'); } catch { return []; }
+  });
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  // Persist my models to localStorage
+  useEffect(() => {
+    localStorage.setItem('formanova_my_models', JSON.stringify(myModels));
+  }, [myModels]);
+
   const activeModelUrl = customModelImage || selectedModel?.url || null;
 
   // Validation
