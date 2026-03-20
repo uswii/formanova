@@ -1064,17 +1064,6 @@ export default function UnifiedStudio() {
 
                   {/* ── MY MODELS TAB ── */}
                   <TabsContent value="my-models" className="space-y-3">
-                    {/* Search bar */}
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-                      <input
-                        type="text"
-                        placeholder="Search models..."
-                        value={myModelsSearch}
-                        onChange={(e) => setMyModelsSearch(e.target.value)}
-                        className="w-full bg-muted/20 border border-border/20 text-[11px] font-mono text-foreground pl-8 pr-3 py-2 outline-none focus:border-foreground/30 transition-colors placeholder:text-muted-foreground/40"
-                      />
-                    </div>
 
                     {isMyModelsEmptyState ? (
                       <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8 flex flex-col items-center text-center gap-4">
@@ -1090,6 +1079,18 @@ export default function UnifiedStudio() {
                         </Button>
                       </div>
                     ) : (
+                      <>
+                      {/* Search bar — only when models exist */}
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                        <input
+                          type="text"
+                          placeholder="Search models..."
+                          value={myModelsSearch}
+                          onChange={(e) => setMyModelsSearch(e.target.value)}
+                          className="w-full bg-muted/20 border border-border/20 text-[11px] font-mono text-foreground pl-8 pr-3 py-2 outline-none focus:border-foreground/30 transition-colors placeholder:text-muted-foreground/40"
+                        />
+                      </div>
                       <div className="grid grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
                         {/* Upload card — always first */}
                         <button
@@ -1169,6 +1170,7 @@ export default function UnifiedStudio() {
                           </div>
                         )}
                       </div>
+                      </>
                     )}
                   </TabsContent>
 
