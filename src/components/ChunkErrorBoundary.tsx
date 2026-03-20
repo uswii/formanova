@@ -27,8 +27,8 @@ interface State {
 /**
  * Catches chunk-load errors at the React tree level.
  *
- * If a generation is in progress → shows a calm overlay telling the user
- * their result is safe and they can reload at will.
+ * If a generation is in progress → shows a centered modal telling the user
+ * their result is safe. No auto-reload — user controls the reload.
  *
  * If no generation → auto-reloads after 1.5 s (with sessionStorage guard).
  */
@@ -67,42 +67,36 @@ export class ChunkErrorBoundary extends React.Component<Props, State> {
   render() {
     if (!this.state.hasError) return this.props.children;
 
-    // ── Generation-active overlay ──────────────────────────────
+    // ── Generation-active modal ────────────────────────────────
     if (this.state.generationWasActive) {
       return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className="max-w-md w-full mx-6 space-y-6 text-center"
+            className="max-w-md w-full mx-6 rounded-lg border border-border bg-card shadow-2xl p-8"
           >
-            <div className="space-y-3">
-              <p className="font-display text-lg md:text-xl uppercase tracking-wider text-foreground">
-                We updated Formanova while your image was generating.
-              </p>
+            <div className="space-y-6 text-center">
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-                Your generation is still processing and will be saved to your history
-                automatically. You can reload safely — we'll take you straight to your result.
+                We updated Formanova while you were generating. Your generation
+                is still processing and will be saved to your history
+                automatically.
               </p>
-            </div>
 
-            <Button
-              variant="default"
-              size="lg"
-              className="w-full gap-2"
-              onClick={() => {
-                sessionStorage.setItem('post_reload_redirect', '/generations');
-                sessionStorage.setItem(
-                  'post_reload_message',
-                  'Your generation was saved while we updated the app. Check below for your latest result.',
-                );
-                window.location.reload();
-              }}
-            >
-              <RefreshCw className="w-4 h-4" />
-              Reload &amp; see my result
-            </Button>
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full gap-2"
+                onClick={() => {
+                  sessionStorage.setItem('post_reload_redirect', '/generations');
+                  window.location.reload();
+                }}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Reload &amp; go to my generations
+              </Button>
+            </div>
           </motion.div>
         </div>
       );
