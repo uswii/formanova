@@ -10,7 +10,8 @@ import {
   Upload,
   Check,
   Gem,
-  
+  Pencil,
+  Search,
   Download,
   Loader2,
   RefreshCw,
@@ -170,6 +171,8 @@ export default function UnifiedStudio() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [myModelsLoading, setMyModelsLoading] = useState(true);
+  const [myModelsSearch, setMyModelsSearch] = useState('');
+  const [formanovaCategory, setFormanovaCategory] = useState<'ecom' | 'editorial'>('ecom');
 
   // Fetch user-uploaded models from backend API
   const fetchMyModels = useCallback(async () => {
@@ -205,6 +208,13 @@ export default function UnifiedStudio() {
     const unique = localPendingModels.filter(m => !backendUrls.has(m.url));
     return [...unique, ...myModels];
   }, [myModels, localPendingModels]);
+
+  // Filtered My Models by search query
+  const filteredMyModels = useMemo(() => {
+    if (!myModelsSearch.trim()) return mergedMyModels;
+    const q = myModelsSearch.trim().toLowerCase();
+    return mergedMyModels.filter(m => m.name.toLowerCase().includes(q));
+  }, [mergedMyModels, myModelsSearch]);
 
   // Persist only local pending models to localStorage
   useEffect(() => { saveMyModels(localPendingModels); }, [localPendingModels]);
@@ -624,18 +634,6 @@ export default function UnifiedStudio() {
     }
   };
 
-  // ─── Relative time helper ─────────────────────────────────────────
-  const relativeTime = (ts: number) => {
-    const diff = Date.now() - ts;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-  };
-
   // Hidden file input for model uploads
   const modelFileInput = (
     <input
@@ -943,10 +941,10 @@ export default function UnifiedStudio() {
             <div className="mb-6">
               <span className="marta-label">Step 2</span>
               <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-                Choose Your Model
+                Choose or Upload Model
               </h2>
               <p className="text-muted-foreground mt-1.5 text-sm">
-                Select a model from our library or upload your own
+                Choose a model from our library or upload your own
               </p>
             </div>
 
@@ -1037,8 +1035,19 @@ export default function UnifiedStudio() {
                   </TabsList>
 
                   {/* ── MY MODELS TAB ── */}
-                  <TabsContent value="my-models" className="max-h-[520px] overflow-y-auto pr-1">
-                    <div className="grid grid-cols-3 gap-3">
+                  <TabsContent value="my-models" className="space-y-3">
+                    {/* Search bar */}
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                      <input
+                        type="text"
+                        placeholder="Search models..."
+                        value={myModelsSearch}
+                        onChange={(e) => setMyModelsSearch(e.target.value)}
+                        className="w-full bg-muted/20 border border-border/20 text-[11px] font-mono text-foreground pl-8 pr-3 py-2 outline-none focus:border-foreground/30 transition-colors placeholder:text-muted-foreground/40"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
                       {/* Upload card — always first */}
                       <button
                         onClick={() => modelInputRef.current?.click()}
@@ -1051,7 +1060,7 @@ export default function UnifiedStudio() {
                       </button>
 
                       {/* User-uploaded models */}
-                      {mergedMyModels.map((model) => {
+                      {filteredMyModels.map((model) => {
                         const isActive = customModelImage === model.url;
                         return (
                           <div key={model.id} className="relative group">
@@ -1082,12 +1091,18 @@ export default function UnifiedStudio() {
                                   className="w-full bg-transparent border-b border-foreground/20 text-[10px] font-mono text-foreground outline-none py-0.5 px-0"
                                 />
                               ) : (
+                                <span className="text-[10px] font-mono text-muted-foreground truncate text-left flex-1">
+                                  {model.name || 'Untitled'}
+                                </span>
+                              )}
+                              {/* Edit (pencil) button */}
+                              {renamingId !== model.id && (
                                 <button
-                                  onClick={() => { setRenamingId(model.id); setRenameValue(model.name); }}
-                                  className="text-[10px] font-mono text-muted-foreground truncate hover:text-foreground transition-colors text-left w-full"
-                                  title="Click to rename"
+                                  onClick={() => { setRenamingId(model.id); setRenameValue(model.name || 'Untitled'); }}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                  aria-label="Rename model"
                                 >
-                                  {model.name}
+                                  <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                                 </button>
                               )}
                               {/* Delete button — visible on hover */}
@@ -1099,17 +1114,14 @@ export default function UnifiedStudio() {
                                 <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                               </button>
                             </div>
-                            <span className="text-[9px] font-mono text-muted-foreground/40 block mt-0.5">
-                              {relativeTime(model.uploadedAt)}
-                            </span>
                           </div>
                         );
                       })}
 
-                      {mergedMyModels.length === 0 && !myModelsLoading && (
+                      {filteredMyModels.length === 0 && !myModelsLoading && (
                         <div className="col-span-2 flex items-center justify-center py-8">
                           <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
-                            No models uploaded yet
+                            {myModelsSearch.trim() ? 'No models match your search' : 'No models uploaded yet'}
                           </p>
                         </div>
                       )}
@@ -1117,23 +1129,32 @@ export default function UnifiedStudio() {
                   </TabsContent>
 
                   {/* ── FORMANOVA MODELS TAB ── */}
-                  <TabsContent value="formanova" className="space-y-4">
-                    <Tabs defaultValue="ecom" className="w-full">
-                      <TabsList className="w-full grid grid-cols-2 mb-3 bg-transparent border border-border/20 h-9">
-                        <TabsTrigger value="ecom" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
-                          E-Commerce
-                        </TabsTrigger>
-                        <TabsTrigger value="editorial" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
-                          Editorial
-                        </TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="ecom" className="max-h-[460px] overflow-y-auto pr-1">
-                        <FormanovaModelGrid models={ECOM_MODELS} />
-                      </TabsContent>
-                      <TabsContent value="editorial" className="max-h-[460px] overflow-y-auto pr-1">
-                        <FormanovaModelGrid models={EDITORIAL_MODELS} />
-                      </TabsContent>
-                    </Tabs>
+                  <TabsContent value="formanova">
+                    <div className="flex gap-3">
+                      {/* Vertical category sidebar */}
+                      <div className="flex flex-col gap-1 flex-shrink-0 w-[90px]">
+                        {([
+                          { key: 'ecom' as const, label: 'E-Commerce' },
+                          { key: 'editorial' as const, label: 'Editorial' },
+                        ]).map((cat) => (
+                          <button
+                            key={cat.key}
+                            onClick={() => setFormanovaCategory(cat.key)}
+                            className={`text-left font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-2.5 transition-colors border-l-2 ${
+                              formanovaCategory === cat.key
+                                ? 'border-foreground text-foreground bg-foreground/5'
+                                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-foreground/20'
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Model grid */}
+                      <div className="flex-1 max-h-[480px] overflow-y-auto pr-1">
+                        <FormanovaModelGrid models={formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS} />
+                      </div>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
