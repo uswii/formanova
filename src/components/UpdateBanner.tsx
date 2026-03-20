@@ -9,48 +9,56 @@ interface Props {
 }
 
 /**
- * Non-intrusive top banner that appears when a new version of Formanova is deployed.
- * Styled consistently with the HangingNotificationBanner / studio patterns.
+ * Centered modal overlay that appears when a new version of Formanova is deployed.
+ * Styled consistently with the ChunkErrorBoundary recovery overlay.
  */
 export function UpdateBanner({ visible, onRefresh, onDismiss }: Props) {
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: -60, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -60, opacity: 0 }}
-          transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-          className="w-full bg-muted/60 border-b border-border px-5 py-4 md:px-8 md:py-5 relative z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm"
         >
-          <button
-            onClick={onDismiss}
-            className="absolute top-4 right-4 md:right-6 p-1 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Dismiss"
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            className="max-w-md w-full mx-6 rounded-lg border border-border bg-card shadow-2xl p-8 relative"
           >
-            <X className="w-3.5 h-3.5" />
-          </button>
-
-          <div className="max-w-3xl mx-auto pr-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="space-y-0.5">
-              <p className="font-display text-sm md:text-base uppercase tracking-wider text-foreground">
-                Formanova has been updated.
-              </p>
-              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                Refresh for the latest version.
-              </p>
-            </div>
-
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-1.5 shrink-0"
-              onClick={onRefresh}
+            <button
+              onClick={onDismiss}
+              className="absolute top-4 right-4 p-1 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Dismiss"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh now
-            </Button>
-          </div>
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="space-y-6 text-center">
+              <div className="space-y-3">
+                <p className="font-display text-lg md:text-xl uppercase tracking-wider text-foreground">
+                  Formanova has been updated.
+                </p>
+                <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
+                  A new version is available. Refresh to get the latest improvements.
+                </p>
+              </div>
+
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full gap-2"
+                onClick={onRefresh}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh now
+              </Button>
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
