@@ -145,8 +145,7 @@ export default function UnifiedStudio() {
   const [customModelFile, setCustomModelFile] = useState<File | null>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
 
-  // My Models (user-uploaded, persisted in-session)
-  interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
+  // My Models (user-uploaded, persisted via localStorage)
   const [myModels, setMyModels] = useState<UserModel[]>(() => {
     try { return JSON.parse(localStorage.getItem('formanova_my_models') || '[]'); } catch { return []; }
   });
