@@ -46,6 +46,7 @@ import {
 import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 // ExampleGuidePanel removed — guide is inline
 
@@ -80,6 +81,8 @@ import watchAllowed3 from '@/assets/examples/watch-allowed-3.png';
 import watchNotAllowed1 from '@/assets/examples/watch-notallowed-1.png';
 import watchNotAllowed2 from '@/assets/examples/watch-notallowed-2.png';
 import watchNotAllowed3 from '@/assets/examples/watch-notallowed-3.png';
+
+const TEST_EMPTY_STATE_EMAILS = ['uswa@raresense.so'];
 
 const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[] }> = {
   necklace: { allowed: [necklaceAllowed1, necklaceAllowed2, necklaceAllowed3], notAllowed: [necklaceNotAllowed1, necklaceNotAllowed2, necklaceNotAllowed3] },
@@ -154,6 +157,8 @@ export default function UnifiedStudio() {
   const { toast } = useToast();
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
+  const { user } = useAuth();
+  const forceEmptyMyModels = TEST_EMPTY_STATE_EMAILS.includes(user?.email ?? '');
 
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
@@ -221,7 +226,7 @@ export default function UnifiedStudio() {
     return mergedMyModels.filter(m => m.name.toLowerCase().includes(q));
   }, [mergedMyModels, myModelsSearch]);
 
-  const isMyModelsEmptyState = !myModelsLoading && mergedMyModels.length === 0 && !myModelsSearch.trim();
+  const isMyModelsEmptyState = !myModelsLoading && (mergedMyModels.length === 0 || forceEmptyMyModels) && !myModelsSearch.trim();
 
   // Keep the current in-studio step in the URL so browser refresh keeps users on the same screen.
   useEffect(() => {
@@ -1169,9 +1174,9 @@ export default function UnifiedStudio() {
 
                   {/* ── FORMANOVA MODELS TAB ── */}
                   <TabsContent value="formanova">
-                    <div className="flex gap-3">
+                    <div className="flex gap-4">
                       {/* Vertical category sidebar */}
-                      <div className="flex flex-col gap-1 flex-shrink-0 w-[90px]">
+                      <div className="flex flex-col flex-shrink-0 w-24 border-r border-border/15">
                         {([
                           { key: 'ecom' as const, label: 'E-Commerce' },
                           { key: 'editorial' as const, label: 'Editorial' },
@@ -1179,10 +1184,10 @@ export default function UnifiedStudio() {
                           <button
                             key={cat.key}
                             onClick={() => setFormanovaCategory(cat.key)}
-                            className={`text-left font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-2.5 transition-colors border-l-2 ${
+                            className={`text-left font-mono text-[10px] uppercase tracking-[0.12em] whitespace-nowrap px-3 py-3 transition-colors border-l-2 flex-1 ${
                               formanovaCategory === cat.key
                                 ? 'border-foreground text-foreground bg-foreground/5'
-                                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-foreground/20'
+                                : 'border-transparent text-muted-foreground/60 hover:text-foreground hover:border-foreground/20'
                             }`}
                           >
                             {cat.label}
