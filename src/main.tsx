@@ -24,15 +24,18 @@ function isChunkLoadError(error: unknown): boolean {
 
 window.addEventListener('unhandledrejection', (event) => {
   if (isChunkLoadError(event.reason)) {
-    // Log to PostHog (lazy — don't block)
     import('posthog-js').then(({ default: posthog }) => {
       if (posthog.__loaded) posthog.captureException(event.reason);
     }).catch(() => {});
 
+    // During active generation, suppress — ChunkErrorBoundary handles the UI
+    if ((window as any).__generationInProgress) {
+      event.preventDefault();
+      return;
+    }
+
     const alreadyAttempted = sessionStorage.getItem('chunk_reload_attempted');
     if (!alreadyAttempted) {
-      // Don't reload during an active generation — ChunkErrorBoundary handles the UI
-      if ((window as any).__generationInProgress) return;
       sessionStorage.setItem('chunk_reload_attempted', '1');
       window.location.reload();
     }
@@ -45,9 +48,14 @@ window.addEventListener('error', (event) => {
       if (posthog.__loaded) posthog.captureException(event.error);
     }).catch(() => {});
 
+    // During active generation, suppress — ChunkErrorBoundary handles the UI
+    if ((window as any).__generationInProgress) {
+      event.preventDefault();
+      return;
+    }
+
     const alreadyAttempted = sessionStorage.getItem('chunk_reload_attempted');
     if (!alreadyAttempted) {
-      if ((window as any).__generationInProgress) return;
       sessionStorage.setItem('chunk_reload_attempted', '1');
       window.location.reload();
     }

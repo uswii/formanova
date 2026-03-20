@@ -35,16 +35,15 @@ export function DevErrorTestPanel() {
     {
       icon: Film,
       label: 'Chunk error mid-generation',
-      description: 'Generation active → branded recovery overlay, no auto-reload',
+      description: 'Generation active → centered modal, NO auto-reload/redirect',
       action: () => {
         (window as any).__generationInProgress = true;
         (window as any).__activeGenerationId = 'test-gen-123';
+        // Set a flag that a "bomb" component reads during render to throw synchronously
+        (window as any).__devForceChunkError = true;
         setOpen(false);
-        setTimeout(() => {
-          throw new TypeError(
-            'Failed to fetch dynamically imported module: https://formanova.ai/assets/Test-abc123.js',
-          );
-        }, 100);
+        // Dispatch event so the bomb component forces a re-render and throws
+        window.dispatchEvent(new CustomEvent('dev:force-chunk-error'));
       },
     },
     {
