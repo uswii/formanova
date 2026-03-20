@@ -105,6 +105,7 @@ export function useGenerationWorkflow(options: UseGenerationWorkflowOptions = {}
           stepLabel: 'Complete',
         }));
 
+        if (workflowIdRef.current) markGenerationCompleted(workflowIdRef.current);
         onComplete?.(status.result);
       } else if (status.status === 'FAILED') {
         if (pollingRef.current) {
