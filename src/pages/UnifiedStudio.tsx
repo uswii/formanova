@@ -31,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
-import { ECOM_MODELS, EDITORIAL_MODELS, type ModelImage } from '@/lib/model-library';
+import { ECOM_MODELS, EDITORIAL_MODELS, ALL_MODELS, type ModelImage } from '@/lib/model-library';
 import { fetchUserAssets, type UserAsset } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import {
@@ -124,6 +124,36 @@ const LABEL_NAMES: Record<string, string> = {
 
 const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
 const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
+
+// ─── Studio session persistence (survives reloads, cleared on reset) ──────────
+const STUDIO_SESSION_KEY = 'formanova_studio_session_v1';
+
+interface StudioSession {
+  jewelryUploadedUrl: string;
+  jewelryAssetId: string | null;
+  validationResult: ImageValidationResult | null;
+  selectedModelId: string | null;
+  customModelImage: string | null;
+  modelAssetId: string | null;
+}
+
+function loadStudioSession(): StudioSession | null {
+  try {
+    const raw = sessionStorage.getItem(STUDIO_SESSION_KEY);
+    return raw ? (JSON.parse(raw) as StudioSession) : null;
+  } catch { return null; }
+}
+
+function saveStudioSession(patch: Partial<StudioSession>) {
+  try {
+    const existing = loadStudioSession() ?? {} as StudioSession;
+    sessionStorage.setItem(STUDIO_SESSION_KEY, JSON.stringify({ ...existing, ...patch }));
+  } catch { /* quota exceeded — silently ignore */ }
+}
+
+function clearStudioSession() {
+  sessionStorage.removeItem(STUDIO_SESSION_KEY);
+}
 
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
 
@@ -275,6 +305,41 @@ export default function UnifiedStudio() {
     }
   }, []); // run once on mount — location.state is set before component renders
 
+  // ─── Session restore — bring back jewelry/model state after reload ─────────
+  useEffect(() => {
+    // Don't restore if this is a Re-shoot (preloaded from route state)
+    const routeState = location.state as { preloadedJewelryUrl?: string } | null;
+    if (routeState?.preloadedJewelryUrl) return;
+
+    const session = loadStudioSession();
+    if (!session?.jewelryUploadedUrl) return;
+
+    // Derive a displayable URL from the stored Azure URI
+    setJewelryImage(azureUriToUrl(session.jewelryUploadedUrl));
+    setJewelryUploadedUrl(session.jewelryUploadedUrl);
+    if (session.jewelryAssetId) setJewelryAssetId(session.jewelryAssetId);
+    if (session.validationResult) setValidationResult(session.validationResult);
+    if (session.customModelImage) setCustomModelImage(session.customModelImage);
+    if (session.modelAssetId) setModelAssetId(session.modelAssetId);
+    if (session.selectedModelId) {
+      const model = ALL_MODELS.find(m => m.id === session.selectedModelId);
+      if (model) setSelectedModel(model);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Session save — persist whenever key upload/selection state changes ─────
+  useEffect(() => {
+    if (!jewelryUploadedUrl) return;
+    saveStudioSession({
+      jewelryUploadedUrl,
+      jewelryAssetId,
+      validationResult,
+      selectedModelId: selectedModel?.id ?? null,
+      customModelImage,
+      modelAssetId,
+    });
+  }, [jewelryUploadedUrl, jewelryAssetId, validationResult, selectedModel, customModelImage, modelAssetId]);
+
   // ─── Upload Handlers ──────────────────────────────────────────────
 
   const handleJewelryUpload = useCallback(async (file: File) => {
@@ -403,6 +468,7 @@ export default function UnifiedStudio() {
     const hasCredits = await checkCredits('jewelry_photoshoots_generator');
     if (!hasCredits) return;
 
+    clearStudioSession();
     setIsGenerating(true);
     setGenerationProgress(0);
     setGenerationStep('Preparing...');
@@ -569,6 +635,7 @@ export default function UnifiedStudio() {
   }
 
   const handleStartOver = () => {
+    clearStudioSession();
     setJewelryImage(null);
     setJewelryFile(null);
     setJewelryUploadedUrl(null);
@@ -774,7 +841,7 @@ export default function UnifiedStudio() {
                       <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
                       <button
-                        onClick={() => { setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
+                        onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
                         className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
                       >
                         <X className="h-3.5 w-3.5" />
