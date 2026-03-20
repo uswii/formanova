@@ -1,4 +1,5 @@
 import React from 'react';
+import { reloadPreservingSession } from '@/lib/reload-utils';
 
 /**
  * Wraps React.lazy with retry logic for chunk load failures.
@@ -28,7 +29,7 @@ export function lazyWithRetry<T extends React.ComponentType<any>>(
               throw err;
             }
 
-            window.location.reload();
+            reloadPreservingSession();
             // Return a never-resolving promise so React doesn't render stale content
             return new Promise<never>(() => {});
           }
