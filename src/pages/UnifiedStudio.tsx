@@ -312,7 +312,9 @@ export default function UnifiedStudio() {
         url: stableUrl,
         uploadedAt: Date.now(),
       };
-      setMyModels(prev => [newModel, ...prev]);
+      setLocalPendingModels(prev => [newModel, ...prev]);
+      // Refetch from backend to sync
+      fetchMyModels();
     } catch (e) {
       setCustomModelImage(null);
       setCustomModelFile(null);
