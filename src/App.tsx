@@ -77,8 +77,6 @@ const PageLoader = () => (
 /** Handles post-reload redirect + success toast when returning from a chunk error during generation */
 function PostReloadHandler() {
   const navigate = useNavigate();
-  const [overlayMessage, setOverlayMessage] = useState<string | null>(null);
-
   useEffect(() => {
     const redirect = sessionStorage.getItem('post_reload_redirect');
     const message = sessionStorage.getItem('post_reload_message');
@@ -88,31 +86,18 @@ function PostReloadHandler() {
       sessionStorage.removeItem('chunk_reload_attempted');
       navigate(redirect, { replace: true });
       if (message) {
-        setOverlayMessage(message);
+        // Lazy-import toast to avoid adding to critical bundle
+        import('@/hooks/use-toast').then(({ toast }) => {
+          toast({
+            title: 'Welcome back',
+            description: message,
+            duration: 8000,
+          });
+        });
       }
     }
   }, [navigate]);
-
-  if (!overlayMessage) return null;
-
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="max-w-md w-full mx-6 rounded-lg border border-border bg-card shadow-2xl p-8 space-y-5 text-center animate-in fade-in zoom-in-95 duration-300">
-        <p className="font-display text-lg md:text-xl uppercase tracking-wider text-foreground">
-          Welcome back
-        </p>
-        <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-          {overlayMessage}
-        </p>
-        <button
-          onClick={() => setOverlayMessage(null)}
-          className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
-        >
-          Got it
-        </button>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 /** Version-aware update banner wired into the router context */
