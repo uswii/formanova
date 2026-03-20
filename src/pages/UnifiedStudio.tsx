@@ -163,16 +163,12 @@ export default function UnifiedStudio() {
   const modelInputRef = useRef<HTMLInputElement>(null);
 
   // My Models (user-uploaded, persisted via localStorage)
-  const [myModels, setMyModels] = useState<UserModel[]>(() => {
-    try { return JSON.parse(localStorage.getItem('formanova_my_models') || '[]'); } catch { return []; }
-  });
+  const [myModels, setMyModels] = useState<UserModel[]>(loadMyModels);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // Persist my models to localStorage
-  useEffect(() => {
-    localStorage.setItem('formanova_my_models', JSON.stringify(myModels));
-  }, [myModels]);
+  // Persist my models to localStorage with versioning
+  useEffect(() => { saveMyModels(myModels); }, [myModels]);
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
 
