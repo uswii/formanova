@@ -1118,7 +1118,7 @@ export default function UnifiedStudio() {
                         );
                       })}
 
-                      {myModels.length === 0 && (
+                      {mergedMyModels.length === 0 && !myModelsLoading && (
                         <div className="col-span-2 flex items-center justify-center py-8">
                           <p className="font-mono text-[10px] text-muted-foreground/40 uppercase tracking-wider">
                             No models uploaded yet
