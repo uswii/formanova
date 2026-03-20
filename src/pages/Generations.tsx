@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { reloadPreservingSession } from '@/lib/reload-utils';
 import {
   listMyWorkflows,
   getWorkflowDetails,
@@ -342,7 +343,7 @@ export default function Generations() {
               {error}
             </p>
             <Button
-              onClick={() => window.location.reload()}
+              onClick={() => reloadPreservingSession()}
               variant="outline"
               className="font-mono text-[10px] tracking-wider uppercase"
             >
