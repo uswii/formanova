@@ -154,7 +154,7 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
 
     } catch (error) {
       console.error('Generation error:', error);
-      markGenerationFailed(workflow_id, error instanceof Error ? error.message : String(error), genStartTime);
+      markGenerationFailed(_wfId, error instanceof Error ? error.message : String(error), _genStart);
       toast({
         variant: 'destructive',
         title: 'Generation failed',
