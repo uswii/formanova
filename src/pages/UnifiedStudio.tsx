@@ -1063,7 +1063,7 @@ export default function UnifiedStudio() {
                       </button>
 
                       {/* User-uploaded models */}
-                      {myModels.map((model) => {
+                      {mergedMyModels.map((model) => {
                         const isActive = customModelImage === model.url;
                         return (
                           <div key={model.id} className="relative group">
