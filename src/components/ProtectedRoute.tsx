@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, initializing } = useAuth();
+  const { initializing } = useAuth();
   const location = useLocation();
   const token = getStoredToken();
 
