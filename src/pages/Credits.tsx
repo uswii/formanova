@@ -20,7 +20,6 @@ const PLANS = [
     credits: 100,
     photos: 10,
     perPhoto: '$0.99',
-    popular: false,
   },
   {
     tier: 'standard',
@@ -30,7 +29,6 @@ const PLANS = [
     credits: 500,
     photos: 50,
     perPhoto: '$0.78',
-    popular: true,
   },
   {
     tier: 'pro',
@@ -40,7 +38,6 @@ const PLANS = [
     credits: 1500,
     photos: 150,
     perPhoto: '$0.66',
-    popular: false,
   },
 ];
 
