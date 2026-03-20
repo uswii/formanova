@@ -1176,28 +1176,33 @@ export default function UnifiedStudio() {
 
                   {/* ── FORMANOVA MODELS TAB ── */}
                   <TabsContent value="formanova">
-                    <div className="flex flex-col gap-3">
-                      {/* Category chips — compact horizontal-ish stack at top */}
-                      <div className="flex gap-2">
+                    <div className="flex gap-3">
+                      {/* Pinterest-style vertical category cards — left side */}
+                      <div className="flex flex-col gap-2 w-[120px] flex-shrink-0">
                         {([
-                          { key: 'ecom' as const, label: 'E-Commerce' },
-                          { key: 'editorial' as const, label: 'Editorial' },
+                          { key: 'ecom' as const, label: 'E-Commerce', count: ECOM_MODELS.length },
+                          { key: 'editorial' as const, label: 'Editorial', count: EDITORIAL_MODELS.length },
                         ]).map((cat) => (
                           <button
                             key={cat.key}
                             onClick={() => setFormanovaCategory(cat.key)}
-                            className={`px-4 py-2 rounded-lg font-mono text-[10px] uppercase tracking-[0.12em] whitespace-nowrap transition-all duration-200 border ${
+                            className={`group relative w-full rounded-xl px-3 py-4 text-left transition-all duration-200 border ${
                               formanovaCategory === cat.key
                                 ? 'border-foreground/20 bg-foreground/8 text-foreground'
                                 : 'border-border/30 bg-card/30 text-muted-foreground/60 hover:text-foreground hover:border-foreground/15 hover:bg-foreground/3'
                             }`}
                           >
-                            {cat.label}
+                            <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
+                              {cat.label}
+                            </span>
+                            <span className="block font-mono text-[9px] text-muted-foreground/40 mt-1.5">
+                              {cat.count} models
+                            </span>
                           </button>
                         ))}
                       </div>
-                      {/* Model grid */}
-                      <div className="max-h-[480px] overflow-y-auto pr-1">
+                      {/* Model grid — right side */}
+                      <div className="flex-1 min-w-0 max-h-[480px] overflow-y-auto pr-1">
                         <FormanovaModelGrid models={formanovaCategory === 'ecom' ? ECOM_MODELS : EDITORIAL_MODELS} />
                       </div>
                     </div>
