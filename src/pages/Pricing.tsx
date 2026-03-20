@@ -170,7 +170,7 @@ export default function Pricing() {
                 <Button
                   className="w-full font-mono text-[10px] tracking-[0.2em] uppercase"
                   size="lg"
-                  variant={plan.popular ? 'default' : 'outline'}
+                  variant="default"
                   disabled={loadingTier !== null}
                   onClick={() => handleCheckout(plan.tierId)}
                 >

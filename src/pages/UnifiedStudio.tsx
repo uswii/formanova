@@ -119,7 +119,24 @@ const LABEL_NAMES: Record<string, string> = {
   floating: 'a floating product',
 };
 
+const MY_MODELS_STORAGE_KEY = 'formanova_my_models';
+const MY_MODELS_VERSION = 2; // bump to invalidate stale cache
+
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
+
+function loadMyModels(): UserModel[] {
+  try {
+    const raw = localStorage.getItem(MY_MODELS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (parsed._v !== MY_MODELS_VERSION) { localStorage.removeItem(MY_MODELS_STORAGE_KEY); return []; }
+    return Array.isArray(parsed.models) ? parsed.models : [];
+  } catch { return []; }
+}
+
+function saveMyModels(models: UserModel[]) {
+  localStorage.setItem(MY_MODELS_STORAGE_KEY, JSON.stringify({ _v: MY_MODELS_VERSION, models }));
+}
 
 type StudioStep = 'upload' | 'model' | 'generating' | 'results';
 
@@ -146,16 +163,12 @@ export default function UnifiedStudio() {
   const modelInputRef = useRef<HTMLInputElement>(null);
 
   // My Models (user-uploaded, persisted via localStorage)
-  const [myModels, setMyModels] = useState<UserModel[]>(() => {
-    try { return JSON.parse(localStorage.getItem('formanova_my_models') || '[]'); } catch { return []; }
-  });
+  const [myModels, setMyModels] = useState<UserModel[]>(loadMyModels);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // Persist my models to localStorage
-  useEffect(() => {
-    localStorage.setItem('formanova_my_models', JSON.stringify(myModels));
-  }, [myModels]);
+  // Persist my models to localStorage with versioning
+  useEffect(() => { saveMyModels(myModels); }, [myModels]);
 
   const activeModelUrl = customModelImage || selectedModel?.url || null;
 
@@ -975,10 +988,10 @@ export default function UnifiedStudio() {
               <div className="space-y-4">
                 <Tabs defaultValue={myModels.length > 0 ? 'my-models' : 'formanova'} className="w-full">
                   <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
-                    <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-background">
+                    <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                       My Models
                     </TabsTrigger>
-                    <TabsTrigger value="formanova" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-background">
+                    <TabsTrigger value="formanova" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                       Formanova Models
                     </TabsTrigger>
                   </TabsList>
@@ -1067,10 +1080,10 @@ export default function UnifiedStudio() {
                   <TabsContent value="formanova" className="space-y-4">
                     <Tabs defaultValue="ecom" className="w-full">
                       <TabsList className="w-full grid grid-cols-2 mb-3 bg-transparent border border-border/20 h-9">
-                        <TabsTrigger value="ecom" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-muted">
+                        <TabsTrigger value="ecom" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                           E-Commerce
                         </TabsTrigger>
-                        <TabsTrigger value="editorial" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-muted">
+                        <TabsTrigger value="editorial" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                           Editorial
                         </TabsTrigger>
                       </TabsList>

@@ -5,7 +5,6 @@ import { isCADEnabled } from '@/lib/feature-flags';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AssetGrid } from '@/components/vault/AssetGrid';
 import { useUserAssets } from '@/hooks/useUserAssets';
 import type { UserAsset } from '@/lib/assets-api';
@@ -50,25 +49,7 @@ function MyProductsTab() {
   );
 }
 
-function MyModelsTab() {
-  const navigate = useNavigate();
-  const { assets, isLoading, error } = useUserAssets('model_photo');
-
-  const handleReshoot = (asset: UserAsset) => {
-    navigate('/studio', { state: { preloadedModelUrl: asset.thumbnail_url, preloadedModelAssetId: asset.id } });
-  };
-
-  return (
-    <AssetGrid
-      assets={assets}
-      isLoading={isLoading}
-      error={error}
-      emptyMessage="No model photos yet. Upload a model face to get started."
-      onReshoot={handleReshoot}
-      reshootLabel="New Shoot"
-    />
-  );
-}
+// MyModelsTab removed — user-uploaded models live exclusively in the "Choose Your Model" page
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -173,20 +154,7 @@ export default function Dashboard() {
           My Vault
         </span>
 
-        <Tabs defaultValue="products">
-          <TabsList className="mb-6">
-            <TabsTrigger value="products">My Products</TabsTrigger>
-            <TabsTrigger value="models">My Models</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="products">
-            <MyProductsTab />
-          </TabsContent>
-
-          <TabsContent value="models">
-            <MyModelsTab />
-          </TabsContent>
-        </Tabs>
+        <MyProductsTab />
       </div>
     </div>
   );
