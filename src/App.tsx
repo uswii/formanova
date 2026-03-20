@@ -16,7 +16,7 @@ import { useVersionPolling } from '@/hooks/use-version-polling';
 
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 import { Loader2 } from "lucide-react";
-import { DevChunkErrorBomb } from '@/components/DevChunkErrorBomb';
+
 
 // Toast providers — deferred since toasts only fire on user interaction
 const Toaster = lazyWithRetry(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
