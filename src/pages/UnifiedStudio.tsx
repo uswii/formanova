@@ -1080,10 +1080,10 @@ export default function UnifiedStudio() {
                   <TabsContent value="formanova" className="space-y-4">
                     <Tabs defaultValue="ecom" className="w-full">
                       <TabsList className="w-full grid grid-cols-2 mb-3 bg-transparent border border-border/20 h-9">
-                        <TabsTrigger value="ecom" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-muted">
+                        <TabsTrigger value="ecom" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                           E-Commerce
                         </TabsTrigger>
-                        <TabsTrigger value="editorial" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-muted">
+                        <TabsTrigger value="editorial" className="font-mono text-[10px] uppercase tracking-[0.12em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                           Editorial
                         </TabsTrigger>
                       </TabsList>
