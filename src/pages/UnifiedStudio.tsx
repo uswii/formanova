@@ -594,6 +594,7 @@ export default function UnifiedStudio() {
     const trimmed = renameValue.trim();
     if (trimmed) {
       setMyModels(prev => prev.map(m => m.id === modelId ? { ...m, name: trimmed } : m));
+      setLocalPendingModels(prev => prev.map(m => m.id === modelId ? { ...m, name: trimmed } : m));
     }
     setRenamingId(null);
     setRenameValue('');
