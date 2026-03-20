@@ -77,7 +77,7 @@ export class ChunkErrorBoundary extends React.Component<Props, State> {
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
             className="max-w-md w-full mx-6 rounded-lg border border-border bg-card shadow-2xl p-8"
           >
-            <div className="space-y-6 text-center">
+            <div className="space-y-6">
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
                 We updated Formanova while you were generating. Your generation
                 is still processing and will be saved to your history

@@ -38,7 +38,7 @@ export function UpdateBanner({ visible, onRefresh, onDismiss }: Props) {
               <X className="w-4 h-4" />
             </button>
 
-            <div className="space-y-6 text-center">
+            <div className="space-y-6">
               <div className="space-y-3">
                 <p className="font-display text-lg md:text-xl uppercase tracking-wider text-foreground">
                   Formanova has been updated.
