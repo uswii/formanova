@@ -44,7 +44,7 @@ import { useCreditPreflight } from '@/hooks/use-credit-preflight';
 import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
-import ExampleGuidePanel from '@/components/bulk/ExampleGuidePanel';
+// ExampleGuidePanel removed — guide is inline
 
 // Example images for inline Upload Guide
 import necklaceAllowed1 from '@/assets/examples/necklace-allowed-1.jpg';
