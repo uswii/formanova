@@ -1181,23 +1181,20 @@ export default function UnifiedStudio() {
                         {/* Pinterest-style category cards — sit inside the grid, images flow around */}
                         <div className="row-span-3 flex flex-col gap-1.5">
                           {([
-                            { key: 'ecom' as const, label: 'E-Commerce', count: ECOM_MODELS.length },
-                            { key: 'editorial' as const, label: 'Editorial', count: EDITORIAL_MODELS.length },
+                            { key: 'ecom' as const, label: 'E-Commerce' },
+                            { key: 'editorial' as const, label: 'Editorial' },
                           ]).map((cat) => (
                             <button
                               key={cat.key}
                               onClick={() => setFormanovaCategory(cat.key)}
-                              className={`w-full px-3 py-3.5 text-left transition-all duration-200 border ${
+                              className={`w-full px-3 py-3 text-left transition-all duration-200 ${
                                 formanovaCategory === cat.key
-                                  ? 'border-foreground/20 bg-foreground/8 text-foreground'
-                                  : 'border-border/20 bg-card/20 text-muted-foreground/50 hover:text-foreground hover:border-foreground/15 hover:bg-foreground/3'
+                                  ? 'bg-foreground text-background'
+                                  : 'bg-transparent text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5'
                               }`}
                             >
                               <span className="block font-mono text-[10px] uppercase tracking-[0.12em] leading-tight">
                                 {cat.label}
-                              </span>
-                              <span className="block font-mono text-[9px] text-muted-foreground/40 mt-1">
-                                {cat.count} models
                               </span>
                             </button>
                           ))}
