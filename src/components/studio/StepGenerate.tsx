@@ -96,7 +96,8 @@ export function StepGenerate({ state, updateState, onBack }: Props) {
         false
       );
 
-      const genStartTime = Date.now();
+      _wfId = workflow_id;
+      _genStart = Date.now();
       markGenerationStarted(workflow_id);
       console.log('[Generation] Started workflow:', workflow_id);
 
