@@ -1,7 +1,28 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { getStoredToken } from '@/lib/auth-api';
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+const DEPLOY_SAFETY_POLL_MS = 10_000; // re-check every 10s while deploy unsafe
+
+/**
+ * Checks /api/admin/active-generations to see if it's safe to prompt a refresh.
+ * Returns true if safe (or if the endpoint is unavailable — fail-open).
+ */
+async function isDeploySafe(): Promise<boolean> {
+  try {
+    const token = getStoredToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch('/api/admin/active-generations', { method: 'GET', headers });
+    if (!res.ok) return true; // fail-open: endpoint missing or errored → allow banner
+    const data = await res.json();
+    return data.safe_to_deploy !== false; // treat missing field as safe
+  } catch {
+    return true; // network error → fail-open
+  }
+}
 
 /**
  * Polls /version.json and surfaces a non-intrusive update banner
@@ -9,11 +30,36 @@ const POLL_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
  *
  * Generation-aware: defers the banner while a generation is in progress
  * and shows it once the generation completes.
+ *
+ * Deploy-safe: when a version change is detected, checks the backend
+ * active-generations endpoint before showing the banner.
  */
 export function useVersionPolling() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const initialVersion = useRef<string | null>(null);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
+
+  // Cleanup safety timer on unmount
+  useEffect(() => {
+    return () => {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    };
+  }, []);
+
+  /**
+   * Once we know the version changed and local generation is idle,
+   * poll the deploy-safety endpoint before surfacing the banner.
+   */
+  const waitForDeploySafety = useCallback(async () => {
+    const safe = await isDeploySafe();
+    if (safe) {
+      setUpdateAvailable(true);
+    } else {
+      // Re-poll after a short delay
+      safetyTimerRef.current = setTimeout(waitForDeploySafety, DEPLOY_SAFETY_POLL_MS);
+    }
+  }, []);
 
   const checkVersion = useCallback(async () => {
     try {
@@ -29,14 +75,15 @@ export function useVersionPolling() {
       }
 
       if (version !== initialVersion.current) {
-        // If generation in progress, defer — the flag listener below will catch it
+        // If generation in progress locally, defer — the event listener will catch it
         if ((window as any).__generationInProgress) return;
-        setUpdateAvailable(true);
+        // Check backend safety before showing banner
+        waitForDeploySafety();
       }
     } catch {
       // Network error — silently ignore
     }
-  }, []);
+  }, [waitForDeploySafety]);
 
   // Poll on interval
   useEffect(() => {
