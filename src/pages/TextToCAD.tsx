@@ -812,7 +812,7 @@ export default function TextToCAD() {
       const blob = await canvasRef.current.exportSceneRawBlob();
       const formData = new FormData();
       formData.append('glb', blob, 'scene.glb');
-      const response = await fetch('/estimate_weight', {
+      const response = await authenticatedFetch('/estimate_weight', {
         method: 'POST',
         body: formData,
       });
@@ -866,7 +866,7 @@ export default function TextToCAD() {
       formData.append('glb', blob, 'scene.glb');
       formData.append('voxel_size_mm', String(voxelSizeMm));
 
-      const response = await fetch('/prepare_stl', {
+      const response = await authenticatedFetch('/prepare_stl', {
         method: 'POST',
         body: formData,
       });
