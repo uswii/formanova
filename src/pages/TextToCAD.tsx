@@ -815,7 +815,6 @@ export default function TextToCAD() {
       const response = await authenticatedFetch('/estimate_weight', {
         method: 'POST',
         body: formData,
-        headers: { 'x-api-key': 'tap_live_CJ0xKo9ARLqkzobVdSd5zVlDDbL0nSUr_iGTH1ngDkk' },
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -870,7 +869,6 @@ export default function TextToCAD() {
       const response = await authenticatedFetch('/prepare_stl', {
         method: 'POST',
         body: formData,
-        headers: { 'x-api-key': 'tap_live_CJ0xKo9ARLqkzobVdSd5zVlDDbL0nSUr_iGTH1ngDkk' },
       });
       const result = await response.json().catch(() => ({}));
 
