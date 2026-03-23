@@ -7,6 +7,13 @@ export function isCADEnabled(_userEmail: string | undefined | null): boolean {
   return true;
 }
 
+const ALT_PRODUCT_UPLOAD_EMAILS = ['uswa@raresense.so'];
+
+export function isAltProductUploadEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return ALT_PRODUCT_UPLOAD_EMAILS.includes(email.toLowerCase());
+}
+
 /**
  * Toggle to show/hide the Edit, Rebuild Part, and Add-On tools
  * in the Text-to-CAD left panel. Set to true to re-enable.

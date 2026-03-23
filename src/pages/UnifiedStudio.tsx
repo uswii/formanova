@@ -46,6 +46,7 @@ import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
+import { isAltProductUploadEnabled } from '@/lib/feature-flags';
 // ExampleGuidePanel removed — guide is inline
 
 // Example images for inline Upload Guide
@@ -185,10 +186,16 @@ export default function UnifiedStudio() {
   const { checkCredits, showInsufficientModal, dismissModal, preflightResult, checking: preflightChecking } = useCreditPreflight();
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
+  const altProductUploadEnabled = isAltProductUploadEnabled(user?.email);
 
   const [currentStep, setCurrentStep] = useState<StudioStep>(() => getStepFromQuery(searchParams.get('step')));
   const [showFlaggedDialog, setShowFlaggedDialog] = useState(false);
   const step2Ref = useRef<HTMLDivElement>(null);
+  const productsGridMeasureRef = useRef<HTMLDivElement>(null);
+  const [uploadCanvasHeight, setUploadCanvasHeight] = useState<number | null>(null);
+  const [myProductAssets, setMyProductAssets] = useState<UserAsset[]>([]);
+  const [myProductsLoading, setMyProductsLoading] = useState(false);
+  const [myProductsError, setMyProductsError] = useState<string | null>(null);
 
   // Jewelry image
   const jewelryInputRef = useRef<HTMLInputElement>(null);
@@ -656,6 +663,159 @@ export default function UnifiedStudio() {
   const isFlagged = validationResult && !validationResult.is_acceptable;
   const acceptableExample = ACCEPTABLE_EXAMPLES[jewelryType] || necklaceAllowed3;
   const canProceed = jewelryImage && !isValidating;
+  const guideExamples = CATEGORY_EXAMPLES[exampleCategoryType] || CATEGORY_EXAMPLES.necklace;
+  const altGuideImages = [guideExamples.allowed[0], guideExamples.notAllowed[0]].filter(Boolean);
+
+  useEffect(() => {
+    if (!altProductUploadEnabled || currentStep !== 'upload') return;
+
+    let cancelled = false;
+    setMyProductsLoading(true);
+    setMyProductsError(null);
+
+    fetchUserAssets('jewelry_photo', 0, 24)
+      .then((data) => {
+        if (cancelled) return;
+        setMyProductAssets(data.items);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setMyProductsError(error instanceof Error ? error.message : 'Failed to load jewelry assets');
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setMyProductsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [altProductUploadEnabled, currentStep]);
+
+  useEffect(() => {
+    if (!altProductUploadEnabled || currentStep !== 'upload') {
+      setUploadCanvasHeight(null);
+      return;
+    }
+
+    const node = productsGridMeasureRef.current;
+    if (!node || typeof window === 'undefined') return;
+
+    const updateHeight = () => {
+      if (window.innerWidth < 1024) {
+        setUploadCanvasHeight(null);
+        return;
+      }
+      const nextHeight = Math.max(Math.ceil(node.getBoundingClientRect().height), 560);
+      setUploadCanvasHeight(nextHeight);
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(node);
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, [altProductUploadEnabled, currentStep, myProductAssets.length, myProductsLoading, myProductsError]);
+
+  const handleSelectProductAsset = (asset: UserAsset) => {
+    setJewelryImage(asset.thumbnail_url);
+    setJewelryFile(null);
+    setJewelryUploadedUrl(asset.thumbnail_url);
+    setJewelryAssetId(asset.id);
+    setValidationResult(null);
+    clearValidation();
+  };
+
+  const UploadCanvasGuideBackground = () => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-background/72 via-background/54 to-background/72" />
+      <div className="absolute -left-4 top-5 h-40 w-28 rotate-[-7deg] border border-primary/15 bg-background/20 shadow-[0_18px_60px_-35px_rgba(0,0,0,0.45)] sm:h-48 sm:w-32">
+        <img
+          src={altGuideImages[0]}
+          alt=""
+          aria-hidden="true"
+          className="h-full w-full object-cover opacity-35 blur-[1.5px]"
+        />
+        <div className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary shadow-lg">
+          <Check className="h-4 w-4 text-primary-foreground" />
+        </div>
+      </div>
+      {altGuideImages[1] && (
+        <div className="absolute -right-3 bottom-7 h-36 w-24 rotate-[8deg] border border-destructive/20 bg-background/20 shadow-[0_18px_60px_-35px_rgba(0,0,0,0.45)] sm:h-44 sm:w-28">
+          <img
+            src={altGuideImages[1]}
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover opacity-30 blur-[1.75px]"
+          />
+          <div className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-destructive shadow-lg">
+            <X className="h-4 w-4 text-destructive-foreground" />
+          </div>
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/70 to-transparent" />
+    </div>
+  );
+
+  const MyProductsLibraryGrid = () => {
+    if (myProductsLoading) {
+      return (
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="aspect-[3/4] border border-border/20 bg-muted/30 animate-pulse" />
+          ))}
+        </div>
+      );
+    }
+
+    if (myProductsError) {
+      return <p className="text-sm text-destructive">{myProductsError}</p>;
+    }
+
+    if (myProductAssets.length === 0) {
+      return (
+        <div className="flex min-h-[220px] items-center justify-center border border-dashed border-border/30 bg-muted/10 px-6 text-center">
+          <p className="max-w-[26ch] text-sm text-muted-foreground">
+            No jewelry photos yet. Upload a product image to start your first shoot.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-3 gap-3">
+        {myProductAssets.map((asset) => {
+          const isActive = jewelryAssetId === asset.id || jewelryUploadedUrl === asset.thumbnail_url;
+          return (
+            <button
+              key={asset.id}
+              onClick={() => handleSelectProductAsset(asset)}
+              className={`group relative aspect-[3/4] overflow-hidden border transition-all duration-200 ${
+                isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
+              }`}
+            >
+              <img
+                src={asset.thumbnail_url}
+                alt={asset.name ?? 'Jewelry product'}
+                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+              {isActive && (
+                <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+                  <div className="flex h-6 w-6 items-center justify-center bg-foreground">
+                    <Check className="h-3.5 w-3.5 text-background" />
+                  </div>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   // ─── Formanova Model Grid (no upload card) ────────────────────────
 
@@ -789,158 +949,282 @@ export default function UnifiedStudio() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Step 1 Header */}
-            <div className="mb-6">
-              <span className="marta-label">Step 1</span>
-              <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-                Upload Your Jewelry
-              </h1>
-              <p className="text-muted-foreground mt-1.5 text-sm">
-                Upload a photo of your jewelry <strong>worn on a person or mannequin</strong>
-              </p>
-            </div>
-
-            {/* Layout — Upload LEFT (2/3), Guide Sidebar RIGHT (1/3) — mirrors old StepUploadMark */}
-            <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
-              {/* ── Main Column: Upload Zone (2/3) ── */}
-              <div className="lg:col-span-2">
-                {!jewelryImage ? (
-                  /* Empty state — drop zone */
-                  <div
-                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onClick={() => jewelryInputRef.current?.click()}
-                    className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all flex flex-col items-center justify-center min-h-[500px] md:min-h-[640px]"
-                  >
-                    <div className="relative mx-auto w-20 h-20 mb-6">
-                      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
-                      <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
-                        <Diamond className="h-9 w-9 text-primary" />
-                      </div>
-                    </div>
-                    <p className="text-lg font-display font-medium mb-1.5">Drop your jewelry image here</p>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      Drag & drop · click to browse · paste (Ctrl+V)
+            {altProductUploadEnabled ? (
+              <div className="grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,1fr)] lg:items-start lg:gap-10">
+                <div className="flex min-w-0 flex-col">
+                  <div className="mb-6">
+                    <span className="marta-label">Step 1</span>
+                    <h1 className="mt-2 font-display text-3xl uppercase tracking-tight md:text-4xl">
+                      Upload Your Jewelry
+                    </h1>
+                    <p className="mt-1.5 text-sm text-muted-foreground">
+                      Upload a photo of your jewelry <strong>worn on a person or mannequin</strong>
                     </p>
-                    <Button variant="outline" size="lg" className="gap-2">
-                      <ImageIcon className="h-4 w-4" />
-                      Browse Files
-                    </Button>
-                    <input
-                      ref={jewelryInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJewelryUpload(f); }}
-                    />
                   </div>
-                ) : (
-                  /* Uploaded state — image preview */
-                  <div className="space-y-4">
-                    <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[500px] md:min-h-[640px] border-border/30">
-                      <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
-                      <button
-                        onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
-                        className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
+                  <div className="flex flex-1 flex-col">
+                    {!jewelryImage ? (
+                      <div
+                        onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onClick={() => jewelryInputRef.current?.click()}
+                        className="group relative flex min-h-[500px] flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden border border-dashed border-border/40 bg-gradient-to-br from-background via-muted/20 to-background px-8 py-10 text-center transition-all hover:border-foreground/40 hover:bg-foreground/[0.03] md:min-h-[640px]"
+                        style={uploadCanvasHeight ? { minHeight: `${uploadCanvasHeight}px` } : undefined}
                       >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-
-                      {isValidating && (
-                        <div className="absolute top-3 left-3 bg-muted/90 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 rounded-sm">
-                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                          <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
+                        <UploadCanvasGuideBackground />
+                        <div className="relative z-10 flex max-w-md flex-col items-center">
+                          <div className="relative mx-auto mb-6 h-20 w-20">
+                            <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
+                            <div className="absolute inset-0 flex items-center justify-center rounded-full border-2 border-primary/20 bg-primary/5 backdrop-blur-sm">
+                              <Diamond className="h-9 w-9 text-primary" />
+                            </div>
+                          </div>
+                          <p className="mb-1.5 text-lg font-display font-medium">Drop your jewelry image here</p>
+                          <p className="mb-6 text-sm text-muted-foreground">
+                            Drag & drop · click to browse · paste (Ctrl+V)
+                          </p>
+                          <Button variant="outline" size="lg" className="gap-2 bg-background/85 backdrop-blur-sm">
+                            <ImageIcon className="h-4 w-4" />
+                            Browse Files
+                          </Button>
                         </div>
-                      )}
-                      {!isValidating && validationResult && !isFlagged && (
-                        <div className="absolute top-3 left-3 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-sm">
-                          <Check className="h-3 w-3 text-primary" />
-                          <span className="font-mono text-[9px] tracking-wider uppercase text-primary">Accepted</span>
+                        <input
+                          ref={jewelryInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJewelryUpload(f); }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div
+                          className="relative flex min-h-[500px] flex-1 items-center justify-center overflow-hidden border border-border/30 bg-gradient-to-br from-background via-muted/10 to-background px-6 py-8 md:min-h-[640px]"
+                          style={uploadCanvasHeight ? { minHeight: `${uploadCanvasHeight}px` } : undefined}
+                        >
+                          <UploadCanvasGuideBackground />
+                          <img src={jewelryImage} alt="Jewelry" className="relative z-10 max-h-[520px] max-w-full object-contain" />
+
+                          <button
+                            onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
+                            className="absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-sm border border-border/40 bg-background/85 backdrop-blur-sm transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+
+                          {isValidating && (
+                            <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-sm bg-muted/90 px-2.5 py-1 backdrop-blur-sm">
+                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
+                            </div>
+                          )}
+                          {!isValidating && validationResult && !isFlagged && (
+                            <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-sm border border-primary/20 bg-primary/10 px-2.5 py-1 backdrop-blur-sm">
+                              <Check className="h-3 w-3 text-primary" />
+                              <span className="font-mono text-[9px] tracking-wider uppercase text-primary">Accepted</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
+                    {jewelryImage && (
+                      <div className="flex items-center justify-end gap-3 pt-4">
+                        <Button
+                          size="lg"
+                          onClick={handleNextStep}
+                          disabled={!canProceed}
+                          className="gap-2.5 border-0 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] px-10 font-display text-base uppercase tracking-wide text-background transition-opacity hover:opacity-90 disabled:from-[hsl(var(--formanova-hero-accent))] disabled:to-[hsl(var(--formanova-glow))] disabled:opacity-60"
+                        >
+                          {isValidating ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Validating…
+                            </>
+                          ) : (
+                            <>
+                              Next
+                              <ArrowRight className="h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {/* Next button — inline below upload canvas */}
-                {jewelryImage && (
-                  <div className="flex items-center justify-end gap-3 pt-4">
-                    <Button
-                      size="lg"
-                      onClick={handleNextStep}
-                      disabled={!canProceed}
-                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:from-[hsl(var(--formanova-hero-accent))] disabled:to-[hsl(var(--formanova-glow))]"
-                    >
-                      {isValidating ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Validating…
-                        </>
-                      ) : (
-                        <>
-                          Next
-                          <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
+                <div className="flex min-w-0 flex-col">
+                  <div className="mb-6">
+                    <span className="marta-label">Library</span>
+                    <h2 className="mt-2 font-display text-3xl uppercase tracking-tight md:text-4xl">
+                      My Products
+                    </h2>
+                    <p className="mt-1.5 text-sm text-muted-foreground">
+                      Reuse jewelry photos from your existing product library.
+                    </p>
                   </div>
-                )}
+
+                  <div ref={productsGridMeasureRef} className="min-w-0">
+                    <MyProductsLibraryGrid />
+                  </div>
+                </div>
               </div>
-
-              {/* ── Sidebar: Upload Guide (1/3) — mirrors old Examples sidebar ── */}
-              <div className="space-y-7">
-                {/* Guide heading — matches old "Gallery" marta-label style */}
-                <div>
-                  <span className="marta-label mb-2 block">Guide</span>
-                  <h3 className="font-display text-2xl uppercase tracking-tight">Upload Guide</h3>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Follow these guidelines for best results.
+            ) : (
+              <>
+                {/* Step 1 Header */}
+                <div className="mb-6">
+                  <span className="marta-label">Step 1</span>
+                  <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
+                    Upload Your Jewelry
+                  </h1>
+                  <p className="text-muted-foreground mt-1.5 text-sm">
+                    Upload a photo of your jewelry <strong>worn on a person or mannequin</strong>
                   </p>
                 </div>
 
-                {/* Accepted examples */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-2.5 h-2.5 text-green-500" />
-                    </div>
-                    <span className="text-xs font-medium text-foreground">Accepted</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(CATEGORY_EXAMPLES[exampleCategoryType]?.allowed || []).map((img, i) => (
-                      <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
-                        <img src={img} alt={`Accepted ${i + 1}`} className="w-full h-full object-cover" />
-                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-white" />
+                {/* Layout — Upload LEFT (2/3), Guide Sidebar RIGHT (1/3) — mirrors old StepUploadMark */}
+                <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
+                  {/* ── Main Column: Upload Zone (2/3) ── */}
+                  <div className="lg:col-span-2">
+                    {!jewelryImage ? (
+                      /* Empty state — drop zone */
+                      <div
+                        onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleJewelryUpload(f); }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onClick={() => jewelryInputRef.current?.click()}
+                        className="relative border border-dashed border-border/40 text-center cursor-pointer hover:border-foreground/40 hover:bg-foreground/5 transition-all flex flex-col items-center justify-center min-h-[500px] md:min-h-[640px]"
+                      >
+                        <div className="relative mx-auto w-20 h-20 mb-6">
+                          <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
+                          <div className="absolute inset-0 rounded-full bg-primary/5 flex items-center justify-center border-2 border-primary/20">
+                            <Diamond className="h-9 w-9 text-primary" />
+                          </div>
                         </div>
+                        <p className="text-lg font-display font-medium mb-1.5">Drop your jewelry image here</p>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          Drag & drop · click to browse · paste (Ctrl+V)
+                        </p>
+                        <Button variant="outline" size="lg" className="gap-2">
+                          <ImageIcon className="h-4 w-4" />
+                          Browse Files
+                        </Button>
+                        <input
+                          ref={jewelryInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJewelryUpload(f); }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    ) : (
+                      /* Uploaded state — image preview */
+                      <div className="space-y-4">
+                        <div className="relative border overflow-hidden flex items-center justify-center bg-muted/20 min-h-[500px] md:min-h-[640px] border-border/30">
+                          <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-[520px] object-contain" />
 
-                {/* Not accepted examples */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                      <X className="w-2.5 h-2.5 text-destructive" />
-                    </div>
-                    <span className="text-xs font-medium text-foreground">Not Accepted</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(CATEGORY_EXAMPLES[exampleCategoryType]?.notAllowed || []).map((img, i) => (
-                      <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-destructive/30 bg-muted/20">
-                        <img src={img} alt={`Not accepted ${i + 1}`} className="w-full h-full object-cover opacity-70" />
-                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center">
-                          <X className="w-2.5 h-2.5 text-white" />
+                          <button
+                            onClick={() => { clearStudioSession(); setJewelryImage(null); setJewelryFile(null); setValidationResult(null); setJewelryUploadedUrl(null); setJewelryAssetId(null); clearValidation(); if ((currentStep as string) === 'model') setCurrentStep('upload'); }}
+                            className="absolute top-3 right-3 w-7 h-7 bg-background/80 backdrop-blur-sm flex items-center justify-center border border-border/40 hover:bg-destructive hover:text-destructive-foreground transition-colors z-10 rounded-sm"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+
+                          {isValidating && (
+                            <div className="absolute top-3 left-3 bg-muted/90 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 rounded-sm">
+                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">Validating…</span>
+                            </div>
+                          )}
+                          {!isValidating && validationResult && !isFlagged && (
+                            <div className="absolute top-3 left-3 backdrop-blur-sm px-2.5 py-1 flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-sm">
+                              <Check className="h-3 w-3 text-primary" />
+                              <span className="font-mono text-[9px] tracking-wider uppercase text-primary">Accepted</span>
+                            </div>
+                          )}
                         </div>
+
                       </div>
-                    ))}
+                    )}
+
+                    {/* Next button — inline below upload canvas */}
+                    {jewelryImage && (
+                      <div className="flex items-center justify-end gap-3 pt-4">
+                        <Button
+                          size="lg"
+                          onClick={handleNextStep}
+                          disabled={!canProceed}
+                          className="gap-2.5 font-display text-base uppercase tracking-wide px-10 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60 disabled:from-[hsl(var(--formanova-hero-accent))] disabled:to-[hsl(var(--formanova-glow))]"
+                        >
+                          {isValidating ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Validating…
+                            </>
+                          ) : (
+                            <>
+                              Next
+                              <ArrowRight className="h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Sidebar: Upload Guide (1/3) — mirrors old Examples sidebar ── */}
+                  <div className="space-y-7">
+                    {/* Guide heading — matches old "Gallery" marta-label style */}
+                    <div>
+                      <span className="marta-label mb-2 block">Guide</span>
+                      <h3 className="font-display text-2xl uppercase tracking-tight">Upload Guide</h3>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        Follow these guidelines for best results.
+                      </p>
+                    </div>
+
+                    {/* Accepted examples */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-2.5 h-2.5 text-green-500" />
+                        </div>
+                        <span className="text-xs font-medium text-foreground">Accepted</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(CATEGORY_EXAMPLES[exampleCategoryType]?.allowed || []).map((img, i) => (
+                          <div key={`ok-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
+                            <img src={img} alt={`Accepted ${i + 1}`} className="w-full h-full object-cover" />
+                            <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                              <Check className="w-2.5 h-2.5 text-white" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Not accepted examples */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                          <X className="w-2.5 h-2.5 text-destructive" />
+                        </div>
+                        <span className="text-xs font-medium text-foreground">Not Accepted</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(CATEGORY_EXAMPLES[exampleCategoryType]?.notAllowed || []).map((img, i) => (
+                          <div key={`no-${i}`} className="relative aspect-[3/4] overflow-hidden border border-destructive/30 bg-muted/20">
+                            <img src={img} alt={`Not accepted ${i + 1}`} className="w-full h-full object-cover opacity-70" />
+                            <div className="absolute bottom-1 right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center">
+                              <X className="w-2.5 h-2.5 text-white" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </motion.div>
         )}
 
