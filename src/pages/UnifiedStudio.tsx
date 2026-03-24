@@ -1185,7 +1185,7 @@ export default function UnifiedStudio() {
                         {/* Upload card — always first */}
                         <button
                           onClick={() => modelInputRef.current?.click()}
-                          className="group relative h-32 overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
+                          className="group relative aspect-[3/4] overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
                         >
                           <Upload className="h-5 w-5 text-muted-foreground/40" />
                           <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
@@ -1200,11 +1200,11 @@ export default function UnifiedStudio() {
                             <div key={model.id} className="relative group">
                               <button
                                 onClick={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); }}
-                                className={`relative h-32 overflow-hidden border transition-all w-full ${
+                                className={`relative overflow-hidden border transition-all w-full ${
                                   isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
                                 }`}
                               >
-                                <img src={model.url} alt={model.name} className="w-full h-full object-contain bg-muted/10" loading="lazy" />
+                                <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
                                 {isActive && (
                                   <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
                                     <div className="w-6 h-6 bg-foreground flex items-center justify-center">
@@ -1264,14 +1264,14 @@ export default function UnifiedStudio() {
                             <div key={model.id} className="break-inside-avoid mb-2">
                               <button
                                 onClick={() => handleSelectLibraryModel(model)}
-                                className={`group relative h-32 overflow-hidden border transition-all duration-200 w-full ${
+                                className={`group relative overflow-hidden border transition-all duration-200 w-full ${
                                   isSelected ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
                                 }`}
                               >
                                 <img
                                   src={model.url}
                                   alt={model.label}
-                                  className="w-full h-full object-contain bg-muted/10 group-hover:scale-105 transition-transform duration-300"
+                                  className="w-full block group-hover:scale-105 transition-transform duration-300"
                                   loading="lazy"
                                 />
                                 {isSelected && (

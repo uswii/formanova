@@ -317,7 +317,7 @@ export function AlternateUploadStep({
             {isLoading && (
               <div className={`${CANVAS_H} border border-border/30 grid grid-cols-3 gap-2 content-start p-2`}>
                 {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} className="h-32 bg-muted animate-pulse" />
+                  <div key={i} className="aspect-[3/4] bg-muted animate-pulse" />
                 ))}
               </div>
             )}
@@ -336,7 +336,7 @@ export function AlternateUploadStep({
                         key={asset.id}
                         type="button"
                         onClick={() => onProductSelect(asset.thumbnail_url, asset.id)}
-                        className={`relative h-32 overflow-hidden border transition-all group
+                        className={`relative overflow-hidden border transition-all group
                           ${isSelected
                             ? 'border-[hsl(var(--formanova-hero-accent))]'
                             : 'border-border/20 hover:border-foreground/30'}`}
@@ -345,7 +345,7 @@ export function AlternateUploadStep({
                           src={asset.thumbnail_url}
                           alt={asset.name ?? 'Product'}
                           loading="lazy"
-                          className="w-full h-full object-contain bg-muted/10 transition-transform duration-300 group-hover:scale-105"
+                          className="w-full block transition-transform duration-300 group-hover:scale-105"
                         />
 
                         {isSelected && (
