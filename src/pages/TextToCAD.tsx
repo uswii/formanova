@@ -467,6 +467,7 @@ export default function TextToCAD() {
             || result["success_final"]?.[0]?.original_glb_artifact;
           const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
           const artifact = successFinalArtifact || successOriginalArtifact;
+          console.log('[TextToCAD] Generation result keys:', Object.keys(result), '| artifact:', artifact);
           if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
           throw new Error("No GLB model found in results");
         }
@@ -614,6 +615,7 @@ export default function TextToCAD() {
             || result["success_final"]?.[0]?.original_glb_artifact;
           const successOriginalArtifact = result["success_original_glb"]?.[0]?.original_glb_artifact;
           const artifact = successFinalArtifact || successOriginalArtifact;
+          console.log('[TextToCAD] Edit result keys:', Object.keys(result), '| artifact:', artifact);
           if (artifact?.uri) { glb_url = artifact.uri; setGlbArtifact(artifact); break; }
           throw new Error("No GLB model found");
         }
@@ -804,6 +806,7 @@ export default function TextToCAD() {
   }, [glbUrl]);
 
   const handleEstimateWeight = useCallback(async () => {
+    console.log('[Weight] glbArtifact state:', glbArtifact);
     if (!glbArtifact) {
       toast.error("No model artifact available — generate a model first");
       return;
