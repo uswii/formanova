@@ -429,25 +429,41 @@ export function AlternateUploadStep({
     {/* ── Flagged image popup — centered overlay ── */}
 
     {showFlagWarning && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-        <div className="bg-background border border-border/40 shadow-2xl max-w-sm w-full mx-4 p-8 flex flex-col items-center text-center gap-5">
-          {/* Cracked egg — SVG style matching theme selector icons */}
-          <svg width="52" height="52" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" strokeWidth="1.5"
-               strokeLinecap="round" strokeLinejoin="round"
-               className="text-primary" aria-hidden="true">
-            {/* Egg outline */}
-            <path d="M12 2.5C8 2.5 4.5 7 4.5 13C4.5 18 7.5 21.5 12 21.5C16.5 21.5 19.5 18 19.5 13C19.5 7 16 2.5 12 2.5Z" />
-            {/* Crack */}
-            <path d="M12 4L10 8L13.5 10L11.5 14" />
-          </svg>
-          <div className="space-y-2">
-            <p className="font-display text-xl uppercase tracking-wide">Sorry to bug you...</p>
-            <p className="text-sm text-muted-foreground leading-relaxed text-justify">
-              Photos where jewelry is worn on a person (could be anyone, even you!) generally produce better results. Product shots may not work as well.
-            </p>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+        <div className="bg-background border border-border/30 shadow-2xl max-w-md w-full mx-4 p-6 flex flex-col gap-5">
+
+          {/* Visual comparison — user's photo vs a worn example */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* User's image */}
+            <div className="flex flex-col gap-1.5">
+              <div className="overflow-hidden border border-border/30 bg-muted/10">
+                {jewelryImage && (
+                  <img src={jewelryImage} alt="Your photo" className="w-full block" />
+                )}
+              </div>
+              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
+                Your photo
+              </span>
+            </div>
+
+            {/* Worn example */}
+            <div className="flex flex-col gap-1.5">
+              <div className="overflow-hidden border border-border/30 bg-muted/10">
+                <img src={examples.allowed[0]} alt="Works better" className="w-full block" />
+              </div>
+              <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
+                Works better
+              </span>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 w-full">
+
+          {/* Soft one-liner */}
+          <p className="text-sm text-muted-foreground text-center leading-relaxed">
+            Worn on a person tends to produce better results — could be anyone, even you.
+          </p>
+
+          {/* Actions */}
+          <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
               size="lg"
