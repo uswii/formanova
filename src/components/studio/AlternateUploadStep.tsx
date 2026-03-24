@@ -79,7 +79,8 @@ function UploadGuidePanel({
   canvasH: string;
 }) {
   return (
-    <div className={`${canvasH} overflow-y-auto space-y-5`}>
+    <div className={`${canvasH} overflow-y-auto`}>
+    <div className="space-y-5">
       {/* Accepted */}
       <div className="space-y-2">
         <div className="flex items-center gap-1.5">
@@ -119,6 +120,7 @@ function UploadGuidePanel({
           ))}
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -302,17 +304,16 @@ export function AlternateUploadStep({
       {/* ══════════════════════════════════════════════════════════════
           RIGHT — Upload Guide / My Products  (1 / 3)
           ══════════════════════════════════════════════════════════════ */}
-      <div className="space-y-7">
+      <div className="flex flex-col gap-4">
 
         <div className="flex items-start justify-between gap-2">
           <div>
-            <span className="marta-label mb-2 block">
-              {showGuide ? 'Guide' : 'Vault'}
-            </span>
-            <h3 className="font-display text-2xl uppercase tracking-tight">
+            {/* Invisible spacer mirrors "Step 1" label so headings align */}
+            <span className="marta-label block mb-1 invisible" aria-hidden="true">Step 1</span>
+            <h3 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
               {showGuide ? 'Upload Guide' : 'My Products'}
             </h3>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-muted-foreground mt-1.5 text-sm">
               {showGuide ? 'Follow these guidelines for best results.' : 'Previously uploaded jewelry'}
             </p>
           </div>
