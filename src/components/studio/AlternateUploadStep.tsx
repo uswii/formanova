@@ -443,7 +443,7 @@ export function AlternateUploadStep({
           </svg>
           <div className="space-y-2">
             <p className="font-display text-xl uppercase tracking-wide">Sorry to bug you...</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed text-justify">
               Photos where jewelry is worn on a person (could be anyone, even you!) generally produce better results. Product shots may not work as well.
             </p>
           </div>
