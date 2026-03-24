@@ -1069,7 +1069,7 @@ export default function UnifiedStudio() {
             <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
               {/* Left 2/3 — Model Preview Canvas */}
               <div className="lg:col-span-2 space-y-5">
-                <div className="border border-border/30 bg-muted/5 min-h-[420px] md:min-h-[520px] flex items-center justify-center relative overflow-hidden">
+                <div className="border border-border/30 bg-muted/5 h-[480px] md:h-[540px] flex items-center justify-center relative overflow-hidden">
                   {activeModelUrl ? (
                     <>
                       <img
@@ -1087,7 +1087,7 @@ export default function UnifiedStudio() {
                     </>
                   ) : (
                     <div
-                      className="text-center w-full h-full min-h-[420px] md:min-h-[520px] flex flex-col items-center justify-center cursor-pointer hover:bg-foreground/[0.02] transition-colors"
+                      className="text-center w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-foreground/[0.02] transition-colors"
                       onClick={() => modelInputRef.current?.click()}
                       onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleModelUpload(f); }}
                       onDragOver={(e) => e.preventDefault()}
@@ -1166,7 +1166,7 @@ export default function UnifiedStudio() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
+                      <div className="grid grid-cols-3 gap-3 h-[420px] md:h-[480px] overflow-y-auto pr-1 content-start">
                         {/* Upload card — always first */}
                         <button
                           onClick={() => modelInputRef.current?.click()}
@@ -1215,7 +1215,7 @@ export default function UnifiedStudio() {
 
                   {/* ── FORMANOVA MODELS TAB ── */}
                   <TabsContent value="formanova">
-                    <div className="max-h-[480px] overflow-y-auto pr-1">
+                    <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
                       {/*
                         CSS columns layout: content flows top-to-bottom in each column before
                         moving to the next. Category buttons anchor to the top of column 1,

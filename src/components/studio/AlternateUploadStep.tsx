@@ -79,7 +79,7 @@ function UploadGuidePanel({
   canvasH: string;
 }) {
   return (
-    <div className={`${canvasH} overflow-y-auto`}>
+    <div className={`${canvasH} overflow-y-auto border border-border/30 p-4`}>
     <div className="space-y-5">
       {/* Accepted */}
       <div className="space-y-2">
@@ -175,8 +175,8 @@ export function AlternateUploadStep({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const isEmpty = !isLoading && !error && assets.length === 0;
 
-  // Show guide when: test mode active, OR canvas has no image yet, OR no products exist
-  const showGuide = testMode || !jewelryImage || isEmpty;
+  // Show guide when: test mode active OR no products exist
+  const showGuide = testMode || isEmpty;
 
   const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
@@ -313,10 +313,9 @@ export function AlternateUploadStep({
 
         {/* ── Product library ── */}
         {!showGuide && (
-          <div className="flex flex-col gap-3">
-
+          <>
             {isLoading && (
-              <div className="grid grid-cols-3 gap-2">
+              <div className={`${CANVAS_H} border border-border/30 grid grid-cols-3 gap-2 content-start p-2`}>
                 {Array.from({ length: 9 }).map((_, i) => (
                   <div key={i} className="aspect-square bg-muted animate-pulse" />
                 ))}
@@ -328,7 +327,7 @@ export function AlternateUploadStep({
             )}
 
             {!isLoading && !error && assets.length > 0 && (
-              <div className={`${CANVAS_H} overflow-y-auto`}>
+              <div className={`${CANVAS_H} overflow-y-auto border border-border/30`}>
                 <div className="grid grid-cols-3 gap-2">
                   {assets.map((asset) => {
                     const isSelected = asset.id === activeProductAssetId;
@@ -421,7 +420,7 @@ export function AlternateUploadStep({
                 </button>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -443,9 +442,8 @@ export function AlternateUploadStep({
             <path d="M12 4L10 8L13.5 10L11.5 14" />
           </svg>
           <div className="space-y-2">
-            <p className="font-display text-xl uppercase tracking-wide">Almost there</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Worn looks best — could be you. Product shots often miss the mark.
+              Worn looks best. Could be you. Product shots often miss the mark.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 w-full">
@@ -455,7 +453,7 @@ export function AlternateUploadStep({
               onClick={onClearImage}
               className="font-mono text-[10px] uppercase tracking-widest"
             >
-              Go Back
+              Go Back and Fix
             </Button>
             <Button
               size="lg"
@@ -464,7 +462,7 @@ export function AlternateUploadStep({
                          bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
                          text-background hover:opacity-90 transition-opacity border-0"
             >
-              Continue
+              Continue Anyway
             </Button>
           </div>
         </div>
