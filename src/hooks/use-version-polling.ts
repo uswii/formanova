@@ -11,18 +11,19 @@ const DEPLOY_SAFETY_POLL_MS = 10_000; // re-check every 10s while deploy unsafe
  * Returns true if safe (or if the endpoint is unavailable — fail-open).
  */
 async function isDeploySafe(): Promise<boolean> {
-  try {
-    const token = getStoredToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch('/api/admin/active-generations', { method: 'GET', headers });
-    if (!res.ok) return true; // fail-open: endpoint missing or errored → allow banner
-    const data = await res.json();
-    return data.safe_to_deploy !== false; // treat missing field as safe
-  } catch {
-    return true; // network error → fail-open
-  }
+  // /api/admin/active-generations temporarily disabled — always safe
+  return true;
+  // try {
+  //   const token = getStoredToken();
+  //   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  //   if (token) headers['Authorization'] = `Bearer ${token}`;
+  //   const res = await fetch('/api/admin/active-generations', { method: 'GET', headers });
+  //   if (!res.ok) return true;
+  //   const data = await res.json();
+  //   return data.safe_to_deploy !== false;
+  // } catch {
+  //   return true;
+  // }
 }
 
 /**
