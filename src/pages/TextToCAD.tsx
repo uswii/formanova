@@ -810,20 +810,23 @@ export default function TextToCAD() {
     }
     setWeightLoading(true);
     try {
+      const weightPayload = {
+        data: { glb_artifact: glbArtifact, timeout_seconds: 60 },
+        meta: {},
+      };
+      console.log('[Weight] Request payload:', weightPayload);
       const startRes = await authenticatedFetch('/api/run/state/estimate_weight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: { glb_artifact: glbArtifact, timeout_seconds: 60 },
-          meta: {},
-        }),
+        body: JSON.stringify(weightPayload),
       });
+      const weightStartBody = await startRes.json().catch(() => ({}));
+      console.log('[Weight] Start response:', weightStartBody);
       if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}));
-        toast.error(err?.error || "Failed to start weight estimation");
+        toast.error(weightStartBody?.error || "Failed to start weight estimation");
         return;
       }
-      const { workflow_id } = await startRes.json();
+      const { workflow_id } = weightStartBody;
 
       // Poll until done (2s interval, ~2 min timeout)
       const POLL_INTERVAL = 2000;
@@ -838,6 +841,7 @@ export default function TextToCAD() {
           throw new Error(err?.error || "Polling failed");
         }
         const data = await pollRes.json();
+        console.log('[Weight] Poll response:', data);
         if (data?.status === 'running') continue;
         result = data;
         break;
@@ -879,20 +883,29 @@ export default function TextToCAD() {
     const voxelSizeMm = stlQuality === 'draft' ? 0.1 : stlQuality === 'high' ? 0.03 : 0.05;
     setStlExporting(true);
     try {
+      const stlPayload = {
+        data: {
+          glb_artifact: glbArtifact,
+          voxel_size_mm: voxelSizeMm,
+          island_min_fraction: 0.005,
+          decimate_ratio: 0.3,
+          timeout_seconds: 300,
+        },
+        meta: {},
+      };
+      console.log('[STL] Request payload:', stlPayload);
       const startRes = await authenticatedFetch('/api/run/state/prepare_stl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: { glb_artifact: glbArtifact, voxel_size_mm: voxelSizeMm },
-          meta: {},
-        }),
+        body: JSON.stringify(stlPayload),
       });
+      const stlStartBody = await startRes.json().catch(() => ({}));
+      console.log('[STL] Start response:', stlStartBody);
       if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}));
-        toast.error(err?.error || "Failed to start STL export");
+        toast.error(stlStartBody?.error || "Failed to start STL export");
         return;
       }
-      const { workflow_id } = await startRes.json();
+      const { workflow_id } = stlStartBody;
 
       // Poll until done (2s interval, ~5 min timeout for high quality)
       const POLL_INTERVAL = 2000;
@@ -907,6 +920,7 @@ export default function TextToCAD() {
           throw new Error(err?.error || "Polling failed");
         }
         const data = await pollRes.json();
+        console.log('[STL] Poll response:', data);
         if (data?.status === 'running') continue;
         result = data;
         break;
