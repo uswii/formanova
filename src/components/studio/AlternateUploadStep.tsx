@@ -1,15 +1,17 @@
 /**
  * AlternateUploadStep — internal experiment (gated via feature flag).
  *
- * Left  (2/3) — upload canvas with watermark guide background.
- * Right (1/3) — My Products library: numbered pages, selected-state indicator,
- *               empty-state upload prompt, same patterns as Step 2 My Models.
+ * Left  (2/3) — upload canvas.
+ * Right (1/3) — My Products library (or Upload Guide in test mode when empty).
+ *
+ * Test Mode (toggle, same gate): simulates the no-products empty state by
+ * swapping the right panel to the Upload Guide.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Check, X, Diamond, Upload, ArrowRight, Loader2,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, FlaskConical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
@@ -56,15 +58,14 @@ const CATEGORY_EXAMPLES: Record<string, { allowed: string[]; notAllowed: string[
 };
 
 // ── Pagination helper ─────────────────────────────────────────────────────────
-// Returns the page indices to display (numbers + '…' ellipsis markers).
 function buildPageList(current: number, total: number): (number | '…')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i);
   const pages: (number | '…')[] = [0];
-  if (current > 2)                      pages.push('…');
+  if (current > 2)          pages.push('…');
   const lo = Math.max(1, current - 1);
   const hi = Math.min(total - 2, current + 1);
-  for (let i = lo; i <= hi; i++)        pages.push(i);
-  if (current < total - 3)             pages.push('…');
+  for (let i = lo; i <= hi; i++) pages.push(i);
+  if (current < total - 3) pages.push('…');
   pages.push(total - 1);
   return pages;
 }
@@ -74,7 +75,6 @@ function buildPageList(current: number, total: number): (number | '…')[] {
 export interface AlternateUploadStepProps {
   exampleCategoryType: string;
   jewelryImage: string | null;
-  /** ID of the asset currently loaded in the canvas (for selection highlight). */
   activeProductAssetId: string | null;
   isValidating: boolean;
   validationResult: ImageValidationResult | null;
@@ -85,6 +85,54 @@ export interface AlternateUploadStepProps {
   onClearImage: () => void;
   onNextStep: () => void;
   onProductSelect: (thumbnailUrl: string, assetId: string) => void;
+}
+
+// ── Upload Guide panel (used in test mode empty state) ────────────────────────
+
+function UploadGuidePanel({
+  examples,
+  canvasH,
+}: {
+  examples: { allowed: string[]; notAllowed: string[] };
+  canvasH: string;
+}) {
+  return (
+    <div className={`${canvasH} border border-border/30 overflow-hidden flex flex-col`}>
+      {/* Row 1 — Accepted */}
+      <div className="flex-1 grid grid-cols-3 relative min-h-0">
+        <span className="absolute top-2 left-2 z-10 font-mono text-[8px] tracking-[0.25em] uppercase
+                          text-foreground/50 pointer-events-none select-none">Accepted</span>
+        {examples.allowed.map((src, i) => (
+          <div key={`ok-${i}`} className="relative overflow-hidden border-r border-border/10 last:border-r-0">
+            <img src={src} alt="" draggable={false}
+                 className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute top-2 right-2 z-10 bg-background/85 border border-green-500/50
+                            flex items-center justify-center w-5 h-5">
+              <Check className="w-3 h-3 text-green-500" strokeWidth={2.5} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="h-px bg-border/20 flex-shrink-0" />
+
+      {/* Row 2 — Not Accepted */}
+      <div className="flex-1 grid grid-cols-3 relative min-h-0">
+        <span className="absolute top-2 left-2 z-10 font-mono text-[8px] tracking-[0.25em] uppercase
+                          text-foreground/50 pointer-events-none select-none">Not Accepted</span>
+        {examples.notAllowed.map((src, i) => (
+          <div key={`no-${i}`} className="relative overflow-hidden border-r border-border/10 last:border-r-0">
+            <img src={src} alt="" draggable={false}
+                 className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute top-2 right-2 z-10 bg-background/85 border border-destructive/50
+                            flex items-center justify-center w-5 h-5">
+              <X className="w-3 h-3 text-destructive" strokeWidth={2.5} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -105,10 +153,23 @@ export function AlternateUploadStep({
 }: AlternateUploadStepProps) {
   const examples = CATEGORY_EXAMPLES[exampleCategoryType] ?? CATEGORY_EXAMPLES['necklace'];
 
+  const [testMode, setTestMode] = useState(false);
+  const [flagAcknowledged, setFlagAcknowledged] = useState(false);
+
+  // Reset acknowledgement whenever the image changes
+  React.useEffect(() => {
+    setFlagAcknowledged(false);
+  }, [jewelryImage]);
+
   const PAGE_SIZE = 10;
   const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const isEmpty = !isLoading && !error && assets.length === 0;
+
+  // In test mode, always treat library as empty (simulate no-products state)
+  const showGuide = testMode || isEmpty;
+
+  const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
   // Shared height — locks both columns to the same vertical bounds.
   const CANVAS_H = 'h-[480px] md:h-[540px]';
@@ -133,62 +194,16 @@ export function AlternateUploadStep({
 
         <div className={`relative border border-border/30 overflow-hidden ${CANVAS_H}`}>
 
-          {/* ── WATERMARK BACKGROUND ── */}
-          {!jewelryImage && (
-            <div aria-hidden="true" className="absolute inset-0 flex flex-col" style={{ zIndex: 0 }}>
-
-              {/* Row 1 — Accepted */}
-              <div className="flex-1 grid grid-cols-3 relative min-h-0">
-                <span className="absolute top-2 left-2 z-10 font-mono text-[8px] tracking-[0.25em] uppercase
-                                  text-foreground/30 pointer-events-none select-none">Accepted</span>
-                {examples.allowed.map((src, i) => (
-                  <div key={`ok-${i}`} className="relative overflow-hidden border-r border-border/10 last:border-r-0">
-                    <img src={src} alt="" draggable={false}
-                         className="absolute inset-0 w-full h-full object-cover grayscale opacity-[0.14]" />
-                    <div className="absolute top-2 right-2 z-10 bg-background/85 border border-green-500/50
-                                    flex items-center justify-center w-5 h-5">
-                      <Check className="w-3 h-3 text-green-500" strokeWidth={2.5} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="h-px bg-border/15 flex-shrink-0" />
-
-              {/* Row 2 — Not Accepted */}
-              <div className="flex-1 grid grid-cols-3 relative min-h-0">
-                <span className="absolute top-2 left-2 z-10 font-mono text-[8px] tracking-[0.25em] uppercase
-                                  text-foreground/30 pointer-events-none select-none">Not Accepted</span>
-                {examples.notAllowed.map((src, i) => (
-                  <div key={`no-${i}`} className="relative overflow-hidden border-r border-border/10 last:border-r-0">
-                    <img src={src} alt="" draggable={false}
-                         className="absolute inset-0 w-full h-full object-cover grayscale opacity-[0.11]" />
-                    <div className="absolute top-2 right-2 z-10 bg-background/85 border border-destructive/50
-                                    flex items-center justify-center w-5 h-5">
-                      <X className="w-3 h-3 text-destructive" strokeWidth={2.5} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Centre vignette clears space for the CTA */}
-              <div className="absolute inset-0 pointer-events-none" style={{
-                background: 'radial-gradient(ellipse 55% 55% at 50% 50%, hsl(var(--background)/0.75) 0%, transparent 100%)',
-              }} />
-            </div>
-          )}
-
-          {/* ── FOREGROUND — drop zone ── */}
+          {/* Drop zone — empty state */}
           {!jewelryImage && (
             <div
               className="absolute inset-0 flex items-center justify-center cursor-pointer"
-              style={{ zIndex: 10 }}
               onClick={() => jewelryInputRef.current?.click()}
               onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) onFileUpload(f); }}
               onDragOver={(e) => e.preventDefault()}
             >
               <div className="flex flex-col items-center text-center px-8 select-none">
-                {/* Original pulsing diamond */}
+                {/* Pulsing diamond */}
                 <div className="relative mx-auto w-20 h-20 mb-6">
                   <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping"
                        style={{ animationDuration: '2.5s' }} />
@@ -210,7 +225,7 @@ export function AlternateUploadStep({
             </div>
           )}
 
-          {/* ── FOREGROUND — uploaded preview ── */}
+          {/* Uploaded preview */}
           {jewelryImage && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
               <img src={jewelryImage} alt="Jewelry" className="max-w-full max-h-full object-contain" />
@@ -239,58 +254,96 @@ export function AlternateUploadStep({
                  onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileUpload(f); }} />
         </div>
 
+        {/* Action area below canvas */}
         {jewelryImage && (
-          <div className="flex justify-end">
-            <Button size="lg" onClick={onNextStep} disabled={!canProceed}
-                    className="gap-2.5 font-display text-base uppercase tracking-wide px-10
-                               bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
-                               text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
-              {isValidating
-                ? <><Loader2 className="h-4 w-4 animate-spin" /> Validating…</>
-                : <>Next <ArrowRight className="h-4 w-4" /></>}
-            </Button>
-          </div>
+          showFlagWarning ? (
+            /* ── Soft flagged warning ── */
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-prose">
+                You'll get better results when the jewelry is worn — on a model, mannequin, or even yourself.
+                Product shots alone often miss the mark.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={onClearImage}
+                  className="font-mono text-[10px] uppercase tracking-widest"
+                >
+                  Go Back and Fix
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => { setFlagAcknowledged(true); onNextStep(); }}
+                  className="font-mono text-[10px] uppercase tracking-widest
+                             bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
+                             text-background hover:opacity-90 transition-opacity border-0"
+                >
+                  Continue Anyway
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* ── Normal Next button ── */
+            <div className="flex justify-end">
+              <Button size="lg" onClick={onNextStep} disabled={!canProceed}
+                      className="gap-2.5 font-display text-base uppercase tracking-wide px-10
+                                 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))]
+                                 text-background hover:opacity-90 transition-opacity border-0 disabled:opacity-60">
+                {isValidating
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Validating…</>
+                  : <>Next <ArrowRight className="h-4 w-4" /></>}
+              </Button>
+            </div>
+          )
         )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          RIGHT — My Products  (1 / 3)
+          RIGHT — My Products / Upload Guide  (1 / 3)
           ══════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col gap-4">
 
-        {/* Invisible spacer mirrors "Step 1" label height so headings align */}
-        <div>
-          <span className="marta-label block mb-1 invisible" aria-hidden="true">Step 1</span>
-          <h3 className="font-display text-3xl md:text-4xl uppercase tracking-tight leading-none">
-            My Products
-          </h3>
-          <p className="text-muted-foreground mt-1.5 text-sm">
-            Previously uploaded jewelry
-          </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            {/* Invisible spacer mirrors "Step 1" label so headings align */}
+            <span className="marta-label block mb-1 invisible" aria-hidden="true">Step 1</span>
+            <h3 className="font-display text-3xl md:text-4xl uppercase tracking-tight leading-none">
+              {showGuide ? 'Upload Guide' : 'My Products'}
+            </h3>
+            <p className="text-muted-foreground mt-1.5 text-sm">
+              {showGuide ? 'Accepted vs. not accepted' : 'Previously uploaded jewelry'}
+            </p>
+          </div>
+
+          {/* Test Mode toggle */}
+          <div className="flex-shrink-0 mt-1">
+            {/* invisible spacer for "Step 1" row */}
+            <span className="marta-label block mb-1 invisible" aria-hidden="true">Step 1</span>
+            <button
+              type="button"
+              onClick={() => setTestMode((v) => !v)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 border font-mono text-[9px] tracking-[0.2em]
+                          uppercase transition-colors
+                          ${testMode
+                            ? 'border-[hsl(var(--formanova-hero-accent))] text-[hsl(var(--formanova-hero-accent))] bg-[hsl(var(--formanova-hero-accent)/0.08)]'
+                            : 'border-border/40 text-muted-foreground hover:border-foreground/30 hover:text-foreground'}`}
+            >
+              <FlaskConical className="h-3 w-3" />
+              Test
+            </button>
+          </div>
         </div>
 
-        {/* ── EMPTY STATE — mirrors Step 2 "My Models" empty state ── */}
-        {isEmpty && (
-          <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8
-                          flex flex-col items-center text-center gap-4">
-            <p className="text-sm text-muted-foreground max-w-[28ch]">
-              No jewelry yet. Upload a product. It will be saved here.
-            </p>
-            <Button
-              onClick={() => jewelryInputRef.current?.click()}
-              className="gap-2 font-mono text-[11px] uppercase tracking-widest"
-            >
-              <Upload className="h-4 w-4" />
-              Upload Jewelry
-            </Button>
-          </div>
+        {/* ── Upload Guide (test mode or empty) ── */}
+        {showGuide && (
+          <UploadGuidePanel examples={examples} canvasH={CANVAS_H} />
         )}
 
-        {/* ── GRID + PAGINATION ── */}
-        {!isEmpty && (
+        {/* ── Product library (has products, not in test mode) ── */}
+        {!showGuide && (
           <div className="flex flex-col gap-3">
 
-            {/* Loading skeleton */}
             {isLoading && (
               <div className="grid grid-cols-3 gap-2">
                 {Array.from({ length: 9 }).map((_, i) => (
@@ -303,7 +356,6 @@ export function AlternateUploadStep({
               <p className="text-sm text-destructive py-6">{error}</p>
             )}
 
-            {/* Product grid — height-locked to canvas */}
             {!isLoading && !error && assets.length > 0 && (
               <div className={`${CANVAS_H} overflow-y-auto`}>
                 <div className="grid grid-cols-3 gap-2">
@@ -326,7 +378,6 @@ export function AlternateUploadStep({
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
 
-                        {/* Selected overlay — uses theme accent colour */}
                         {isSelected && (
                           <div className="absolute inset-0 flex items-center justify-center"
                                style={{ background: 'hsl(var(--formanova-hero-accent)/0.15)' }}>
@@ -337,7 +388,6 @@ export function AlternateUploadStep({
                           </div>
                         )}
 
-                        {/* Hover hint for unselected items */}
                         {!isSelected && (
                           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10
                                           transition-colors flex items-center justify-center">
@@ -355,11 +405,8 @@ export function AlternateUploadStep({
               </div>
             )}
 
-            {/* Numbered pagination — only when > 1 page */}
             {!isLoading && !error && totalPages > 1 && (
               <div className="flex items-center justify-center gap-1">
-
-                {/* Prev arrow */}
                 <button
                   onClick={() => goToPage(page - 1)}
                   disabled={page === 0}
@@ -370,7 +417,6 @@ export function AlternateUploadStep({
                   <ChevronLeft className="h-4 w-4" />
                 </button>
 
-                {/* Page number buttons */}
                 {buildPageList(page, totalPages).map((p, idx) =>
                   p === '…' ? (
                     <span key={`ellipsis-${idx}`}
@@ -393,7 +439,6 @@ export function AlternateUploadStep({
                   )
                 )}
 
-                {/* Next arrow */}
                 <button
                   onClick={() => goToPage(page + 1)}
                   disabled={page >= totalPages - 1}
@@ -403,7 +448,6 @@ export function AlternateUploadStep({
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
-
               </div>
             )}
           </div>
