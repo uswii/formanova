@@ -439,9 +439,9 @@ export function AlternateUploadStep({
           <div className="grid grid-cols-2 gap-3">
             {/* User's image */}
             <div className="flex flex-col gap-1.5">
-              <div className="overflow-hidden border border-border/30 bg-muted/10">
+              <div className="aspect-square overflow-hidden border border-border/30 bg-muted/10 flex items-center justify-center">
                 {jewelryImage && (
-                  <img src={jewelryImage} alt="Your photo" className="w-full block" />
+                  <img src={jewelryImage} alt="Your photo" className="w-full h-full object-contain" />
                 )}
               </div>
               <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
@@ -451,8 +451,8 @@ export function AlternateUploadStep({
 
             {/* Worn example */}
             <div className="flex flex-col gap-1.5">
-              <div className="overflow-hidden border border-border/30 bg-muted/10">
-                <img src={popupWornExample} alt="Works better" className="w-full block" />
+              <div className="aspect-square overflow-hidden border border-border/30 bg-muted/10 flex items-center justify-center">
+                <img src={popupWornExample} alt="Works better" className="w-full h-full object-contain" />
               </div>
               <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60 text-center">
                 Works better
