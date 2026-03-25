@@ -462,7 +462,7 @@ export function AlternateUploadStep({
 
           {/* Soft one-liner */}
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            Worn on a person tends to produce better results (could be anyone, even you).
+            If you wear your jewelry and submit a photo of it, the result will be even better!
           </p>
 
           {/* Actions */}
@@ -473,7 +473,7 @@ export function AlternateUploadStep({
               onClick={onClearImage}
               className="font-mono text-[10px] uppercase tracking-widest"
             >
-              Go Back and Fix
+              Upload Again
             </Button>
             <Button
               size="lg"
