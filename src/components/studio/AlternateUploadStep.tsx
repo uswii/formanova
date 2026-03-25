@@ -71,21 +71,13 @@ function TestModeGuidePanel({
   canvasH: string;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1.5">
-        <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-          <Check className="w-2.5 h-2.5 text-green-500" />
-        </div>
-        <span className="text-xs font-bold text-foreground">Recommended photos for best results</span>
-      </div>
-      <div className={`${canvasH} border border-border/30 p-4`}>
-        <div className="grid grid-cols-2 gap-3 p-2">
-          {examples.allowed.slice(0, 4).map((src, i) => (
-            <div key={`rec-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
-              <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>
+    <div className={`${canvasH} border border-border/30 p-6`}>
+      <div className="grid grid-cols-2 gap-3">
+        {examples.allowed.slice(0, 4).map((src, i) => (
+          <div key={`rec-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
+            <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -315,10 +307,10 @@ export function AlternateUploadStep({
             {/* Invisible spacer mirrors "Step 1" label so headings align */}
             <span className="marta-label block mb-1 invisible" aria-hidden="true">Step 1</span>
             <h3 className="font-display text-3xl md:text-4xl uppercase tracking-tight mt-2">
-              {showGuide ? 'Upload Guide' : 'My Products'}
+              {testMode ? 'Recommended' : showGuide ? 'Upload Guide' : 'My Products'}
             </h3>
             <p className="text-muted-foreground mt-1.5 text-sm">
-              {showGuide ? 'Follow these guidelines for best results.' : 'Previously uploaded jewelry'}
+              {testMode ? 'Recommended photos for best results.' : showGuide ? 'Follow these guidelines for best results.' : 'Previously uploaded jewelry'}
             </p>
           </div>
 
