@@ -79,7 +79,7 @@ function TestModeGuidePanel({
 
       {/* Grid — padded horizontally to keep images small */}
       <div className="flex-1 px-12 overflow-hidden min-h-0">
-        <div className="grid grid-cols-2 grid-rows-2 gap-x-3 gap-y-4 h-full">
+        <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
           {examples.allowed.slice(0, 4).map((src, i) => (
             <div key={`rec-${i}`} className="relative overflow-hidden border border-green-500/30 bg-muted/20">
               <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
