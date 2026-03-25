@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { reloadPreservingSession } from "./lib/reload-utils";
 import { getStoredUser } from "./lib/auth-api";
+import posthog from 'posthog-js';
 
 // requestIdleCallback polyfill for Safari
 if (typeof window !== 'undefined' && !('requestIdleCallback' in window)) {
@@ -26,9 +27,7 @@ function isChunkLoadError(error: unknown): boolean {
 
 window.addEventListener('unhandledrejection', (event) => {
   if (isChunkLoadError(event.reason)) {
-    import('posthog-js').then(({ default: posthog }) => {
-      if (posthog.__loaded) posthog.captureException(event.reason);
-    }).catch(() => {});
+    if (posthog.__loaded) posthog.captureException(event.reason);
 
     // During active generation, suppress — ChunkErrorBoundary handles the UI
     if ((window as any).__generationInProgress) {
@@ -46,9 +45,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
 window.addEventListener('error', (event) => {
   if (isChunkLoadError(event.error)) {
-    import('posthog-js').then(({ default: posthog }) => {
-      if (posthog.__loaded) posthog.captureException(event.error);
-    }).catch(() => {});
+    if (posthog.__loaded) posthog.captureException(event.error);
 
     // During active generation, suppress — ChunkErrorBoundary handles the UI
     if ((window as any).__generationInProgress) {
@@ -77,49 +74,33 @@ if (
 ) {
   window.location.replace(`https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
 } else {
-  // Render immediately — don't block on analytics/monitoring
   const rootEl = document.getElementById("root")!;
   const root = createRoot(rootEl);
 
-  const posthogKey = 'phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC';
+  // ── PostHog: eager init with identity bootstrap ────────────────────
+  // posthog-js is already in the static import chain (via posthog-events.ts →
+  // AuthContext → App). Initialising eagerly costs no extra bandwidth.
+  // The bootstrap option sets the user identity atomically at init time,
+  // eliminating the race condition where identifyUser() fired before PostHog
+  // was ready — which caused returning users to appear as anonymous UUIDs.
+  //
+  // DO NOT revert to lazy/deferred init. The bundle was already downloaded
+  // eagerly; only init() was deferred, which just caused the bug.
+  //
+  // NOTE: getStoredUser is already imported at line 5 — do not add a duplicate.
+  // NOTE: distinctId lowercase — PostHog SDK is case-sensitive; distinctID silently no-ops.
+  const storedUser = getStoredUser();
+  posthog.init('phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC', {
+    api_host: 'https://us.i.posthog.com',
+    autocapture: true,
+    capture_pageview: true,
+    capture_pageleave: true,
+    capture_exceptions: true,
+    enable_heatmaps: true,
+    bootstrap: storedUser
+      ? { distinctId: storedUser.id, isIdentifiedID: true }
+      : undefined,
+  });
 
-  // Defer PostHog well past LCP — load on first user interaction OR after 5s
-  const loadPostHog = () => {
-    if ((loadPostHog as any).__done) return;
-    (loadPostHog as any).__done = true;
-
-    import("posthog-js").then((posthogModule) => {
-      const posthog = posthogModule.default;
-      posthog.init(posthogKey, {
-        api_host: 'https://us.i.posthog.com',
-        autocapture: true,
-        capture_pageview: true,
-        capture_pageleave: true,
-        capture_exceptions: true,
-        enable_heatmaps: true,
-      });
-      // Re-identify cached sessions — fixes race where identifyUser() fires
-      // before PostHog finishes loading, leaving returning users as anonymous UUIDs.
-      const cachedUser = getStoredUser();
-      if (cachedUser) {
-        posthog.identify(cachedUser.id, { email: cachedUser.email, name: cachedUser.full_name });
-      }
-    });
-  };
-
-  if (posthogKey) {
-    const timer = setTimeout(loadPostHog, 5000);
-    const interactionEvents = ['click', 'scroll', 'keydown', 'touchstart'] as const;
-    const onInteraction = () => {
-      clearTimeout(timer);
-      interactionEvents.forEach(e => window.removeEventListener(e, onInteraction));
-      requestIdleCallback(loadPostHog);
-    };
-    interactionEvents.forEach(e =>
-      window.addEventListener(e, onInteraction, { once: true, passive: true })
-    );
-  }
-
-  // Render app immediately — don't block on lazy imports
   root.render(<App />);
 }
