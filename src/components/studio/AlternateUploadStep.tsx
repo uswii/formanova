@@ -92,7 +92,7 @@ function TestModeGuidePanel({
       <div className="px-4 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
         <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
         <p className="text-sm text-muted-foreground leading-relaxed">
-          For more accurate results, use clear photos of jewelry worn on a person or on a mannequin.
+          <span className="font-bold text-foreground">Pro Tip</span> — For more accurate results, use clear photos of jewelry worn on a person or on a mannequin.
         </p>
       </div>
     </div>
