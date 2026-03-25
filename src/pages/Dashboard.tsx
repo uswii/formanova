@@ -103,7 +103,7 @@ export default function Dashboard() {
 
           <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
             <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground transition-transform duration-300 group-hover:translate-x-1">
-              From Photos
+              Photo Studio
             </h2>
             <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2 max-w-xs">
               Upload jewelry photos · Generate on-model imagery
@@ -132,7 +132,7 @@ export default function Dashboard() {
 
             <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
               <h2 className="font-display text-2xl md:text-4xl lg:text-5xl uppercase tracking-wide text-foreground">
-                From CAD
+                CAD Studio
               </h2>
               <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-2">
                 3D CAD to photorealistic catalog
