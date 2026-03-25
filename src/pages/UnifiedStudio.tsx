@@ -445,10 +445,29 @@ export default function UnifiedStudio() {
     setSelectedModel(model);
     setCustomModelImage(null);
     setCustomModelFile(null);
+    setModelAssetId(null); // clear while upload registers it
     trackModelSelected({
       category: TO_SINGULAR[jewelryType] ?? jewelryType,
       model_type: 'catalog',
     });
+
+    // Register catalog model in asset DB to get a real asset_id for tracking
+    (async () => {
+      try {
+        const blob = await imageSourceToBlob(model.url);
+        const { blob: compressed } = await compressImageBlob(blob);
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(compressed);
+        });
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
+        if (azResult.asset_id) setModelAssetId(azResult.asset_id);
+      } catch (e) {
+        console.warn('[handleSelectLibraryModel] Asset registration failed:', e);
+      }
+    })();
   };
 
   // Paste handler — supports jewelry upload (step 1) AND model upload (step 2 empty state)
