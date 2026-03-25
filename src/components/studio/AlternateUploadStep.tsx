@@ -73,7 +73,7 @@ function TestModeGuidePanel({
   return (
     <div className={`${canvasH} border border-border/30 flex flex-col overflow-hidden`}>
       {/* Top label */}
-      <p className="px-4 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
+      <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
         Recommended photos for best results
       </p>
 
@@ -89,7 +89,7 @@ function TestModeGuidePanel({
       </div>
 
       {/* Bottom tip */}
-      <div className="px-4 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
+      <div className="px-12 pt-2 pb-3 flex items-start gap-2 flex-shrink-0">
         <Lightbulb className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
         <p className="text-sm text-muted-foreground leading-relaxed">
           <span className="font-bold text-foreground">Pro Tip:</span> For more accurate results, use clear photos of jewelry worn on a person or on a mannequin.
