@@ -1250,7 +1250,7 @@ export default function UnifiedStudio() {
                           return (
                             <div key={model.id} className="relative group">
                               <button
-                                onClick={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); }}
+                                onClick={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); setModelAssetId(model.id.startsWith('user-') ? null : model.id); }}
                                 className={`relative overflow-hidden border transition-all w-full ${
                                   isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
                                 }`}
