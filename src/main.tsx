@@ -99,7 +99,7 @@ if (
     enable_heatmaps: true,
     disable_surveys: true,
     bootstrap: storedUser
-      ? { distinctId: storedUser.id, isIdentifiedID: true }
+      ? { distinctID: storedUser.id, isIdentifiedID: true }
       : undefined,
   });
 
