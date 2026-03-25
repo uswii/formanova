@@ -18,8 +18,6 @@ Required in `.env`:
 VITE_PIPELINE_API_URL=
 VITE_PIPELINE_API_KEY=
 VITE_PIPELINE_ADMIN_SECRET=
-VITE_SUPABASE_URL=
-VITE_SUPABASE_PUBLISHABLE_KEY=
 VITE_ADMIN_EMAILS=   # Comma-separated list of admin emails
 ```
 
@@ -69,9 +67,13 @@ TanStack Query is used for server state (admin components, generation workflows)
 
 ### API Layer
 
-`src/lib/authenticated-fetch.ts` — All authenticated API calls go through this. On 401, it clears localStorage, dispatches an auth state change event, and redirects to `/login?redirect=<current_path>`.
+`src/lib/authenticated-fetch.ts` — All authenticated API calls go through this. Attaches `Bearer` JWT from localStorage. On 401, clears session and redirects to `/login?redirect=<current_path>`. This is **not** a proxy — it's a thin JWT wrapper around `fetch`.
 
-Backend calls route through **18 Supabase Edge Functions** in `supabase/functions/` (auth-proxy, credits-proxy, checkout-proxy, workflow-proxy, pipeline-api, azure-upload, etc.). These proxy to the Python API server.
+**Supabase has been removed.** `src/integrations/supabase/client.ts` is a dead file (never imported). There are no edge functions.
+
+API calls go directly to the Python backend via two patterns:
+- **Relative URLs** (`/api/run/...`, `/api/status/...`, `/api/result/...`) — nginx on the production server proxies these to the Python backend. Used in `TextToCAD.tsx` and similar pages.
+- **`VITE_PIPELINE_API_URL`** — used in `src/lib/pipeline-api.ts`, `microservices-api.ts`, `assets-api.ts` for direct backend calls (Azure upload, admin, credits, etc.).
 
 ### CAD Module Boundaries
 
