@@ -72,10 +72,16 @@ export async function startPhotoshoot(
     throw new Error('A valid model image URL must be provided.');
   }
 
+  const { input_jewelry_asset_id, input_model_asset_id, ...payload } = request;
+
   const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ payload: request }),
+    body: JSON.stringify({
+      payload,
+      ...(input_jewelry_asset_id ? { input_jewelry_asset_id } : {}),
+      ...(input_model_asset_id ? { input_model_asset_id } : {}),
+    }),
   });
 
   if (!res.ok) {
