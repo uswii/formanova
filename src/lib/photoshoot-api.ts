@@ -75,7 +75,12 @@ export async function startPhotoshoot(
   const res = await fetch(`${API_BASE}/run/state/jewelry_photoshoots_generator`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ payload: request }),
+    const { input_jewelry_asset_id, input_model_asset_id, ...payload } = request;
+    body: JSON.stringify({
+      payload,
+      ...(input_jewelry_asset_id ? { input_jewelry_asset_id } : {}),
+      ...(input_model_asset_id ? { input_model_asset_id } : {}),
+    }),
   });
 
   if (!res.ok) {
