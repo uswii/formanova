@@ -71,14 +71,14 @@ function TestModeGuidePanel({
   canvasH: string;
 }) {
   return (
-    <div className={`${canvasH} border border-border/30 p-4`}>
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-            <Check className="w-2.5 h-2.5 text-green-500" />
-          </div>
-          <span className="text-xs font-medium text-foreground">Recommended photos</span>
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+          <Check className="w-2.5 h-2.5 text-green-500" />
         </div>
+        <span className="text-xs font-bold text-foreground">Recommended photos for best results</span>
+      </div>
+      <div className={`${canvasH} border border-border/30 p-4`}>
         <div className="grid grid-cols-3 gap-2">
           {examples.allowed.slice(0, 4).map((src, i) => (
             <div key={`rec-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
