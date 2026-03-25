@@ -208,11 +208,11 @@ if [ -f "$PROJECT_DIR/.env" ]; then
 else
     cat > "$PROJECT_DIR/.env" << 'EOF'
 # FormaNova Frontend Environment Variables
-# These connect to Lovable Cloud (Supabase)
 
-VITE_SUPABASE_URL=https://volhgtspbvgxavqgueqc.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbGhndHNwYnZneGF2cWd1ZXFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3NjE5NDAsImV4cCI6MjA4MTMzNzk0MH0.Hc87OH2ipq4XgNXesDB7plggk2hk-azhaIgOpVJyaaY
-VITE_SUPABASE_PROJECT_ID=volhgtspbvgxavqgueqc
+VITE_PIPELINE_API_URL=
+VITE_PIPELINE_API_KEY=
+VITE_PIPELINE_ADMIN_SECRET=
+VITE_ADMIN_EMAILS=
 EOF
     log_success ".env file created"
 fi
