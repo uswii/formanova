@@ -2,12 +2,75 @@ import posthog from 'posthog-js';
 
 /** Safe wrapper — only fires when PostHog is loaded */
 function capture(event: string, properties?: Record<string, unknown>) {
+  // posthog.__loaded is always true after eager init in main.tsx.
+  // Guard kept as a safety net in case init order ever changes.
   if (posthog.__loaded) {
     posthog.capture(event, properties);
   }
 }
 
-// ═══════ Auth Events ═══════
+// ═══════ localStorage helper ════════════════════════════════════════
+
+const PH_FIRST_GEN_KEY = 'ph_first_generation_done';
+
+/** Returns true only on the very first generation_completed call ever.
+ *  Flips to false permanently after that.
+ *  Stored in localStorage — robust to session resets, not to storage clears. */
+export function consumeFirstGeneration(): boolean {
+  const done = localStorage.getItem(PH_FIRST_GEN_KEY) === '1';
+  if (!done) localStorage.setItem(PH_FIRST_GEN_KEY, '1');
+  return !done;
+}
+
+// ═══════ Types ══════════════════════════════════════════════════════
+
+export interface CategorySelectedProps {
+  category: string;
+  is_first_selection: boolean;
+}
+
+export interface JewelryUploadedProps {
+  category: string;
+  upload_type: string;
+  was_flagged: boolean;
+}
+
+export interface ValidationFlaggedProps {
+  category: string;
+  detected_label: string;
+}
+
+export interface ModelSelectedProps {
+  category: string;
+  model_type: 'catalog' | 'custom_upload';
+}
+
+export interface PaywallHitProps {
+  category: string;
+  steps_completed: number;
+}
+
+export interface CadGenerationCompletedProps {
+  category: string;
+  prompt_length: number;
+  duration_ms: number;
+}
+
+export interface GenerationCompleteProps {
+  source: string;
+  category: string;
+  upload_type: string | null;
+  duration_ms: number;
+  is_first_ever: boolean;
+}
+
+export interface PaymentSuccessProps {
+  package: string;
+  amount_usd: number;
+  currency_shown: string;
+}
+
+// ═══════ Auth Events ════════════════════════════════════════════════
 
 export function trackSignup(method: string, email?: string) {
   capture('user_signed_up', { method, email });
@@ -22,7 +85,7 @@ export function trackLogout() {
   if (posthog.__loaded) posthog.reset();
 }
 
-// ═══════ Feature Usage ═══════
+// ═══════ Feature Usage ══════════════════════════════════════════════
 
 export function trackStudioOpen(category: string) {
   capture('studio_opened', { category });
@@ -36,25 +99,58 @@ export function trackGenerationStart(source: string) {
   capture('generation_started', { source });
 }
 
-export function trackGenerationComplete(source: string, durationMs?: number) {
-  capture('generation_completed', { source, duration_ms: durationMs });
+// Signature change: was trackGenerationComplete(source: string, durationMs?: number)
+// Only one call site — UnifiedStudio.tsx. Update it when updating this function.
+export function trackGenerationComplete(props: GenerationCompleteProps) {
+  capture('generation_completed', { ...props });
 }
 
-// ═══════ Conversion / Checkout ═══════
+// ═══════ New Funnel Events ═══════════════════════════════════════════
+
+export function trackCategorySelected(props: CategorySelectedProps) {
+  capture('category_selected', { ...props });
+}
+
+export function trackJewelryUploaded(props: JewelryUploadedProps) {
+  capture('jewelry_uploaded', { ...props });
+}
+
+export function trackValidationFlagged(props: ValidationFlaggedProps) {
+  capture('validation_flagged', {
+    ...props,
+    validation_reason: 'wrong_shot_type', // static — only reason currently
+  });
+}
+
+export function trackModelSelected(props: ModelSelectedProps) {
+  capture('model_selected', { ...props });
+}
+
+export function trackPaywallHit(props: PaywallHitProps) {
+  capture('paywall_hit', { ...props });
+}
+
+export function trackCadGenerationCompleted(props: CadGenerationCompletedProps) {
+  capture('cad_generation_completed', { ...props });
+}
+
+// ═══════ Conversion / Checkout ══════════════════════════════════════
 
 export function trackCheckoutStart(plan?: string) {
   capture('checkout_started', { plan });
 }
 
-export function trackPaymentSuccess(plan?: string) {
-  capture('payment_success', { plan });
+// Signature change: was trackPaymentSuccess(plan?: string)
+// Only one call site — PaymentSuccess.tsx:63. Update it when updating this function.
+export function trackPaymentSuccess(props: PaymentSuccessProps) {
+  capture('payment_success', { ...props });
 }
 
 export function trackPaymentCancel() {
   capture('payment_cancelled');
 }
 
-// ═══════ Engagement ═══════
+// ═══════ Engagement ═════════════════════════════════════════════════
 
 export function trackButtonClick(buttonName: string, context?: string) {
   capture('button_clicked', { button: buttonName, context });
@@ -64,7 +160,7 @@ export function trackFormSubmit(formName: string) {
   capture('form_submitted', { form: formName });
 }
 
-// ═══════ 3D Rendering Diagnostics ═══════
+// ═══════ 3D Rendering Diagnostics ═══════════════════════════════════
 
 export function trackWebGLContextLost(stats: Record<string, unknown>) {
   capture('webgl_context_lost', stats);
@@ -74,7 +170,7 @@ export function trackWebGLContextRestored(stats: Record<string, unknown>) {
   capture('webgl_context_restored', stats);
 }
 
-// ═══════ User Identification ═══════
+// ═══════ User Identification ═════════════════════════════════════════
 
 export function identifyUser(userId: string, properties?: Record<string, unknown>) {
   if (posthog.__loaded) {
@@ -82,12 +178,24 @@ export function identifyUser(userId: string, properties?: Record<string, unknown
   }
 }
 
-// ═══════ Studio Actions ═══════
+// ═══════ Studio Actions ══════════════════════════════════════════════
 
-export function trackDownloadClicked(props?: { file_name?: string; file_type?: string; context?: string }) {
+// No breaking change — new optional `category` property added
+export function trackDownloadClicked(props?: {
+  file_name?: string;
+  file_type?: string;
+  context?: string;
+  category?: string;
+}) {
   capture('download_clicked', props ?? {});
 }
 
-export function trackRegenerateClicked(context?: string) {
-  capture('regenerate_clicked', { context });
+// Signature change: was trackRegenerateClicked(context?: string)
+// Only called in UnifiedStudio.tsx — update it alongside this change.
+export function trackRegenerateClicked(props?: {
+  context?: string;
+  category?: string;
+  regeneration_number?: number;
+}) {
+  capture('regenerate_clicked', props ?? {});
 }

@@ -47,7 +47,18 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
 import { isAltUploadLayoutEnabled } from '@/lib/feature-flags';
+import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
+import {
+  trackJewelryUploaded,
+  trackValidationFlagged,
+  trackModelSelected,
+  trackPaywallHit,
+  trackGenerationComplete,
+  trackDownloadClicked,
+  trackRegenerateClicked,
+  consumeFirstGeneration,
+} from '@/lib/posthog-events';
 // ExampleGuidePanel removed — guide is inline
 
 // Example images for inline Upload Guide
@@ -107,14 +118,6 @@ const CATEGORY_TYPE_MAP: Record<string, string> = {
   watch: 'watches', watches: 'watches',
 };
 
-// Normalise URL param (plural or singular) → singular for the API payload
-const TO_SINGULAR: Record<string, string> = {
-  necklace: 'necklace', necklaces: 'necklace',
-  earring: 'earring',  earrings: 'earring',
-  ring: 'ring',        rings: 'ring',
-  bracelet: 'bracelet', bracelets: 'bracelet',
-  watch: 'watch',      watches: 'watch',
-};
 
 const LABEL_NAMES: Record<string, string> = {
   flatlay: 'a flat lay',
@@ -281,6 +284,7 @@ export default function UnifiedStudio() {
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [regenerationCount, setRegenerationCount] = useState(0);
 
   // ─── Pre-load vault asset (Re-shoot / New Shoot from My Products or My Models) ───
 
@@ -362,9 +366,26 @@ export default function UnifiedStudio() {
 
     const result = await validateImages([normalized], jewelryType);
     if (result && result.results.length > 0) {
-      setValidationResult(result.results[0]);
-      if (result.results[0].uploaded_url) {
-        setJewelryUploadedUrl(result.results[0].uploaded_url);
+      const localResult = result.results[0]; // use local variable — validationResult state is stale here (async setter)
+      setValidationResult(localResult);
+      if (localResult.uploaded_url) {
+        setJewelryUploadedUrl(localResult.uploaded_url);
+      }
+
+      if (localResult.is_acceptable) {
+        // Path A: worn image accepted — fire jewelry_uploaded immediately
+        trackJewelryUploaded({
+          category: TO_SINGULAR[jewelryType] ?? jewelryType,
+          upload_type: localResult.category,
+          was_flagged: false,
+        });
+      } else {
+        // Path B: non-worn image flagged — fire validation_flagged now;
+        // jewelry_uploaded fires in handleContinueAnyway if user proceeds
+        trackValidationFlagged({
+          category: TO_SINGULAR[jewelryType] ?? jewelryType,
+          detected_label: localResult.category,
+        });
       }
     }
   }, [toast, jewelryType, validateImages]);
@@ -396,6 +417,10 @@ export default function UnifiedStudio() {
       setCustomModelImage(stableUrl);
       setModelAssetId(azResult.asset_id ?? null);
       setCustomModelFile(null);
+      trackModelSelected({
+        category: TO_SINGULAR[jewelryType] ?? jewelryType,
+        model_type: 'custom_upload',
+      });
 
       // Add to My Models list
       const newModel: UserModel = {
@@ -419,6 +444,10 @@ export default function UnifiedStudio() {
     setSelectedModel(model);
     setCustomModelImage(null);
     setCustomModelFile(null);
+    trackModelSelected({
+      category: TO_SINGULAR[jewelryType] ?? jewelryType,
+      model_type: 'catalog',
+    });
   };
 
   // Paste handler — supports jewelry upload (step 1) AND model upload (step 2 empty state)
@@ -454,6 +483,15 @@ export default function UnifiedStudio() {
   };
 
   const handleContinueAnyway = () => {
+    // Path B: user chose to proceed despite validation warning.
+    // validationResult state IS safe to read here — validation finished before this dialog appeared.
+    if (validationResult) {
+      trackJewelryUploaded({
+        category: TO_SINGULAR[jewelryType] ?? jewelryType,
+        upload_type: validationResult.category,
+        was_flagged: true,
+      });
+    }
     setShowFlaggedDialog(false);
     setCurrentStep('model');
   };
@@ -468,7 +506,13 @@ export default function UnifiedStudio() {
     }
 
     const hasCredits = await checkCredits('jewelry_photoshoots_generator');
-    if (!hasCredits) return;
+    if (!hasCredits) {
+      trackPaywallHit({
+        category: TO_SINGULAR[jewelryType] ?? jewelryType,
+        steps_completed: 2,
+      });
+      return;
+    }
 
     clearStudioSession();
     setIsGenerating(true);
@@ -589,6 +633,13 @@ export default function UnifiedStudio() {
             setCurrentStep('results');
             setIsGenerating(false);
             markGenerationCompleted(_genWorkflowId, _genStartTime);
+            trackGenerationComplete({
+              source: 'unified-studio',
+              category: TO_SINGULAR[jewelryType] ?? jewelryType,
+              upload_type: validationResult?.category ?? null,
+              duration_ms: Date.now() - _genStartTime,
+              is_first_ever: consumeFirstGeneration(),
+            });
             refreshCredits();
             return;
           }
@@ -1437,6 +1488,11 @@ export default function UnifiedStudio() {
                             a.click();
                             document.body.removeChild(a);
                             URL.revokeObjectURL(blobUrl);
+                            trackDownloadClicked({
+                              file_type: 'jpg',
+                              context: 'unified-studio',
+                              category: TO_SINGULAR[jewelryType] ?? jewelryType,
+                            });
                           } catch { alert('Download failed. Please try again.'); }
                         }}
                       >
@@ -1468,7 +1524,17 @@ export default function UnifiedStudio() {
               </Button>
               <Button
                 size="lg"
-                onClick={() => { import('@/lib/posthog-events').then(m => m.trackRegenerateClicked('unified-studio')); setResultImages([]); setCurrentStep('generating'); handleGenerate(); }}
+                onClick={() => {
+                  setRegenerationCount(c => c + 1);
+                  trackRegenerateClicked({
+                    context: 'unified-studio',
+                    category: TO_SINGULAR[jewelryType] ?? jewelryType,
+                    regeneration_number: regenerationCount + 1, // +1 because setRegenerationCount hasn't updated state yet
+                  });
+                  setResultImages([]);
+                  setCurrentStep('generating');
+                  handleGenerate();
+                }}
                 className="gap-2.5 font-display text-base uppercase tracking-wide px-10 h-11 bg-gradient-to-r from-[hsl(var(--formanova-hero-accent))] to-[hsl(var(--formanova-glow))] text-background hover:opacity-90 transition-opacity border-0"
               >
                 <RefreshCw className="h-4 w-4" />

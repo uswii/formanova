@@ -10,6 +10,7 @@ import { performCreditPreflight, type PreflightResult } from "@/lib/credit-prefl
 import { TOOL_COSTS } from "@/lib/credits-api";
 import { AuthExpiredError } from "@/lib/authenticated-fetch";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { trackPaywallHit, trackCadGenerationCompleted } from '@/lib/posthog-events';
 import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInline";
 
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
@@ -337,6 +338,7 @@ export default function TextToCAD() {
       const cost = result.estimatedCredits > 0 ? result.estimatedCredits : requiredCredits;
       if (balance < cost) {
         setCreditBlock({ approved: false, estimatedCredits: cost, currentBalance: balance });
+        trackPaywallHit({ category: 'ring', steps_completed: 1 });
         return;
       }
       setCreditBlock(null);
@@ -346,6 +348,7 @@ export default function TextToCAD() {
       setCreditBlock(null);
     }
 
+    const cadGenStartTime = Date.now(); // for cad_generation_completed duration_ms
     setWorkspaceActive(true);
     setIsGenerating(true);
     setGenerationFailed(false);
@@ -488,6 +491,11 @@ export default function TextToCAD() {
       if (!glb_url) throw new Error("No GLB model found in results");
 
       setGlbUrl(glb_url);
+      trackCadGenerationCompleted({
+        category: 'ring', // hardcoded — CAD only supports rings currently; update when more categories added
+        prompt_length: prompt.trim().length,
+        duration_ms: Date.now() - cadGenStartTime,
+      });
       setProgressStep("_loading");
       setIsModelLoading(true);
       setIsGenerating(false);

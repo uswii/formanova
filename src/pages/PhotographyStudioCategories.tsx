@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
+import { trackCategorySelected } from '@/lib/posthog-events';
+import { TO_SINGULAR } from '@/lib/jewelry-utils';
 
 // Import jewelry images
 import heroNecklace from '@/assets/jewelry/hero-necklace-diamond.webp';
@@ -71,10 +73,18 @@ const itemVariants = {
   },
 };
 
+const PH_CATEGORY_SELECTED_KEY = 'ph_category_selected';
+
 const PhotographyStudio = () => {
   const navigate = useNavigate();
 
   const handleCategoryClick = (category: JewelryCategory) => {
+    const isFirst = !sessionStorage.getItem(PH_CATEGORY_SELECTED_KEY);
+    sessionStorage.setItem(PH_CATEGORY_SELECTED_KEY, '1');
+    trackCategorySelected({
+      category: TO_SINGULAR[category.id] ?? category.id,
+      is_first_selection: isFirst,
+    });
     navigate(`/studio/${category.id}`);
   };
 

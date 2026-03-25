@@ -6,9 +6,16 @@ import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { authenticatedFetch, AuthExpiredError } from '@/lib/authenticated-fetch';
 import { useCredits } from '@/contexts/CreditsContext';
 import { trackPaymentSuccess } from '@/lib/posthog-events';
+import { useBillingLocale } from '@/hooks/use-billing-locale';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
 
 const BILLING_URL = '/billing';
+
+function derivePackageInfo(creditsAdded: number): { package: string; amount_usd: number } {
+  if (creditsAdded <= 100) return { package: '$9', amount_usd: 9 };
+  if (creditsAdded <= 500) return { package: '$39', amount_usd: 39 };
+  return { package: '$99', amount_usd: 99 };
+}
 
 type VerifyState =
   | { type: 'loading' }
@@ -21,6 +28,8 @@ type VerifyState =
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const { refreshCredits } = useCredits();
+  const { currency } = useBillingLocale();
+  const currencyRef = useRef<string>('USD');
   const sessionId = searchParams.get('session_id');
   const returnTo = searchParams.get('redirect');
   const fallback = useMemo(() => returnTo || '/studio', [returnTo]);
@@ -60,7 +69,12 @@ export default function PaymentSuccess() {
       const data = await res.json();
       if (data.status === 'fulfilled') {
         await refreshCredits();
-        trackPaymentSuccess();
+        const pkg = derivePackageInfo(data.credits_added);
+        trackPaymentSuccess({
+          package: pkg.package,
+          amount_usd: pkg.amount_usd,
+          currency_shown: currencyRef.current, // ref — always reads current value at call time, not stale closure
+        });
         setState({ type: 'fulfilled', creditsAdded: data.credits_added });
         stopPolling();
         return 'done';
@@ -91,6 +105,8 @@ export default function PaymentSuccess() {
       await verify(true);
     }, 2000);
   }, [verify, stopPolling]);
+
+  useEffect(() => { currencyRef.current = currency; }, [currency]);
 
   useEffect(() => {
     if (!sessionId || calledRef.current) return;

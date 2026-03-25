@@ -23,4 +23,19 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  // PostHog: all event tracking must go through src/lib/posthog-events.ts.
+  // Direct posthog-js imports in pages/components bypass the __loaded guard,
+  // skip TypeScript interfaces, and are invisible to the test suite.
+  // The only legitimate direct import is in posthog-events.ts itself and main.tsx.
+  {
+    files: ["src/pages/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}", "src/hooks/**/*.{ts,tsx}", "src/contexts/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "posthog-js",
+          message: "Import from '@/lib/posthog-events' instead. Direct posthog-js usage bypasses the __loaded guard and test coverage.",
+        }],
+      }],
+    },
+  },
 );
