@@ -79,7 +79,7 @@ function TestModeGuidePanel({
           </div>
           <span className="text-xs font-medium text-foreground">Recommended photos</span>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {examples.allowed.slice(0, 4).map((src, i) => (
             <div key={`rec-${i}`} className="relative aspect-[3/4] overflow-hidden border border-green-500/30 bg-muted/20">
               <img src={src} alt="" draggable={false} className="w-full h-full object-cover" />
