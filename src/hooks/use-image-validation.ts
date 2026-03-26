@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
+import { fetchAsset, updateAssetMetadata } from '@/lib/assets-api';
 
 const BASE_URL = 'https://formanova.ai';
 const CLASSIFICATION_URL = `${BASE_URL}/api/run/image_classification`;
@@ -129,7 +130,30 @@ export function useImageValidation() {
       const uploadedAssetId = azureResult.asset_id ?? null;
       console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
 
-      // 2. POST /api/run/image_classification
+      // 2a. Check if this asset was already classified — skip workflow if so
+      if (uploadedAssetId) {
+        try {
+          const asset = await fetchAsset(uploadedAssetId);
+          if (asset.metadata?.is_worn != null) {
+            clearTimeout(timeoutId);
+            const is_worn = asset.metadata.is_worn === 'true';
+            console.log('[ImageValidation] Using cached classification for asset:', uploadedAssetId);
+            return {
+              category: asset.metadata.display_type as ClassificationResult['category'],
+              is_worn,
+              confidence: 1,
+              reason: 'cached',
+              flagged: asset.metadata.flagged === 'true',
+              uploaded_url: uploadedUrl,
+              asset_id: uploadedAssetId,
+            };
+          }
+        } catch {
+          // Asset fetch failed — proceed with classification
+        }
+      }
+
+      // 2b. POST /api/run/image_classification
       const authHeaders = getAuthHeaders();
       const classificationPayload = {
         payload: {
@@ -231,6 +255,15 @@ export function useImageValidation() {
         const label = raw.label || 'unknown';
         const reason = raw.reason || '';
         const is_worn = reason === 'worn' || WORN_CATEGORIES.includes(label);
+
+        // Persist result so re-uploads of the same asset skip classification
+        if (uploadedAssetId) {
+          updateAssetMetadata(uploadedAssetId, {
+            display_type: label,
+            is_worn: String(is_worn),
+            flagged: String(!is_worn),
+          }).catch(() => {});
+        }
 
         clearTimeout(timeoutId);
         return {

@@ -606,6 +606,9 @@ export default function UnifiedStudio() {
         was_flagged: true,
       });
     }
+    if (jewelryAssetId) {
+      updateAssetMetadata(jewelryAssetId, { user_override: 'true' }).catch(() => {});
+    }
     setShowFlaggedDialog(false);
     setCurrentStep('model');
   };
