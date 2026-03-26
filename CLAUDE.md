@@ -30,13 +30,11 @@ Follow UX best practices as established by designers like Don Norman:
 - **Justified text**: Use justified text alignment for body copy and descriptive text.
 - **No cramped text**: Give text breathing room. Avoid tight padding or lines that feel compressed.
 - **No overflowing text**: Text must never overflow its container. Truncate or wrap as needed.
-- **Button inner padding**: Button content must never touch the button's outer edge. Always use sufficient horizontal padding (`px-4` minimum, `px-6` for larger buttons) so text and icons have breathing room.
 - **Button text centered**: Text or icons inside buttons must always be perfectly centered horizontally and vertically.
 - **Dominant CTAs**: For main upload actions, use striking, dominant buttons — not subtle or secondary-styled ones.
 - **Popups centered**: Any modal, popup, or dialog must appear centered on screen.
 - **Icon consistency**: New icons must match the existing theme — standard, unique, meaningful. Don't introduce random icon styles.
 - **New UI must fit the theme**: Anything newly designed must be visually consistent with the rest of the app — colors, spacing, typography, component style.
-- **Equidistant grid spacing**: In image grids (e.g. upload guide panels), vertical and horizontal gaps must be equal for uniform spacing.
 
 ## Code & Engineering Rules
 
@@ -67,13 +65,11 @@ TanStack Query is used for server state (admin components, generation workflows)
 
 ### API Layer
 
-`src/lib/authenticated-fetch.ts` — All authenticated API calls go through this. Attaches `Bearer` JWT from localStorage. On 401, clears session and redirects to `/login?redirect=<current_path>`. This is **not** a proxy — it's a thin JWT wrapper around `fetch`.
+`src/lib/authenticated-fetch.ts` — All authenticated API calls go through this. Attaches the JWT Bearer token and handles 401 redirects (clears localStorage, dispatches an auth state change event, redirects to `/login?redirect=<current_path>`).
 
-**Supabase has been removed.** `src/integrations/supabase/client.ts` is a dead file (never imported). There are no edge functions.
+**Request chain:** `Browser → nginx (formanova.ai) → Python API backend`
 
-API calls go directly to the Python backend via two patterns:
-- **Relative URLs** (`/api/run/...`, `/api/status/...`, `/api/result/...`) — nginx on the production server proxies these to the Python backend. Used in `TextToCAD.tsx` and similar pages.
-- **`VITE_PIPELINE_API_URL`** — used in `src/lib/pipeline-api.ts`, `microservices-api.ts`, `assets-api.ts` for direct backend calls (Azure upload, admin, credits, etc.).
+Relative URLs like `/api/run/...` resolve to `formanova.ai/api/run/...` and are reverse-proxied by nginx directly to the Python backend. There are no Supabase edge functions.
 
 ### CAD Module Boundaries
 
