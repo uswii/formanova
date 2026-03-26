@@ -1361,15 +1361,22 @@ export default function UnifiedStudio() {
                       <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
                         <MasonryGrid columns={3} gap={12}>
                           {/* Upload card — always first */}
-                          <button
-                            onClick={() => modelInputRef.current?.click()}
-                            className="group relative aspect-[3/4] w-full overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
-                          >
-                            <Upload className="h-5 w-5 text-muted-foreground/40" />
-                            <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
-                              + Upload
-                            </span>
-                          </button>
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => modelInputRef.current?.click()}
+                              className="group/upload relative aspect-[3/4] w-full overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
+                            >
+                              {/* Diamond-shaped upload icon */}
+                              <div className="w-8 h-8 rotate-45 border-2 border-muted-foreground/30 group-hover/upload:border-foreground/50 flex items-center justify-center transition-colors">
+                                <Upload className="h-3.5 w-3.5 -rotate-45 text-muted-foreground/40 group-hover/upload:text-foreground/60 transition-colors" />
+                              </div>
+                              <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider text-center px-1">
+                                Upload
+                              </span>
+                            </button>
+                            {/* Reserve naming-row height for grid alignment */}
+                            <div className="h-10 sm:h-11" />
+                          </div>
 
                           {/* User-uploaded models */}
                           {mergedMyModels.filter(m => !myModelsSearch || m.name.toLowerCase().includes(myModelsSearch.toLowerCase())).map((model) => {
