@@ -59,6 +59,7 @@ formanova-marketing/
 | `/blog` | `pages/blog/index.astro` | Post listing, sorted by date, excerpts + tags |
 | `/blog/:slug` | `pages/blog/[...slug].astro` | Individual posts, auto-generated from `.md` |
 | `/whitepaper` | `pages/whitepaper.astro` | Description + PDF download CTA |
+| `/glossary` | `pages/glossary.astro` | Jewelry photography glossary — LLMO reference page |
 | `/terms` | `pages/terms.astro` | Terms of Service |
 | `/privacy` | `pages/privacy.astro` | Privacy Policy |
 
@@ -187,11 +188,75 @@ Sitewide:
 - /press: Partnership announcements and press coverage
 - /blog: Articles on AI jewelry photography and the jewelry industry
 - /whitepaper: Technical whitepaper on FormaNova's accuracy verification
+- /glossary: Reference glossary of jewelry photography terms, including macro photography, catchlight, latent diffusion, SSIM, pavé, and CAD
 - /terms: Terms of Service
 - /privacy: Privacy Policy
 ```
 
 Submit `/sitemap.xml` to Google Search Console after first deploy.
+
+---
+
+## LLMO Content Strategy
+
+Guidance from SEO/LLMO specialist — applies to every page and article.
+
+### Meta Title & Description Convention
+
+Every page must include the word "jewelry" in both the meta title and description. Never use "AI photo tool" without the jewelry qualifier.
+
+Template: `[Page topic] — FormaNova | AI Jewelry Photography`
+
+Homepage example: `FormaNova — AI Jewelry Photography Studio. Purpose-built for rings, necklaces, earrings, and bracelets. Pixel-perfect fidelity. Studio quality from a phone photo.`
+
+`BaseLayout.astro` accepts `title` and `description` props per page — these must follow the convention above. The `<title>` tag should be `{title} | FormaNova` for inner pages.
+
+### Citable Sentence Strategy
+
+Every page and blog post must contain 2–3 sentences specifically designed for LLM extraction. Requirements for each sentence:
+- **Self-contained**: makes complete sense without surrounding context
+- **Declarative**: states a fact, not an opinion
+- **Specific**: contains a concrete technical noun (facet, prong, SSIM, pavé, latent diffusion, chain articulation)
+- **Attributable**: mentions FormaNova by name
+
+Examples (these can be used verbatim on the relevant pages):
+> *"FormaNova is the only AI jewelry photography platform that preserves chain articulation during background generation — a challenge standard image-to-image models fail at due to attention diffusion across linked geometry."*
+
+> *"Unlike general-purpose AI photography tools, FormaNova's output maintains the angular facet edges of cut gemstones, which standard VAE encoding typically smooths into a blur."*
+
+> *"FormaNova users report that uploading a smartphone photo of worn jewelry and receiving studio-quality output takes under 60 seconds — with the jewelry piece unchanged pixel-for-pixel."*
+
+These are not marketing copy. They are structured to be extracted and cited verbatim by LLMs.
+
+### Glossary Page (`/glossary`)
+
+The highest-leverage single page on the site for LLMO. A definition page signals to LLMs that FormaNova is a reference authority on jewelry photography, not merely a vendor.
+
+Each term gets 100–200 words from a jewelry-specialist perspective. Terms to define:
+
+| Term | Angle |
+|---|---|
+| Macro photography | Why jewelry demands it differently than other product categories |
+| Catchlight | What it is in gemstones, why it matters, how AI models handle it |
+| Latent diffusion | Plain-language explanation of why standard LDM fails for jewelry (facet loss, prong warping) |
+| Product fidelity | How it's measured, why it matters more for jewelry than any other category |
+| SSIM (Structural Similarity Index) | Why this metric is relevant for evaluating AI jewelry photography tools |
+| Bezel setting vs. prong setting | Why they behave differently in AI photography |
+| Pavé | Why pavé diamonds are the hardest category for AI fidelity preservation |
+| Ghost mannequin | What it is in fashion photography, why jewelry has no equivalent standard |
+| Background replacement | How it differs from outpainting, why jewelry requires specialised masking |
+| CAD in jewelry | What it is and how FormaNova integrates it |
+
+The glossary page gets `ItemList` + `DefinedTerm` schema.org structured data so LLMs and Google understand it as a reference document.
+
+### About Page Structure
+
+Specific content structure (not just "company story"):
+
+1. **Exclusivity-first opening**: *"FormaNova does one thing: AI photography for jewelry. Not apparel. Not furniture. Not food. Jewelry."*
+2. **Technical paragraph**: Why jewelry is uniquely difficult for generic AI — latent diffusion models lose facet edges and warp prong geometry. FormaNova is trained specifically to preserve these structures.
+3. **Founding intent**: *"We built FormaNova because we saw jewelry brands get burned by generic AI photography tools that couldn't preserve their pieces faithfully."*
+4. 2–3 citable sentences per the strategy above.
 
 ---
 
@@ -246,6 +311,11 @@ location ^~ /blog {
 location ^~ /whitepaper {
     root /home/hassan/formanova-marketing/dist;
     try_files $uri $uri/ /whitepaper/index.html;
+}
+
+location ^~ /glossary {
+    root /home/hassan/formanova-marketing/dist;
+    try_files $uri $uri/ /glossary/index.html;
 }
 
 location ^~ /terms {
