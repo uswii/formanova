@@ -55,7 +55,7 @@ function MyProductsTab({ showMetadata }: { showMetadata: boolean }) {
       emptyMessage="No jewelry photos yet. Upload a photo to start your first shoot."
       onReshoot={handleReshoot}
       showMetadata={showMetadata}
-      onRename={handleRename}
+      onRename={handleRename}  // always wired — rename is for all users
     />
   );
 }

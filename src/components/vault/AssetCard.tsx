@@ -43,7 +43,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
       </div>
 
       <div className="p-3 space-y-1">
-        {showMetadata && asset.asset_type === 'model_photo' ? (
+        {asset.asset_type === 'model_photo' && (
           editing ? (
             <input
               autoFocus
@@ -60,11 +60,9 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
               title="Click to rename"
               onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(displayName ?? ''); }}
             >
-              {displayName || <span className="text-muted-foreground italic">Unnamed</span>}
+              {displayName || <span className="text-muted-foreground italic">Unnamed — click to name</span>}
             </p>
           )
-        ) : (
-          displayName && <p className="font-mono text-xs text-foreground truncate">{displayName}</p>
         )}
 
         {showMetadata && asset.metadata?.category && (
