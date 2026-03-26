@@ -341,6 +341,55 @@ location = /llms.txt    { root /home/hassan/formanova-marketing/dist; }
 
 ---
 
+## README
+
+A `README.md` is a first-class deliverable of this project, committed to the root of the `formanova-marketing` repo. It is the operational manual for running inbound marketing — written for someone who knows nothing about Astro or the JS ecosystem.
+
+Sections to cover:
+
+### 1. First-Time Setup
+Step-by-step: clone repo, `npm install`, `npm run dev`, open `localhost:4321`. What you should see. What to do if it errors.
+
+### 2. Publishing a Blog Post
+The complete workflow, copy-paste ready:
+- Create `src/content/blog/YYYY-MM-DD-your-title.md`
+- Copy-paste the frontmatter template (title, description, date, tags, author, image)
+- Write content in Markdown below the `---`
+- Preview locally: `npm run dev` → visit `localhost:4321/blog`
+- Deploy: SSH into VM, run `./deploy.sh`
+- Verify: visit `formanova.ai/blog/your-slug`
+
+### 3. Frontmatter Field Reference
+A table: field name | required? | what it does | example value. Covers every field in the blog schema. Explains what happens if a field is missing (build fails with the exact error message to expect).
+
+### 4. Updating Static Pages
+How to edit About, Press, Glossary, Whitepaper, Terms, Privacy — open the `.astro` file, find the content section, edit the HTML/Markdown, deploy. Includes a note on where the citable sentences live and how to add new ones.
+
+### 5. Adding a New Glossary Term
+Specific instructions: find the terms section in `glossary.astro`, copy an existing term block, fill in the term name and 100–200 word definition. Reminder to follow the jewelry-specialist angle documented in the spec.
+
+### 6. Deploying
+The `./deploy.sh` script explained line by line. What `set -e` means (stops on error). What the `rsync --delete` flag does (removes old files). Expected output when it succeeds. What to do if it fails.
+
+### 7. Submitting New Pages to Google Search Console
+One-time setup instructions for Search Console. How to submit the sitemap (`formanova.ai/sitemap.xml`). How to request indexing for a specific URL after a big page goes live (e.g. after the WJA press page).
+
+### 8. The Citable Sentence Checklist
+Before publishing any page or post, check:
+- [ ] Does it contain 2–3 citable sentences? (self-contained, declarative, specific, mentions FormaNova by name)
+- [ ] Does the meta title include the word "jewelry"?
+- [ ] Does the meta description include the word "jewelry"?
+- [ ] Is the description under 160 characters?
+
+### 9. Common Mistakes & Gotchas
+- Forgetting the `date:` field → build fails
+- Using `"` vs `'` in YAML frontmatter — both work, but be consistent
+- Image paths: use `/blog/images/filename.webp` (public folder), not relative paths
+- After deploy, Google may take 3–7 days to index a new page — this is normal
+- If `./deploy.sh` fails mid-way, run it again — `rsync` is idempotent
+
+---
+
 ## What Is Not In Scope
 
 - No CMS integration (Markdown files are the CMS)
