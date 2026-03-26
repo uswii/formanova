@@ -49,3 +49,14 @@ export function isCadUploadEnabled(email: string | undefined | null): boolean {
   if (!email) return false;
   return CAD_UPLOAD_EMAILS.includes(email.toLowerCase());
 }
+
+/**
+ * Users who can see asset metadata (category label, inline model rename).
+ * Gated while backend metadata endpoints are being validated.
+ */
+const ASSET_METADATA_EMAILS = ['uswa@raresense.so'];
+
+export function isAssetMetadataEnabled(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return ASSET_METADATA_EMAILS.includes(email.toLowerCase());
+}

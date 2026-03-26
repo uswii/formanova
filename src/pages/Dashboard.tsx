@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { isCADEnabled } from '@/lib/feature-flags';
+import { isCADEnabled, isAssetMetadataEnabled } from '@/lib/feature-flags';
+import { updateAssetMetadata } from '@/lib/assets-api';
 import { motion } from 'framer-motion';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { usePrefetchGenerations } from '@/hooks/use-prefetch-generations';
@@ -30,12 +31,20 @@ const itemVariants = {
   },
 };
 
-function MyProductsTab() {
+function MyProductsTab({ showMetadata }: { showMetadata: boolean }) {
   const navigate = useNavigate();
   const { assets, isLoading, error } = useUserAssets('jewelry_photo');
 
   const handleReshoot = (asset: UserAsset) => {
     navigate('/studio', { state: { preloadedJewelryUrl: asset.thumbnail_url, preloadedJewelryAssetId: asset.id } });
+  };
+
+  const handleRename = async (asset: UserAsset, newName: string) => {
+    try {
+      await updateAssetMetadata(asset.id, { name: newName });
+    } catch (e) {
+      console.warn('[Dashboard] Rename failed:', e);
+    }
   };
 
   return (
@@ -45,6 +54,8 @@ function MyProductsTab() {
       error={error}
       emptyMessage="No jewelry photos yet. Upload a photo to start your first shoot."
       onReshoot={handleReshoot}
+      showMetadata={showMetadata}
+      onRename={handleRename}
     />
   );
 }
@@ -56,6 +67,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const userName = user?.email ? user.email.split('@')[0] : '';
   const cadEnabled = isCADEnabled(user?.email);
+  const metadataEnabled = isAssetMetadataEnabled(user?.email);
 
   // Prefetch generation history in background so it's instant when user opens Generations
   usePrefetchGenerations();
@@ -154,7 +166,7 @@ export default function Dashboard() {
           My Vault
         </span>
 
-        <MyProductsTab />
+        <MyProductsTab showMetadata={metadataEnabled} />
       </div>
     </div>
   );

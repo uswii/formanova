@@ -12,6 +12,8 @@ interface AssetGridProps {
   onReshoot?: AssetCardProps['onReshoot'];
   onCardClick?: AssetCardProps['onClick'];
   reshootLabel?: string;
+  showMetadata?: boolean;
+  onRename?: AssetCardProps['onRename'];
 }
 
 export function AssetGrid({
@@ -22,6 +24,8 @@ export function AssetGrid({
   onReshoot,
   onCardClick,
   reshootLabel,
+  showMetadata,
+  onRename,
 }: AssetGridProps) {
   if (isLoading) {
     return (
@@ -52,6 +56,8 @@ export function AssetGrid({
           onReshoot={onReshoot}
           onClick={onCardClick}
           reshootLabel={reshootLabel}
+          showMetadata={showMetadata}
+          onRename={onRename}
         />
       ))}
     </div>
