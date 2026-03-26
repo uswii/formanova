@@ -1366,10 +1366,7 @@ export default function UnifiedStudio() {
                               onClick={() => modelInputRef.current?.click()}
                               className="group/upload relative aspect-[3/4] w-full overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
                             >
-                              {/* Diamond-shaped upload icon */}
-                              <div className="w-8 h-8 rotate-45 border-2 border-muted-foreground/30 group-hover/upload:border-foreground/50 flex items-center justify-center transition-colors">
-                                <Upload className="h-3.5 w-3.5 -rotate-45 text-muted-foreground/40 group-hover/upload:text-foreground/60 transition-colors" />
-                              </div>
+                              <Diamond className="h-9 w-9 text-primary" />
                               <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider text-center px-1">
                                 Upload
                               </span>

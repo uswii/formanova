@@ -66,19 +66,47 @@ export function MasonryGrid({
 
   const compute = useCallback(() => {
     if (!colWidth || items.length === 0) return;
-    const heights = Array<number>(effectiveCols).fill(0);
-    const pos: ItemPos[] = [];
 
-    for (let i = 0; i < items.length; i++) {
-      const el = itemRefs.current.get(i);
-      const h = el?.offsetHeight ?? 0;
+    // Measure all item heights upfront
+    const itemHeights = Array.from({ length: items.length }, (_, i) =>
+      itemRefs.current.get(i)?.offsetHeight ?? 0
+    );
+
+    const heights = Array<number>(effectiveCols).fill(0);
+    // Index-keyed so last-batch items can be placed out of insertion order
+    const pos: ItemPos[] = new Array(items.length);
+
+    // Standard shortest-column-first for everything except the final batch.
+    // The final batch uses LPT (Longest Processing Time): sort by height
+    // descending, assign each to the currently shortest column. This minimises
+    // the max column height at the bottom and eliminates the large empty gaps
+    // that appear when a tall item lands in a short column at the end.
+    const batchStart = Math.max(0, items.length - effectiveCols);
+
+    for (let i = 0; i < batchStart; i++) {
       const col = heights.indexOf(Math.min(...heights));
-      pos.push({
+      pos[i] = {
         left: Math.round(col * (colWidth + gap)),
         top: Math.round(heights[col]),
         width: colWidth,
-      });
-      heights[col] += h + gap;
+      };
+      heights[col] += itemHeights[i] + gap;
+    }
+
+    // Last batch: tallest-first assignment to shortest column
+    const batch = Array.from({ length: items.length - batchStart }, (_, k) => ({
+      idx: batchStart + k,
+      height: itemHeights[batchStart + k],
+    })).sort((a, b) => b.height - a.height);
+
+    for (const { idx, height } of batch) {
+      const col = heights.indexOf(Math.min(...heights));
+      pos[idx] = {
+        left: Math.round(col * (colWidth + gap)),
+        top: Math.round(heights[col]),
+        width: colWidth,
+      };
+      heights[col] += height + gap;
     }
 
     setPositions(pos);

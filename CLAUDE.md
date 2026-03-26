@@ -38,6 +38,7 @@ Follow UX best practices as established by designers like Don Norman:
 - **New UI must fit the theme**: Anything newly designed must be visually consistent with the rest of the app — colors, spacing, typography, component style.
 - **Equidistant grid spacing**: In image grids (e.g. upload guide panels), vertical and horizontal gaps must be equal for uniform spacing.
 - **Inline rename UX (Don Norman)**: Editable names must have clear signifiers (pencil icon + hover highlight), explicit Save/Cancel buttons (not silent blur-save), a brief "Saved!" confirmation with a checkmark, and keyboard support (Enter to save, Escape to cancel). The pattern must be consistent across all cards (ModelCard, AssetCard). Never use tiny cramped icons or rely on auto-save without feedback.
+- **Upload icon — Diamond**: Always use the lucide-react `Diamond` icon (`h-9 w-9 text-primary`) for upload trigger areas across the app (step one drop zone, My Models upload card, etc.). Never substitute a custom rotated-div or any other icon for upload actions.
 
 ## Code & Engineering Rules
 
