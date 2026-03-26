@@ -31,6 +31,8 @@ const itemVariants = {
   },
 };
 
+const CATEGORY_ORDER = ['ring', 'necklace', 'earring', 'bracelet', 'watch'];
+
 function MyProductsTab({ showMetadata }: { showMetadata: boolean }) {
   const navigate = useNavigate();
   const { assets, isLoading, error } = useUserAssets('jewelry_photo');
@@ -40,23 +42,46 @@ function MyProductsTab({ showMetadata }: { showMetadata: boolean }) {
   };
 
   const handleRename = async (asset: UserAsset, newName: string) => {
-    try {
-      await updateAssetMetadata(asset.id, { name: newName });
-    } catch (e) {
-      console.warn('[Dashboard] Rename failed:', e);
-    }
+    try { await updateAssetMetadata(asset.id, { name: newName }); }
+    catch (e) { console.warn('[Dashboard] Rename failed:', e); }
   };
 
+  if (isLoading) return <AssetGrid assets={[]} isLoading error={null} />;
+  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (assets.length === 0) return <p className="text-sm text-muted-foreground py-8 text-center">No jewelry photos yet. Upload a photo to start your first shoot.</p>;
+
+  // Group by metadata.category; uncategorised goes last
+  const groups: Record<string, UserAsset[]> = {};
+  for (const asset of assets) {
+    const cat = asset.metadata?.category ?? '';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(asset);
+  }
+
+  const orderedKeys = [
+    ...CATEGORY_ORDER.filter(c => groups[c]),
+    ...Object.keys(groups).filter(c => c && !CATEGORY_ORDER.includes(c)).sort(),
+    ...(groups[''] ? [''] : []),
+  ];
+
   return (
-    <AssetGrid
-      assets={assets}
-      isLoading={isLoading}
-      error={error}
-      emptyMessage="No jewelry photos yet. Upload a photo to start your first shoot."
-      onReshoot={handleReshoot}
-      showMetadata={showMetadata}
-      onRename={handleRename}  // always wired — rename is for all users
-    />
+    <div className="space-y-8">
+      {orderedKeys.map(cat => (
+        <div key={cat || 'uncategorised'}>
+          <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase block mb-3 capitalize">
+            {cat || 'Uncategorised'}
+          </span>
+          <AssetGrid
+            assets={groups[cat]}
+            isLoading={false}
+            error={null}
+            onReshoot={handleReshoot}
+            showMetadata={showMetadata}
+            onRename={handleRename}
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 
