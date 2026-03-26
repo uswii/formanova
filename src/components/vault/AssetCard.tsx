@@ -42,7 +42,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
         />
       </div>
 
-      <div className="p-3 space-y-1">
+      <div className="p-3 min-h-[2.5rem] space-y-1">
         {asset.asset_type === 'model_photo' && (
           editing ? (
             <input

@@ -224,10 +224,10 @@ export default function UnifiedStudio() {
         uploadedAt: new Date(a.created_at).getTime(),
       }));
       setMyModels(backendModels);
-      // Clear local pending models that now exist in backend (matched by URL)
-      const backendUrls = new Set(backendModels.map(m => m.url));
+      // Clear local pending models that now exist in backend (matched by ID)
+      const backendIds = new Set(backendModels.map(m => m.id));
       setLocalPendingModels(prev => {
-        const remaining = prev.filter(m => !backendUrls.has(m.url));
+        const remaining = prev.filter(m => !backendIds.has(m.id));
         saveMyModels(remaining);
         return remaining;
       });
@@ -240,10 +240,10 @@ export default function UnifiedStudio() {
 
   useEffect(() => { fetchMyModels(); }, [fetchMyModels]);
 
-  // Merged list: local pending (optimistic) + backend models, deduplicated
+  // Merged list: local pending (optimistic) + backend models, deduplicated by ID
   const mergedMyModels = useMemo(() => {
-    const backendUrls = new Set(myModels.map(m => m.url));
-    const unique = localPendingModels.filter(m => !backendUrls.has(m.url));
+    const backendIds = new Set(myModels.map(m => m.id));
+    const unique = localPendingModels.filter(m => !backendIds.has(m.id));
     return [...unique, ...myModels];
   }, [myModels, localPendingModels]);
 
@@ -424,9 +424,9 @@ export default function UnifiedStudio() {
         model_type: 'custom_upload',
       });
 
-      // Add to My Models list
+      // Add to My Models list — use real asset_id so dedup matches backend fetch
       const newModel: UserModel = {
-        id: `user-${Date.now()}`,
+        id: azResult.asset_id ?? `user-${Date.now()}`,
         name: file.name.replace(/\.[^.]+$/, ''),
         url: stableUrl,
         uploadedAt: Date.now(),
