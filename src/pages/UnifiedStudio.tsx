@@ -17,9 +17,12 @@ import {
   ArrowLeft,
   AlertTriangle,
   ExternalLink,
+  Search,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { MasonryGrid } from '@/components/ui/masonry-grid';
 import {
   Dialog,
   DialogContent,
@@ -201,11 +204,11 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
       >
         <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
       </button>
-      <div className="px-1 pt-1 pb-0.5">
+      <div className="px-1 pt-1.5 pb-1 flex items-center justify-center gap-1 min-h-[1.75rem]">
         {editing ? (
           <input
             autoFocus
-            className="font-mono text-[10px] text-foreground bg-transparent border-b border-formanova-glow outline-none w-full"
+            className="font-mono text-[10px] text-foreground bg-transparent border-b border-formanova-glow outline-none text-center w-full"
             value={nameInput}
             onChange={e => setNameInput(e.target.value)}
             onBlur={commit}
@@ -213,13 +216,16 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
             onClick={e => e.stopPropagation()}
           />
         ) : (
-          <p
-            className="font-mono text-[10px] text-muted-foreground truncate cursor-text hover:text-foreground"
-            title="Click to rename"
-            onClick={() => { setEditing(true); setNameInput(model.name); }}
+          <button
+            className="flex items-center gap-1 group/rename max-w-full"
+            title="Rename"
+            onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(model.name); }}
           >
-            {model.name || <span className="italic">Unnamed</span>}
-          </p>
+            <span className="font-mono text-[10px] text-muted-foreground truncate group-hover/rename:text-foreground transition-colors">
+              {model.name || <span className="italic opacity-50">Unnamed</span>}
+            </span>
+            <Pencil className="h-2.5 w-2.5 text-muted-foreground/40 group-hover/rename:text-foreground flex-shrink-0 transition-colors" />
+          </button>
         )}
       </div>
     </div>
@@ -274,6 +280,7 @@ export default function UnifiedStudio() {
   const [myModels, setMyModels] = useState<UserModel[]>([]);
   const [localPendingModels, setLocalPendingModels] = useState<UserModel[]>(loadMyModels);
   const [myModelsLoading, setMyModelsLoading] = useState(true);
+  const [myModelsSearch, setMyModelsSearch] = useState('');
   const [formanovaCategory, setFormanovaCategory] = useState<'ecom' | 'editorial'>('ecom');
 
   // Fetch user-uploaded models from backend API
@@ -1299,39 +1306,54 @@ export default function UnifiedStudio() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-3 h-[420px] md:h-[480px] overflow-y-auto pr-1 content-start">
-                        {/* Upload card — always first */}
-                        <button
-                          onClick={() => modelInputRef.current?.click()}
-                          className="group relative aspect-[3/4] overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
-                        >
-                          <Upload className="h-5 w-5 text-muted-foreground/40" />
-                          <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
-                            + Upload
-                          </span>
-                        </button>
-
-                        {/* User-uploaded models */}
-                        {mergedMyModels.map((model) => {
-                          const isActive = customModelImage === model.url;
-                          return (
-                            <ModelCard
-                              key={model.id}
-                              model={model}
-                              isActive={isActive}
-                              onSelect={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); setModelAssetId(model.id.startsWith('user-') ? null : model.id); }}
-                              onDelete={() => handleDeleteUserModel(model.id)}
-                              onRename={async (newName) => {
-                                if (!model.id.startsWith('user-')) {
-                                  try { await updateAssetMetadata(model.id, { name: newName }); } catch (e) { console.warn('[ModelCard] Rename failed:', e); }
-                                }
-                                setMyModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
-                                setLocalPendingModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
-                              }}
-                            />
-                          );
-                        })}
+                      <>
+                      {/* Search */}
+                      <div className="relative mb-3">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Search models..."
+                          value={myModelsSearch}
+                          onChange={e => setMyModelsSearch(e.target.value)}
+                          className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
+                        />
                       </div>
+                      <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
+                        <MasonryGrid columns={3} gap={12}>
+                          {/* Upload card — always first */}
+                          <button
+                            onClick={() => modelInputRef.current?.click()}
+                            className="group relative aspect-[3/4] w-full overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
+                          >
+                            <Upload className="h-5 w-5 text-muted-foreground/40" />
+                            <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
+                              + Upload
+                            </span>
+                          </button>
+
+                          {/* User-uploaded models */}
+                          {mergedMyModels.filter(m => !myModelsSearch || m.name.toLowerCase().includes(myModelsSearch.toLowerCase())).map((model) => {
+                            const isActive = customModelImage === model.url;
+                            return (
+                              <ModelCard
+                                key={model.id}
+                                model={model}
+                                isActive={isActive}
+                                onSelect={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); setModelAssetId(model.id.startsWith('user-') ? null : model.id); }}
+                                onDelete={() => handleDeleteUserModel(model.id)}
+                                onRename={async (newName) => {
+                                  if (!model.id.startsWith('user-')) {
+                                    try { await updateAssetMetadata(model.id, { name: newName }); } catch (e) { console.warn('[ModelCard] Rename failed:', e); }
+                                  }
+                                  setMyModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
+                                  setLocalPendingModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
+                                }}
+                              />
+                            );
+                          })}
+                        </MasonryGrid>
+                      </div>
+                      </>
                     )}
                   </TabsContent>
 

@@ -2,6 +2,7 @@
 // Purely presentational grid. Pass assets as props. Loading/empty states included.
 
 import { AssetCard, type AssetCardProps } from './AssetCard';
+import { MasonryGrid } from '@/components/ui/masonry-grid';
 import type { UserAsset } from '@/lib/assets-api';
 
 interface AssetGridProps {
@@ -48,19 +49,18 @@ export function AssetGrid({
   }
 
   return (
-    <div className="columns-2 sm:columns-3 lg:columns-4 [column-gap:1rem]">
+    <MasonryGrid breakpoints={{ sm: 2, md: 3, lg: 4 }} gap={16}>
       {assets.map((asset) => (
-        <div key={asset.id} className="break-inside-avoid mb-4 last:mb-0">
-          <AssetCard
-            asset={asset}
-            onReshoot={onReshoot}
-            onClick={onCardClick}
-            reshootLabel={reshootLabel}
-            showMetadata={showMetadata}
-            onRename={onRename}
-          />
-        </div>
+        <AssetCard
+          key={asset.id}
+          asset={asset}
+          onReshoot={onReshoot}
+          onClick={onCardClick}
+          reshootLabel={reshootLabel}
+          showMetadata={showMetadata}
+          onRename={onRename}
+        />
       ))}
-    </div>
+    </MasonryGrid>
   );
 }
