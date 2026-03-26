@@ -1333,18 +1333,27 @@ export default function UnifiedStudio() {
                   <TabsContent value="my-models" className="flex-1 flex flex-col min-h-0 mt-0 space-y-0">
 
                     {isMyModelsEmptyState ? (
-                      <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8 flex flex-col items-center text-center gap-4">
-                        <p className="text-sm text-muted-foreground max-w-[28ch]">
-                          No models yet. Upload a model. It will be saved here
-                        </p>
-                        <Button
-                          onClick={() => modelInputRef.current?.click()}
-                          className="gap-2 font-mono text-[11px] uppercase tracking-widest"
-                        >
-                          <Upload className="h-4 w-4" />
-                          Upload Model
-                        </Button>
-                      </div>
+                      <button
+                        onClick={() => modelInputRef.current?.click()}
+                        className="flex-1 w-full border border-dashed border-border/30 bg-muted/5 hover:bg-muted/10 hover:border-foreground/20 transition-all duration-300 flex flex-col items-center justify-center gap-5 group/empty"
+                      >
+                        {/* Pulsing diamond */}
+                        <div className="relative w-20 h-20">
+                          <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2.5s' }} />
+                          <div className="absolute inset-[-6px] rounded-full bg-primary/5 animate-ping" style={{ animationDuration: '3.5s', animationDelay: '0.8s' }} />
+                          <div className="absolute inset-0 rounded-full bg-muted/30 border-2 border-primary/20 flex items-center justify-center group-hover/empty:border-primary/40 transition-colors duration-300">
+                            <Diamond className="h-9 w-9 text-primary group-hover/empty:scale-110 transition-transform duration-300" />
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center gap-1.5">
+                          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/70 group-hover/empty:text-foreground transition-colors">
+                            Upload Your Model
+                          </span>
+                          <span className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">
+                            Saved here for future shoots
+                          </span>
+                        </div>
+                      </button>
                     ) : (
                       <>
                       {/* Search */}
