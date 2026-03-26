@@ -48,17 +48,18 @@ export function AssetGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
       {assets.map((asset) => (
-        <AssetCard
-          key={asset.id}
-          asset={asset}
-          onReshoot={onReshoot}
-          onClick={onCardClick}
-          reshootLabel={reshootLabel}
-          showMetadata={showMetadata}
-          onRename={onRename}
-        />
+        <div key={asset.id} className="break-inside-avoid mb-4">
+          <AssetCard
+            asset={asset}
+            onReshoot={onReshoot}
+            onClick={onCardClick}
+            reshootLabel={reshootLabel}
+            showMetadata={showMetadata}
+            onRename={onRename}
+          />
+        </div>
       ))}
     </div>
   );

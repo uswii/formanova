@@ -33,11 +33,11 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
       className="group relative rounded-lg overflow-hidden bg-card border border-border cursor-pointer hover:border-formanova-glow transition-colors duration-200"
       onClick={() => !editing && onClick?.(asset)}
     >
-      <div className="aspect-square w-full overflow-hidden bg-muted">
+      <div className="w-full overflow-hidden bg-muted">
         <img
           src={asset.thumbnail_url}
           alt={displayName ?? (asset.asset_type === 'model_photo' ? 'Model photo' : 'Jewelry photo')}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
         />
       </div>
