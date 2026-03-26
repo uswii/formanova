@@ -1317,10 +1317,10 @@ export default function UnifiedStudio() {
                 </div>
               </div>
 
-              {/* Right 1/3 — Model Selection Sidebar */}
-              <div className="space-y-4">
-                <Tabs defaultValue="formanova" className="w-full">
-                  <TabsList className="w-full grid grid-cols-2 mb-4 bg-muted/30 h-11">
+              {/* Right 1/3 — Model Selection Sidebar, height locked to canvas */}
+              <div className="h-[480px] md:h-[540px] flex flex-col">
+                <Tabs defaultValue="formanova" className="w-full flex-1 flex flex-col min-h-0">
+                  <TabsList className="w-full grid grid-cols-2 mb-3 bg-muted/30 h-11 flex-shrink-0">
                     <TabsTrigger value="my-models" className="font-mono text-[10px] uppercase tracking-[0.15em] data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground transition-all">
                       My Models
                     </TabsTrigger>
@@ -1330,7 +1330,7 @@ export default function UnifiedStudio() {
                   </TabsList>
 
                   {/* ── MY MODELS TAB ── */}
-                  <TabsContent value="my-models" className="space-y-3">
+                  <TabsContent value="my-models" className="flex-1 flex flex-col min-h-0 mt-0 space-y-0">
 
                     {isMyModelsEmptyState ? (
                       <div className="border border-dashed border-border/30 bg-muted/10 px-6 py-8 flex flex-col items-center text-center gap-4">
@@ -1348,7 +1348,7 @@ export default function UnifiedStudio() {
                     ) : (
                       <>
                       {/* Search */}
-                      <div className="relative mb-3">
+                      <div className="relative mb-2 flex-shrink-0">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
                         <input
                           type="text"
@@ -1358,7 +1358,7 @@ export default function UnifiedStudio() {
                           className="w-full bg-muted/20 border border-border/20 pl-7 pr-3 py-1.5 font-mono text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/60 transition-colors"
                         />
                       </div>
-                      <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
+                      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
                         <MasonryGrid columns={3} gap={12}>
                           {/* Upload card — always first */}
                           <div className="flex flex-col">
@@ -1407,8 +1407,8 @@ export default function UnifiedStudio() {
                   </TabsContent>
 
                   {/* ── FORMANOVA MODELS TAB ── */}
-                  <TabsContent value="formanova">
-                    <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
+                  <TabsContent value="formanova" className="flex-1 min-h-0 overflow-y-auto pr-1 mt-0">
+                    <div>
                       {/*
                         CSS columns layout: content flows top-to-bottom in each column before
                         moving to the next. Category buttons anchor to the top of column 1,
