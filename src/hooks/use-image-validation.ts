@@ -138,14 +138,15 @@ export function useImageValidation() {
           console.log('[ImageValidation] Cache check — asset found:', !!cached, '| metadata:', JSON.stringify(cached?.metadata));
           if (cached?.metadata?.display_type) {
             clearTimeout(timeoutId);
-            const is_worn = cached.metadata.is_worn === 'true';
-            console.log('[ImageValidation] Using cached classification for asset:', uploadedAssetId);
+            const userOverride = cached.metadata.user_override === 'true';
+            const is_worn = userOverride || cached.metadata.is_worn === 'true';
+            console.log('[ImageValidation] Using cached classification for asset:', uploadedAssetId, '| user_override:', userOverride);
             return {
               category: cached.metadata.display_type as ClassificationResult['category'],
               is_worn,
               confidence: 1,
-              reason: 'cached',
-              flagged: cached.metadata.flagged === 'true',
+              reason: userOverride ? 'user_override' : 'cached',
+              flagged: !is_worn,
               uploaded_url: uploadedUrl,
               asset_id: uploadedAssetId,
             };
