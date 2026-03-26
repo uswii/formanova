@@ -32,7 +32,7 @@ import { normalizeImageFile } from '@/lib/image-normalize';
 import { compressImageBlob, imageSourceToBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
 import { ECOM_MODELS, EDITORIAL_MODELS, ALL_MODELS, type ModelImage } from '@/lib/model-library';
-import { fetchUserAssets, type UserAsset } from '@/lib/assets-api';
+import { fetchUserAssets, updateAssetMetadata, type UserAsset } from '@/lib/assets-api';
 import { useImageValidation, type ImageValidationResult } from '@/hooks/use-image-validation';
 import {
   startPhotoshoot,
@@ -161,6 +161,70 @@ function clearStudioSession() {
 }
 
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
+
+function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
+  model: UserModel;
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onRename: (name: string) => void;
+}) {
+  const [editing, setEditing] = React.useState(false);
+  const [nameInput, setNameInput] = React.useState(model.name);
+
+  const commit = () => {
+    setEditing(false);
+    const trimmed = nameInput.trim();
+    if (trimmed && trimmed !== model.name) onRename(trimmed);
+    else setNameInput(model.name);
+  };
+
+  return (
+    <div className="relative group">
+      <button
+        onClick={onSelect}
+        className={`relative overflow-hidden border transition-all w-full ${isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'}`}
+      >
+        <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
+        {isActive && (
+          <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
+            <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+              <Check className="h-3.5 w-3.5 text-background" />
+            </div>
+          </div>
+        )}
+      </button>
+      <button
+        onClick={onDelete}
+        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center"
+        aria-label="Delete model"
+      >
+        <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+      </button>
+      <div className="px-1 pt-1 pb-0.5">
+        {editing ? (
+          <input
+            autoFocus
+            className="font-mono text-[10px] text-foreground bg-transparent border-b border-formanova-glow outline-none w-full"
+            value={nameInput}
+            onChange={e => setNameInput(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setEditing(false); setNameInput(model.name); } }}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <p
+            className="font-mono text-[10px] text-muted-foreground truncate cursor-text hover:text-foreground"
+            title="Click to rename"
+            onClick={() => { setEditing(true); setNameInput(model.name); }}
+          >
+            {model.name || <span className="italic">Unnamed</span>}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function loadMyModels(): UserModel[] {
   try {
@@ -1251,31 +1315,20 @@ export default function UnifiedStudio() {
                         {mergedMyModels.map((model) => {
                           const isActive = customModelImage === model.url;
                           return (
-                            <div key={model.id} className="relative group">
-                              <button
-                                onClick={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); setModelAssetId(model.id.startsWith('user-') ? null : model.id); }}
-                                className={`relative overflow-hidden border transition-all w-full ${
-                                  isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'
-                                }`}
-                              >
-                                <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
-                                {isActive && (
-                                  <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-foreground flex items-center justify-center">
-                                      <Check className="h-3.5 w-3.5 text-background" />
-                                    </div>
-                                  </div>
-                                )}
-                              </button>
-                              {/* Delete overlay on hover */}
-                              <button
-                                onClick={() => handleDeleteUserModel(model.id)}
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center"
-                                aria-label="Delete model"
-                              >
-                                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                              </button>
-                            </div>
+                            <ModelCard
+                              key={model.id}
+                              model={model}
+                              isActive={isActive}
+                              onSelect={() => { setCustomModelImage(model.url); setSelectedModel(null); setCustomModelFile(null); setModelAssetId(model.id.startsWith('user-') ? null : model.id); }}
+                              onDelete={() => handleDeleteUserModel(model.id)}
+                              onRename={async (newName) => {
+                                if (!model.id.startsWith('user-')) {
+                                  try { await updateAssetMetadata(model.id, { name: newName }); } catch (e) { console.warn('[ModelCard] Rename failed:', e); }
+                                }
+                                setMyModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
+                                setLocalPendingModels(prev => prev.map(m => m.id === model.id ? { ...m, name: newName } : m));
+                              }}
+                            />
                           );
                         })}
                       </div>
