@@ -364,7 +364,7 @@ export default function UnifiedStudio() {
     };
     reader.readAsDataURL(normalized);
 
-    const result = await validateImages([normalized], jewelryType);
+    const result = await validateImages([normalized], jewelryType, { category: TO_SINGULAR[jewelryType] ?? jewelryType });
     if (result && result.results.length > 0) {
       const localResult = result.results[0]; // use local variable — validationResult state is stale here (async setter)
       setValidationResult(localResult);
@@ -413,7 +413,8 @@ export default function UnifiedStudio() {
         reader2.onerror = reject;
         reader2.readAsDataURL(compressed);
       });
-      const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo');
+      const modelName = file.name.replace(/\.[^.]+$/, '');
+      const azResult = await uploadToAzure(base64, 'image/jpeg', 'model_photo', { name: modelName });
       const stableUrl = azResult.sas_url || azResult.https_url;
       setCustomModelImage(stableUrl);
       setModelAssetId(azResult.asset_id ?? null);
@@ -544,7 +545,7 @@ export default function UnifiedStudio() {
           reader.onerror = reject;
           reader.readAsDataURL(compressedJewelry);
         });
-        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo');
+        const azResult = await uploadToAzure(base64, 'image/jpeg', 'jewelry_photo', { category: TO_SINGULAR[jewelryType] ?? jewelryType });
         jewelryUrl = azResult.https_url || azResult.sas_url;
         setJewelryAssetId(azResult.asset_id ?? null);
         setGenerationProgress(20);

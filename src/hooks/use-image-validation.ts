@@ -114,7 +114,8 @@ export function useImageValidation() {
   }, []);
 
   const classifyImage = useCallback(async (
-    base64DataUri: string
+    base64DataUri: string,
+    metadata?: Record<string, string>,
   ): Promise<ClassificationResult | null> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
@@ -123,7 +124,7 @@ export function useImageValidation() {
       console.log('[ImageValidation] Uploading image to Azure...');
 
       // 1. Upload to Azure to get a URL
-      const azureResult = await uploadToAzure(base64DataUri, 'image/jpeg', 'jewelry_photo');
+      const azureResult = await uploadToAzure(base64DataUri, 'image/jpeg', 'jewelry_photo', metadata);
       const uploadedUrl = azureResult.uri; // azure:// URI for backend services
       const uploadedAssetId = azureResult.asset_id ?? null;
       console.log('[ImageValidation] Uploaded azure URI:', uploadedUrl);
@@ -262,7 +263,8 @@ export function useImageValidation() {
    */
   const validateImages = useCallback(async (
     files: File[],
-    category: string
+    category: string,
+    metadata?: Record<string, string>,
   ): Promise<ValidationResponse | null> => {
     if (files.length === 0) return null;
 
@@ -271,7 +273,7 @@ export function useImageValidation() {
     try {
       const base64Uris = await Promise.all(files.map(fileToBase64));
       const classificationResults = await Promise.all(
-        base64Uris.map(uri => classifyImage(uri))
+        base64Uris.map(uri => classifyImage(uri, metadata))
       );
 
       const results: ImageValidationResult[] = classificationResults.map((result, idx) => {

@@ -16,10 +16,11 @@ export interface AzureUploadResponse {
 export async function uploadToAzure(
   base64: string,
   contentType: string = 'image/jpeg',
-  assetType?: 'jewelry_photo' | 'model_photo'
+  assetType?: 'jewelry_photo' | 'model_photo',
+  metadata?: Record<string, string>,
 ): Promise<AzureUploadResponse> {
   console.log('[microservices] Uploading to Azure...');
-  
+
   const response = await authenticatedFetch(AZURE_UPLOAD_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -27,6 +28,7 @@ export async function uploadToAzure(
       base64,
       content_type: contentType,
       ...(assetType ? { asset_type: assetType } : {}),
+      ...(metadata ? { metadata } : {}),
     }),
   });
 

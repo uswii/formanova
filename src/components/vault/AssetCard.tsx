@@ -33,7 +33,12 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel }: AssetCard
         {asset.name && (
           <p className="font-mono text-xs text-foreground truncate">{asset.name}</p>
         )}
-        <p className="text-xs text-muted-foreground">{age}</p>
+        <div className="flex items-center gap-2">
+          {asset.metadata?.category && (
+            <span className="text-xs text-muted-foreground capitalize">{asset.metadata.category}</span>
+          )}
+          <p className="text-xs text-muted-foreground">{age}</p>
+        </div>
       </div>
 
       {onReshoot && (

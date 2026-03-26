@@ -13,6 +13,7 @@ export interface UserAsset {
   created_at: string;      // ISO string
   thumbnail_url: string;   // SAS URL with 1-hour expiry — use directly in <img src>
   name: string | null;
+  metadata?: { category?: string; name?: string; [key: string]: string | undefined };
 }
 
 export interface AssetsPage {
@@ -26,11 +27,28 @@ export async function fetchUserAssets(
   type: AssetType,
   page = 0,
   pageSize = 20,
+  category?: string,
 ): Promise<AssetsPage> {
-  const url = `${API_BASE}/assets?asset_type=${type}&page=${page}&page_size=${pageSize}`;
-  const response = await authenticatedFetch(url);
+  const params = new URLSearchParams({ asset_type: type, page: String(page), page_size: String(pageSize) });
+  if (category) params.set('category', category);
+  const response = await authenticatedFetch(`${API_BASE}/assets?${params}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch ${type} assets: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function updateAssetMetadata(
+  assetId: string,
+  metadata: { category?: string; name?: string },
+): Promise<UserAsset> {
+  const response = await authenticatedFetch(`${API_BASE}/assets/${assetId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ metadata }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update asset: ${response.status}`);
   }
   return response.json();
 }
