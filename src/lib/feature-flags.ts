@@ -31,13 +31,10 @@ export function isWeightStlEnabled(email: string | undefined | null): boolean {
 }
 
 /**
- * Users who see the alternate two-column upload layout (internal experiment).
+ * Alternate two-column upload layout — enabled for all users.
  */
-const ALT_UPLOAD_LAYOUT_EMAILS = ['uswa@raresense.so'];
-
-export function isAltUploadLayoutEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return ALT_UPLOAD_LAYOUT_EMAILS.includes(email.toLowerCase());
+export function isAltUploadLayoutEnabled(_email: string | undefined | null): boolean {
+  return true;
 }
 
 /**
@@ -51,12 +48,8 @@ export function isCadUploadEnabled(email: string | undefined | null): boolean {
 }
 
 /**
- * Users who can see asset metadata (category label, inline model rename).
- * Gated while backend metadata endpoints are being validated.
+ * Asset metadata (category label, inline model rename) — enabled for all users.
  */
-const ASSET_METADATA_EMAILS = ['uswa@raresense.so'];
-
-export function isAssetMetadataEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return ASSET_METADATA_EMAILS.includes(email.toLowerCase());
+export function isAssetMetadataEnabled(_email: string | undefined | null): boolean {
+  return true;
 }
