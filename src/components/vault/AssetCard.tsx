@@ -33,7 +33,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
       className="group relative rounded-lg overflow-hidden bg-card border border-border cursor-pointer hover:border-formanova-glow transition-colors duration-200"
       onClick={() => !editing && onClick?.(asset)}
     >
-      <div className="w-full overflow-hidden bg-muted">
+      <div className="w-full overflow-hidden bg-muted flex flex-col justify-start">
         <img
           src={asset.thumbnail_url}
           alt={displayName ?? (asset.asset_type === 'model_photo' ? 'Model photo' : 'Jewelry photo')}

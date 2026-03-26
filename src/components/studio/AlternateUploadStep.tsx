@@ -368,7 +368,7 @@ export function AlternateUploadStep({
 
             {!isLoading && !error && assets.length > 0 && (
               <div className={`${CANVAS_H} overflow-y-auto border border-border/30`}>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 items-start">
                   {assets.map((asset) => {
                     const isSelected = asset.id === activeProductAssetId;
                     return (
@@ -376,7 +376,7 @@ export function AlternateUploadStep({
                         key={asset.id}
                         type="button"
                         onClick={() => onProductSelect(asset.thumbnail_url, asset.id)}
-                        className={`relative overflow-hidden border transition-all group
+                        className={`flex flex-col relative overflow-hidden border transition-all group
                           ${isSelected
                             ? 'border-[hsl(var(--formanova-hero-accent))]'
                             : 'border-border/20 hover:border-foreground/30'}`}

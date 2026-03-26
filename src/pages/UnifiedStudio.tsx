@@ -186,7 +186,7 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
     <div className="relative group">
       <button
         onClick={onSelect}
-        className={`relative overflow-hidden border transition-all w-full ${isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'}`}
+        className={`flex flex-col relative overflow-hidden border transition-all w-full ${isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'}`}
       >
         <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
         {isActive && (
