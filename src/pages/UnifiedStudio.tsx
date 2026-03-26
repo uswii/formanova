@@ -194,10 +194,11 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
   };
 
   return (
-    <div className="relative group">
+    <div className="relative group flex flex-col">
+      {/* ── Image area ── */}
       <button
         onClick={onSelect}
-        className={`flex flex-col relative overflow-hidden border transition-all w-full ${isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'}`}
+        className={`relative overflow-hidden border transition-all w-full ${isActive ? 'border-foreground' : 'border-border/20 hover:border-foreground/30'}`}
       >
         <img src={model.url} alt={model.name} className="w-full block" loading="lazy" />
         {isActive && (
@@ -208,55 +209,62 @@ function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
           </div>
         )}
       </button>
+
+      {/* Delete button */}
       <button
         onClick={onDelete}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center"
+        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 bg-background/80 flex items-center justify-center z-10"
         aria-label="Delete model"
       >
         <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
       </button>
 
-      {/* ── Name area: clear signifier, explicit save/cancel, feedback ── */}
-      <div className="px-2 pt-2 pb-1.5 min-h-[2.25rem]">
+      {/* ── Naming row — fixed height for grid alignment ── */}
+      <div className="h-10 sm:h-11 flex items-center px-2 overflow-hidden">
         {editing ? (
-          <div className="space-y-1.5" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
             <input
               autoFocus
-              className="font-mono text-xs text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow rounded px-2 py-1 outline-none w-full transition-colors"
+              className="font-mono text-[11px] text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow rounded px-2 py-1 outline-none flex-1 min-w-0 transition-colors"
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
               placeholder="Enter a name…"
             />
-            <div className="flex items-center gap-1.5 justify-end">
-              <button
-                onClick={cancel}
-                className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/30 hover:border-border/60 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={commit}
-                className="font-mono text-[9px] uppercase tracking-wider text-background bg-foreground hover:bg-foreground/80 px-2 py-0.5 rounded transition-colors"
-              >
-                Save
-              </button>
-            </div>
+            <button
+              onClick={cancel}
+              className="flex-shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+              aria-label="Cancel"
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <button
+              onClick={commit}
+              className="flex-shrink-0 p-1.5 rounded text-foreground hover:bg-muted/30 transition-colors"
+              aria-label="Save"
+            >
+              <Check className="h-3 w-3" />
+            </button>
           </div>
         ) : (
           <button
-            className="flex items-center gap-1.5 group/rename max-w-full w-full text-left rounded px-1 py-0.5 -mx-1 hover:bg-muted/20 transition-colors"
+            className="flex items-center justify-center gap-2 sm:gap-2.5 w-full h-full rounded hover:bg-muted/20 transition-colors group/rename"
             title="Click to rename"
             onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(model.name); }}
           >
             {saved ? (
-              <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
+              <>
+                <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
+                <span className="font-mono text-[11px] text-formanova-success truncate">Saved!</span>
+              </>
             ) : (
-              <Pencil className="h-3 w-3 text-muted-foreground/50 group-hover/rename:text-foreground/70 flex-shrink-0 transition-colors" />
+              <>
+                <span className="font-mono text-[11px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
+                  {model.name || <span className="italic opacity-60">Click to edit</span>}
+                </span>
+                <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
+              </>
             )}
-            <span className={`font-mono text-xs truncate transition-colors ${saved ? 'text-formanova-success' : 'text-muted-foreground group-hover/rename:text-foreground'}`}>
-              {saved ? 'Saved!' : (model.name || <span className="italic opacity-50">Unnamed — click to name</span>)}
-            </span>
           </button>
         )}
       </div>
@@ -1353,15 +1361,22 @@ export default function UnifiedStudio() {
                       <div className="h-[420px] md:h-[480px] overflow-y-auto pr-1">
                         <MasonryGrid columns={3} gap={12}>
                           {/* Upload card — always first */}
-                          <button
-                            onClick={() => modelInputRef.current?.click()}
-                            className="group relative aspect-[3/4] w-full overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
-                          >
-                            <Upload className="h-5 w-5 text-muted-foreground/40" />
-                            <span className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider text-center px-1">
-                              + Upload
-                            </span>
-                          </button>
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => modelInputRef.current?.click()}
+                              className="group/upload relative aspect-[3/4] w-full overflow-hidden border border-dashed border-border/30 transition-all flex flex-col items-center justify-center gap-2 hover:border-foreground/30 hover:bg-foreground/[0.02]"
+                            >
+                              {/* Diamond-shaped upload icon */}
+                              <div className="w-8 h-8 rotate-45 border-2 border-muted-foreground/30 group-hover/upload:border-foreground/50 flex items-center justify-center transition-colors">
+                                <Upload className="h-3.5 w-3.5 -rotate-45 text-muted-foreground/40 group-hover/upload:text-foreground/60 transition-colors" />
+                              </div>
+                              <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider text-center px-1">
+                                Upload
+                              </span>
+                            </button>
+                            {/* Reserve naming-row height for grid alignment */}
+                            <div className="h-10 sm:h-11" />
+                          </div>
 
                           {/* User-uploaded models */}
                           {mergedMyModels.filter(m => !myModelsSearch || m.name.toLowerCase().includes(myModelsSearch.toLowerCase())).map((model) => {
