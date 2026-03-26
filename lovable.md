@@ -16,6 +16,7 @@ Follow UX best practices as established by designers like Don Norman:
 - **Icon consistency**: New icons must match the existing theme — standard, unique, meaningful. Don't introduce random icon styles.
 - **New UI must fit the theme**: Anything newly designed must be visually consistent with the rest of the app — colors, spacing, typography, component style.
 - **Equidistant grid spacing**: In image grids (e.g. upload guide panels), vertical and horizontal gaps must be equal for uniform spacing.
+- **Inline rename UX (Don Norman)**: Editable names must have clear signifiers (pencil icon + hover highlight), explicit Save/Cancel buttons (not silent blur-save), a brief "Saved!" confirmation with a checkmark, and keyboard support (Enter to save, Escape to cancel). The pattern must be consistent across all cards (ModelCard, AssetCard). Never use tiny cramped icons or rely on auto-save without feedback.
 
 ## Engineering Rules
 
