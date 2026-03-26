@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { getStoredToken } from '@/lib/auth-api';
 import { compressImageBlob } from '@/lib/image-compression';
 import { uploadToAzure } from '@/lib/microservices-api';
-import { fetchUserAssets, updateAssetMetadata } from '@/lib/assets-api';
+import { fetchAsset, updateAssetMetadata } from '@/lib/assets-api';
 
 const BASE_URL = 'https://formanova.ai';
 const CLASSIFICATION_URL = `${BASE_URL}/api/run/image_classification`;
@@ -133,24 +133,23 @@ export function useImageValidation() {
       // 2a. Check if this asset was already classified — skip workflow if so
       if (uploadedAssetId) {
         try {
-          const assetsPage = await fetchUserAssets('jewelry_photo', 0, 200);
-          const cached = assetsPage.items.find(a => a.id === uploadedAssetId);
-          if (cached?.metadata?.is_worn != null) {
+          const asset = await fetchAsset(uploadedAssetId);
+          if (asset.metadata?.is_worn != null) {
             clearTimeout(timeoutId);
-            const is_worn = cached.metadata.is_worn === 'true';
+            const is_worn = asset.metadata.is_worn === 'true';
             console.log('[ImageValidation] Using cached classification for asset:', uploadedAssetId);
             return {
-              category: cached.metadata.display_type as ClassificationResult['category'],
+              category: asset.metadata.display_type as ClassificationResult['category'],
               is_worn,
               confidence: 1,
               reason: 'cached',
-              flagged: cached.metadata.flagged === 'true',
+              flagged: asset.metadata.flagged === 'true',
               uploaded_url: uploadedUrl,
               asset_id: uploadedAssetId,
             };
           }
         } catch {
-          // Asset list fetch failed — proceed with classification
+          // Asset fetch failed — proceed with classification
         }
       }
 
