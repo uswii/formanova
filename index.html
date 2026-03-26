@@ -12,6 +12,16 @@
         setFav(mq);
         mq.addEventListener('change', setFav);
       })();
+      // If a hashed CSS/JS asset returns 404 (stale cached index.html after a new deploy),
+      // hard-reload to pick up the fresh index.html and correct assets.
+      (function() {
+        window.addEventListener('error', function(e) {
+          var t = e.target;
+          if (t && (t.tagName === 'LINK' || t.tagName === 'SCRIPT') && typeof t.href === 'string' && t.href.indexOf('/assets/') !== -1) {
+            window.location.reload(true);
+          }
+        }, true);
+      })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="canonical" href="https://formanova.ai/" />
