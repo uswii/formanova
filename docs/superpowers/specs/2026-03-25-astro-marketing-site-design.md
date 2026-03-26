@@ -130,9 +130,35 @@ Fonts loaded from Google Fonts in `BaseLayout.astro`. Same fonts as the app — 
 
 Legal pages (`/terms`, `/privacy`) use `max-width: 720px` and `line-height: 1.7` for readability.
 
+### Logo Asset
+
+The app has two logo PNGs: `formanova-logo-black-tagline.png` (light themes) and `formanova-logo-white-tagline.png` (dark themes). Copy `formanova-logo-black-tagline.png` into the Astro `public/` folder. The marketing site uses it directly as a static `<img>` — no React context needed.
+
+Source location in main repo: `src/assets/formanova-logo-black-tagline.png`
+
+### Header
+
+Matches the app header exactly:
+- **Fixed**, full-width, `z-50`
+- Height: `64px` mobile / `80px` desktop
+- Default state: `background: #fff`
+- Scrolled state (>20px): `background: rgba(255,255,255,0.95)`, `backdrop-filter: blur(12px)`, `border-bottom: 1px solid rgba(0,0,0,0.08)`, subtle `box-shadow`
+- Scroll detection via a vanilla JS `scroll` event listener in a `<script>` tag in `BaseLayout.astro` — no framework needed
+- Mobile: hamburger icon → full-screen overlay with `font-display` (Bebas Neue) nav links, staggered fade-in
+
 Header navigation: **Logo | About | Blog | Press | Pricing | Get Started →**
-- "Pricing" links to `formanova.ai/pricing` (React SPA route — works fine as a cross-origin link)
+- "Pricing" links to `formanova.ai/pricing` (React SPA route — works fine as a standard `<a>` tag)
 - "Get Started" links to `formanova.ai/login`
+- Nav link style: `font-size: 14px`, `font-weight: 500`, `color: var(--muted)`, hover → `color: var(--fg)`
+
+### Footer
+
+The app has no footer — designing fresh for the marketing site, following the same brutalist style:
+- Sharp black top border, no rounded corners
+- Two columns: brand column (logo + one-line description) + links column (About, Blog, Press, Whitepaper, Terms, Privacy)
+- Section labels in Bebas Neue, links in Inter 14px
+- Bottom bar: `© 2026 FormaNova` left, social links right
+- Background: white, foreground: black — matches light theme exactly
 
 ---
 
