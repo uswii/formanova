@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserAssets } from '@/hooks/useUserAssets';
+import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
 
@@ -158,12 +159,13 @@ export function AlternateUploadStep({
   }, [jewelryImage]);
 
   const PAGE_SIZE = 10;
-  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE);
+  const category = TO_SINGULAR[exampleCategoryType] ?? exampleCategoryType;
+  const { assets, total, page, isLoading, error, goToPage } = useUserAssets('jewelry_photo', PAGE_SIZE, category);
+  const { total: allTotal, isLoading: allLoading } = useUserAssets('jewelry_photo', 1);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const isEmpty = !isLoading && !error && assets.length === 0;
 
-  // Show guide for users with no uploads yet; show My Products once they have any
-  const showGuide = isEmpty;
+  // Only show upload guide if user has never uploaded anything across any category
+  const showGuide = !allLoading && allTotal === 0;
 
   const showFlagWarning = isFlagged && !!jewelryImage && !isValidating && !flagAcknowledged;
 
