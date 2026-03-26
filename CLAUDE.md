@@ -30,11 +30,13 @@ Follow UX best practices as established by designers like Don Norman:
 - **Justified text**: Use justified text alignment for body copy and descriptive text.
 - **No cramped text**: Give text breathing room. Avoid tight padding or lines that feel compressed.
 - **No overflowing text**: Text must never overflow its container. Truncate or wrap as needed.
+- **Button inner padding**: Button content must never touch the button's outer edge. Always use sufficient horizontal padding (`px-4` minimum, `px-6` for larger buttons) so text and icons have breathing room.
 - **Button text centered**: Text or icons inside buttons must always be perfectly centered horizontally and vertically.
 - **Dominant CTAs**: For main upload actions, use striking, dominant buttons — not subtle or secondary-styled ones.
 - **Popups centered**: Any modal, popup, or dialog must appear centered on screen.
 - **Icon consistency**: New icons must match the existing theme — standard, unique, meaningful. Don't introduce random icon styles.
 - **New UI must fit the theme**: Anything newly designed must be visually consistent with the rest of the app — colors, spacing, typography, component style.
+- **Equidistant grid spacing**: In image grids (e.g. upload guide panels), vertical and horizontal gaps must be equal for uniform spacing.
 
 ## Code & Engineering Rules
 
