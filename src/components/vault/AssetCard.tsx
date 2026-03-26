@@ -39,10 +39,11 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
 
   return (
     <div
-      className="group relative rounded-lg overflow-hidden bg-card border border-border cursor-pointer hover:border-formanova-glow transition-colors duration-200"
+      className="group relative flex flex-col rounded-lg overflow-hidden bg-card border border-border cursor-pointer hover:border-formanova-glow transition-colors duration-200"
       onClick={() => !editing && onClick?.(asset)}
     >
-      <div className="w-full overflow-hidden bg-muted flex flex-col justify-start">
+      {/* ── Image area ── */}
+      <div className="w-full overflow-hidden bg-muted">
         <img
           src={asset.thumbnail_url}
           alt={displayName ?? (asset.asset_type === 'model_photo' ? 'Model photo' : 'Jewelry photo')}
@@ -51,60 +52,64 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
         />
       </div>
 
-      <div className="p-3 min-h-[2.5rem] space-y-1">
-        {asset.asset_type === 'model_photo' && (
-          editing ? (
-            <div className="space-y-1.5" onClick={e => e.stopPropagation()}>
-              <input
-                autoFocus
-                className="font-mono text-xs text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow rounded px-2 py-1 outline-none w-full transition-colors"
-                value={nameInput}
-                onChange={e => setNameInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleRenameCommit(); if (e.key === 'Escape') cancel(); }}
-                placeholder="Enter a name…"
-              />
-              <div className="flex items-center gap-1.5 justify-end">
-                <button
-                  onClick={cancel}
-                  className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/30 hover:border-border/60 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleRenameCommit}
-                  className="font-mono text-[9px] uppercase tracking-wider text-background bg-foreground hover:bg-foreground/80 px-2 py-0.5 rounded transition-colors"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : (
+      {/* ── Naming row — fixed height for grid alignment ── */}
+      <div className="h-10 sm:h-11 flex items-center px-3 overflow-hidden">
+        {asset.asset_type === 'model_photo' && editing ? (
+          <div className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
+            <input
+              autoFocus
+              className="font-mono text-[11px] text-foreground bg-muted/30 border border-foreground/20 focus:border-formanova-glow rounded px-2 py-1 outline-none flex-1 min-w-0 transition-colors"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleRenameCommit(); if (e.key === 'Escape') cancel(); }}
+              placeholder="Enter a name…"
+            />
             <button
-              className="flex items-center gap-1.5 group/rename max-w-full w-full text-left rounded px-1 py-0.5 -mx-1 hover:bg-muted/20 transition-colors"
-              title="Click to rename"
-              onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(displayName ?? ''); }}
+              onClick={cancel}
+              className="flex-shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+              aria-label="Cancel"
             >
-              {saved ? (
-                <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
-              ) : (
-                <Pencil className="h-3 w-3 text-muted-foreground/50 group-hover/rename:text-foreground/70 flex-shrink-0 transition-colors" />
-              )}
-              <span className={`font-mono text-xs truncate transition-colors ${saved ? 'text-formanova-success' : 'text-muted-foreground group-hover/rename:text-foreground'}`}>
-                {saved ? 'Saved!' : (displayName || <span className="italic opacity-50">Unnamed — click to name</span>)}
-              </span>
+              <X className="h-3 w-3" />
             </button>
-          )
-        )}
-
-        {showMetadata && asset.metadata?.category && (
-          <span className="text-xs text-muted-foreground capitalize">{asset.metadata.category}</span>
+            <button
+              onClick={handleRenameCommit}
+              className="flex-shrink-0 p-1.5 rounded text-foreground hover:bg-muted/30 transition-colors"
+              aria-label="Save"
+            >
+              <Check className="h-3 w-3" />
+            </button>
+          </div>
+        ) : asset.asset_type === 'model_photo' ? (
+          <button
+            className="flex items-center justify-center gap-2 sm:gap-2.5 w-full h-full rounded hover:bg-muted/20 transition-colors group/rename"
+            title="Click to rename"
+            onClick={e => { e.stopPropagation(); setEditing(true); setNameInput(displayName ?? ''); }}
+          >
+            {saved ? (
+              <>
+                <Check className="h-3 w-3 text-formanova-success flex-shrink-0" />
+                <span className="font-mono text-[11px] text-formanova-success truncate">Saved!</span>
+              </>
+            ) : (
+              <>
+                <span className="font-mono text-[11px] truncate text-muted-foreground group-hover/rename:text-foreground transition-colors">
+                  {displayName || <span className="italic opacity-60">Click to edit</span>}
+                </span>
+                <Pencil className="h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/rename:text-foreground/60 transition-colors" />
+              </>
+            )}
+          </button>
+        ) : (
+          showMetadata && asset.metadata?.category ? (
+            <span className="font-mono text-[11px] text-muted-foreground capitalize truncate w-full text-center">{asset.metadata.category}</span>
+          ) : null
         )}
       </div>
 
       {onReshoot && (
         <div className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background/20">
           <button
-            className="px-4 py-2 bg-formanova-glow text-black text-xs font-bold rounded hover:brightness-110 transition-all"
+            className="px-6 py-2 bg-formanova-glow text-black text-xs font-bold rounded hover:brightness-110 transition-all"
             onClick={(e) => { e.stopPropagation(); onReshoot(asset); }}
           >
             {label}
