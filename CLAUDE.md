@@ -109,12 +109,12 @@ TypeScript is configured loosely (`noImplicitAny: false`, `strictNullChecks: fal
 **Identity init — DO NOT REVERT.** `src/main.tsx` calls `posthog.init()` eagerly at startup with a `bootstrap` option:
 ```ts
 posthog.init('phc_...', {
-  bootstrap: storedUser ? { distinctId: storedUser.id, isIdentifiedID: true } : undefined,
+  bootstrap: storedUser ? { distinctID: storedUser.id, isIdentifiedID: true } : undefined,
 });
 ```
 This fixes a race condition where returning users appeared as anonymous UUIDs in session replay. Do not move this call, make it conditional, or revert to lazy loading.
 
-**`distinctId` is case-sensitive.** Bootstrap and `posthog.identify()` calls must use `distinctId` (lowercase `d`). `distinctID` silently no-ops.
+**`distinctID` in bootstrap is capital D.** Verified against posthog-js SDK source (`posthog-core.js`): the bootstrap object is read as `config.bootstrap.distinctID` (capital D). Do not change it to lowercase — `distinctId` in the bootstrap is silently ignored. `posthog.identify()` takes a plain string argument (no property name), so case sensitivity is not relevant there.
 
 **Adding a new event:** Add a typed function to `posthog-events.ts`, export its props interface, write a Vitest test in `posthog-events.test.ts` first (TDD), then call it from the component.
 
