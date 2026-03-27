@@ -76,7 +76,7 @@ function UploadGuidePanel({
     <div className={`${canvasH} border border-border/30 flex flex-col overflow-hidden`}>
       {/* Top label */}
       <p className="px-12 pt-3 pb-2 text-base font-bold text-foreground flex-shrink-0">
-        Recommended photos for best results
+        Any photo works — these inputs get the best results
       </p>
 
       {/* Grid — padded horizontally to keep images small */}

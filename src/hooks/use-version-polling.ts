@@ -54,6 +54,11 @@ export function useVersionPolling() {
    * poll the deploy-safety endpoint before surfacing the banner.
    */
   const waitForDeploySafety = useCallback(async () => {
+    // Never interrupt an active generation
+    if ((window as any).__generationInProgress) {
+      safetyTimerRef.current = setTimeout(waitForDeploySafety, DEPLOY_SAFETY_POLL_MS);
+      return;
+    }
     const safe = await isDeploySafe();
     if (safe) {
       setUpdateAvailable(true);
