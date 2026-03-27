@@ -91,7 +91,8 @@ if (
   // NOTE: distinctId lowercase — PostHog SDK is case-sensitive; distinctID silently no-ops.
   const storedUser = getStoredUser();
   posthog.init('phc_aN8qVaPxHbJIwdyuQfQkPdyrx9qDcytx1XUHSZfwvwC', {
-    api_host: 'https://us.i.posthog.com',
+    api_host: 'https://formanova.ai/fn-relay',
+    ui_host: 'https://us.posthog.com',
     autocapture: true,
     capture_pageview: true,
     capture_pageleave: true,
