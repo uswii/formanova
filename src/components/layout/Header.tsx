@@ -78,9 +78,9 @@ export function Header() {
           {/* Left side: Logo first, then Theme Switcher */}
           <div className="flex items-center gap-3 md:gap-4">
             {/* Logo - First at corner */}
-            <div className="flex items-center relative z-10">
+            <Link to="/" className="flex items-center relative z-10">
               <ThemeLogo className="h-10 md:h-12 lg:h-14" />
-            </div>
+            </Link>
             
             {/* Theme Switcher - After logo */}
             <div className="hidden lg:block">
@@ -163,14 +163,14 @@ export function Header() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => navigate('/generations')}
-                      className="cursor-pointer text-sm"
+                      className="text-sm"
                     >
                       <Image className="h-4 w-4 mr-2" />
                       Generations
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => navigate('/credits')}
-                      className="cursor-pointer text-sm"
+                      className="text-sm"
                     >
                       <img src={creditCoinIcon} alt="" className="h-6 w-6 mr-2 object-contain" width={24} height={24} loading="eager" decoding="sync" />
                       My Credits
@@ -178,7 +178,7 @@ export function Header() {
                     {isAdmin && (
                       <DropdownMenuItem
                         onClick={() => navigate('/admin/promo-codes')}
-                        className="cursor-pointer text-sm"
+                        className="text-sm"
                       >
                         <ScanEye className="h-4 w-4 mr-2" />
                         Admin
@@ -187,7 +187,7 @@ export function Header() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => signOut()}
-                      className="cursor-pointer text-sm text-destructive focus:text-destructive"
+                      className="text-sm text-destructive focus:text-destructive"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
@@ -253,19 +253,11 @@ export function Header() {
             </Link>
           ))}
           
-          {/* Theme Switcher in mobile menu */}
-          <div
-            className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-            style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
-          >
-            <ThemeSwitcher />
-          </div>
-
           {/* Mobile User Profile / Auth Button */}
           {user ? (
             <div
               className={`flex flex-col items-center gap-6 transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: isMobileMenuOpen ? `${(navLinks.length + 1) * 100 + 200}ms` : '0ms' }}
+              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >
               <div className="flex items-center gap-3">
                 {user.avatar_url ? (
@@ -323,14 +315,22 @@ export function Header() {
             <Link
               to="/login"
               className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: isMobileMenuOpen ? `${(navLinks.length + 1) * 100 + 200}ms` : '0ms' }}
+              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 100 + 200}ms` : '0ms' }}
             >
-              <Button variant="default" size="lg" className="gap-2">
+              <Button variant="default" size="lg" className="gap-2 w-full px-8">
                 <LogIn className="h-5 w-5" />
                 Sign In
               </Button>
             </Link>
           )}
+
+          {/* Theme Switcher in mobile menu — below auth */}
+          <div
+            className={`transition-all duration-500 ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            style={{ transitionDelay: isMobileMenuOpen ? `${(navLinks.length + 1) * 100 + 200}ms` : '0ms' }}
+          >
+            <ThemeSwitcher />
+          </div>
         </nav>
       </div>
 

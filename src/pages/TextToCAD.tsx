@@ -1235,7 +1235,7 @@ export default function TextToCAD() {
                     const panel = leftPanelRef.current;
                     if (panel) { leftCollapsed ? panel.expand(22) : panel.collapse(); }
                   }}
-                  className="absolute top-2 left-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
+                  className="absolute top-2 left-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
                   title={leftCollapsed ? "Show left panel" : "Hide left panel"}
                 >
                   {leftCollapsed ? <PanelLeft className="w-4 h-4 text-foreground/70" /> : <PanelLeftClose className="w-4 h-4 text-foreground/70" />}
@@ -1246,7 +1246,7 @@ export default function TextToCAD() {
                       const panel = rightPanelRef.current;
                       if (panel) { rightCollapsed ? panel.expand(22) : panel.collapse(); }
                     }}
-                    className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 cursor-pointer transition-colors"
+                    className="absolute top-2 right-2 z-[60] w-8 h-8 flex items-center justify-center bg-card/80 border border-border hover:bg-accent/60 transition-colors"
                     title={rightCollapsed ? "Show right panel" : "Hide right panel"}
                   >
                     {rightCollapsed ? <PanelRight className="w-4 h-4 text-foreground/70" /> : <PanelRightClose className="w-4 h-4 text-foreground/70" />}
@@ -1294,7 +1294,7 @@ export default function TextToCAD() {
                     </p>
                     <button
                       onClick={() => setGenerationFailed(false)}
-                      className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
+                      className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors"
                     >
                       Dismiss
                     </button>
@@ -1375,7 +1375,7 @@ export default function TextToCAD() {
                     </p>
                     <button
                       onClick={() => setSelectionWarning(null)}
-                      className="mt-4 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+                      className="mt-4 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                     >
                       OK
                     </button>
@@ -1465,7 +1465,7 @@ export default function TextToCAD() {
             <div className="pointer-events-auto bg-card border border-border shadow-2xl w-[340px] px-8 py-7 text-center relative">
               <button
                 onClick={() => setStlPresetOpen(false)}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-sm transition-colors cursor-pointer"
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-sm transition-colors"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -1487,7 +1487,7 @@ export default function TextToCAD() {
                   <button
                     key={preset.value}
                     onClick={() => setStlQuality(preset.value)}
-                    className={`py-3 px-4 text-left border cursor-pointer transition-all duration-150 ${
+                    className={`py-3 px-4 text-left border transition-all duration-150 ${
                       stlQuality === preset.value
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-background text-muted-foreground border-border hover:border-foreground/30"
@@ -1503,13 +1503,13 @@ export default function TextToCAD() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setStlPresetOpen(false)}
-                  className="py-2.5 w-full text-center text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:border-foreground/30 transition-all duration-150 cursor-pointer"
+                  className="py-2.5 w-full text-center text-[10px] font-bold uppercase tracking-[0.15em] bg-background text-muted-foreground border border-border hover:border-foreground/30 transition-all duration-150"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={executeStlDownload}
-                  className="py-2.5 w-full text-center text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer"
+                  className="py-2.5 w-full text-center text-[10px] font-bold uppercase tracking-[0.15em] bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                 >
                   Download STL
                 </button>
