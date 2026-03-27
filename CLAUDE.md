@@ -39,6 +39,8 @@ Follow UX best practices as established by designers like Don Norman:
 - **Equidistant grid spacing**: In image grids (e.g. upload guide panels), vertical and horizontal gaps must be equal for uniform spacing.
 - **Inline rename UX (Don Norman)**: Editable names must have clear signifiers (pencil icon + hover highlight), explicit Save/Cancel buttons (not silent blur-save), a brief "Saved!" confirmation with a checkmark, and keyboard support (Enter to save, Escape to cancel). The pattern must be consistent across all cards (ModelCard, AssetCard). Never use tiny cramped icons or rely on auto-save without feedback.
 - **Upload icon — Diamond**: Always use the lucide-react `Diamond` icon (`h-9 w-9 text-primary`) for upload trigger areas across the app (step one drop zone, My Models upload card, etc.). Never substitute a custom rotated-div or any other icon for upload actions.
+- **Cursor affordance (NNG standard)**: `cursor-pointer` (hand) is reserved for links and navigation elements only. Buttons and action controls use the default cursor — their visual design is their affordance. Drop zones and drag targets may use `cursor-pointer`. Never add `cursor-pointer` to `<button>` elements or the base Button component.
+- **Cross-device & cross-browser compatibility**: Every UI element must be designed mobile-first using Tailwind responsive prefixes (`sm:`, `md:`, `lg:`). All layouts must be tested and functional across all screen sizes, all major browsers (Chrome, Firefox, Safari, Edge), and all device types (mobile, tablet, desktop). No layout, interaction, or feature may break at any viewport size.
 
 ## Code & Engineering Rules
 

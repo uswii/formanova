@@ -101,7 +101,7 @@ export default function GenerationProgress({
                   {formatElapsed(elapsed)}
                 </span>
                 <span className="text-[11px] italic text-muted-foreground/40 text-center">
-                  This may take several minutes
+                  This may take more than 10 minutes
                 </span>
               </>
             )}
