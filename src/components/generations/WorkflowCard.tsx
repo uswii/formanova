@@ -15,13 +15,22 @@ const localDateFmt = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
+const localDateOnlyFmt = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+});
 function formatLocal(ts: string): string {
-  // Ensure the timestamp is treated as UTC if it lacks a timezone indicator
   let normalized = ts.trim();
   if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
     normalized += 'Z';
   }
   return localDateFmt.format(new Date(normalized));
+}
+function formatLocalDateOnly(ts: string): string {
+  let normalized = ts.trim();
+  if (normalized && !/[Zz]$/.test(normalized) && !/[+-]\d{2}:\d{2}$/.test(normalized)) {
+    normalized += 'Z';
+  }
+  return localDateOnlyFmt.format(new Date(normalized));
 }
 
 interface WorkflowCardProps {
@@ -65,6 +74,7 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
   const [renameValue, setRenameValue] = useState('');
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
+  const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
   const shots = workflow.screenshots ?? [];
   const hasShots = shots.length > 0;
   const isEnriching = workflow.screenshots === undefined;
@@ -137,8 +147,9 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
           </div>
           <div className="flex items-center gap-3">
             <CreditsBadge credits={workflow.credits_spent} />
-            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-              {dateStr}
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground whitespace-nowrap">
+              <span className="sm:hidden">{dateOnlyStr}</span>
+              <span className="hidden sm:inline">{dateStr}</span>
             </span>
           </div>
         </div>
@@ -277,6 +288,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const dateStr = workflow.created_at ? formatLocal(workflow.created_at) : '—';
+  const dateOnlyStr = workflow.created_at ? formatLocalDateOnly(workflow.created_at) : '—';
 
   // undefined = enrichment not started; '' = enriched but no thumbnail found
   const isEnriching = workflow.thumbnail_url === undefined;
@@ -319,8 +331,9 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
           </span>
           <div className="flex items-center gap-3">
             <CreditsBadge credits={workflow.credits_spent} />
-            <span className="font-mono text-[10px] tracking-wider text-muted-foreground">
-              {dateStr}
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground whitespace-nowrap">
+              <span className="sm:hidden">{dateOnlyStr}</span>
+              <span className="hidden sm:inline">{dateStr}</span>
             </span>
           </div>
         </div>
