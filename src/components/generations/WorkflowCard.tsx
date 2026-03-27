@@ -134,8 +134,8 @@ function CadTextCard({ workflow, index }: { workflow: WorkflowSummary; index: nu
         className="marta-frame overflow-hidden"
       >
         {/* Card header: number + model tier + date */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center justify-end sm:justify-between px-4 pt-4 pb-3 gap-2">
+          <div className="hidden sm:flex items-center gap-2 min-w-0">
             <span className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground/70 select-none">
               #{index}
             </span>
@@ -325,8 +325,8 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
         ) : null}
 
         {/* Card footer: index · credits · date */}
-        <div className="flex items-center justify-between px-3 pt-3 pb-3 gap-2">
-          <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none min-w-0">
+        <div className="flex items-center justify-end sm:justify-between px-3 pt-3 pb-3 gap-2">
+          <span className="hidden sm:inline font-mono text-[10px] tracking-[0.15em] text-muted-foreground/70 select-none min-w-0">
             #{index}
           </span>
           <div className="flex items-center gap-2 flex-shrink-0">
