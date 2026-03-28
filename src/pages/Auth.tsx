@@ -221,35 +221,42 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
                 <p className="text-destructive text-sm font-medium leading-relaxed">
                   Google login doesn't work inside this app's browser.
                   <span className="text-muted-foreground text-xs mt-1 block">
-                    Please open this page in Chrome or Safari to sign in.
+                    Copy the link below and paste it in Chrome, Safari, or any browser.
                   </span>
                 </p>
               </div>
               <Button
-                asChild
-                className="w-full max-w-xs h-12 text-base"
+                className="w-full max-w-xs h-12 text-base gap-2"
                 variant="default"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2500);
+                  } catch {
+                    // Fallback: select a temporary input
+                    const input = document.createElement('input');
+                    input.value = window.location.href;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(input);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2500);
+                  }
+                }}
               >
-                <a
-                  href={`intent://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}#Intent;scheme=https;package=com.android.chrome;end`}
-                  onClick={(e) => {
-                    try {
-                      // iOS: try to open in Safari via window.open
-                      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-                      if (isIOS) {
-                        e.preventDefault();
-                        // Copy link so user can paste in Safari
-                        navigator.clipboard?.writeText(window.location.href).catch(() => {});
-                        window.open(window.location.href, '_blank');
-                      }
-                      // Android: let the intent:// href handle it
-                    } catch (err) {
-                      console.error('[Auth] Open in browser failed:', err);
-                    }
-                  }}
-                >
-                  Open in Browser
-                </a>
+                {copiedLink ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Link Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy Link
+                  </>
+                )}
               </Button>
             </div>
           )}
