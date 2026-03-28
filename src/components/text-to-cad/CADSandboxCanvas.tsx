@@ -43,10 +43,9 @@ function classify(mesh: THREE.Mesh) {
 interface CADSandboxCanvasProps {
   hasModel: boolean;
   glbUrl?: string;
-  onModelReady?: () => void;
 }
 
-export default function CADSandboxCanvas({ hasModel, glbUrl, onModelReady }: CADSandboxCanvasProps) {
+export default function CADSandboxCanvas({ hasModel, glbUrl }: CADSandboxCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const grpRef = useRef<THREE.Group | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -169,9 +168,8 @@ export default function CADSandboxCanvas({ hasModel, glbUrl, onModelReady }: CAD
         }
       });
       grp.add(model);
-      onModelReady?.();
     });
-  }, [hasModel, glbUrl, onModelReady]);
+  }, [hasModel, glbUrl]);
 
   return (
     <div
