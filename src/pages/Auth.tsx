@@ -4,7 +4,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, Check } from 'lucide-react';
+import { Loader2, Copy, Check, ExternalLink } from 'lucide-react';
 import { ThemeLogo } from '@/components/ThemeLogo';
 import { 
   authApi, 
@@ -216,44 +216,65 @@ const Auth = forwardRef<HTMLDivElement>(function Auth(_, ref) {
             Sign in to create photoshoots
           </p>
 
-          {isInstagram && (
-            <div className="flex flex-col items-center gap-3 mb-4">
-              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
-                <p className="text-destructive text-sm font-medium leading-relaxed">
-                  Google login doesn't work inside this app's browser.
-                </p>
-                <p className="text-muted-foreground text-xs mt-2 leading-relaxed">
-                  Tap the <strong>⋯</strong> or <strong>Share</strong> button at the top/bottom of your screen, then choose <strong>"Open in Browser"</strong> or <strong>"Open in Safari/Chrome"</strong>.
-                </p>
+          {isInstagram && (() => {
+            const siteUrl = 'https://formanova.ai/login';
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            // Android: intent without package → triggers system browser chooser dialog
+            const intentUrl = `intent://formanova.ai/login#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+
+            return (
+              <div className="flex flex-col items-center gap-3 mb-4">
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
+                  <p className="text-destructive text-sm font-medium leading-relaxed">
+                    Google login doesn't work inside this app's browser.
+                  </p>
+                </div>
+
+                {!isIOS ? (
+                  /* Android: intent triggers the "Open with…" browser chooser */
+                  <Button asChild className="w-full max-w-xs h-12 text-base gap-2" variant="default">
+                    <a href={intentUrl}>
+                      <ExternalLink className="h-4 w-4" />
+                      Open in Browser
+                    </a>
+                  </Button>
+                ) : (
+                  /* iOS: no reliable escape — copy URL so user can paste in Safari */
+                  <>
+                    <p className="text-muted-foreground text-xs text-center leading-relaxed px-2">
+                      Copy this link and open it in Safari:
+                    </p>
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2 w-full max-w-xs">
+                      <span className="text-xs text-muted-foreground truncate flex-1 select-all">{siteUrl}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 shrink-0"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(siteUrl);
+                            setCopiedLink(true);
+                            setTimeout(() => setCopiedLink(false), 2500);
+                          } catch {
+                            const input = document.createElement('input');
+                            input.value = siteUrl;
+                            document.body.appendChild(input);
+                            input.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(input);
+                            setCopiedLink(true);
+                            setTimeout(() => setCopiedLink(false), 2500);
+                          }
+                        }}
+                      >
+                        {copiedLink ? <Check className="h-3.5 w-3.5 text-formanova-success" /> : <Copy className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2 w-full max-w-xs">
-                <span className="text-xs text-muted-foreground truncate flex-1 select-all">{window.location.origin}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 shrink-0"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(window.location.origin);
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2500);
-                    } catch {
-                      const input = document.createElement('input');
-                      input.value = window.location.origin;
-                      document.body.appendChild(input);
-                      input.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(input);
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2500);
-                    }
-                  }}
-                >
-                  {copiedLink ? <Check className="h-3.5 w-3.5 text-formanova-success" /> : <Copy className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {error ? (
             <div className="flex flex-col items-center gap-2">
