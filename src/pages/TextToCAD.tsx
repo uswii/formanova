@@ -16,11 +16,10 @@ import { InsufficientCreditsInline } from "@/components/InsufficientCreditsInlin
 import InitialPromptScreen from "@/components/text-to-cad/InitialPromptScreen";
 import LeftPanel from "@/components/text-to-cad/LeftPanel";
 import { useAuth } from "@/contexts/AuthContext";
-import { isWeightStlEnabled, isCadUploadEnabled, isCadSandboxEnabled } from "@/lib/feature-flags";
+import { isWeightStlEnabled, isCadUploadEnabled } from "@/lib/feature-flags";
 
 import MeshPanel from "@/components/text-to-cad/MeshPanel";
 import CADCanvas from "@/components/text-to-cad/CADCanvas";
-import CADSandboxCanvas from "@/components/text-to-cad/CADSandboxCanvas";
 import type { CADCanvasHandle, CanvasSnapshot, MeshTransformData } from "@/components/text-to-cad/CADCanvas";
 import ViewportDisplayMenu from "@/components/text-to-cad/ViewportDisplayMenu";
 import KeyboardShortcutsPanel from "@/components/text-to-cad/KeyboardShortcutsPanel";
@@ -51,7 +50,6 @@ export default function TextToCAD() {
   const { user } = useAuth();
   const showWeightStl = isWeightStlEnabled(user?.email);
   const showCadUpload = isCadUploadEnabled(user?.email);
-  const showSandbox = isCadSandboxEnabled(user?.email);
   
   const [model, setModel] = useState("gemini");
   const [prompt, setPrompt] = useState("");
@@ -1257,29 +1255,25 @@ export default function TextToCAD() {
               </>
             )}
 
-            {showSandbox ? (
-              <CADSandboxCanvas hasModel={hasModel} glbUrl={glbUrl} />
-            ) : (
-              <CADCanvas
-                ref={canvasRef}
-                hasModel={hasModel}
-                glbUrl={glbUrl}
-                additionalGlbUrls={additionalParts}
-                selectedMeshNames={selectedMeshNames}
-                hiddenMeshNames={hiddenMeshNames}
-                onMeshClick={handleSelectMesh}
-                transformMode={transformMode}
-                onMeshesDetected={handleMeshesDetected}
-                onTransformStart={handleTransformStart}
-                onTransformEnd={handleTransformEnd}
-                lightIntensity={1}
-                onModelReady={handleModelReady}
-                magicTexturing={magicTexturing}
-                qualityMode="balanced"
-                gemMode={gemMode}
-                onGemModeForced={(mode) => setGemMode(mode)}
-              />
-            )}
+            <CADCanvas
+              ref={canvasRef}
+              hasModel={hasModel}
+              glbUrl={glbUrl}
+              additionalGlbUrls={additionalParts}
+              selectedMeshNames={selectedMeshNames}
+              hiddenMeshNames={hiddenMeshNames}
+              onMeshClick={handleSelectMesh}
+              transformMode={transformMode}
+              onMeshesDetected={handleMeshesDetected}
+              onTransformStart={handleTransformStart}
+              onTransformEnd={handleTransformEnd}
+              lightIntensity={1}
+              onModelReady={handleModelReady}
+              magicTexturing={magicTexturing}
+              qualityMode="balanced"
+              gemMode={gemMode}
+              onGemModeForced={(mode) => setGemMode(mode)}
+            />
 
             {/* Generation failed state */}
             <AnimatePresence>

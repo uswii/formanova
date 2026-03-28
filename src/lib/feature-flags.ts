@@ -53,14 +53,3 @@ export function isCadUploadEnabled(email: string | undefined | null): boolean {
 export function isAssetMetadataEnabled(_email: string | undefined | null): boolean {
   return true;
 }
-
-/**
- * CAD sandbox mode — white background, classification overlay (green=metal, blue=gem),
- * slow auto-rotate, no interactive orbit controls, no status bar.
- */
-const CAD_SANDBOX_EMAILS = ['uswa@raresense.so'];
-
-export function isCadSandboxEnabled(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return CAD_SANDBOX_EMAILS.includes(email.toLowerCase());
-}
