@@ -282,6 +282,36 @@
       object-fit: cover;
       display: block;
     }
+    /* ── Stitched input/output ── */
+    .stitch {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stitch-imgs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      overflow: hidden;
+    }
+    .stitch-imgs img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+    .stitch-labels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .stitch-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 7px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+    }
     .tool-card-scores {
       padding: 20px;
       display: flex;
@@ -329,16 +359,6 @@
       grid-template-columns: 1fr 1fr;
       gap: 16px;
       margin-bottom: 20px;
-    }
-    .comp-img {
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
-    .comp-img img {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-      display: block;
     }
     .comp-scores {
       border: 1px solid var(--border);
@@ -613,8 +633,15 @@
           <p class="tool-meta">Primary focus: Rings, necklaces, earrings, bracelets, watches · From $9/mo</p>
           <div class="tool-card">
             <div class="tool-card-inner">
-              <div class="tool-card-img">
-                <img src="/comparison/formanova-output.png" alt="FormaNova AI output — dome ring geometry, stone placement, and proportions preserved from original" />
+              <div class="stitch">
+                <div class="stitch-imgs">
+                  <img src="/comparison/ring-input.png" alt="Input ring design" />
+                  <img src="/comparison/formanova-output.png" alt="FormaNova AI output — dome ring geometry, stone placement, and proportions preserved" />
+                </div>
+                <div class="stitch-labels">
+                  <span class="stitch-label">Input</span>
+                  <span class="stitch-label">Output</span>
+                </div>
               </div>
               <div class="tool-card-scores">
                 <div>
@@ -652,8 +679,15 @@
           <h3>2. SellerPic — Best for social selling &amp; Shopify DTC</h3>
           <p class="tool-meta">Primary focus: Multi-category product imagery, social media · Free trial, paid plans vary</p>
           <div class="comp-grid">
-            <div class="comp-img">
-              <img src="/comparison/sellerpic-output.png" alt="SellerPic AI output for the dome ring test — geometry altered from original" />
+            <div class="stitch">
+              <div class="stitch-imgs" style="border: 1px solid var(--border); overflow:hidden;">
+                <img src="/comparison/ring-input.png" alt="Input ring design" />
+                <img src="/comparison/sellerpic-output.png" alt="SellerPic AI output for the dome ring test — geometry altered from original" />
+              </div>
+              <div class="stitch-labels">
+                <span class="stitch-label">Input</span>
+                <span class="stitch-label">Output</span>
+              </div>
             </div>
             <div class="comp-scores">
               <div>
@@ -686,8 +720,15 @@
           <h3>3. Claid — Best overall AI fashion photography</h3>
           <p class="tool-meta">Primary focus: E-commerce fashion &amp; apparel · From $9/mo</p>
           <div class="comp-grid">
-            <div class="comp-img">
-              <img src="/comparison/claid-output.webp" alt="Claid AI output for the dome ring test — geometry altered from original" />
+            <div class="stitch">
+              <div class="stitch-imgs" style="border: 1px solid var(--border); overflow:hidden;">
+                <img src="/comparison/ring-input.png" alt="Input ring design" />
+                <img src="/comparison/claid-output.webp" alt="Claid AI output for the dome ring test — geometry altered from original" />
+              </div>
+              <div class="stitch-labels">
+                <span class="stitch-label">Input</span>
+                <span class="stitch-label">Output</span>
+              </div>
             </div>
             <div class="comp-scores">
               <div>
@@ -720,8 +761,15 @@
           <h3>4. Caimera — AI-powered product photography</h3>
           <p class="tool-meta">Primary focus: Product photography across categories · Credit-based</p>
           <div class="comp-grid">
-            <div class="comp-img">
-              <img src="/comparison/caimera-output.png" alt="Caimera AI output for the dome ring test — geometry altered from original" />
+            <div class="stitch">
+              <div class="stitch-imgs" style="border: 1px solid var(--border); overflow:hidden;">
+                <img src="/comparison/ring-input.png" alt="Input ring design" />
+                <img src="/comparison/caimera-output.png" alt="Caimera AI output for the dome ring test — geometry altered from original" />
+              </div>
+              <div class="stitch-labels">
+                <span class="stitch-label">Input</span>
+                <span class="stitch-label">Output</span>
+              </div>
             </div>
             <div class="comp-scores">
               <div>
@@ -754,8 +802,15 @@
           <h3>5. The New Black — AI fashion design &amp; product visualization</h3>
           <p class="tool-meta">Primary focus: Fashion design generation &amp; styling · Subscription-based</p>
           <div class="comp-grid">
-            <div class="comp-img">
-              <img src="/comparison/newblack-output.png" alt="The New Black AI output for the dome ring test — geometry altered from original" />
+            <div class="stitch">
+              <div class="stitch-imgs" style="border: 1px solid var(--border); overflow:hidden;">
+                <img src="/comparison/ring-input.png" alt="Input ring design" />
+                <img src="/comparison/newblack-output.png" alt="The New Black AI output for the dome ring test — geometry altered from original" />
+              </div>
+              <div class="stitch-labels">
+                <span class="stitch-label">Input</span>
+                <span class="stitch-label">Output</span>
+              </div>
             </div>
             <div class="comp-scores">
               <div>

@@ -300,12 +300,27 @@ export default function Comparison() {
               </p>
               <div className="border border-foreground/20 p-1">
                 <div className="grid grid-cols-2 gap-4 not-prose">
-                  <div className="overflow-hidden">
-                    <img
-                      src={formanova.outputImage}
-                      alt="FormaNova AI output — dome ring geometry, stone placement, and proportions preserved from original"
-                      className="w-full object-cover aspect-square"
-                    />
+                  <div className="space-y-1">
+                    <div className="grid grid-cols-2 gap-0 overflow-hidden">
+                      <div>
+                        <img
+                          src="/comparison/ring-input.png"
+                          alt="Input ring design"
+                          className="w-full object-cover aspect-square"
+                        />
+                      </div>
+                      <div>
+                        <img
+                          src={formanova.outputImage}
+                          alt="FormaNova AI output — dome ring geometry, stone placement, and proportions preserved from original"
+                          className="w-full object-cover aspect-square"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-0">
+                      <p className="font-mono text-[7px] tracking-[0.12em] text-muted-foreground uppercase text-center">Input</p>
+                      <p className="font-mono text-[7px] tracking-[0.12em] text-muted-foreground uppercase text-center">Output</p>
+                    </div>
                   </div>
                   <div className="p-5 flex flex-col justify-between">
                     <div className="space-y-3">
@@ -343,12 +358,27 @@ export default function Comparison() {
                   Primary focus: {tool.focus} · {tool.pricingNote}
                 </p>
                 <div className="grid grid-cols-2 gap-4 not-prose">
-                  <div className="border border-border/30 overflow-hidden">
-                    <img
-                      src={tool.outputImage}
-                      alt={`${tool.name} AI output for the dome ring test — geometry altered from original`}
-                      className="w-full object-cover aspect-square"
-                    />
+                  <div className="space-y-1">
+                    <div className="grid grid-cols-2 gap-0 border border-border/30 overflow-hidden">
+                      <div>
+                        <img
+                          src="/comparison/ring-input.png"
+                          alt="Input ring design"
+                          className="w-full object-cover aspect-square"
+                        />
+                      </div>
+                      <div>
+                        <img
+                          src={tool.outputImage}
+                          alt={`${tool.name} AI output for the dome ring test — geometry altered from original`}
+                          className="w-full object-cover aspect-square"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-0">
+                      <p className="font-mono text-[7px] tracking-[0.12em] text-muted-foreground uppercase text-center">Input</p>
+                      <p className="font-mono text-[7px] tracking-[0.12em] text-muted-foreground uppercase text-center">Output</p>
+                    </div>
                   </div>
                   <div className="border border-border/30 p-5 flex flex-col justify-between">
                     <div className="space-y-3">
