@@ -150,7 +150,7 @@ const App = () => (
                   <Route path="/oauth-callback" element={<Auth />} />
                   <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
                   <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
-                  <Route path="/blog/best-ai-jewelry-photography-tools-2026" element={<Comparison />} />
+                  <Route path="/ai-jewelry-photography-comparison" element={<Comparison />} />
                   <Route path="/link" element={<LinkAccount />} />
                   {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
                   

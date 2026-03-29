@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 const PUBLISH_DATE = 'March 29, 2026';
 const READING_TIME = '7 min read';
-const CANONICAL = 'https://formanova.ai/blog/best-ai-jewelry-photography-tools-2026';
+const CANONICAL = 'https://formanova.ai/ai-jewelry-photography-comparison';
 
 type Score = 'full' | 'partial' | 'none';
 
@@ -134,7 +134,7 @@ export default function Comparison() {
           content="We tested the best AI jewelry photography tools — Claid, SellerPic, Caimera, The New Black, and FormaNova — on a complex ring. See which ones preserve jewelry geometry and which ones don't."
         />
         <link rel="canonical" href={CANONICAL} />
-        <meta property="og:title" content="7 Best AI Jewelry Photography Tools in 2026 — Compared" />
+        <meta property="og:title" content="Best AI Jewelry Photography Tools 2026 — Compared" />
         <meta property="og:description" content="We tested the leading AI photography tools on a complex ring. Here's what happened to the geometry." />
         <meta property="og:type" content="article" />
         <meta property="article:published_time" content="2026-03-29" />
