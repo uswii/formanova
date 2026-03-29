@@ -58,4 +58,4 @@ export function isAssetMetadataEnabled(_email: string | undefined | null): boole
  * Authenticated image fetching via blob URLs for /artifacts/ paths.
  * Set to true when the backend proxy is confirmed stable in production.
  */
-export const AUTHENTICATED_IMAGES_ENABLED = false;
+export const AUTHENTICATED_IMAGES_ENABLED = true;
