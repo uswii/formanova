@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { Maximize2, Box, Download, Pencil, Check, X, AlertTriangle, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import creditCoinIcon from '@/assets/icons/credit-coin.png';
@@ -299,6 +300,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
   // undefined = enrichment not started; '' = enriched but no thumbnail found
   const isEnriching = workflow.thumbnail_url === undefined;
   const hasThumbnail = !!workflow.thumbnail_url;
+  const resolvedThumbnail = useAuthenticatedImage(workflow.thumbnail_url);
 
   return (
     <>
@@ -311,7 +313,7 @@ function PhotoCard({ workflow, index }: { workflow: WorkflowSummary; index: numb
             aria-label="Enlarge preview"
           >
             <OptimizedImage
-              src={workflow.thumbnail_url!}
+              src={resolvedThumbnail ?? ""}
               alt={workflow.name || 'Generation preview'}
               sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
               className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"

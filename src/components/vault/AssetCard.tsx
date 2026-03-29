@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import type { UserAsset } from '@/lib/assets-api';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 
 export interface AssetCardProps {
   asset: UserAsset;
@@ -19,6 +20,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
   const label = reshootLabel ?? (asset.asset_type === 'model_photo' ? 'New Shoot' : 'New Style');
   const displayName = asset.metadata?.name || asset.name;
   const [editing, setEditing] = useState(false);
+  const resolvedThumbnail = useAuthenticatedImage(asset.thumbnail_url);
   const [nameInput, setNameInput] = useState(displayName ?? '');
   const [saved, setSaved] = useState(false);
 
@@ -45,7 +47,7 @@ export function AssetCard({ asset, onReshoot, onClick, reshootLabel, showMetadat
       {/* ── Image area ── */}
       <div className="w-full overflow-hidden bg-muted">
         <img
-          src={asset.thumbnail_url}
+          src={resolvedThumbnail ?? ""}
           alt={displayName ?? (asset.asset_type === 'model_photo' ? 'Model photo' : 'Jewelry photo')}
           className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
           loading="lazy"

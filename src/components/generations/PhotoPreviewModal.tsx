@@ -9,6 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { useDownloadRename } from '@/components/DownloadRenameDialog';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 interface PhotoPreviewModalProps {
   imageUrl: string;
@@ -18,6 +20,7 @@ interface PhotoPreviewModalProps {
 
 export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalProps) {
   const { promptRename, DownloadDialog } = useDownloadRename();
+  const resolvedSrc = useAuthenticatedImage(imageUrl);
 
   const handleDownload = async () => {
     const urlParts = imageUrl.split('/');
@@ -31,11 +34,14 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
     if (!filename) return;
 
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: filename, file_type: ext, context: 'generations-photo' }));
+    const res = await authenticatedFetch(imageUrl);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = imageUrl;
+    a.href = objectUrl;
     a.download = filename;
-    a.target = '_blank';
     a.click();
+    URL.revokeObjectURL(objectUrl);
   };
 
   return (
@@ -51,7 +57,7 @@ export function PhotoPreviewModal({ imageUrl, alt, onClose }: PhotoPreviewModalP
           {/* Hero image */}
           <div className="relative bg-muted overflow-hidden">
             <OptimizedImage
-              src={imageUrl}
+              src={resolvedSrc ?? ""}
               alt={alt || 'Preview'}
               className="w-full object-contain max-h-[520px]"
             />

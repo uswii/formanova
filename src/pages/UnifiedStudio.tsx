@@ -49,6 +49,8 @@ import { CreditPreflightModal } from '@/components/CreditPreflightModal';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { azureUriToUrl } from '@/lib/azure-utils';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
 import { isAltUploadLayoutEnabled } from '@/lib/feature-flags';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import { AlternateUploadStep } from '@/components/studio/AlternateUploadStep';
@@ -165,6 +167,62 @@ function clearStudioSession() {
 }
 
 interface UserModel { id: string; name: string; url: string; uploadedAt: number; }
+
+function ResultImageItem({ url, index, workflowId, jewelryType }: {
+  url: string;
+  index: number;
+  workflowId: string | null;
+  jewelryType: string;
+}) {
+  const resolvedSrc = useAuthenticatedImage(url);
+  return (
+    <div className="relative group border border-border/30 overflow-hidden w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] max-w-xs">
+      <img
+        src={resolvedSrc ?? ""}
+        alt={`Result ${index + 1}`}
+        className="w-full aspect-[3/4] object-contain bg-muted/30"
+      />
+      <div className="absolute top-2 right-2 flex gap-1.5">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background"
+          onClick={async (e) => {
+            e.stopPropagation();
+            try {
+              const resp = await authenticatedFetch(url);
+              if (!resp.ok) throw new Error('Fetch failed');
+              const blob = await resp.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = blobUrl;
+              a.download = `photoshoot-${workflowId?.slice(0, 8)}-${index + 1}.jpg`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(blobUrl);
+              import('@/lib/posthog-events').then(m => m.trackDownloadClicked({
+                file_type: 'jpg',
+                context: 'unified-studio',
+                category: TO_SINGULAR[jewelryType] ?? jewelryType,
+              }));
+            } catch { alert('Download failed. Please try again.'); }
+          }}
+        >
+          <Download className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background"
+          onClick={(e) => { e.stopPropagation(); window.open(url, '_blank', 'noopener,noreferrer'); }}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function ModelCard({ model, isActive, onSelect, onDelete, onRename }: {
   model: UserModel;
@@ -999,7 +1057,7 @@ export default function UnifiedStudio() {
                   setValidationResult(null);
                   clearValidation();
                   // Fetch and validate the selected product image
-                  fetch(thumbnailUrl)
+                  authenticatedFetch(thumbnailUrl)
                     .then(r => r.blob())
                     .then(blob => {
                       const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
@@ -1613,51 +1671,7 @@ export default function UnifiedStudio() {
             {resultImages.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-4 max-w-5xl mx-auto">
                 {resultImages.map((url, i) => (
-                  <div key={i} className="relative group border border-border/30 overflow-hidden w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] max-w-xs">
-                    <img
-                      src={url}
-                      alt={`Result ${i + 1}`}
-                      className="w-full aspect-[3/4] object-contain bg-muted/30"
-                    />
-                    <div className="absolute top-2 right-2 flex gap-1.5">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const resp = await fetch(url);
-                            if (!resp.ok) throw new Error('Fetch failed');
-                            const blob = await resp.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = blobUrl;
-                            a.download = `photoshoot-${workflowId?.slice(0, 8)}-${i + 1}.jpg`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(blobUrl);
-                            trackDownloadClicked({
-                              file_type: 'jpg',
-                              context: 'unified-studio',
-                              category: TO_SINGULAR[jewelryType] ?? jewelryType,
-                            });
-                          } catch { alert('Download failed. Please try again.'); }
-                        }}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 bg-background/80 backdrop-blur-sm border-border/40 hover:bg-background"
-                        onClick={(e) => { e.stopPropagation(); window.open(url, '_blank', 'noopener,noreferrer'); }}
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
+                  <ResultImageItem key={i} url={url} index={i} workflowId={workflowId} jewelryType={jewelryType} />
                 ))}
               </div>
             ) : (

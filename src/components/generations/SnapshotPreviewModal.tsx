@@ -9,6 +9,19 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/optimized-image';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
+
+function SnapshotThumb({ url, angle }: { url: string; angle: string }) {
+  const resolved = useAuthenticatedImage(url);
+  return (
+    <OptimizedImage
+      src={resolved ?? ""}
+      alt={angle}
+      className="w-full h-full object-cover"
+    />
+  );
+}
 
 interface SnapshotPreviewModalProps {
   screenshots: { angle: string; url: string }[];
@@ -28,19 +41,23 @@ export function SnapshotPreviewModal({
   const [index, setIndex] = useState(Math.min(initialIndex, screenshots.length - 1));
   const shot = screenshots[index];
   const total = screenshots.length;
+  const resolvedSrc = useAuthenticatedImage(shot?.url);
 
   const prev = () => setIndex((index - 1 + total) % total);
   const next = () => setIndex((index + 1) % total);
 
-  const handleDownloadImage = () => {
+  const handleDownloadImage = async () => {
     if (!shot) return;
     const fileName = `ring-${shot.angle}.png`;
     import('@/lib/posthog-events').then(m => m.trackDownloadClicked({ file_name: fileName, file_type: 'png', context: 'generations-snapshot' }));
+    const res = await authenticatedFetch(shot.url);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = shot.url;
+    a.href = objectUrl;
     a.download = fileName;
-    a.target = '_blank';
     a.click();
+    URL.revokeObjectURL(objectUrl);
   };
 
   const handleDownloadGlb = () => {
@@ -82,7 +99,7 @@ export function SnapshotPreviewModal({
               >
                 {shot && (
                   <OptimizedImage
-                    src={shot.url}
+                    src={resolvedSrc ?? ""}
                     alt={shot.angle}
                     className="max-w-full max-h-full object-contain"
                   />
@@ -121,11 +138,7 @@ export function SnapshotPreviewModal({
                       : 'border-transparent hover:border-muted-foreground/40'
                   }`}
                 >
-                  <OptimizedImage
-                    src={s.url}
-                    alt={s.angle}
-                    className="w-full h-full object-cover"
-                  />
+                  <SnapshotThumb url={s.url} angle={s.angle} />
                 </button>
               ))}
             </div>

@@ -18,6 +18,19 @@ import { useUserAssets } from '@/hooks/useUserAssets';
 import { TO_SINGULAR } from '@/lib/jewelry-utils';
 import type { ImageValidationResult } from '@/hooks/use-image-validation';
 import { MasonryGrid } from '@/components/ui/masonry-grid';
+import { useAuthenticatedImage } from '@/hooks/useAuthenticatedImage';
+
+function ProductThumb({ src, alt }: { src: string; alt: string }) {
+  const resolved = useAuthenticatedImage(src);
+  return (
+    <img
+      src={resolved ?? ""}
+      alt={alt}
+      loading="lazy"
+      className="w-full block transition-transform duration-300 group-hover:scale-105"
+    />
+  );
+}
 
 // ── Example images ────────────────────────────────────────────────────────────
 import necklaceAllowed1    from '@/assets/examples/necklace-allowed-1.jpg';
@@ -324,11 +337,9 @@ export function AlternateUploadStep({
                             ? 'border-[hsl(var(--formanova-hero-accent))]'
                             : 'border-border/20 hover:border-foreground/30'}`}
                       >
-                        <img
+                        <ProductThumb
                           src={asset.thumbnail_url}
                           alt={asset.name ?? 'Product'}
-                          loading="lazy"
-                          className="w-full block transition-transform duration-300 group-hover:scale-105"
                         />
 
                         {isSelected && (
