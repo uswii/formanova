@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-/* ─── Types ─────────────────────────────────────────────────── */
+const PUBLISH_DATE = 'March 29, 2026';
+const READING_TIME = '7 min read';
+const CANONICAL = 'https://formanova.ai/blog/best-ai-jewelry-photography-tools-2026';
+
 type Score = 'full' | 'partial' | 'none';
 
 interface Tool {
@@ -19,7 +22,6 @@ interface Tool {
   note: string;
 }
 
-/* ─── Data ───────────────────────────────────────────────────── */
 const TOOLS: Tool[] = [
   {
     name: 'SellerPic',
@@ -84,14 +86,14 @@ const TOOLS: Tool[] = [
     pricingNote: 'From $9/mo',
     outputImage: '/comparison/formanova-output.png',
     note:
-      'FormaNova preserved the ring\'s defining characteristics: the wide dome silhouette, the scattered baguette diamond placement, and the overall proportions of the original design. The model and scene quality match the other tools — but the jewelry itself is recognizably the same piece. This is the result of jewelry-specific training that treats geometry as a non-negotiable constraint, not a creative variable.',
+      "FormaNova preserved the ring's defining characteristics: the wide dome silhouette, the scattered baguette diamond placement, and the overall proportions of the original design. The model and scene quality match the other tools — but the jewelry itself is recognizably the same piece. This is the result of jewelry-specific training that treats geometry as a non-negotiable constraint, not a creative variable.",
   },
 ];
 
 const FAQS = [
   {
     q: 'Why do general AI photography tools struggle with jewelry geometry?',
-    a: 'Most AI photography tools are primarily trained on apparel and lifestyle imagery, where a degree of creative interpretation is acceptable. Jewelry is structurally different: a ring is a precise three-dimensional object where geometry carries design intent. The number of stones, their orientation, the profile of the band — these define the piece. Without jewelry-specific training, AI models tend to "fill in" detail from learned priors, producing something that reads as a ring but does not faithfully represent the actual product.',
+    a: 'Most AI photography tools are primarily trained on apparel and lifestyle imagery, where a degree of creative interpretation is acceptable. Jewelry is structurally different: a ring is a precise three-dimensional object where geometry carries design intent. Without jewelry-specific training, AI models tend to fill in detail from learned priors, producing something that reads as a ring but does not faithfully represent the actual product.',
   },
   {
     q: 'What ring was used in the comparison test?',
@@ -111,16 +113,14 @@ const FAQS = [
   },
 ];
 
-/* ─── Helpers ────────────────────────────────────────────────── */
 function ScoreIcon({ score }: { score: Score }) {
   if (score === 'full')
-    return <CheckCircle2 className="h-5 w-5 text-formanova-success mx-auto" strokeWidth={1.5} />;
+    return <CheckCircle2 className="h-4 w-4 text-formanova-success" strokeWidth={1.5} />;
   if (score === 'partial')
-    return <AlertCircle className="h-5 w-5 text-formanova-warning mx-auto" strokeWidth={1.5} />;
-  return <XCircle className="h-5 w-5 text-muted-foreground/50 mx-auto" strokeWidth={1.5} />;
+    return <AlertCircle className="h-4 w-4 text-formanova-warning" strokeWidth={1.5} />;
+  return <XCircle className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />;
 }
 
-/* ─── Page ───────────────────────────────────────────────────── */
 export default function Comparison() {
   const formanova = TOOLS.find((t) => t.name === 'FormaNova')!;
   const competitors = TOOLS.filter((t) => t.name !== 'FormaNova');
@@ -128,17 +128,16 @@ export default function Comparison() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>Best AI Jewelry Photography Tools 2026 — Compared | FormaNova</title>
+        <title>7 Best AI Jewelry Photography Tools in 2026 — Compared | FormaNova</title>
         <meta
           name="description"
-          content="Compare the best AI jewelry photography tools in 2026: Claid, SellerPic, Caimera, The New Black, and FormaNova. See how each handles complex jewelry geometry and design fidelity on a real ring test."
+          content="We tested the best AI jewelry photography tools — Claid, SellerPic, Caimera, The New Black, and FormaNova — on a complex ring. See which ones preserve jewelry geometry and which ones don't."
         />
-        <link rel="canonical" href="https://formanova.ai/comparison" />
-        <meta property="og:title" content="Best AI Jewelry Photography Tools 2026 — Compared" />
-        <meta
-          property="og:description"
-          content="A detailed comparison of AI photography tools for jewelry — testing geometric fidelity, design preservation, and on-model accuracy on a complex dome ring."
-        />
+        <link rel="canonical" href={CANONICAL} />
+        <meta property="og:title" content="7 Best AI Jewelry Photography Tools in 2026 — Compared" />
+        <meta property="og:description" content="We tested the leading AI photography tools on a complex ring. Here's what happened to the geometry." />
+        <meta property="og:type" content="article" />
+        <meta property="article:published_time" content="2026-03-29" />
       </Helmet>
 
       <script
@@ -146,12 +145,13 @@ export default function Comparison() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Article',
-            headline: 'Best AI Jewelry Photography Tools 2026 — Compared',
-            description:
-              'A detailed comparison of AI photography tools for jewelry, testing geometric fidelity and design preservation on a complex ring.',
+            '@type': 'BlogPosting',
+            headline: '7 Best AI Jewelry Photography Tools in 2026 — Compared',
+            description: 'We tested the leading AI photography tools on a complex ring to see which ones preserve jewelry geometry.',
+            datePublished: '2026-03-29',
+            author: { '@type': 'Organization', name: 'FormaNova' },
             publisher: { '@type': 'Organization', name: 'FormaNova', url: 'https://formanova.ai' },
-            datePublished: '2026-01-01',
+            mainEntityOfPage: CANONICAL,
           }),
         }}
       />
@@ -170,380 +170,328 @@ export default function Comparison() {
         }}
       />
 
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="border-b border-border/30">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-6">
-            Comparison · 2026
-          </p>
-          <h1 className="font-display text-5xl md:text-6xl lg:text-7xl uppercase tracking-wide leading-[0.95] max-w-4xl mb-8">
-            Best AI Jewelry<br />Photography Tools<br />in 2026
-          </h1>
-          <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed mb-10">
-            AI photography has transformed e-commerce — but jewelry presents a unique technical challenge
-            that most tools aren't designed to solve. We tested the leading platforms on a geometrically
-            complex ring to see which ones preserve the design and which ones don't.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <Button asChild size="lg" className="font-mono text-[10px] tracking-[0.2em] uppercase">
-              <Link to="/login">
-                Try FormaNova Free <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="font-mono text-[10px] tracking-[0.2em] uppercase">
-              <a href="#comparison-table">See Full Comparison</a>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── The Challenge ─────────────────────────────────────── */}
-      <section className="border-b border-border/30">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-4">
-            The Core Challenge
-          </p>
-          <h2 className="font-display text-4xl md:text-5xl uppercase tracking-wide mb-10">
-            Jewelry Geometry Is Hard for AI
-          </h2>
-          <div className="grid md:grid-cols-2 gap-12 items-start">
-            <div className="space-y-5">
-              <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
-                Most AI photography tools are built primarily around apparel and lifestyle categories. In
-                those domains, a degree of creative interpretation is acceptable — a collar can be rendered
-                slightly differently without changing the product's identity.
-              </p>
-              <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
-                Jewelry is structurally different. A ring is a three-dimensional object where every prong,
-                every stone, every curve of the shank carries design intent. When AI models encounter
-                geometry they weren't specifically trained on, they fill in from learned priors — producing
-                something that reads as "a ring" but does not represent the actual piece.
-              </p>
-              <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
-                This is a well-understood challenge in generative AI. It's not a flaw — it's an alignment
-                problem. Tools trained on broad e-commerce imagery are optimized for breadth, not for the
-                structural precision that jewelry photography requires.
-              </p>
+      {/* ── Article header ──────────────────────────────────── */}
+      <article>
+        <header className="border-b border-border/30">
+          <div className="max-w-3xl mx-auto px-6 md:px-8 py-16 md:py-20">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground uppercase border border-border/40 px-2.5 py-1">
+                Jewelry AI
+              </span>
+              <span className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
+                {PUBLISH_DATE}
+              </span>
+              <span className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
+                {READING_TIME}
+              </span>
             </div>
-            <div className="grid grid-cols-1 gap-4">
-              {[
-                { label: 'Dome profile flattened or lost', detail: 'Three-dimensional ring silhouettes are often simplified to flat bands' },
-                { label: 'Stone arrangement altered', detail: 'Scattered or irregular stone placements are regularized or removed' },
-                { label: 'Surface texture not preserved', detail: 'Brushed, hammered, or engraved finishes are smoothed over' },
-                { label: 'Overall proportions shifted', detail: 'Band width, stone scale, and ring height can all shift from the original' },
-              ].map(({ label, detail }) => (
-                <div key={label} className="border border-border/30 p-5 flex gap-4 items-start">
-                  <AlertCircle className="h-4 w-4 text-formanova-warning flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <div>
-                    <p className="font-mono text-[9px] tracking-[0.15em] text-foreground uppercase mb-1">{label}</p>
-                    <p className="font-body text-xs text-muted-foreground leading-relaxed">{detail}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Ring Test ─────────────────────────────────────────── */}
-      <section className="border-b border-border/30">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-4">
-            The Ring Test
-          </p>
-          <h2 className="font-display text-4xl md:text-5xl uppercase tracking-wide mb-4">
-            Same Ring. Five Tools.
-          </h2>
-          <p className="font-body text-base text-muted-foreground max-w-2xl leading-relaxed mb-12 text-justify">
-            We submitted one ring to all five platforms: a wide dome-cut ring in brushed yellow gold with
-            scattered baguette diamonds set at varying orientations. A deliberately complex geometry —
-            dome profile, irregular stone placement, textured surface — to stress-test design preservation.
-          </p>
-
-          {/* Input ring */}
-          <div className="mb-14">
-            <p className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase mb-3">
-              Input — Original Design
-            </p>
-            <div className="w-64 border border-border/30 overflow-hidden">
-              <img
-                src="/comparison/ring-input.png"
-                alt="Wide dome gold ring with scattered baguette diamonds — input used for AI photography comparison test"
-                className="w-full object-cover aspect-square"
-              />
-            </div>
-            <p className="font-body text-xs text-muted-foreground mt-3 max-w-xs leading-relaxed">
-              Wide dome-cut brushed gold ring with scattered baguette diamond setting.
-              Complex geometry across all three axes.
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide leading-[0.95] mb-8">
+              7 Best AI Jewelry Photography Tools in 2026 — Compared
+            </h1>
+            <p className="font-body text-base md:text-lg text-muted-foreground leading-relaxed text-justify">
+              AI photography tools have transformed e-commerce — but most were built for clothing.
+              We put the leading platforms to a real test: one complex ring, five tools, and a clear
+              question: which ones actually understand jewelry geometry?
             </p>
           </div>
+        </header>
 
-          {/* Competitor outputs */}
-          <p className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase mb-6">
-            Competitor Outputs
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-14">
-            {competitors.map((tool) => (
-              <div key={tool.name} className="space-y-3">
+        {/* ── Article body ────────────────────────────────────── */}
+        <div className="max-w-3xl mx-auto px-6 md:px-8 py-14 space-y-16">
+
+          {/* Intro */}
+          <section className="space-y-5">
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              Jewelry photography has always been one of the most technically demanding disciplines in
+              product imaging. The combination of reflective surfaces, precise stone settings, and
+              complex three-dimensional geometry makes jewelry uniquely difficult to photograph — and
+              equally difficult for AI to reproduce faithfully.
+            </p>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              Most AI photography platforms have been optimized for apparel and lifestyle imagery, where
+              a degree of creative interpretation is acceptable. A shirt collar rendered slightly
+              differently doesn't change the product. But a ring with its prongs reshaped, its stone
+              count altered, or its dome profile flattened is a different product entirely.
+            </p>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              We tested five of the most widely used AI photography tools on a single, geometrically
+              complex ring. Here's what we found.
+            </p>
+          </section>
+
+          {/* The ring */}
+          <section className="space-y-6">
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide">
+              The Test: A Complex Ring
+            </h2>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              We chose a wide dome-cut ring in brushed yellow gold with scattered baguette diamonds
+              set at varying orientations across the dome surface. This design was selected deliberately
+              for its complexity: an unusual three-dimensional silhouette, irregular stone placement,
+              mixed surface textures, and a distinctive overall profile that would be immediately
+              recognizable if altered.
+            </p>
+            <div className="grid grid-cols-2 gap-4 not-prose">
+              <div className="space-y-2">
                 <div className="border border-border/30 overflow-hidden">
                   <img
-                    src={tool.outputImage}
-                    alt={`${tool.name} AI output for dome ring — geometry altered`}
+                    src="/comparison/ring-input.png"
+                    alt="Wide dome gold ring with scattered baguette diamonds — the test input used across all five AI photography tools"
                     className="w-full object-cover aspect-square"
                   />
                 </div>
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-3.5 w-3.5 text-formanova-warning flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <div>
-                    <p className="font-mono text-[9px] tracking-[0.12em] uppercase">{tool.name}</p>
-                    <p className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">Design altered</p>
+                <p className="font-mono text-[8px] tracking-[0.15em] text-muted-foreground uppercase">
+                  Input — original ring design
+                </p>
+              </div>
+              <div className="border border-border/30 p-5 space-y-3 flex flex-col justify-center">
+                {[
+                  'Wide dome profile — distinctive 3D silhouette',
+                  'Brushed gold texture on dome surface',
+                  'Scattered baguette diamonds, varying orientation',
+                  'Polished inner band with engraving',
+                ].map((detail) => (
+                  <div key={detail} className="flex gap-2 items-start">
+                    <div className="w-1 h-1 rounded-full bg-muted-foreground mt-2 flex-shrink-0" />
+                    <p className="font-body text-xs text-muted-foreground leading-relaxed">{detail}</p>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* FormaNova output — featured */}
-          <div className="border border-foreground/25 p-6 md:p-10">
-            <div className="grid md:grid-cols-2 gap-10 items-center">
-              <div className="border border-border/20 overflow-hidden">
-                <img
-                  src={formanova.outputImage}
-                  alt="FormaNova AI output — dome ring geometry and stone placement preserved"
-                  className="w-full object-cover aspect-square"
-                />
-              </div>
-              <div className="space-y-5">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-formanova-success flex-shrink-0" strokeWidth={1.5} />
-                  <p className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">
-                    FormaNova — Design preserved
-                  </p>
-                </div>
-                <h3 className="font-display text-3xl md:text-4xl uppercase tracking-wide">
-                  Geometry Preserved.<br />Design Intact.
-                </h3>
-                <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">
-                  FormaNova's jewelry-specific model preserved the ring's dome silhouette, the scattered
-                  baguette stone placement, and the overall proportions of the original design. The result
-                  is recognizably the same piece — not a generic ring that fits the prompt.
-                </p>
-                <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">
-                  This is the practical difference between a general-purpose AI tool and one trained
-                  specifically on jewelry: geometry is treated as a constraint to preserve, not a detail
-                  to fill in.
-                </p>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* ── Tool Breakdowns ───────────────────────────────────── */}
-      <section className="border-b border-border/30">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-4">
-            Tool Breakdown
-          </p>
-          <h2 className="font-display text-4xl md:text-5xl uppercase tracking-wide mb-12">
-            Each Tool, Assessed
-          </h2>
-          <div className="space-y-6">
-            {TOOLS.map((tool) => (
-              <div
-                key={tool.name}
-                className={`border p-6 md:p-8 grid md:grid-cols-3 gap-8 items-start ${
-                  tool.name === 'FormaNova'
-                    ? 'border-foreground/25 bg-foreground/[0.02]'
-                    : 'border-border/30'
-                }`}
-              >
-                <div className="md:col-span-2 space-y-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <p className="font-display text-2xl uppercase tracking-wide">{tool.name}</p>
-                    {tool.name === 'FormaNova' && (
-                      <span className="font-mono text-[8px] tracking-[0.2em] uppercase border border-foreground/30 px-2 py-0.5">
-                        Jewelry Specialist
-                      </span>
-                    )}
+          {/* The geometry problem */}
+          <section className="space-y-5">
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide">
+              Why AI Struggles with Jewelry Geometry
+            </h2>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              Generative AI models learn distributions from training data. When they encounter a product
+              type they've seen thousands of times — a t-shirt, a sneaker, a handbag — they can
+              reproduce it faithfully because the training signal is strong and the geometry is familiar.
+            </p>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              Jewelry is a different story. Most AI photography platforms are trained primarily on apparel
+              imagery. When their models encounter a complex ring — particularly one with an unusual
+              silhouette or irregular stone placement — they fall back on learned priors: what a ring
+              "usually" looks like. The result reads as a ring, but it's not <em>your</em> ring.
+            </p>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              This isn't a flaw in any particular tool. It's an alignment problem: a tool trained for
+              breadth across product categories will naturally trade geometric precision for generalization.
+              The solution is jewelry-specific training — models that treat stone count, band profile, and
+              surface detail as constraints to preserve, not variables to fill in.
+            </p>
+          </section>
+
+          {/* Tools */}
+          <section className="space-y-10">
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide">
+              The Tools We Tested
+            </h2>
+
+            {/* Competitors */}
+            {competitors.map((tool, i) => (
+              <div key={tool.name} className="space-y-4">
+                <h3 className="font-display text-2xl uppercase tracking-wide">
+                  {i + 1}. {tool.name} — {tool.tagline}
+                </h3>
+                <p className="font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase">
+                  Primary focus: {tool.focus} · {tool.pricingNote}
+                </p>
+                <div className="grid grid-cols-2 gap-4 not-prose">
+                  <div className="border border-border/30 overflow-hidden">
+                    <img
+                      src={tool.outputImage}
+                      alt={`${tool.name} AI output for the dome ring test — geometry altered from original`}
+                      className="w-full object-cover aspect-square"
+                    />
                   </div>
-                  <p className="font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase">
-                    {tool.tagline}
-                  </p>
-                  <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">{tool.note}</p>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { label: 'Geometry accuracy', score: tool.geometryScore },
-                    { label: 'Design fidelity', score: tool.designFidelity },
-                    { label: 'Jewelry-specific training', score: tool.jewelrySpecific },
-                    { label: 'Ring test', score: tool.ringTest },
-                  ].map(({ label, score }) => (
-                    <div key={label} className="flex justify-between items-center border-b border-border/20 pb-2.5">
-                      <p className="font-mono text-[9px] tracking-[0.12em] text-muted-foreground uppercase">{label}</p>
-                      <ScoreIcon score={score} />
+                  <div className="border border-border/30 p-5 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Geometry accuracy', score: tool.geometryScore },
+                        { label: 'Design fidelity', score: tool.designFidelity },
+                        { label: 'Jewelry-specific', score: tool.jewelrySpecific },
+                      ].map(({ label, score }) => (
+                        <div key={label} className="flex items-center justify-between border-b border-border/20 pb-2">
+                          <span className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">{label}</span>
+                          <ScoreIcon score={score} />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <p className="font-mono text-[9px] tracking-[0.12em] text-muted-foreground uppercase pt-1">
-                    {tool.pricingNote}
-                  </p>
+                    <div className="flex items-start gap-2 mt-4">
+                      <AlertCircle className="h-3.5 w-3.5 text-formanova-warning flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <p className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">
+                        Ring geometry altered
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">
+                  {tool.note}
+                </p>
+              </div>
+            ))}
+
+            {/* FormaNova */}
+            <div className="space-y-4">
+              <h3 className="font-display text-2xl uppercase tracking-wide">
+                {competitors.length + 1}. FormaNova — {formanova.tagline}
+              </h3>
+              <p className="font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase">
+                Primary focus: {formanova.focus} · {formanova.pricingNote}
+              </p>
+              <div className="border border-foreground/20 p-1">
+                <div className="grid md:grid-cols-2 gap-4 not-prose">
+                  <div className="overflow-hidden">
+                    <img
+                      src={formanova.outputImage}
+                      alt="FormaNova AI output — dome ring geometry, stone placement, and proportions preserved from original"
+                      className="w-full object-cover aspect-square"
+                    />
+                  </div>
+                  <div className="p-5 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Geometry accuracy', score: formanova.geometryScore },
+                        { label: 'Design fidelity', score: formanova.designFidelity },
+                        { label: 'Jewelry-specific', score: formanova.jewelrySpecific },
+                        { label: 'Ring test', score: formanova.ringTest },
+                      ].map(({ label, score }) => (
+                        <div key={label} className="flex items-center justify-between border-b border-border/20 pb-2">
+                          <span className="font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">{label}</span>
+                          <ScoreIcon score={score} />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-start gap-2 mt-4">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-formanova-success flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <p className="font-mono text-[8px] tracking-[0.1em] uppercase">
+                        Design preserved
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">
+                {formanova.note}
+              </p>
+            </div>
+          </section>
 
-      {/* ── Comparison Table ──────────────────────────────────── */}
-      <section id="comparison-table" className="border-b border-border/30">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-4">
-            Side by Side
-          </p>
-          <h2 className="font-display text-4xl md:text-5xl uppercase tracking-wide mb-8">
-            Full Comparison Table
-          </h2>
+          {/* Full comparison table */}
+          <section className="space-y-6" id="comparison-table">
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide">
+              Full Comparison Table
+            </h2>
 
-          {/* Legend */}
-          <div className="flex flex-wrap gap-6 mb-10">
-            {[
-              { icon: <CheckCircle2 className="h-4 w-4 text-formanova-success" strokeWidth={1.5} />, label: 'Preserved / Supported' },
-              { icon: <AlertCircle className="h-4 w-4 text-formanova-warning" strokeWidth={1.5} />, label: 'Partial — common challenge in this category' },
-              { icon: <XCircle className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />, label: 'Not a primary focus' },
-            ].map(({ icon, label }) => (
-              <div key={label} className="flex items-center gap-2">
-                {icon}
-                <span className="font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase">{label}</span>
-              </div>
-            ))}
-          </div>
+            {/* Legend */}
+            <div className="flex flex-wrap gap-5">
+              {[
+                { icon: <CheckCircle2 className="h-3.5 w-3.5 text-formanova-success" strokeWidth={1.5} />, label: 'Preserved' },
+                { icon: <AlertCircle className="h-3.5 w-3.5 text-formanova-warning" strokeWidth={1.5} />, label: 'Partial' },
+                { icon: <XCircle className="h-3.5 w-3.5 text-muted-foreground/40" strokeWidth={1.5} />, label: 'Not a focus' },
+              ].map(({ icon, label }) => (
+                <div key={label} className="flex items-center gap-1.5">
+                  {icon}
+                  <span className="font-mono text-[8px] tracking-[0.15em] text-muted-foreground uppercase">{label}</span>
+                </div>
+              ))}
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border/30">
-                  {['Tool', 'Primary Focus', 'Jewelry-Specific', 'Geometry Accuracy', 'Design Fidelity', 'Ring Test', 'Pricing'].map((h) => (
-                    <th key={h} className="text-left py-3 px-3 first:pl-0 last:pr-0 font-mono text-[9px] tracking-[0.15em] text-muted-foreground uppercase font-normal">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {TOOLS.map((tool) => (
-                  <tr
-                    key={tool.name}
-                    className={`border-b border-border/20 ${tool.name === 'FormaNova' ? 'bg-foreground/[0.02]' : ''}`}
-                  >
-                    <td className="py-4 px-3 pl-0">
-                      <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${tool.name === 'FormaNova' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {tool.name}
-                      </span>
-                    </td>
-                    <td className="py-4 px-3 font-mono text-[9px] tracking-[0.1em] text-muted-foreground uppercase max-w-[160px]">
-                      {tool.focus}
-                    </td>
-                    <td className="py-4 px-3"><ScoreIcon score={tool.jewelrySpecific} /></td>
-                    <td className="py-4 px-3"><ScoreIcon score={tool.geometryScore} /></td>
-                    <td className="py-4 px-3"><ScoreIcon score={tool.designFidelity} /></td>
-                    <td className="py-4 px-3"><ScoreIcon score={tool.ringTest} /></td>
-                    <td className="py-4 px-3 pr-0 font-mono text-[9px] tracking-[0.1em] text-muted-foreground uppercase">
-                      {tool.pricingNote}
-                    </td>
+            <div className="overflow-x-auto not-prose">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    {['Tool', 'Jewelry-Specific', 'Geometry', 'Design Fidelity', 'Ring Test', 'Price'].map((h) => (
+                      <th key={h} className="text-left py-2.5 px-3 first:pl-0 font-mono text-[8px] tracking-[0.15em] text-muted-foreground uppercase font-normal whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+                </thead>
+                <tbody>
+                  {TOOLS.map((tool) => (
+                    <tr key={tool.name} className={`border-b border-border/20 ${tool.name === 'FormaNova' ? 'bg-foreground/[0.025]' : ''}`}>
+                      <td className="py-3.5 px-3 pl-0 font-mono text-[9px] tracking-[0.15em] uppercase whitespace-nowrap">
+                        {tool.name}
+                      </td>
+                      <td className="py-3.5 px-3"><ScoreIcon score={tool.jewelrySpecific} /></td>
+                      <td className="py-3.5 px-3"><ScoreIcon score={tool.geometryScore} /></td>
+                      <td className="py-3.5 px-3"><ScoreIcon score={tool.designFidelity} /></td>
+                      <td className="py-3.5 px-3"><ScoreIcon score={tool.ringTest} /></td>
+                      <td className="py-3.5 px-3 font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase whitespace-nowrap">
+                        {tool.pricingNote}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-      {/* ── Who Should Use Each Tool ──────────────────────────── */}
-      <section className="border-b border-border/30">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-4">
-            Choosing the Right Tool
-          </p>
-          <h2 className="font-display text-4xl md:text-5xl uppercase tracking-wide mb-12">
-            Which Tool Is Right for You?
-          </h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              {
-                condition: 'You sell jewelry exclusively',
-                recommendation: 'FormaNova',
-                reason: 'Jewelry-specific training means rings, necklaces, and earrings are handled with the precision your products require. Design geometry is preserved by default.',
-              },
-              {
-                condition: 'You sell jewelry alongside clothing',
-                recommendation: 'FormaNova for jewelry + general tool for apparel',
-                reason: 'Many brands use a specialized tool for their jewelry category and a broader platform for apparel. FormaNova integrates cleanly alongside existing workflows.',
-              },
-              {
-                condition: 'You primarily sell apparel and accessories',
-                recommendation: 'Claid, SellerPic, or Caimera',
-                reason: 'For clothing-first brands, general-purpose AI photography tools perform very well. The geometric precision requirement is less critical for soft goods.',
-              },
-              {
-                condition: 'You need virtual try-on for fashion',
-                recommendation: 'FASHN or SellerPic',
-                reason: 'For apparel try-on workflows at scale, FASHN and SellerPic are well-built for that use case. FormaNova focuses on jewelry product photography, not apparel try-on.',
-              },
-            ].map((item) => (
-              <div key={item.condition} className="border border-border/30 p-6 space-y-3">
-                <p className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground uppercase">If…</p>
-                <h3 className="font-display text-xl uppercase tracking-wide">{item.condition}</h3>
-                <p className="font-mono text-[9px] tracking-[0.15em] uppercase">→ {item.recommendation}</p>
-                <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">{item.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+          {/* Verdict */}
+          <section className="space-y-5">
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide">
+              Verdict
+            </h2>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              All five tools produce professional-quality model photography. For apparel, lifestyle imagery,
+              and simple jewelry like plain bands, any of the platforms reviewed here will deliver good
+              results.
+            </p>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              The difference emerges with geometrically complex jewelry — the kind of pieces that define
+              a fine jewelry brand. Irregular stone placement, dimensional band profiles, mixed surface
+              textures: these are the details that general-purpose AI tools consistently struggle to
+              preserve, and that FormaNova was specifically built to handle.
+            </p>
+            <p className="font-body text-base text-muted-foreground leading-relaxed text-justify">
+              If jewelry is your primary product category, geometric fidelity is the metric that matters
+              most for customer trust and product accuracy. On that metric, purpose-built beats
+              general-purpose — consistently.
+            </p>
+          </section>
 
-      {/* ── FAQ ───────────────────────────────────────────────── */}
-      <section className="border-b border-border/30">
-        <div className="max-w-3xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-4">FAQ</p>
-          <h2 className="font-display text-4xl md:text-5xl uppercase tracking-wide mb-12">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-0">
+          {/* FAQ */}
+          <section className="space-y-0 border-t border-border/30 pt-12">
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide mb-8">
+              Frequently Asked Questions
+            </h2>
             {FAQS.map((f) => (
-              <div key={f.q} className="border-b border-border/20 py-8">
-                <h3 className="font-display text-xl uppercase tracking-wide mb-3">{f.q}</h3>
+              <div key={f.q} className="border-b border-border/20 py-6">
+                <h3 className="font-display text-lg uppercase tracking-wide mb-2">{f.q}</h3>
                 <p className="font-body text-sm text-muted-foreground leading-relaxed text-justify">{f.a}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* ── CTA ───────────────────────────────────────────────── */}
-      <section>
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-20 md:py-28 text-center space-y-8">
-          <p className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase">
-            Built for Jewelry
-          </p>
-          <h2 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase tracking-wide max-w-3xl mx-auto leading-[0.95]">
-            Your Designs.<br />Preserved.<br />Every Time.
-          </h2>
-          <p className="font-body text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            FormaNova is the only AI jewelry photography tool trained specifically to understand and
-            preserve three-dimensional jewelry geometry. Try it on your most complex design.
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Button asChild size="lg" className="font-mono text-[10px] tracking-[0.2em] uppercase">
-              <Link to="/login">
-                Try FormaNova Free <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="font-mono text-[10px] tracking-[0.2em] uppercase">
-              <Link to="/pricing">View Pricing</Link>
-            </Button>
-          </div>
+          {/* CTA */}
+          <section className="border border-border/30 p-8 md:p-10 space-y-5 text-center">
+            <p className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground uppercase">
+              Built for Jewelry
+            </p>
+            <h2 className="font-display text-3xl md:text-4xl uppercase tracking-wide">
+              Try FormaNova on Your Most Complex Design
+            </h2>
+            <p className="font-body text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
+              Upload any ring, necklace, or earring and see the geometry preserved — not reinterpreted.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center pt-2">
+              <Button asChild size="lg" className="font-mono text-[10px] tracking-[0.2em] uppercase">
+                <Link to="/login">
+                  Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="font-mono text-[10px] tracking-[0.2em] uppercase">
+                <Link to="/pricing">View Pricing</Link>
+              </Button>
+            </div>
+          </section>
+
         </div>
-      </section>
+      </article>
     </div>
   );
 }

@@ -53,3 +53,9 @@ export function isCadUploadEnabled(email: string | undefined | null): boolean {
 export function isAssetMetadataEnabled(_email: string | undefined | null): boolean {
   return true;
 }
+
+/**
+ * Authenticated image fetching via blob URLs for /artifacts/ paths.
+ * Set to true when the backend proxy is confirmed stable in production.
+ */
+export const AUTHENTICATED_IMAGES_ENABLED = false;
