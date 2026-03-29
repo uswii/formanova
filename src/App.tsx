@@ -67,6 +67,7 @@ const PromoAdminPage = lazyWithRetry(() => import("./pages/PromoAdminPage"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const AIJewelryPhotoshoot = lazyWithRetry(() => import("./pages/AIJewelryPhotoshoot"));
 const AIJewelryCAD = lazyWithRetry(() => import("./pages/AIJewelryCAD"));
+const Comparison = lazyWithRetry(() => import("./pages/Comparison"));
 const LinkAccount = lazyWithRetry(() => import("./pages/LinkAccount"));
 
 const PageLoader = () => (
@@ -149,6 +150,7 @@ const App = () => (
                   <Route path="/oauth-callback" element={<Auth />} />
                   <Route path="/ai-jewelry-photoshoot" element={<AIJewelryPhotoshoot />} />
                   <Route path="/ai-jewelry-cad" element={<AIJewelryCAD />} />
+                  <Route path="/comparison" element={<Comparison />} />
                   <Route path="/link" element={<LinkAccount />} />
                   {/* <Route path="/tutorial" element={<Tutorial />} /> */}{/* hidden for now */}
                   
