@@ -25,6 +25,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three-stdlib';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Box } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 const __DEV__ = import.meta.env.DEV;
 
