@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { fetchCadResult } from '@/lib/generation-history-api';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
+import { AUTHENTICATED_IMAGES_ENABLED } from '@/lib/feature-flags';
 
 const GLBPreviewSlot = React.lazy(() =>
   import('./ScissorGLBGrid').then((m) => ({ default: m.GLBPreviewSlot }))
